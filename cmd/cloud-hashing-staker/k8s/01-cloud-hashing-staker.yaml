@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: service-sample
+  name: cloud-hashing-staker
   namespace: kube-system
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: service-sample
+      app: cloud-hashing-staker
   template:
     metadata:
       labels:
-        app: service-sample
+        app: cloud-hashing-staker
     spec:
       containers:
-      - name: service-sample
-        image: entropypool/service-sample:latest
+      - name: cloud-hashing-staker
+        image: entropypool/cloud-hashing-staker:latest
         imagePullPolicy: Always
         env:
         - name: ENV_ENVIRONMENT_TARGET
@@ -42,12 +42,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: service-sample
+  name: cloud-hashing-staker
   namespace: kube-system
 spec:
   ports:
-  - name: api
-    port: 32759
-    targetPort: 32759
+  - name: http
+    port: 50180
+    targetPort: 50180
+  - name: grpc
+    port: 50181
+    targetPort: 50181
+  - name: prometheus
+    port: 50182
+    targetPort: 50182
   selector:
-    app: service-sample
+    app: cloud-hashing-staker

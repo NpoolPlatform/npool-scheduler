@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/NpoolPlatform/go-service-app-template/pkg/db/ent/migrate"
+	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/migrate"
 
-	"github.com/NpoolPlatform/go-service-app-template/pkg/db/ent/empty"
+	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/empty"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"

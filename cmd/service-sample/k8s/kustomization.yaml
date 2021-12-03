@@ -1,6 +1,0 @@
-commonLabels:
-  # app: service-sample
-
-resources:
-- 01-service-sample.yaml
-- 02-ingress.yaml

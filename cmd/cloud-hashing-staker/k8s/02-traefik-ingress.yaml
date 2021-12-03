@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: cloud-hashing-staker-ingress
+  namespace: kube-system
+  annotations:
+    k8s.kuboard.cn/displayName: cloud-hashing-staker
+    k8s.kuboard.cn/workload: cloud-hashing-staker
+    kubernetes.io/ingress.class: "traefik-internet"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-cloud-hashing-staker-prefix@kubernetescrd,kube-system-common-headers@kubernetescrd
+
+spec:
+  tls:
+    - secretName: procyon-vip-tls
+  rules:
+    - host: api.npool.top
+      http: &http_rules
+        paths:
+          - path: /api/cloud-hashing-staker/version
+            backend:
+              serviceName: cloud-hashing-staker
+              servicePort: 50180
+    - host: api.xpool.top
+      http: *http_rules
+    - host: www.npool.top
+      http: *http_rules
+    - host: www.xpool.top
+      http: *http_rules
+    - host: www.procyon.vip
+      http: *http_rules
+    - host: procyon.vip
+      http: *http_rules
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-cloud-hashing-staker-prefix
+  namespace: kube-system
+spec:
+  stripPrefix:
+    prefixes:
+      - /api/cloud-hashing-staker

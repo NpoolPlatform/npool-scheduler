@@ -3,23 +3,23 @@
 
 ## Table of Contents
 
-- [npool/service-sample.proto](#npool/service-sample.proto)
-    - [VersionResponse](#service.sample.v1.VersionResponse)
+- [npool/cloud-hashing-staker.proto](#npool/cloud-hashing-staker.proto)
+    - [VersionResponse](#cloud.hashing.staker.v1.VersionResponse)
   
-    - [ServiceExample](#service.sample.v1.ServiceExample)
+    - [CloudHashingStaker](#cloud.hashing.staker.v1.CloudHashingStaker)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="npool/service-sample.proto"></a>
+<a name="npool/cloud-hashing-staker.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## npool/service-sample.proto
+## npool/cloud-hashing-staker.proto
 
 
 
-<a name="service.sample.v1.VersionResponse"></a>
+<a name="cloud.hashing.staker.v1.VersionResponse"></a>
 
 ### VersionResponse
 request body and response
@@ -40,14 +40,14 @@ request body and response
  
 
 
-<a name="service.sample.v1.ServiceExample"></a>
+<a name="cloud.hashing.staker.v1.CloudHashingStaker"></a>
 
-### ServiceExample
-Service Name
+### CloudHashingStaker
+CloudHashingStaker
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| Version | [.google.protobuf.Empty](#google.protobuf.Empty) | [VersionResponse](#service.sample.v1.VersionResponse) | Method Version |
+| Version | [.google.protobuf.Empty](#google.protobuf.Empty) | [VersionResponse](#cloud.hashing.staker.v1.VersionResponse) | Method Version |
 
  
 
