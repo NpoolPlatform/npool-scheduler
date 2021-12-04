@@ -3,8 +3,16 @@ package accounting
 import (
 	"context"
 	"time"
-	// goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
+
+	goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
+	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 )
+
+type goodAccounting struct {
+	good *goodspb.GoodInfo
+}
 
 type accounting struct {
 	ticker              *time.Ticker
@@ -14,7 +22,8 @@ type accounting struct {
 	queryOrders         chan struct{}
 	caculateUserBenefit chan struct{}
 	persistentResult    chan struct{}
-	// goods               []*goodspb.GoodInfo
+
+	goodAccountings []*goodAccounting
 }
 
 func (ac *accounting) onScheduleTick() {
@@ -22,6 +31,20 @@ func (ac *accounting) onScheduleTick() {
 }
 
 func (ac *accounting) onQueryGoods(ctx context.Context) {
+	resp, err := grpc2.GetGoods(ctx, &goodspb.GetGoodsRequest{})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get goods: %v", err)
+	}
+
+	acs := []*goodAccounting{}
+	for _, good := range resp.Infos {
+		acs = append(acs, &goodAccounting{
+			good: good,
+		})
+	}
+	ac.goodAccountings = acs
+
+	go func() { ac.queryAccounts <- struct{}{} }()
 }
 
 func (ac *accounting) onQueryAccounts(ctx context.Context) {
