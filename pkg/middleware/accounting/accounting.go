@@ -65,7 +65,13 @@ func (ac *accounting) onPersistentResult(ctx context.Context) {
 
 func Run(ctx context.Context) {
 	ac := &accounting{
-		ticker: time.NewTicker(30 * time.Second),
+		ticker:              time.NewTicker(30 * time.Second),
+		queryGoods:          make(chan struct{}),
+		queryAccounts:       make(chan struct{}),
+		queryBalance:        make(chan struct{}),
+		queryOrders:         make(chan struct{}),
+		caculateUserBenefit: make(chan struct{}),
+		persistentResult:    make(chan struct{}),
 	}
 
 	for {
