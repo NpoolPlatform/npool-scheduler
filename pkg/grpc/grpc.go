@@ -191,6 +191,16 @@ func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest)
 	return cli.GetCoinAccount(ctx, in)
 }
 
+func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSettingByGoodRequest) (*billingpb.GetPlatformSettingByGoodResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.GetPlatformSettingByGood(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateCoinAddress(ctx context.Context, in *tradingpb.CreateWalletRequest) (*tradingpb.CreateWalletResponse, error) {
