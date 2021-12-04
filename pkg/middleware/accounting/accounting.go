@@ -34,6 +34,7 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	resp, err := grpc2.GetGoods(ctx, &goodspb.GetGoodsRequest{})
 	if err != nil {
 		logger.Sugar().Errorf("fail to get goods: %v", err)
+		return
 	}
 
 	acs := []*goodAccounting{}
