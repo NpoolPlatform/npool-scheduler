@@ -21,7 +21,6 @@ import (
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const" //nolint
 
 	"golang.org/x/xerrors"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 //---------------------------------------------------------------------------------------------------------------------------
@@ -58,7 +57,7 @@ func GetGoodDetail(ctx context.Context, in *goodspb.GetGoodDetailRequest) (*good
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func GetCoinInfos(ctx context.Context, in *emptypb.Empty) (*coininfopb.GetCoinInfosResponse, error) {
+func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) (*coininfopb.GetCoinInfosResponse, error) {
 	conn, err := grpc2.GetGRPCConn(coininfoconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get coininfo connection: %v", err)
