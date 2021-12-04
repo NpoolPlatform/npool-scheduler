@@ -10,6 +10,8 @@ import (
 	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
 	msgsrv "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/server"
 
+	accounting "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/accounting"
+
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -44,6 +46,7 @@ var runCmd = &cli.Command{
 
 		go msglistener.Listen()
 		go msgSender()
+		go accounting.Run(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
