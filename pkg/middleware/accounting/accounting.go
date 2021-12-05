@@ -57,7 +57,7 @@ func (ac *accounting) onQueryAccounts(ctx context.Context) {
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail get platform setting by good: %v", err)
-			return
+			continue
 		}
 
 		logger.Sugar().Infof("get good setting: %v", resp.Info)
