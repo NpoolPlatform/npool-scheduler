@@ -87,15 +87,19 @@ def createFeeType(feeType, feeDesc, payType):
     return r.json()['Info']
 
 
-def createFee(feeType):
+def getAppID():
     r = requests.post('http://application-management.kube-system.svc.cluster.local:50080/v1/get/apps')
     if len(r.json()['Infos']) == 0:
         print('empty application table')
         sys.exit(1)
+    return r.json()['Infos'][0]['ID']
 
+
+def createFee(feeType):
+    appID = getAppID()
     data = {
         'Info': {
-            'AppID': r.json()['Infos'][0]['ID'],
+            'AppID': appID,
             'FeeTypeID': feeType['ID'],
             'Value': 20
         }
@@ -149,6 +153,64 @@ def createGood(coinInfo, device, vendorLocation, priceCurrency, fees):
     return r.json()['Info']
 
 
+def createAccount(coinInfo, address):
+    appID = getAppID()
+    data = {
+        'Info': {
+            'CoinTypeID': coinInfo['ID'],
+            'Address': address,
+            'GeneratedBy': 'platform',
+            'UsedFor': 'benefit',
+            'AppID': appID,
+            'UserID': '00000000-0000-0000-0000-000000000000'
+        }
+    }
+
+    r = requests.post('http://cloud-hashing-billing.kube-system.svc.cluster.local:50030/v1/get/coin/accounts/by/app/user',
+            json={
+                'AppID': appID,
+                'UserID': '00000000-0000-0000-0000-000000000000'
+            })
+    if 'Infos' in r.json():
+        for info in r.json()['Infos']:
+            if info['Address'] == data['Info']['Address']:
+                return info
+
+    r = requests.post('http://cloud-hashing-billing.kube-system.svc.cluster.local:50030/v1/create/coin/account', json=data)
+    print(r.json())
+    return r.json()['Info']
+
+
+
+def createPlatformSetting(coinInfo, good):
+    benefitAccount = createAccount(coinInfo, 't1xujn463wtjyptmcqgeira5jrxddqu4ny5nhpwcq')
+    platformOfflineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
+    userOnlineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
+    userOfflineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
+
+    data = {
+        'Info': {
+            'GoodID': good['ID'],
+            'BenefitAccountID': benefitAccount['ID'],
+            'PlatformOfflineAccountID': platformOfflineAccount['ID'],
+            'UserOnlineAccountID': userOnlineAccount['ID'],
+            'UserOfflineAccountID': userOfflineAccount['ID'],
+            'BenefitIntervalHours': 24,
+        }
+    }
+    r = requests.post('http://cloud-hashing-billing.kube-system.svc.cluster.local:50030/v1/get/platform/setting/by/good',
+            json={
+                'GoodID': good['ID'],
+            })
+    if 'Info' in r.json():
+        for info in r.json()['Info']:
+            print(info)
+            return info
+
+    r = requests.post('http://cloud-hashing-billing.kube-system.svc.cluster.local:50030/v1/create/platform/setting', json=data)
+    return r.json()['Info']
+
+
 class Good:
     def __init__(self, coinType):
         self.coinType = coinType
@@ -198,6 +260,11 @@ class Good:
         if good is None:
             print('fail create good')
             sys.exit(7)
+
+        platformSetting = createPlatformSetting(coinInfo, good)
+        if platformSetting is None:
+            print('fail create platform setting')
+            sys.exit(8)
 
         print('Success create good {}' . format(good))
 
