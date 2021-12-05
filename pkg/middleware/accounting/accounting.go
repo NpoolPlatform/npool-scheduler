@@ -12,18 +12,22 @@ import (
 )
 
 type goodAccounting struct {
-	good        *goodspb.GoodInfo
-	goodsetting *billingpb.PlatformSetting
+	good         *goodspb.GoodInfo
+	goodsetting  *billingpb.PlatformSetting
+	benefits     []*billingpb.PlatformBenefit
+	transactions []*billingpb.CoinAccountTransaction
 }
 
 type accounting struct {
-	ticker              *time.Ticker
-	queryGoods          chan struct{}
-	queryAccounts       chan struct{}
-	queryBalance        chan struct{}
-	queryOrders         chan struct{}
-	caculateUserBenefit chan struct{}
-	persistentResult    chan struct{}
+	ticker                 *time.Ticker
+	queryGoods             chan struct{}
+	queryAccount           chan struct{}
+	queryBenefits          chan struct{}
+	querySpendTransactions chan struct{}
+	queryBalance           chan struct{}
+	queryOrders            chan struct{}
+	caculateUserBenefit    chan struct{}
+	persistentResult       chan struct{}
 
 	goodAccountings []*goodAccounting
 }
@@ -47,10 +51,10 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	}
 	ac.goodAccountings = acs
 
-	go func() { ac.queryAccounts <- struct{}{} }()
+	go func() { ac.queryAccount <- struct{}{} }()
 }
 
-func (ac *accounting) onQueryAccounts(ctx context.Context) {
+func (ac *accounting) onQueryAccount(ctx context.Context) {
 	for _, gac := range ac.goodAccountings {
 		resp, err := grpc2.GetPlatformSettingByGood(ctx, &billingpb.GetPlatformSettingByGoodRequest{
 			GoodID: gac.good.ID,
@@ -60,8 +64,47 @@ func (ac *accounting) onQueryAccounts(ctx context.Context) {
 			continue
 		}
 
-		logger.Sugar().Infof("get good setting: %v", resp.Info)
 		gac.goodsetting = resp.Info
+	}
+
+	go func() { ac.queryBenefits <- struct{}{} }()
+}
+
+func (ac *accounting) onQueryBenefits(ctx context.Context) {
+	for _, gac := range ac.goodAccountings {
+		resp, err := grpc2.GetPlatformBenefitsByGood(ctx, &billingpb.GetPlatformBenefitsByGoodRequest{
+			GoodID: gac.good.ID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get platform benefits by good: %v", err)
+			continue
+		}
+
+		gac.benefits = resp.Infos
+	}
+
+	go func() { ac.querySpendTransactions <- struct{}{} }()
+}
+
+func (ac *accounting) onQuerySpendTransactions(ctx context.Context) {
+	for _, gac := range ac.goodAccountings {
+		resp, err := grpc2.GetCoinAccountTransactionsByCoinAccount(ctx, &billingpb.GetCoinAccountTransactionsByCoinAccountRequest{
+			CoinTypeID: gac.good.CoinInfoID,
+			AddressID:  gac.goodsetting.BenefitAccountID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get benefit account transaction by good: %v", err)
+			continue
+		}
+
+		for _, info := range resp.Infos {
+			if info.ToAddressID == gac.goodsetting.BenefitAccountID {
+				logger.Sugar().Errorf("good benefit account should not accept platform incoming transaction: %v", info.ToAddressID)
+				continue
+			}
+		}
+
+		gac.transactions = resp.Infos
 	}
 
 	go func() { ac.queryBalance <- struct{}{} }()
@@ -81,13 +124,15 @@ func (ac *accounting) onPersistentResult(ctx context.Context) {
 
 func Run(ctx context.Context) {
 	ac := &accounting{
-		ticker:              time.NewTicker(3 * time.Second),
-		queryGoods:          make(chan struct{}),
-		queryAccounts:       make(chan struct{}),
-		queryBalance:        make(chan struct{}),
-		queryOrders:         make(chan struct{}),
-		caculateUserBenefit: make(chan struct{}),
-		persistentResult:    make(chan struct{}),
+		ticker:                 time.NewTicker(3 * time.Second),
+		queryGoods:             make(chan struct{}),
+		queryAccount:           make(chan struct{}),
+		queryBenefits:          make(chan struct{}),
+		querySpendTransactions: make(chan struct{}),
+		queryBalance:           make(chan struct{}),
+		queryOrders:            make(chan struct{}),
+		caculateUserBenefit:    make(chan struct{}),
+		persistentResult:       make(chan struct{}),
 	}
 
 	for {
@@ -96,8 +141,12 @@ func Run(ctx context.Context) {
 			ac.onScheduleTick()
 		case <-ac.queryGoods:
 			ac.onQueryGoods(ctx)
-		case <-ac.queryAccounts:
-			ac.onQueryAccounts(ctx)
+		case <-ac.queryAccount:
+			ac.onQueryAccount(ctx)
+		case <-ac.queryBenefits:
+			ac.onQueryBenefits(ctx)
+		case <-ac.querySpendTransactions:
+			ac.onQuerySpendTransactions(ctx)
 		case <-ac.queryBalance:
 			ac.onQueryBalance(ctx)
 		case <-ac.queryOrders:

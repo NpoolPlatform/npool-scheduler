@@ -11,8 +11,8 @@ import (
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	coininfoconst "github.com/NpoolPlatform/sphinx-coininfo/pkg/message/const" //nolint
 
-	tradingpb "github.com/NpoolPlatform/message/npool/trading"
-	tradingconst "github.com/NpoolPlatform/sphinx-service/pkg/message/const" //nolint
+	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	sphinxproxyconst "github.com/NpoolPlatform/sphinx-proxy/pkg/message/const" //nolint
 
 	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const" //nolint
@@ -201,24 +201,44 @@ func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSett
 	return cli.GetPlatformSettingByGood(ctx, in)
 }
 
-//---------------------------------------------------------------------------------------------------------------------------
-
-func CreateCoinAddress(ctx context.Context, in *tradingpb.CreateWalletRequest) (*tradingpb.CreateWalletResponse, error) {
-	conn, err := grpc2.GetGRPCConn(tradingconst.ServiceName, grpc2.GRPCTAG)
+func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBenefitsByGoodRequest) (*billingpb.GetPlatformBenefitsByGoodResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get trading connection: %v", err)
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
 
-	cli := tradingpb.NewTradingClient(conn)
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.GetPlatformBenefitsByGood(ctx, in)
+}
+
+func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByCoinAccountRequest) (*billingpb.GetCoinAccountTransactionsByCoinAccountResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.GetCoinAccountTransactionsByCoinAccount(ctx, in)
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+
+func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (*sphinxproxypb.CreateWalletResponse, error) {
+	conn, err := grpc2.GetGRPCConn(sphinxproxyconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
+	}
+
+	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.CreateWallet(ctx, in)
 }
 
-func GetWalletBalance(ctx context.Context, in *tradingpb.GetWalletBalanceRequest) (*tradingpb.GetWalletBalanceResponse, error) {
-	conn, err := grpc2.GetGRPCConn(tradingconst.ServiceName, grpc2.GRPCTAG)
+func GetBalance(ctx context.Context, in *sphinxproxypb.GetBalanceRequest) (*sphinxproxypb.GetBalanceResponse, error) {
+	conn, err := grpc2.GetGRPCConn(sphinxproxyconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get trading connection: %v", err)
+		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
 
-	cli := tradingpb.NewTradingClient(conn)
-	return cli.GetWalletBalance(ctx, in)
+	cli := sphinxproxypb.NewSphinxProxyClient(conn)
+	return cli.GetBalance(ctx, in)
 }
