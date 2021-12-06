@@ -14,6 +14,9 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxyconst "github.com/NpoolPlatform/sphinx-proxy/pkg/message/const" //nolint
 
+	sphinxservicepb "github.com/NpoolPlatform/message/npool/sphinxservice"
+	sphinxserviceconst "github.com/NpoolPlatform/sphinx-service/pkg/message/const" //nolint
+
 	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const" //nolint
 
@@ -201,6 +204,16 @@ func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRe
 	return cli.CreateCoinAccount(ctx, in)
 }
 
+func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBenefitRequest) (*billingpb.CreatePlatformBenefitResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.CreatePlatformBenefit(ctx, in)
+}
+
 func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest) (*billingpb.GetCoinAccountResponse, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
@@ -229,6 +242,16 @@ func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBen
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetPlatformBenefitsByGood(ctx, in)
+}
+
+func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatestPlatformBenefitByGoodRequest) (*billingpb.GetLatestPlatformBenefitByGoodResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.GetLatestPlatformBenefitByGood(ctx, in)
 }
 
 func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByCoinAccountRequest) (*billingpb.GetCoinAccountTransactionsByCoinAccountResponse, error) {
@@ -261,4 +284,16 @@ func GetBalance(ctx context.Context, in *sphinxproxypb.GetBalanceRequest) (*sphi
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.GetBalance(ctx, in)
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+
+func CreateTransaction(ctx context.Context, in *sphinxservicepb.CreateTransactionRequest) (*sphinxservicepb.CreateTransactionResponse, error) {
+	conn, err := grpc2.GetGRPCConn(sphinxserviceconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get sphinxservice connection: %v", err)
+	}
+
+	cli := sphinxservicepb.NewSphinxServiceClient(conn)
+	return cli.CreateTransaction(ctx, in)
 }

@@ -15,6 +15,8 @@ import (
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
+	"github.com/google/uuid"
 )
 
 type goodAccounting struct {
@@ -254,6 +256,8 @@ func (ac *accounting) onQueryCompensates(ctx context.Context) {
 }
 
 func (ac *accounting) onCaculateUserBenefit() {
+	acs := []*goodAccounting{}
+
 	for _, gac := range ac.goodAccountings {
 		if gac.good.BenefitType == goodsconst.BenefitTypePool {
 			continue
@@ -278,10 +282,45 @@ func (ac *accounting) onCaculateUserBenefit() {
 		}
 
 		gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
+		acs = append(acs, gac)
 	}
+	ac.goodAccountings = acs
 }
 
 func (ac *accounting) onPersistentResult(ctx context.Context) {
+	for _, gac := range ac.goodAccountings {
+		if gac.good.BenefitType == goodsconst.BenefitTypePool {
+			continue
+		}
+
+		resp, err := grpc2.GetLatestPlatformBenefitByGood(ctx, &billingpb.GetLatestPlatformBenefitByGoodRequest{
+			GoodID: gac.good.ID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get latest platform benefit by good: %v", err)
+			continue
+		}
+
+		secondsInDay := uint32(24 * 60 * 60)
+		lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
+		if resp.Info != nil {
+			lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
+		}
+
+		_, err = grpc2.CreatePlatformBenefit(ctx, &billingpb.CreatePlatformBenefitRequest{
+			Info: &billingpb.PlatformBenefit{
+				GoodID:               gac.good.ID,
+				BenefitAccountID:     gac.goodsetting.BenefitAccountID,
+				Amount:               gac.afterQueryBalanceInfo.Balance - gac.preQueryBalance,
+				LastBenefitTimestamp: lastBenefitTimestamp,
+				ChainTransactionID:   uuid.New().String(),
+			},
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail create platform benefit for good: %v", err)
+			continue
+		}
+	}
 }
 
 func Run(ctx context.Context) {
