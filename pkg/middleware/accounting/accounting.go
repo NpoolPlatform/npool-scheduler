@@ -66,17 +66,15 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 
 func (ac *accounting) onQueryCoininfo(ctx context.Context) {
 	for _, gac := range ac.goodAccountings {
-		resp, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{})
+		resp, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+			ID: gac.good.CoinInfoID,
+		})
 		if err != nil {
-			logger.Sugar().Errorf("fail get coin infos: %v [%v]", err, gac.good)
+			logger.Sugar().Errorf("fail get coin info: %v [%v]", err, gac.good)
 			continue
 		}
 
-		for _, info := range resp.Infos {
-			if info.ID == gac.good.CoinInfoID {
-				gac.coininfo = info
-			}
-		}
+		gac.coininfo = resp.Info
 	}
 
 	go func() { ac.queryAccount <- struct{}{} }()
