@@ -8,6 +8,7 @@ import (
 
 	billingpb "github.com/NpoolPlatform/cloud-hashing-billing/message/npool"
 	goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
+	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 
@@ -23,6 +24,7 @@ type goodAccounting struct {
 	transactions          []*billingpb.CoinAccountTransaction
 	preQueryBalance       float64
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
+	orders                []*orderpb.Order
 }
 
 type accounting struct {
@@ -212,6 +214,21 @@ func (ac *accounting) onQueryBalance(ctx context.Context) {
 }
 
 func (ac *accounting) onQueryOrders(ctx context.Context) {
+	acs := []*goodAccounting{}
+
+	for _, gac := range ac.goodAccountings {
+		resp, err := grpc2.GetOrdersByGood(ctx, &orderpb.GetOrdersByGoodRequest{
+			GoodID: gac.good.ID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get orders by good: %v", err)
+			continue
+		}
+
+		gac.orders = resp.Infos
+		acs = append(acs, gac)
+	}
+	ac.goodAccountings = acs
 }
 
 func (ac *accounting) onCaculateUserBenefit(ctx context.Context) {
