@@ -12,6 +12,8 @@ import (
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 
+	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 )
 
@@ -25,6 +27,9 @@ type goodAccounting struct {
 	preQueryBalance       float64
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
 	orders                []*orderpb.Order
+	compensates           map[string][]*orderpb.Compensate
+	userUnits             uint32
+	platformUnits         uint32
 }
 
 type accounting struct {
@@ -42,8 +47,9 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	acs := []*goodAccounting{}
 	for _, good := range resp.Infos {
 		acs = append(acs, &goodAccounting{
-			good:     good,
-			accounts: map[string]*billingpb.CoinAccountInfo{},
+			good:        good,
+			accounts:    map[string]*billingpb.CoinAccountInfo{},
+			compensates: map[string][]*orderpb.Compensate{},
 		})
 	}
 	ac.goodAccountings = acs
@@ -231,7 +237,48 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 	ac.goodAccountings = acs
 }
 
-func (ac *accounting) onCaculateUserBenefit(ctx context.Context) {
+func (ac *accounting) onQueryCompensates(ctx context.Context) {
+	for _, gac := range ac.goodAccountings {
+		for _, order := range gac.orders {
+			resp, err := grpc2.GetCompensatesByOrder(ctx, &orderpb.GetCompensatesByOrderRequest{
+				OrderID: order.ID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail get compensates by order: %v", err)
+				continue
+			}
+
+			gac.compensates[order.ID] = resp.Infos
+		}
+	}
+}
+
+func (ac *accounting) onCaculateUserBenefit() {
+	for _, gac := range ac.goodAccountings {
+		if gac.good.BenefitType == goodsconst.BenefitTypePool {
+			continue
+		}
+
+		gac.userUnits = 0
+		gac.platformUnits = 0
+		goodDurationSeconds := uint32(gac.good.DurationDays * 24 * 60 * 60)
+		nowSeconds := uint32(time.Now().Unix())
+
+		for _, order := range gac.orders {
+			compensateSeconds := uint32(0)
+			for _, compensate := range gac.compensates[order.ID] {
+				compensateSeconds += compensate.End - compensate.Start
+			}
+
+			if order.Start+goodDurationSeconds+compensateSeconds < nowSeconds {
+				continue
+			}
+
+			gac.userUnits += order.Units
+		}
+
+		gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
+	}
 }
 
 func (ac *accounting) onPersistentResult(ctx context.Context) {
@@ -251,7 +298,8 @@ func Run(ctx context.Context) {
 		ac.onQuerySpendTransactions(ctx)
 		ac.onQueryBalance(ctx)
 		ac.onQueryOrders(ctx)
-		ac.onCaculateUserBenefit(ctx)
+		ac.onQueryCompensates(ctx)
+		ac.onCaculateUserBenefit()
 		ac.onPersistentResult(ctx)
 
 		<-ac.ticker.C

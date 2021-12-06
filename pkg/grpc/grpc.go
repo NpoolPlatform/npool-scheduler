@@ -99,6 +99,16 @@ func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) (*
 	return cli.GetOrdersByGood(ctx, in)
 }
 
+func GetCompensatesByOrder(ctx context.Context, in *orderpb.GetCompensatesByOrderRequest) (*orderpb.GetCompensatesByOrderResponse, error) {
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get order connection: %v", err)
+	}
+
+	cli := orderpb.NewCloudHashingOrderClient(conn)
+	return cli.GetCompensatesByOrder(ctx, in)
+}
+
 func GetOrderDetail(ctx context.Context, in *orderpb.GetOrderDetailRequest) (*orderpb.GetOrderDetailResponse, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
