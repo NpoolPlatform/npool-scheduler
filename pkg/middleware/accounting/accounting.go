@@ -2,6 +2,7 @@ package accounting
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
@@ -287,7 +288,7 @@ func (ac *accounting) onCaculateUserBenefit() {
 	ac.goodAccountings = acs
 }
 
-func (ac *accounting) onPersistentResult(ctx context.Context) {
+func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 	for _, gac := range ac.goodAccountings {
 		if gac.good.BenefitType == goodsconst.BenefitTypePool {
 			continue
@@ -320,10 +321,66 @@ func (ac *accounting) onPersistentResult(ctx context.Context) {
 			logger.Sugar().Errorf("fail create platform benefit for good: %v", err)
 			continue
 		}
+
+		totalAmount := gac.afterQueryBalanceInfo.Balance - gac.preQueryBalance
+		if totalAmount < 0 {
+			logger.Sugar().Errorf("invalid amount: balance after query %v < before query %v [%v]",
+				gac.afterQueryBalanceInfo.Balance,
+				gac.preQueryBalance,
+				gac.good.ID)
+			continue
+		}
+
+		if gac.userUnits > 0 {
+			_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+				Info: &billingpb.CoinAccountTransaction{
+					AppID:         uuid.UUID{}.String(),
+					UserID:        uuid.UUID{}.String(),
+					FromAddressID: gac.goodsetting.BenefitAccountID,
+					ToAddressID:   gac.goodsetting.UserOnlineAccountID,
+					CoinTypeID:    gac.coininfo.ID,
+					Amount:        totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
+					Message:       fmt.Sprintf("user benefit of %v at %v", gac.good.ID, time.Now()),
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create coin account transaction: %v", err)
+				continue
+			}
+
+			// TODO: transfer to chain
+			// TODO: update coin account transaction state
+			// TODO: check user online threshold and transfer to offline address
+		}
+
+		if gac.platformUnits > 0 {
+			_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+				Info: &billingpb.CoinAccountTransaction{
+					AppID:         uuid.UUID{}.String(),
+					UserID:        uuid.UUID{}.String(),
+					FromAddressID: gac.goodsetting.BenefitAccountID,
+					ToAddressID:   gac.goodsetting.PlatformOfflineAccountID,
+					CoinTypeID:    gac.coininfo.ID,
+					Amount:        totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
+					Message:       fmt.Sprintf("platform benefit of %v at %v", gac.good.ID, time.Now()),
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create coin account transaction: %v", err)
+				continue
+			}
+
+			// TODO: transfer to chain
+			// TODO: update coin account transaction state
+		}
+
+		// TODO: create user benefit according to valid order share of the good
 	}
 }
 
 func Run(ctx context.Context) {
+	// TODO: when to start
+
 	ac := &accounting{
 		ticker: time.NewTicker(30 * time.Second),
 	}
