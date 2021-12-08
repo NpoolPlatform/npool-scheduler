@@ -337,13 +337,15 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		if gac.userUnits > 0 {
 			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 				Info: &billingpb.CoinAccountTransaction{
-					AppID:         uuid.UUID{}.String(),
-					UserID:        uuid.UUID{}.String(),
-					FromAddressID: gac.goodsetting.BenefitAccountID,
-					ToAddressID:   gac.goodsetting.UserOnlineAccountID,
-					CoinTypeID:    gac.coininfo.ID,
-					Amount:        totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
-					Message:       fmt.Sprintf("user benefit of %v at %v", gac.good.ID, time.Now()),
+					AppID:                 uuid.UUID{}.String(),
+					UserID:                uuid.UUID{}.String(),
+					FromAddressID:         gac.goodsetting.BenefitAccountID,
+					ToAddressID:           gac.goodsetting.UserOnlineAccountID,
+					CoinTypeID:            gac.coininfo.ID,
+					Amount:                totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
+					Message:               fmt.Sprintf("user benefit of %v at %v", gac.good.ID, time.Now()),
+					PlatformTransactionID: uuid.New().String(),
+					ChainTransactionID:    uuid.New().String(),
 				},
 			})
 			if err != nil {
@@ -352,6 +354,10 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			}
 
 			// Transfer to chain
+			logger.Sugar().Infof("transfer %v from %v to %v",
+				totalAmount*float64(gac.userUnits)*1.0/float64(gac.good.Total),
+				gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+				gac.accounts[gac.goodsetting.UserOnlineAccountID].Address)
 			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
 				TransactionID: resp.Info.ID,
 				Name:          gac.coininfo.Name,
@@ -386,13 +392,15 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		if gac.platformUnits > 0 {
 			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 				Info: &billingpb.CoinAccountTransaction{
-					AppID:         uuid.UUID{}.String(),
-					UserID:        uuid.UUID{}.String(),
-					FromAddressID: gac.goodsetting.BenefitAccountID,
-					ToAddressID:   gac.goodsetting.PlatformOfflineAccountID,
-					CoinTypeID:    gac.coininfo.ID,
-					Amount:        totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
-					Message:       fmt.Sprintf("platform benefit of %v at %v", gac.good.ID, time.Now()),
+					AppID:                 uuid.UUID{}.String(),
+					UserID:                uuid.UUID{}.String(),
+					FromAddressID:         gac.goodsetting.BenefitAccountID,
+					ToAddressID:           gac.goodsetting.PlatformOfflineAccountID,
+					CoinTypeID:            gac.coininfo.ID,
+					Amount:                totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
+					Message:               fmt.Sprintf("platform benefit of %v at %v", gac.good.ID, time.Now()),
+					PlatformTransactionID: uuid.New().String(),
+					ChainTransactionID:    uuid.New().String(),
 				},
 			})
 			if err != nil {
@@ -401,6 +409,10 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			}
 
 			// Transfer to chain
+			logger.Sugar().Infof("transfer %v from %v to %v",
+				totalAmount*float64(gac.platformUnits)*1.0/float64(gac.good.Total),
+				gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+				gac.accounts[gac.goodsetting.UserOnlineAccountID].Address)
 			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
 				TransactionID: resp.Info.ID,
 				Name:          gac.coininfo.Name,
@@ -475,9 +487,9 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:   time.NewTicker(30 * time.Second),
-		waitTicker:   time.NewTicker(30 * time.Second),
-		payingTicker: time.NewTicker(30 * time.Second),
+		scanTicker:   time.NewTicker(3 * time.Second),
+		waitTicker:   time.NewTicker(3 * time.Second),
+		payingTicker: time.NewTicker(3 * time.Second),
 	}
 
 	for {
