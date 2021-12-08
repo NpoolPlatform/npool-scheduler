@@ -12,6 +12,7 @@ import (
 	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	sphinxservicepb "github.com/NpoolPlatform/message/npool/sphinxservice"
 
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
 
@@ -36,7 +37,9 @@ type goodAccounting struct {
 }
 
 type accounting struct {
-	ticker          *time.Ticker
+	scanTicker      *time.Ticker
+	waitTicker      *time.Ticker
+	payingTicker    *time.Ticker
 	goodAccountings []*goodAccounting
 }
 
@@ -332,7 +335,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		}
 
 		if gac.userUnits > 0 {
-			_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 				Info: &billingpb.CoinAccountTransaction{
 					AppID:         uuid.UUID{}.String(),
 					UserID:        uuid.UUID{}.String(),
@@ -348,13 +351,40 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 				continue
 			}
 
-			// TODO: transfer to chain
-			// TODO: update coin account transaction state
+			// Transfer to chain
+			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
+				TransactionID: resp.Info.ID,
+				Name:          gac.coininfo.Name,
+				Amount:        totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
+				From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+				To:            gac.accounts[gac.goodsetting.UserOnlineAccountID].Address,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create transaction: %v", err)
+				resp.Info.State = "fail"
+				_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+					Info: resp.Info,
+				})
+				if err != nil {
+					logger.Sugar().Errorf("fail update transaction to fail: %v", err)
+				}
+				continue
+			}
+
+			// Update coin account transaction state
+			resp.Info.State = "paying"
+			_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+				Info: resp.Info,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail update transaction to paying: %v", err)
+				continue
+			}
 			// TODO: check user online threshold and transfer to offline address
 		}
 
 		if gac.platformUnits > 0 {
-			_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 				Info: &billingpb.CoinAccountTransaction{
 					AppID:         uuid.UUID{}.String(),
 					UserID:        uuid.UUID{}.String(),
@@ -370,11 +400,74 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 				continue
 			}
 
-			// TODO: transfer to chain
-			// TODO: update coin account transaction state
+			// Transfer to chain
+			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
+				TransactionID: resp.Info.ID,
+				Name:          gac.coininfo.Name,
+				Amount:        totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
+				From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+				To:            gac.accounts[gac.goodsetting.PlatformOfflineAccountID].Address,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create transaction: %v", err)
+				resp.Info.State = "fail"
+				_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+					Info: resp.Info,
+				})
+				if err != nil {
+					logger.Sugar().Errorf("fail update transaction to fail: %v", err)
+				}
+				continue
+			}
+
+			// Update coin account transaction state
+			resp.Info.State = "paying"
+			_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+				Info: resp.Info,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail update transaction to paying: %v", err)
+				continue
+			}
 		}
 
 		// TODO: create user benefit according to valid order share of the good
+		for _, order := range gac.orders {
+			if gac.good.ID != order.GoodID {
+				continue
+			}
+
+			resp, err := grpc2.GetLatestUserBenefitByGoodAppUser(ctx, &billingpb.GetLatestUserBenefitByGoodAppUserRequest{
+				GoodID: gac.good.ID,
+				AppID:  order.AppID,
+				UserID: order.UserID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail get latest user benefit by good: %v", err)
+				continue
+			}
+
+			secondsInDay := uint32(24 * 60 * 60)
+			lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
+			if resp.Info != nil {
+				lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
+			}
+
+			_, err = grpc2.CreateUserBenefit(ctx, &billingpb.CreateUserBenefitRequest{
+				Info: &billingpb.UserBenefit{
+					UserID:               order.UserID,
+					AppID:                order.AppID,
+					GoodID:               order.GoodID,
+					Amount:               totalAmount * float64(order.Units) * 1.0 / float64(gac.good.Total),
+					LastBenefitTimestamp: lastBenefitTimestamp,
+					OrderID:              order.ID,
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create user benefit: %v", err)
+				continue
+			}
+		}
 	}
 }
 
@@ -382,22 +475,29 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		ticker: time.NewTicker(30 * time.Second),
+		scanTicker:   time.NewTicker(30 * time.Second),
+		waitTicker:   time.NewTicker(30 * time.Second),
+		payingTicker: time.NewTicker(30 * time.Second),
 	}
 
 	for {
-		ac.onQueryGoods(ctx)
-		ac.onQueryCoininfo(ctx)
-		ac.onQueryAccount(ctx)
-		ac.onQueryAccountInfo(ctx)
-		ac.onQueryBenefits(ctx)
-		ac.onQuerySpendTransactions(ctx)
-		ac.onQueryBalance(ctx)
-		ac.onQueryOrders(ctx)
-		ac.onQueryCompensates(ctx)
-		ac.onCaculateUserBenefit()
-		ac.onPersistentResult(ctx)
-
-		<-ac.ticker.C
+		select {
+		case <-ac.scanTicker.C:
+			ac.onQueryGoods(ctx)
+			ac.onQueryCoininfo(ctx)
+			ac.onQueryAccount(ctx)
+			ac.onQueryAccountInfo(ctx)
+			ac.onQueryBenefits(ctx)
+			ac.onQuerySpendTransactions(ctx)
+			ac.onQueryBalance(ctx)
+			ac.onQueryOrders(ctx)
+			ac.onQueryCompensates(ctx)
+			ac.onCaculateUserBenefit()
+			ac.onPersistentResult(ctx)
+		case <-ac.waitTicker.C:
+			// TODO: scan wait transaction
+		case <-ac.payingTicker.C:
+			// TODO: scan paying transaction
+		}
 	}
 }

@@ -183,8 +183,8 @@ def createAccount(coinInfo, address):
 
 
 def createPlatformSetting(coinInfo, good):
-    benefitAccount = createAccount(coinInfo, 't1xujn463wtjyptmcqgeira5jrxddqu4ny5nhpwcq')
-    platformOfflineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
+    benefitAccount = createAccount(coinInfo, 'f1teetnxub5hprcxl2fz36s4utjuh5m3cyig55d4i')
+    platformOfflineAccount = createAccount(coinInfo, 't1xujn463wtjyptmcqgeira5jrxddqu4ny5nhpwcq')
     userOnlineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
     userOfflineAccount = createAccount(coinInfo, 't14axq5govqaym6wbc37brrfibo34sok3rgbp2jjq')
 

@@ -214,6 +214,16 @@ func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBene
 	return cli.CreatePlatformBenefit(ctx, in)
 }
 
+func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitRequest) (*billingpb.CreateUserBenefitResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.CreateUserBenefit(ctx, in)
+}
+
 func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest) (*billingpb.GetCoinAccountResponse, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
@@ -254,6 +264,16 @@ func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatest
 	return cli.GetLatestPlatformBenefitByGood(ctx, in)
 }
 
+func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLatestUserBenefitByGoodAppUserRequest) (*billingpb.GetLatestUserBenefitByGoodAppUserResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.GetLatestUserBenefitByGoodAppUser(ctx, in)
+}
+
 func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByCoinAccountRequest) (*billingpb.GetCoinAccountTransactionsByCoinAccountResponse, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
@@ -272,6 +292,16 @@ func CreateCoinAccountTransaction(ctx context.Context, in *billingpb.CreateCoinA
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.CreateCoinAccountTransaction(ctx, in)
+}
+
+func UpdateCoinAccountTransaction(ctx context.Context, in *billingpb.UpdateCoinAccountTransactionRequest) (*billingpb.UpdateCoinAccountTransactionResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+	return cli.UpdateCoinAccountTransaction(ctx, in)
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
