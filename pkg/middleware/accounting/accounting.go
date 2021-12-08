@@ -19,6 +19,8 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	"github.com/google/uuid"
+
+	"golang.org/x/xerrors"
 )
 
 type goodAccounting struct {
@@ -291,6 +293,69 @@ func (ac *accounting) onCaculateUserBenefit() {
 	ac.goodAccountings = acs
 }
 
+func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, totalAmount float64, benefitType string) error {
+	toAddressID := gac.goodsetting.UserOnlineAccountID
+	units := gac.userUnits
+
+	if benefitType == "platform" {
+		toAddressID = gac.goodsetting.PlatformOfflineAccountID
+		units = gac.platformUnits
+	}
+
+	resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+		Info: &billingpb.CoinAccountTransaction{
+			AppID:                 uuid.UUID{}.String(),
+			UserID:                uuid.UUID{}.String(),
+			FromAddressID:         gac.goodsetting.BenefitAccountID,
+			ToAddressID:           toAddressID,
+			CoinTypeID:            gac.coininfo.ID,
+			Amount:                totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
+			Message:               fmt.Sprintf("%v benefit of %v at %v", benefitType, gac.good.ID, time.Now()),
+			PlatformTransactionID: uuid.New().String(),
+			ChainTransactionID:    uuid.New().String(),
+		},
+	})
+	if err != nil {
+		return xerrors.Errorf("fail create coin account transaction: %v", err)
+	}
+
+	// Transfer to chain
+	logger.Sugar().Infof("transfer %v from %v to %v for %v",
+		totalAmount*float64(units)*1.0/float64(gac.good.Total),
+		gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+		gac.accounts[toAddressID].Address,
+		benefitType)
+	_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
+		TransactionID: resp.Info.ID,
+		Name:          gac.coininfo.Name,
+		Amount:        totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
+		From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+		To:            gac.accounts[toAddressID].Address,
+	})
+	if err != nil {
+		err1 := xerrors.Errorf("fail create transaction: %v", err)
+		resp.Info.State = "fail"
+		_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+			Info: resp.Info,
+		})
+		if err != nil {
+			return xerrors.Errorf("fail update transaction to fail: %v: %v", err1, err)
+		}
+		return xerrors.Errorf("fail update transaction to fail: %v", err1)
+	}
+
+	// Update coin account transaction state
+	resp.Info.State = "paying"
+	_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+		Info: resp.Info,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail update transaction to paying: %v", err)
+	}
+
+	return nil
+}
+
 func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 	for _, gac := range ac.goodAccountings {
 		if gac.good.BenefitType == goodsconst.BenefitTypePool {
@@ -335,110 +400,16 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		}
 
 		if gac.userUnits > 0 {
-			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
-				Info: &billingpb.CoinAccountTransaction{
-					AppID:                 uuid.UUID{}.String(),
-					UserID:                uuid.UUID{}.String(),
-					FromAddressID:         gac.goodsetting.BenefitAccountID,
-					ToAddressID:           gac.goodsetting.UserOnlineAccountID,
-					CoinTypeID:            gac.coininfo.ID,
-					Amount:                totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
-					Message:               fmt.Sprintf("user benefit of %v at %v", gac.good.ID, time.Now()),
-					PlatformTransactionID: uuid.New().String(),
-					ChainTransactionID:    uuid.New().String(),
-				},
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail create coin account transaction: %v", err)
-				continue
-			}
-
-			// Transfer to chain
-			logger.Sugar().Infof("transfer %v from %v to %v",
-				totalAmount*float64(gac.userUnits)*1.0/float64(gac.good.Total),
-				gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-				gac.accounts[gac.goodsetting.UserOnlineAccountID].Address)
-			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
-				TransactionID: resp.Info.ID,
-				Name:          gac.coininfo.Name,
-				Amount:        totalAmount * float64(gac.userUnits) * 1.0 / float64(gac.good.Total),
-				From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-				To:            gac.accounts[gac.goodsetting.UserOnlineAccountID].Address,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail create transaction: %v", err)
-				resp.Info.State = "fail"
-				_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-					Info: resp.Info,
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail update transaction to fail: %v", err)
-				}
-				continue
-			}
-
-			// Update coin account transaction state
-			resp.Info.State = "paying"
-			_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-				Info: resp.Info,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail update transaction to paying: %v", err)
+			if err := ac.onTransfer(ctx, gac, totalAmount, "user"); err != nil {
+				logger.Sugar().Errorf("fail transfer: %v", err)
 				continue
 			}
 			// TODO: check user online threshold and transfer to offline address
 		}
 
 		if gac.platformUnits > 0 {
-			resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
-				Info: &billingpb.CoinAccountTransaction{
-					AppID:                 uuid.UUID{}.String(),
-					UserID:                uuid.UUID{}.String(),
-					FromAddressID:         gac.goodsetting.BenefitAccountID,
-					ToAddressID:           gac.goodsetting.PlatformOfflineAccountID,
-					CoinTypeID:            gac.coininfo.ID,
-					Amount:                totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
-					Message:               fmt.Sprintf("platform benefit of %v at %v", gac.good.ID, time.Now()),
-					PlatformTransactionID: uuid.New().String(),
-					ChainTransactionID:    uuid.New().String(),
-				},
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail create coin account transaction: %v", err)
-				continue
-			}
-
-			// Transfer to chain
-			logger.Sugar().Infof("transfer %v from %v to %v",
-				totalAmount*float64(gac.platformUnits)*1.0/float64(gac.good.Total),
-				gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-				gac.accounts[gac.goodsetting.UserOnlineAccountID].Address)
-			_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
-				TransactionID: resp.Info.ID,
-				Name:          gac.coininfo.Name,
-				Amount:        totalAmount * float64(gac.platformUnits) * 1.0 / float64(gac.good.Total),
-				From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-				To:            gac.accounts[gac.goodsetting.PlatformOfflineAccountID].Address,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail create transaction: %v", err)
-				resp.Info.State = "fail"
-				_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-					Info: resp.Info,
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail update transaction to fail: %v", err)
-				}
-				continue
-			}
-
-			// Update coin account transaction state
-			resp.Info.State = "paying"
-			_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-				Info: resp.Info,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail update transaction to paying: %v", err)
+			if err := ac.onTransfer(ctx, gac, totalAmount, "platform"); err != nil {
+				logger.Sugar().Errorf("fail transfer: %v", err)
 				continue
 			}
 		}
