@@ -483,13 +483,60 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 }
 
+func (ac *accounting) onChecker(ctx context.Context, myState, failState, nextState string) {
+	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: myState,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get wait transactions: %v", err)
+		return
+	}
+
+	for _, transaction := range resp.Infos {
+		_, err := grpc2.GetTransaction(ctx, &sphinxservicepb.GetTransactionRequest{
+			TransactionID: transaction.ID,
+		})
+		// TODO: if service not OK, do not update transaction state
+		if err != nil {
+			logger.Sugar().Errorf("fail get transaction state: %v", err)
+
+			transaction.State = failState
+			_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+				Info: transaction,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail update transaction to %v: %v", err, failState)
+			}
+			continue
+		}
+
+		// TODO: update transaction according to the result of transaction stat
+
+		transaction.State = nextState
+		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+			Info: transaction,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail update transaction to %v: %v", err, nextState)
+		}
+	}
+}
+
+func (ac *accounting) onWaitChecker(ctx context.Context) {
+	ac.onChecker(ctx, "wait", "fail", "paying")
+}
+
+func (ac *accounting) onPayingChecker(ctx context.Context) {
+	ac.onChecker(ctx, "paying", "fail", "successful")
+}
+
 func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:   time.NewTicker(3 * time.Second),
-		waitTicker:   time.NewTicker(3 * time.Second),
-		payingTicker: time.NewTicker(3 * time.Second),
+		scanTicker:   time.NewTicker(24 * 60 * 60 * time.Second),
+		waitTicker:   time.NewTicker(30 * time.Second),
+		payingTicker: time.NewTicker(30 * time.Second),
 	}
 
 	for {
@@ -507,9 +554,9 @@ func Run(ctx context.Context) {
 			ac.onCaculateUserBenefit()
 			ac.onPersistentResult(ctx)
 		case <-ac.waitTicker.C:
-			// TODO: scan wait transaction
+			ac.onWaitChecker(ctx)
 		case <-ac.payingTicker.C:
-			// TODO: scan paying transaction
+			ac.onPayingChecker(ctx)
 		}
 	}
 }

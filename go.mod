@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	entgo.io/ent v0.9.1
-	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20211208155235-6b26888ed2c8
+	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20211208165220-dd85449ecf87
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20211206133823-57ebc95fdc27
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20211202091651-fc96b10be44f
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20211124111341-7f1b2f908552
