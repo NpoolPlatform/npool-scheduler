@@ -250,7 +250,17 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 				continue
 			}
 
-			// TODO: only paid order should be involved
+			// only paid order should be involved
+			respPayment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
+				OrderID: info.ID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail to get payment of order %v", info.ID)
+				continue
+			} else if respPayment.Info.State != "done" {
+				logger.Sugar().Errorf("order %v not paid %+v", info.ID, respPayment)
+				continue
+			}
 
 			orders = append(orders, info)
 		}
