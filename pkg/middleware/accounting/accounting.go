@@ -586,6 +586,8 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 
 		// Update transaction according to the result of transaction stat
 		paying.State = toState
+		paying.ChainTransactionID = resp.Info.CID
+
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
 			Info: paying,
 		})
