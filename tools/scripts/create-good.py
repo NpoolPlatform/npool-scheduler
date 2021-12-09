@@ -228,6 +228,24 @@ def createOrder(good, appID, userID, units):
     return r.json()['Info']
 
 
+def createConfirmedPayment(orderID, accountID, coinInfoID):
+    data = {
+        'Info':{
+            'OrderID': orderID,
+            'AccountID': accountID,
+            "StartAmount": 1.2,
+            "Amount": 2.3,
+            "CoinInfoID": coinInfoID,
+            "State": "done",
+            "ChainTransactionID": "",
+            "PlatformTransactionID": "00000000-0000-0000-0000-000000000000"
+        }
+    }
+    r = requests.post('http://cloud-hashing-order.kube-system.svc.cluster.local:50040/v1/create/payment', json=data)
+    r = requests.post('http://cloud-hashing-order.kube-system.svc.cluster.local:50040/v1/update/payment', json=data)
+    return r.json()['Info']
+
+
 def getAppID():
     r = requests.post('http://application-management.kube-system.svc.cluster.local:50080/v1/get/apps')
     if len(r.json()['Infos']) == 0:
@@ -330,6 +348,10 @@ class Good:
 
         print('Success create order2 {}' . format(order2))
 
+        payment1 = createConfirmedPayment(order1['ID'], "00000000-0000-0000-0000-000000000000", coinInfo["ID"]) 
+        if payment1 is None:
+            print("fail create payment1")
+            sys.exit(12)
 
 def main(argv):
     opts, args = getopt.getopt(argv, 'c:', ['cointype='])
