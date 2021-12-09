@@ -11,7 +11,6 @@ require (
 	github.com/NpoolPlatform/message v0.0.0-20211209042523-3f751008be88
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211203015522-f99c6661faf9
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211205102315-ca5ce09a5bb2
-	github.com/NpoolPlatform/sphinx-service v0.0.0-20211124061425-6ef21f0b762f
 	github.com/NpoolPlatform/user-management v0.0.0-20211209013955-2db59d583be8
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
