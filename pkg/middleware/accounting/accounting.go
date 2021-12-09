@@ -14,6 +14,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
 
+	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -40,6 +41,7 @@ type goodAccounting struct {
 
 type accounting struct {
 	scanTicker      *time.Ticker
+	createdTicker   *time.Ticker
 	waitTicker      *time.Ticker
 	payingTicker    *time.Ticker
 	goodAccountings []*goodAccounting
@@ -309,7 +311,7 @@ func (ac *accounting) onCaculateUserBenefit() {
 	ac.goodAccountings = acs
 }
 
-func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, totalAmount float64, benefitType string) error {
+func (ac *accounting) onCreateTransaction(ctx context.Context, gac *goodAccounting, totalAmount float64, benefitType string) error {
 	toAddressID := gac.goodsetting.UserOnlineAccountID
 	units := gac.userUnits
 
@@ -318,7 +320,7 @@ func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, total
 		units = gac.platformUnits
 	}
 
-	resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+	_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:                 uuid.UUID{}.String(),
 			UserID:                uuid.UUID{}.String(),
@@ -335,39 +337,45 @@ func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, total
 		return xerrors.Errorf("fail create coin account transaction: %v", err)
 	}
 
-	// Transfer to chain
-	logger.Sugar().Infof("transfer %v from %v to %v for %v with %v units",
-		totalAmount*float64(units)*1.0/float64(gac.good.Total),
-		gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-		gac.accounts[toAddressID].Address,
-		benefitType,
-		units)
-	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
-		TransactionID: resp.Info.ID,
-		Name:          gac.coininfo.Name,
-		Amount:        totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
-		From:          gac.accounts[gac.goodsetting.BenefitAccountID].Address,
-		To:            gac.accounts[toAddressID].Address,
+	return nil
+}
+
+func (ac *accounting) onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransaction) error {
+	from, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: transaction.FromAddressID,
 	})
 	if err != nil {
-		err1 := xerrors.Errorf("fail create transaction: %v", err)
-		resp.Info.State = "fail"
-		_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-			Info: resp.Info,
-		})
-		if err != nil {
-			return xerrors.Errorf("fail update transaction to fail: %v: %v", err1, err)
-		}
-		return xerrors.Errorf("fail update transaction to fail: %v", err1)
+		return xerrors.Errorf("fail get from address: %v [%v]", err, transaction.FromAddressID)
 	}
 
-	// Update coin account transaction state
-	resp.Info.State = "paying"
-	_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-		Info: resp.Info,
+	to, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: transaction.ToAddressID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail update transaction to paying: %v", err)
+		return xerrors.Errorf("fail get to address: %v [%v]", err, transaction.ToAddressID)
+	}
+
+	coininfo, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+		ID: transaction.CoinTypeID,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get coin info: %v", err)
+	}
+
+	// Transfer to chain
+	logger.Sugar().Infof("transfer %v from %v to %v",
+		transaction.Amount,
+		from.Info.Address,
+		to.Info.Address)
+	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
+		TransactionID: transaction.ID,
+		Name:          coininfo.Info.Name,
+		Amount:        transaction.Amount,
+		From:          from.Info.Address,
+		To:            to.Info.Address,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail update transaction to fail: %v", err)
 	}
 
 	return nil
@@ -417,7 +425,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		}
 
 		if gac.userUnits > 0 {
-			if err := ac.onTransfer(ctx, gac, totalAmount, "user"); err != nil {
+			if err := ac.onCreateTransaction(ctx, gac, totalAmount, "user"); err != nil {
 				logger.Sugar().Errorf("fail transfer: %v", err)
 				continue
 			}
@@ -425,7 +433,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		}
 
 		if gac.platformUnits > 0 {
-			if err := ac.onTransfer(ctx, gac, totalAmount, "platform"); err != nil {
+			if err := ac.onCreateTransaction(ctx, gac, totalAmount, "platform"); err != nil {
 				logger.Sugar().Errorf("fail transfer: %v", err)
 				continue
 			}
@@ -471,60 +479,130 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 }
 
-func (ac *accounting) onChecker(ctx context.Context, myState, failState, nextState string) {
-	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
-		State: myState,
+func (ac *accounting) onCreatedChecker(ctx context.Context) {
+	waitResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: billingconst.CoinTransactionStateWait,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get wait transactions: %v", err)
 		return
 	}
 
-	for _, transaction := range resp.Infos {
-		_, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
-			TransactionID: transaction.ID,
-		})
-		// TODO: if service not OK, do not update transaction state
-		if err != nil {
-			logger.Sugar().Errorf("fail get transaction state: %v", err)
+	createdResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: billingconst.CoinTransactionStateCreated,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get wait transactions: %v", err)
+		return
+	}
 
-			transaction.State = failState
-			_, err := grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-				Info: transaction,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail update transaction to %v: %v", err, failState)
-			}
+	toWait := map[string]struct{}{}
+
+	for _, created := range createdResp.Infos {
+		if _, ok := toWait[created.FromAddressID]; ok {
 			continue
 		}
 
-		// TODO: update transaction according to the result of transaction stat
+		alreadyWaited := false
+		for _, wait := range waitResp.Infos {
+			if created.FromAddressID == wait.FromAddressID {
+				alreadyWaited = true
+				break
+			}
+		}
 
-		transaction.State = nextState
+		if alreadyWaited {
+			continue
+		}
+
+		created.State = billingconst.CoinTransactionStateWait
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
-			Info: transaction,
+			Info: created,
 		})
 		if err != nil {
-			logger.Sugar().Errorf("fail update transaction to %v: %v", err, nextState)
+			logger.Sugar().Errorf("fail update transaction to created: %v", err)
 		}
+
+		toWait[created.FromAddressID] = struct{}{}
 	}
 }
 
 func (ac *accounting) onWaitChecker(ctx context.Context) {
-	ac.onChecker(ctx, "wait", "fail", "paying")
+	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: billingconst.CoinTransactionStateWait,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get wait transactions: %v", err)
+		return
+	}
+
+	for _, wait := range resp.Infos {
+		if err := ac.onTransfer(ctx, wait); err != nil {
+			logger.Sugar().Errorf("fail transfer transaction: %v", err)
+			continue
+		}
+
+		wait.State = billingconst.CoinTransactionStatePaying
+		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+			Info: wait,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail update transaction to paying: %v", err)
+		}
+	}
 }
 
 func (ac *accounting) onPayingChecker(ctx context.Context) {
-	ac.onChecker(ctx, "paying", "fail", "successful")
+	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: billingconst.CoinTransactionStatePaying,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get paying transactions: %v", err)
+		return
+	}
+
+	for _, paying := range resp.Infos {
+		toState := billingconst.CoinTransactionStateSuccessful
+
+		resp, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
+			TransactionID: paying.ID,
+		})
+		// TODO: if service not OK, do not update transaction state
+		if err != nil {
+			logger.Sugar().Errorf("fail get transaction state: %v", err)
+			toState = billingconst.CoinTransactionStateFail
+		} else {
+			switch resp.Info.TransactionState {
+			case sphinxproxypb.TransactionState_TransactionStateFail:
+				toState = billingconst.CoinTransactionStateFail
+			case sphinxproxypb.TransactionState_TransactionStateDone:
+				toState = billingconst.CoinTransactionStateSuccessful
+			case sphinxproxypb.TransactionState_TransactionStateRejected:
+				toState = billingconst.CoinTransactionStateRejected
+			default:
+				continue
+			}
+		}
+
+		// Update transaction according to the result of transaction stat
+		paying.State = toState
+		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
+			Info: paying,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail update transaction to %v: %v", toState, err)
+		}
+	}
 }
 
 func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:   time.NewTicker(2 * time.Second),
-		waitTicker:   time.NewTicker(30 * time.Second),
-		payingTicker: time.NewTicker(30 * time.Second),
+		scanTicker:    time.NewTicker(24 * 60 * 60 * time.Second),
+		createdTicker: time.NewTicker(30 * time.Second),
+		waitTicker:    time.NewTicker(30 * time.Second),
+		payingTicker:  time.NewTicker(30 * time.Second),
 	}
 
 	for {
@@ -541,6 +619,8 @@ func Run(ctx context.Context) {
 			ac.onQueryCompensates(ctx)
 			ac.onCaculateUserBenefit()
 			ac.onPersistentResult(ctx)
+		case <-ac.createdTicker.C:
+			ac.onCreatedChecker(ctx)
 		case <-ac.waitTicker.C:
 			ac.onWaitChecker(ctx)
 		case <-ac.payingTicker.C:
