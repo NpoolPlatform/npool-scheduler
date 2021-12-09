@@ -14,9 +14,6 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxyconst "github.com/NpoolPlatform/sphinx-proxy/pkg/message/const" //nolint
 
-	sphinxservicepb "github.com/NpoolPlatform/message/npool/sphinxservice"
-	sphinxserviceconst "github.com/NpoolPlatform/sphinx-service/pkg/message/const" //nolint
-
 	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const" //nolint
 
@@ -339,25 +336,23 @@ func GetBalance(ctx context.Context, in *sphinxproxypb.GetBalanceRequest) (*sphi
 	return cli.GetBalance(ctx, in)
 }
 
-//---------------------------------------------------------------------------------------------------------------------------
-
-func CreateTransaction(ctx context.Context, in *sphinxservicepb.CreateTransactionRequest) (*sphinxservicepb.CreateTransactionResponse, error) {
-	conn, err := grpc2.GetGRPCConn(sphinxserviceconst.ServiceName, grpc2.GRPCTAG)
+func CreateTransaction(ctx context.Context, in *sphinxproxypb.CreateTransactionRequest) (*sphinxproxypb.CreateTransactionResponse, error) {
+	conn, err := grpc2.GetGRPCConn(sphinxproxyconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get sphinxservice connection: %v", err)
+		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
 
-	cli := sphinxservicepb.NewSphinxServiceClient(conn)
+	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.CreateTransaction(ctx, in)
 }
 
-func GetTransaction(ctx context.Context, in *sphinxservicepb.GetTransactionRequest) (*sphinxservicepb.GetTransactionResponse, error) {
-	conn, err := grpc2.GetGRPCConn(sphinxserviceconst.ServiceName, grpc2.GRPCTAG)
+func GetTransaction(ctx context.Context, in *sphinxproxypb.GetTransactionRequest) (*sphinxproxypb.GetTransactionResponse, error) {
+	conn, err := grpc2.GetGRPCConn(sphinxproxyconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get sphinxservice connection: %v", err)
+		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
 
-	cli := sphinxservicepb.NewSphinxServiceClient(conn)
+	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.GetTransaction(ctx, in)
 }
 

@@ -8,7 +8,7 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20211206133823-57ebc95fdc27
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20211202091651-fc96b10be44f
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20211207121121-adb2402676f0
-	github.com/NpoolPlatform/message v0.0.0-20211206135436-8999effd24b6
+	github.com/NpoolPlatform/message v0.0.0-20211209042523-3f751008be88
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211203015522-f99c6661faf9
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211205102315-ca5ce09a5bb2
 	github.com/NpoolPlatform/sphinx-service v0.0.0-20211124061425-6ef21f0b762f

@@ -12,7 +12,6 @@ import (
 	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	sphinxservicepb "github.com/NpoolPlatform/message/npool/sphinxservice"
 	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
 
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
@@ -247,7 +246,7 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 				UserID: info.UserID,
 			})
 			if err != nil {
-				logger.Sugar().Errorf("fail get order user: %v", err)
+				logger.Sugar().Errorf("fail get order user %v: %v", info.UserID, err)
 				continue
 			}
 
@@ -343,7 +342,7 @@ func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, total
 		gac.accounts[toAddressID].Address,
 		benefitType,
 		units)
-	_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
+	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: resp.Info.ID,
 		Name:          gac.coininfo.Name,
 		Amount:        totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
@@ -482,7 +481,7 @@ func (ac *accounting) onChecker(ctx context.Context, myState, failState, nextSta
 	}
 
 	for _, transaction := range resp.Infos {
-		_, err := grpc2.GetTransaction(ctx, &sphinxservicepb.GetTransactionRequest{
+		_, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
 			TransactionID: transaction.ID,
 		})
 		// TODO: if service not OK, do not update transaction state
@@ -523,7 +522,7 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:   time.NewTicker(24 * 60 * 60 * time.Second),
+		scanTicker:   time.NewTicker(2 * time.Second),
 		waitTicker:   time.NewTicker(30 * time.Second),
 		payingTicker: time.NewTicker(30 * time.Second),
 	}

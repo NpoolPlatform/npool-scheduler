@@ -241,7 +241,17 @@ def getAllUsers():
     json={
         'AppID': getAppID()
     })
-    return r.json()['Infos']
+    appUsers =  r.json()['Infos']
+
+    users = []
+
+    r = requests.post("http://user-management.kube-system.svc.cluster.local:50070/v1/get/users")
+    for user in appUsers:
+        for info in r.json()['Infos']:
+            if info['UserID'] == user['UserID']:
+                users.append(info)
+
+    return users
 
 
 class Good:
@@ -302,18 +312,18 @@ class Good:
         print('Success create good {}' . format(good))
 
         users = getAllUsers()
-        if users is None:
+        if users is None or len(users) == 0:
             print("fail get all users")
             sys.exit(9)
 
-        order1 = createOrder(good, getAppID(), users[0]['ID'], 10)
+        order1 = createOrder(good, getAppID(), users[0]['UserID'], 10)
         if order1 is None:
             print("fail create order1")
             sys.exit(10)
 
         print('Success create order1 {}' . format(order1))
 
-        order2 = createOrder(good, getAppID(), users[1]['ID'], 12)
+        order2 = createOrder(good, getAppID(), users[1]['UserID'], 12)
         if order2 is None:
             print("fail create order2")
             sys.exit(11)
