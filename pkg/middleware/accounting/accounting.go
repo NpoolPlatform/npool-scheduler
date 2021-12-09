@@ -562,7 +562,7 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 	}
 
 	for _, paying := range resp.Infos {
-		toState := billingconst.CoinTransactionStateSuccessful
+		toState := ""
 
 		resp, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
 			TransactionID: paying.ID,
