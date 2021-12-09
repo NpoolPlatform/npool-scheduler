@@ -16,6 +16,7 @@ import (
 
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
+	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -259,8 +260,9 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 			if err != nil {
 				logger.Sugar().Errorf("fail to get payment of order %v", info.ID)
 				continue
-			} else if respPayment.Info.State != "done" {
-				logger.Sugar().Errorf("order %v not paid %+v", info.ID, respPayment)
+			}
+			if respPayment.Info.State != orderconst.PaymentStateDone {
+				logger.Sugar().Errorf("order %v not paid %+v", info.ID, respPayment.Info.ID)
 				continue
 			}
 
