@@ -334,11 +334,12 @@ func (ac *accounting) onTransfer(ctx context.Context, gac *goodAccounting, total
 	}
 
 	// Transfer to chain
-	logger.Sugar().Infof("transfer %v from %v to %v for %v",
+	logger.Sugar().Infof("transfer %v from %v to %v for %v with %v units",
 		totalAmount*float64(units)*1.0/float64(gac.good.Total),
 		gac.accounts[gac.goodsetting.BenefitAccountID].Address,
 		gac.accounts[toAddressID].Address,
-		benefitType)
+		benefitType,
+		units)
 	_, err = grpc2.CreateTransaction(ctx, &sphinxservicepb.CreateTransactionRequest{
 		TransactionID: resp.Info.ID,
 		Name:          gac.coininfo.Name,
