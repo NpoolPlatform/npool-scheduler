@@ -211,6 +211,39 @@ def createPlatformSetting(coinInfo, good):
     return r.json()['Info']
 
 
+def createOrder(good, appID, userID, units):
+    now = int(datetime.datetime.now().timestamp())
+
+    data = {
+        'Info':{
+            'GoodID': good['ID'],
+            'AppID': appID,
+            'UserID': userID,
+            'Units': units,
+            'Start': now,
+            'End': now + good['DurationDays'] * 24 * 60 * 60
+        }
+    }
+    r = requests.post('http://cloud-hashing-order.kube-system.svc.cluster.local:50040/v1/create/order', json=data)
+    return r.json()['Info']
+
+
+def getAppID():
+    r = requests.post('http://application-management.kube-system.svc.cluster.local:50080/v1/get/apps')
+    if len(r.json()['Infos']) == 0:
+        print('empty application table')
+        sys.exit(1)
+    return r.json()['Infos'][0]['ID']
+
+
+def getAllUsers():
+    r = requests.post("http://application-management.kube-system.svc.cluster.local:50080/v1/get/users/from/app",
+    json={
+        'AppID': getAppID()
+    })
+    return r.json()['Infos']
+
+
 class Good:
     def __init__(self, coinType):
         self.coinType = coinType
@@ -267,6 +300,25 @@ class Good:
             sys.exit(8)
 
         print('Success create good {}' . format(good))
+
+        users = getAllUsers()
+        if users is None:
+            print("fail get all users")
+            sys.exit(9)
+
+        order1 = createOrder(good, getAppID(), users[0]['ID'], 10)
+        if order1 is None:
+            print("fail create order1")
+            sys.exit(10)
+
+        print('Success create order1 {}' . format(order1))
+
+        order2 = createOrder(good, getAppID(), users[1]['ID'], 12)
+        if order2 is None:
+            print("fail create order2")
+            sys.exit(11)
+
+        print('Success create order2 {}' . format(order2))
 
 
 def main(argv):
