@@ -13,6 +13,7 @@ import (
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxservicepb "github.com/NpoolPlatform/message/npool/sphinxservice"
+	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
 
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
 
@@ -239,7 +240,20 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 			continue
 		}
 
-		gac.orders = resp.Infos
+		orders := []*orderpb.Order{}
+		for _, info := range resp.Infos {
+			_, err := grpc2.GetUser(ctx, &usermgrpb.GetUserRequest{
+				AppID:  info.AppID,
+				UserID: info.UserID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail get order user: %v", err)
+				continue
+			}
+			orders = append(orders, info)
+		}
+
+		gac.orders = orders
 		acs = append(acs, gac)
 	}
 	ac.goodAccountings = acs

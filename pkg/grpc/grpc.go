@@ -23,6 +23,9 @@ import (
 	billingpb "github.com/NpoolPlatform/cloud-hashing-billing/message/npool"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const" //nolint
 
+	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
+	usermgrconst "github.com/NpoolPlatform/user-management/pkg/message/const" //nolint
+
 	"golang.org/x/xerrors"
 )
 
@@ -356,4 +359,16 @@ func GetTransaction(ctx context.Context, in *sphinxservicepb.GetTransactionReque
 
 	cli := sphinxservicepb.NewSphinxServiceClient(conn)
 	return cli.GetTransaction(ctx, in)
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+
+func GetUser(ctx context.Context, in *usermgrpb.GetUserRequest) (*usermgrpb.GetUserResponse, error) {
+	conn, err := grpc2.GetGRPCConn(usermgrconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get usermgr connection: %v", err)
+	}
+
+	cli := usermgrpb.NewUserClient(conn)
+	return cli.GetUser(ctx, in)
 }
