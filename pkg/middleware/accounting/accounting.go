@@ -429,7 +429,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			}
 		}
 
-		// TODO: create user benefit according to valid order share of the good
+		// Create user benefit according to valid order share of the good
 		for _, order := range gac.orders {
 			if gac.good.ID != order.GoodID {
 				continue
