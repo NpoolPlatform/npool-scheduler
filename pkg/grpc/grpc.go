@@ -193,7 +193,7 @@ func CreatePayment(ctx context.Context, in *orderpb.CreatePaymentRequest) (*orde
 }
 
 func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest) (*orderpb.GetPaymentByOrderResponse, error) {
-	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2,GRPCTAG)
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get payment by order: %v", err)
 	}
