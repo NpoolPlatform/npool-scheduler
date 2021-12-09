@@ -242,6 +242,7 @@ def createConfirmedPayment(orderID, accountID, coinInfoID):
         }
     }
     r = requests.post('http://cloud-hashing-order.kube-system.svc.cluster.local:50040/v1/create/payment', json=data)
+    data['Info']['ID'] = r.json()['Info']['ID']
     r = requests.post('http://cloud-hashing-order.kube-system.svc.cluster.local:50040/v1/update/payment', json=data)
     return r.json()['Info']
 
@@ -352,6 +353,9 @@ class Good:
         if payment1 is None:
             print("fail create payment1")
             sys.exit(12)
+
+        print('Success create payment1 {}' . format(payment1))
+
 
 def main(argv):
     opts, args = getopt.getopt(argv, 'c:', ['cointype='])
