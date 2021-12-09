@@ -250,6 +250,9 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 				logger.Sugar().Errorf("fail get order user: %v", err)
 				continue
 			}
+
+			// TODO: only paid order should be involved
+
 			orders = append(orders, info)
 		}
 
