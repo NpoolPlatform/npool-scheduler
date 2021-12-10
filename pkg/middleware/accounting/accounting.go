@@ -6,6 +6,8 @@ import (
 	"time"
 
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	billingpb "github.com/NpoolPlatform/cloud-hashing-billing/message/npool"
 	goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
@@ -591,8 +593,22 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 		})
 		// TODO: if service not OK, do not update transaction state
 		if err != nil {
-			logger.Sugar().Errorf("fail get transaction state: %v", err)
-			toState = billingconst.CoinTransactionStateFail
+			// if service not OK, do not update transaction state
+			switch status.Code(err) {
+			case codes.Unknown:
+				logger.Sugar().Errorf("fail connect proxy service: %v", err)
+				return
+			case codes.InvalidArgument:
+				toState = billingconst.CoinTransactionStateFail
+			case codes.NotFound:
+				toState = billingconst.CoinTransactionStateFail
+			case codes.Internal:
+				logger.Sugar().Errorf("fail get transaction state: %v", err)
+				continue
+			default:
+				logger.Sugar().Errorf("grpc unexpected err: %v", err)
+				continue
+			}
 		} else {
 			switch resp.Info.TransactionState {
 			case sphinxproxypb.TransactionState_TransactionStateFail:
