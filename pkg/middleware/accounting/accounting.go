@@ -253,7 +253,7 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 				continue
 			}
 
-			// only paid order should be involved
+			// Only paid order should be involved
 			respPayment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
 				OrderID: info.ID,
 			})
