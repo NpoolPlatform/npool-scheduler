@@ -510,7 +510,9 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 		return
 	}
 
-	infos := append(waitResp.Infos, payingResp.Infos...)
+	infos := []*billingpb.CoinAccountTransaction{}
+	infos = append(infos, waitResp.Infos...)
+	infos = append(infos, payingResp.Infos...)
 
 	createdResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStateCreated,
