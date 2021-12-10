@@ -500,6 +500,16 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 		return
 	}
 
+	payingResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+		State: billingconst.CoinTransactionStatePaying,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get paying transactions: %v", err)
+		return
+	}
+
+	infos := append(waitResp.Infos, payingResp.Infos...)
+
 	createdResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStateCreated,
 	})
@@ -516,8 +526,8 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 		}
 
 		alreadyWaited := false
-		for _, wait := range waitResp.Infos {
-			if created.FromAddressID == wait.FromAddressID {
+		for _, processing := range infos {
+			if created.FromAddressID == processing.FromAddressID {
 				alreadyWaited = true
 				break
 			}
@@ -613,7 +623,7 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:    time.NewTicker(24 * 60 * 60 * time.Second),
+		scanTicker:    time.NewTicker(2 * time.Second),
 		createdTicker: time.NewTicker(30 * time.Second),
 		waitTicker:    time.NewTicker(30 * time.Second),
 		payingTicker:  time.NewTicker(30 * time.Second),
