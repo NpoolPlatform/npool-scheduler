@@ -16,12 +16,17 @@ if git_status=$(git status --porcelain --untracked=no 2>/dev/null) && [[ -z "${g
     git_tree_state=clean
 fi
 
-set +e
-version=`git describe --tags --abbrev=0`
-if [ ! $? -eq 0 ]; then
-    version=latest
+version=latest
+
+## For testing or production environment, pass the second variable
+if [ "x" != "x$2" ]; then
+  version=$2
 fi
-set -e
+
+registry=uhub.service.ucloud.cn
+if [ "x" != $3 ]; then
+  registry=$3
+fi
 
 service_name=$1
 
@@ -29,7 +34,7 @@ echo "Release docker image for $PLATFORM -- $version"
 
 user=`whoami`
 if [ "$user" == "root" ]; then
-    docker push entropypool/$service_name:$version
+    docker push $registry/entropypool/$service_name:$version
 else
-    sudo docker push entropypool/$service_name:$version
+    sudo docker push $registry/entropypool/$service_name:$version
 fi
