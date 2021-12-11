@@ -588,7 +588,8 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 	}
 
 	for _, paying := range resp.Infos {
-		toState := ""
+		var toState string
+		cid := paying.ChainTransactionID
 
 		resp, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
 			TransactionID: paying.ID,
@@ -617,6 +618,7 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 				toState = billingconst.CoinTransactionStateFail
 			case sphinxproxypb.TransactionState_TransactionStateDone:
 				toState = billingconst.CoinTransactionStateSuccessful
+				cid = resp.Info.CID
 			case sphinxproxypb.TransactionState_TransactionStateRejected:
 				toState = billingconst.CoinTransactionStateRejected
 			default:
@@ -626,7 +628,7 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 
 		// Update transaction according to the result of transaction stat
 		paying.State = toState
-		paying.ChainTransactionID = resp.Info.CID
+		paying.ChainTransactionID = cid
 
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
 			Info: paying,
