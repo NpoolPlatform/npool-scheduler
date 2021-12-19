@@ -225,9 +225,10 @@ func (ac *accounting) onQueryBalance(ctx context.Context) {
 			Address: gac.accounts[gac.goodsetting.BenefitAccountID].Address,
 		})
 		if err != nil {
-			logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v / %v]",
+			logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
 				gac.goodsetting.BenefitAccountID,
 				err, gac.good.ID,
+				gac.coininfo.Name,
 				gac.accounts[gac.goodsetting.BenefitAccountID].Address)
 			continue
 		}
