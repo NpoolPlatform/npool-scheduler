@@ -97,6 +97,10 @@ func (ac *accounting) onQueryAccount(ctx context.Context) {
 			logger.Sugar().Errorf("fail get platform setting by good: %v [%v]", err, gac.good.ID)
 			continue
 		}
+		if resp.Info == nil {
+			logger.Sugar().Errorf("fail get platform setting by good [%v]", gac.good.ID)
+			continue
+		}
 
 		gac.goodsetting = resp.Info
 		acs = append(acs, gac)
