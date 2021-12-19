@@ -429,7 +429,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			},
 		})
 		if err != nil {
-			logger.Sugar().Errorf("fail create platform benefit for good: %v", err)
+			logger.Sugar().Errorf("fail create platform benefit for good: %v [%v]", err, gac.good.ID)
 			continue
 		}
 
