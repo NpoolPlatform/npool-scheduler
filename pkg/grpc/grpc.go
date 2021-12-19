@@ -33,6 +33,7 @@ func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) (*goodspb.GetGoo
 	if err != nil {
 		return nil, xerrors.Errorf("fail get goods connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
 	return cli.GetGoods(ctx, in)
@@ -43,6 +44,7 @@ func GetGoodsDetail(ctx context.Context, in *goodspb.GetGoodsDetailRequest) (*go
 	if err != nil {
 		return nil, xerrors.Errorf("fail get goods connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
 	return cli.GetGoodsDetail(ctx, in)
@@ -53,6 +55,7 @@ func GetGoodDetail(ctx context.Context, in *goodspb.GetGoodDetailRequest) (*good
 	if err != nil {
 		return nil, xerrors.Errorf("fail get goods connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
 	return cli.GetGoodDetail(ctx, in)
@@ -65,6 +68,7 @@ func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) (*coi
 	if err != nil {
 		return nil, xerrors.Errorf("fail get coininfo connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := coininfopb.NewSphinxCoinInfoClient(conn)
 	return cli.GetCoinInfos(ctx, in)
@@ -75,6 +79,7 @@ func GetCoinInfo(ctx context.Context, in *coininfopb.GetCoinInfoRequest) (*coini
 	if err != nil {
 		return nil, xerrors.Errorf("fail get coininfo connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := coininfopb.NewSphinxCoinInfoClient(conn)
 	return cli.GetCoinInfo(ctx, in)
@@ -87,6 +92,7 @@ func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.GetOrd
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrder(ctx, in)
@@ -97,6 +103,7 @@ func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) (*
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrdersByGood(ctx, in)
@@ -107,6 +114,7 @@ func GetCompensatesByOrder(ctx context.Context, in *orderpb.GetCompensatesByOrde
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetCompensatesByOrder(ctx, in)
@@ -117,6 +125,7 @@ func GetOrderDetail(ctx context.Context, in *orderpb.GetOrderDetailRequest) (*or
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrderDetail(ctx, in)
@@ -127,6 +136,7 @@ func GetOrdersDetailByAppUser(ctx context.Context, in *orderpb.GetOrdersDetailBy
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrdersDetailByAppUser(ctx, in)
@@ -137,6 +147,7 @@ func GetOrdersDetailByApp(ctx context.Context, in *orderpb.GetOrdersDetailByAppR
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrdersDetailByApp(ctx, in)
@@ -147,6 +158,7 @@ func GetOrdersDetailByGood(ctx context.Context, in *orderpb.GetOrdersDetailByGoo
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetOrdersDetailByGood(ctx, in)
@@ -157,6 +169,7 @@ func CreateOrder(ctx context.Context, in *orderpb.CreateOrderRequest) (*orderpb.
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.CreateOrder(ctx, in)
@@ -167,6 +180,7 @@ func CreateGoodPaying(ctx context.Context, in *orderpb.CreateGoodPayingRequest) 
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.CreateGoodPaying(ctx, in)
@@ -177,6 +191,7 @@ func CreateGasPaying(ctx context.Context, in *orderpb.CreateGasPayingRequest) (*
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.CreateGasPaying(ctx, in)
@@ -187,6 +202,7 @@ func CreatePayment(ctx context.Context, in *orderpb.CreatePaymentRequest) (*orde
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.CreatePayment(ctx, in)
@@ -197,6 +213,7 @@ func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest
 	if err != nil {
 		return nil, xerrors.Errorf("fail get payment by order: %v", err)
 	}
+	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
 	return cli.GetPaymentByOrder(ctx, in)
@@ -209,6 +226,7 @@ func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRe
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.CreateCoinAccount(ctx, in)
@@ -219,6 +237,7 @@ func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBene
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.CreatePlatformBenefit(ctx, in)
@@ -229,6 +248,7 @@ func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitReque
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.CreateUserBenefit(ctx, in)
@@ -239,6 +259,7 @@ func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetCoinAccount(ctx, in)
@@ -249,6 +270,7 @@ func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSett
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetPlatformSettingByGood(ctx, in)
@@ -259,6 +281,7 @@ func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBen
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetPlatformBenefitsByGood(ctx, in)
@@ -269,6 +292,7 @@ func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatest
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetLatestPlatformBenefitByGood(ctx, in)
@@ -279,6 +303,7 @@ func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLat
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetLatestUserBenefitByGoodAppUser(ctx, in)
@@ -289,6 +314,7 @@ func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetCoinAccountTransactionsByCoinAccount(ctx, in)
@@ -299,6 +325,7 @@ func GetCoinAccountTransactionsByState(ctx context.Context, in *billingpb.GetCoi
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.GetCoinAccountTransactionsByState(ctx, in)
@@ -309,6 +336,7 @@ func CreateCoinAccountTransaction(ctx context.Context, in *billingpb.CreateCoinA
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.CreateCoinAccountTransaction(ctx, in)
@@ -319,6 +347,7 @@ func UpdateCoinAccountTransaction(ctx context.Context, in *billingpb.UpdateCoinA
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
 	return cli.UpdateCoinAccountTransaction(ctx, in)
@@ -331,6 +360,7 @@ func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (
 	if err != nil {
 		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.CreateWallet(ctx, in)
@@ -341,6 +371,7 @@ func GetBalance(ctx context.Context, in *sphinxproxypb.GetBalanceRequest) (*sphi
 	if err != nil {
 		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.GetBalance(ctx, in)
@@ -351,6 +382,7 @@ func CreateTransaction(ctx context.Context, in *sphinxproxypb.CreateTransactionR
 	if err != nil {
 		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.CreateTransaction(ctx, in)
@@ -361,6 +393,7 @@ func GetTransaction(ctx context.Context, in *sphinxproxypb.GetTransactionRequest
 	if err != nil {
 		return nil, xerrors.Errorf("fail get sphinxproxy connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
 	return cli.GetTransaction(ctx, in)
@@ -373,6 +406,7 @@ func GetUser(ctx context.Context, in *usermgrpb.GetUserRequest) (*usermgrpb.GetU
 	if err != nil {
 		return nil, xerrors.Errorf("fail get usermgr connection: %v", err)
 	}
+	defer conn.Close()
 
 	cli := usermgrpb.NewUserClient(conn)
 	return cli.GetUser(ctx, in)
