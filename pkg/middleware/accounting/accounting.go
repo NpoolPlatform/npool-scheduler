@@ -446,6 +446,9 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			continue
 		}
 
+		logger.Sugar().Infof("persistent result pre balance %v after balance %v reserved amount %v total amount %v",
+			gac.preQueryBalance, gac.afterQueryBalanceInfo.Balance, gac.coininfo.ReservedAmount, totalAmount)
+
 		_, err = grpc2.CreatePlatformBenefit(ctx, &billingpb.CreatePlatformBenefitRequest{
 			Info: &billingpb.PlatformBenefit{
 				GoodID:               gac.good.ID,
