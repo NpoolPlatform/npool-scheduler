@@ -29,7 +29,7 @@ import (
 
 const (
 	secondsInDay  = uint32(24 * 60 * 60)
-	secondsInHour = uint32(60 * 60)
+	secondsInHour = uint32(60 * 60) //nolint
 )
 
 type goodAccounting struct {
@@ -686,9 +686,9 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 func Run(ctx context.Context) {
 	// TODO: when to start
 
-	// startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
-	// startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
-	// <-startTimer.C
+	// TODO: startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	// TODO: startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	// TODO: <-startTimer.C
 
 	ac := &accounting{
 		scanTicker:     time.NewTicker(30 * time.Second),
