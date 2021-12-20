@@ -274,6 +274,11 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 				logger.Sugar().Errorf("fail to get payment of order %v", info.ID)
 				continue
 			}
+			if respPayment.Info == nil {
+				logger.Sugar().Errorf("order is not paid")
+				continue
+			}
+
 			if respPayment.Info.State != orderconst.PaymentStateDone {
 				logger.Sugar().Errorf("order %v not paid %+v", info.ID, respPayment.Info.ID)
 				continue
