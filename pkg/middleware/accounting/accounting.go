@@ -361,7 +361,10 @@ func (ac *accounting) onCreateTransaction(ctx context.Context, gac *goodAccounti
 }
 
 func (ac *accounting) onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransaction) error {
-	logger.Sugar().Infof("try transfer %v amount %v", transaction.ID, transaction.Amount)
+	logger.Sugar().Infof("try transfer %v amount %v state %v",
+		transaction.ID,
+		transaction.Amount,
+		transaction.State)
 
 	from, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: transaction.FromAddressID,
@@ -560,7 +563,7 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 			Info: created,
 		})
 		if err != nil {
-			logger.Sugar().Errorf("fail update transaction to created: %v", err)
+			logger.Sugar().Errorf("fail update transaction to wait: %v", err)
 		}
 
 		toWait[created.FromAddressID] = struct{}{}
