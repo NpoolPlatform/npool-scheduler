@@ -537,6 +537,11 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 	toWait := map[string]struct{}{}
 
 	for _, created := range createdResp.Infos {
+		logger.Sugar().Infof("try wait transaction %v amount %v state %v",
+			created.ID,
+			created.Amount,
+			created.State)
+
 		if _, ok := toWait[created.FromAddressID]; ok {
 			continue
 		}
