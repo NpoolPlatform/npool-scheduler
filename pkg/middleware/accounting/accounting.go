@@ -44,9 +44,7 @@ type goodAccounting struct {
 
 type accounting struct {
 	scanTicker      *time.Ticker
-	createdTicker   *time.Ticker
-	waitTicker      *time.Ticker
-	payingTicker    *time.Ticker
+	transferTicker  *time.Ticker
 	goodAccountings []*goodAccounting
 }
 
@@ -651,10 +649,8 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:    time.NewTicker(30 * time.Second),
-		createdTicker: time.NewTicker(30 * time.Second),
-		waitTicker:    time.NewTicker(30 * time.Second),
-		payingTicker:  time.NewTicker(30 * time.Second),
+		scanTicker:     time.NewTicker(30 * time.Second),
+		transferTicker: time.NewTicker(30 * time.Second),
 	}
 
 	for {
@@ -671,11 +667,9 @@ func Run(ctx context.Context) {
 			ac.onQueryCompensates(ctx)
 			ac.onCaculateUserBenefit()
 			ac.onPersistentResult(ctx)
-		case <-ac.createdTicker.C:
+		case <-ac.transferTicker.C:
 			ac.onCreatedChecker(ctx)
-		case <-ac.waitTicker.C:
 			ac.onWaitChecker(ctx)
-		case <-ac.payingTicker.C:
 			ac.onPayingChecker(ctx)
 		}
 	}
