@@ -552,8 +552,8 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 
 		logger.Sugar().Infof("transaction %v amount %v %v -> %v",
 			created.ID,
-			create.Amount,
-			create.State,
+			created.Amount,
+			created.State,
 			billingconst.CoinTransactionStateWait)
 		created.State = billingconst.CoinTransactionStateWait
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
@@ -583,9 +583,9 @@ func (ac *accounting) onWaitChecker(ctx context.Context) {
 		}
 
 		logger.Sugar().Infof("transaction %v amount %v %v -> %v",
-			created.ID,
-			create.Amount,
-			create.State,
+			wait.ID,
+			wait.Amount,
+			wait.State,
 			billingconst.CoinTransactionStatePaying)
 
 		wait.State = billingconst.CoinTransactionStatePaying
@@ -648,9 +648,9 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 
 		// Update transaction according to the result of transaction stat
 		logger.Sugar().Infof("transaction %v amount %v %v -> %v [%v]",
-			created.ID,
-			create.Amount,
-			create.State,
+			paying.ID,
+			paying.Amount,
+			paying.State,
 			toState,
 			cid)
 
