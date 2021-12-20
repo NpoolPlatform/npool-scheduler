@@ -691,9 +691,9 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 }
 
 func Run(ctx context.Context) {
-	// TODO: startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
-	// TODO: startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
-	// TODO: <-startTimer.C
+	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	<-startTimer.C
 
 	ac := &accounting{
 		scanTicker:     time.NewTicker(30 * time.Second),
