@@ -383,7 +383,8 @@ func (ac *accounting) onTransfer(ctx context.Context, transaction *billingpb.Coi
 	}
 
 	// Transfer to chain
-	logger.Sugar().Infof("transfer %v from %v to %v",
+	logger.Sugar().Infof("transfer %v amount %v from %v to %v",
+		transaction.ID,
 		transaction.Amount,
 		from.Info.Address,
 		to.Info.Address)
