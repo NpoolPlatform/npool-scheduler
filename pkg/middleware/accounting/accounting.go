@@ -686,14 +686,12 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 func Run(ctx context.Context) {
 	// TODO: when to start
 
-	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
-	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
-	select {
-	case <-startTimer.C:
-	}
+	// startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	// startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	// <-startTimer.C
 
 	ac := &accounting{
-		scanTicker:     time.NewTicker(24 * time.Hour),
+		scanTicker:     time.NewTicker(30 * time.Second),
 		transferTicker: time.NewTicker(30 * time.Second),
 	}
 
