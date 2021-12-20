@@ -361,6 +361,8 @@ func (ac *accounting) onCreateTransaction(ctx context.Context, gac *goodAccounti
 }
 
 func (ac *accounting) onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransaction) error {
+	logger.Sugar().Infof("try transfer %v amount %v", transaction.ID, transaction.Amount)
+
 	from, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: transaction.FromAddressID,
 	})
@@ -548,6 +550,11 @@ func (ac *accounting) onCreatedChecker(ctx context.Context) {
 			continue
 		}
 
+		logger.Sugar().Infof("transaction %v amount %v %v -> %v",
+			created.ID,
+			create.Amount,
+			create.State,
+			billingconst.CoinTransactionStateWait)
 		created.State = billingconst.CoinTransactionStateWait
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
 			Info: created,
@@ -574,6 +581,12 @@ func (ac *accounting) onWaitChecker(ctx context.Context) {
 			logger.Sugar().Errorf("fail transfer transaction: %v", err)
 			continue
 		}
+
+		logger.Sugar().Infof("transaction %v amount %v %v -> %v",
+			created.ID,
+			create.Amount,
+			create.State,
+			billingconst.CoinTransactionStatePaying)
 
 		wait.State = billingconst.CoinTransactionStatePaying
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
@@ -634,6 +647,13 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 		}
 
 		// Update transaction according to the result of transaction stat
+		logger.Sugar().Infof("transaction %v amount %v %v -> %v [%v]",
+			created.ID,
+			create.Amount,
+			create.State,
+			toState,
+			cid)
+
 		paying.State = toState
 		paying.ChainTransactionID = cid
 
