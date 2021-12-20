@@ -678,7 +678,7 @@ func Run(ctx context.Context) {
 	// TODO: when to start
 
 	ac := &accounting{
-		scanTicker:     time.NewTicker(30 * time.Second),
+		scanTicker:     time.NewTicker(24 * time.Hour),
 		transferTicker: time.NewTicker(30 * time.Second),
 	}
 
