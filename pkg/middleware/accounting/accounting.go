@@ -427,26 +427,32 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
 		}
 
+		preQueryBalance := gac.preQueryBalance
+		if preQueryBalance < gac.coininfo.ReservedAmount {
+			preQueryBalance = gac.coininfo.ReservedAmount
+		}
+
+		totalAmount := gac.afterQueryBalanceInfo.Balance - preQueryBalance
+		if totalAmount < 0 {
+			logger.Sugar().Errorf("invalid amount: balance after query %v < before query %v (%v) [%v]",
+				gac.afterQueryBalanceInfo.Balance,
+				gac.preQueryBalance,
+				preQueryBalance,
+				gac.good.ID)
+			continue
+		}
+
 		_, err = grpc2.CreatePlatformBenefit(ctx, &billingpb.CreatePlatformBenefitRequest{
 			Info: &billingpb.PlatformBenefit{
 				GoodID:               gac.good.ID,
 				BenefitAccountID:     gac.goodsetting.BenefitAccountID,
-				Amount:               gac.afterQueryBalanceInfo.Balance - gac.preQueryBalance,
+				Amount:               totalAmount,
 				LastBenefitTimestamp: lastBenefitTimestamp,
 				ChainTransactionID:   uuid.New().String(),
 			},
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail create platform benefit for good: %v [%v]", err, gac.good.ID)
-			continue
-		}
-
-		totalAmount := gac.afterQueryBalanceInfo.Balance - gac.preQueryBalance
-		if totalAmount < 0 {
-			logger.Sugar().Errorf("invalid amount: balance after query %v < before query %v [%v]",
-				gac.afterQueryBalanceInfo.Balance,
-				gac.preQueryBalance,
-				gac.good.ID)
 			continue
 		}
 
