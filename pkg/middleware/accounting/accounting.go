@@ -27,6 +27,11 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	secondsInDay  = uint32(24 * 60 * 60)
+	secondsInHour = uint32(60 * 60)
+)
+
 type goodAccounting struct {
 	good                  *goodspb.GoodInfo
 	coininfo              *coininfopb.CoinInfo
@@ -421,7 +426,6 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			continue
 		}
 
-		secondsInDay := uint32(24 * 60 * 60)
 		lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
 		if resp.Info != nil {
 			lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
@@ -487,7 +491,6 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 				continue
 			}
 
-			secondsInDay := uint32(24 * 60 * 60)
 			lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
 			if resp.Info != nil {
 				lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
@@ -683,8 +686,14 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 func Run(ctx context.Context) {
 	// TODO: when to start
 
+	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	select {
+	case <-startTimer.C:
+	}
+
 	ac := &accounting{
-		scanTicker:     time.NewTicker(30 * time.Second),
+		scanTicker:     time.NewTicker(24 * time.Hour),
 		transferTicker: time.NewTicker(30 * time.Second),
 	}
 
