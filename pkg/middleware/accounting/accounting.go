@@ -634,9 +634,8 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 		resp, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
 			TransactionID: paying.ID,
 		})
-		// TODO: if service not OK, do not update transaction state
 		if err != nil {
-			// if service not OK, do not update transaction state
+			// If service not OK, do not update transaction state
 			switch status.Code(err) {
 			case codes.Unknown:
 				logger.Sugar().Errorf("fail connect proxy service: %v", err)
@@ -687,8 +686,6 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 }
 
 func Run(ctx context.Context) {
-	// TODO: when to start
-
 	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
 	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
 	<-startTimer.C
