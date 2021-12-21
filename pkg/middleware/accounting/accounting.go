@@ -423,7 +423,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			continue
 		}
 
-		resp, err := grpc2.GetLatestPlatformBenefitByGood(ctx, &billingpb.GetLatestPlatformBenefitByGoodRequest{
+		_, err := grpc2.GetLatestPlatformBenefitByGood(ctx, &billingpb.GetLatestPlatformBenefitByGoodRequest{
 			GoodID: gac.good.ID,
 		})
 		if err != nil {
@@ -432,9 +432,6 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 		}
 
 		lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
-		if resp.Info != nil {
-			lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
-		}
 
 		preQueryBalance := gac.preQueryBalance
 		if preQueryBalance < gac.coininfo.ReservedAmount {
@@ -489,7 +486,7 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 				continue
 			}
 
-			resp, err := grpc2.GetLatestUserBenefitByGoodAppUser(ctx, &billingpb.GetLatestUserBenefitByGoodAppUserRequest{
+			_, err = grpc2.GetLatestUserBenefitByGoodAppUser(ctx, &billingpb.GetLatestUserBenefitByGoodAppUserRequest{
 				GoodID: gac.good.ID,
 				AppID:  order.AppID,
 				UserID: order.UserID,
@@ -500,9 +497,6 @@ func (ac *accounting) onPersistentResult(ctx context.Context) { //nolint
 			}
 
 			lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
-			if resp.Info != nil {
-				lastBenefitTimestamp = resp.Info.CreateAt / secondsInDay * secondsInDay
-			}
 
 			_, err = grpc2.CreateUserBenefit(ctx, &billingpb.CreateUserBenefitRequest{
 				Info: &billingpb.UserBenefit{
