@@ -411,7 +411,7 @@ func (ac *accounting) onTransfer(ctx context.Context, transaction *billingpb.Coi
 		To:            to.Info.Address,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail update transaction to fail: %v", err)
+		return xerrors.Errorf("fail create transaction: %v", err)
 	}
 
 	return nil
