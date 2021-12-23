@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 
@@ -26,6 +27,10 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const (
+	grpcTimeout = 5 * time.Second
+)
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) (*goodspb.GetGoodsResponse, error) {
@@ -36,6 +41,10 @@ func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) (*goodspb.GetGoo
 	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetGoods(ctx, in)
 }
 
@@ -47,6 +56,10 @@ func GetGoodsDetail(ctx context.Context, in *goodspb.GetGoodsDetailRequest) (*go
 	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetGoodsDetail(ctx, in)
 }
 
@@ -58,6 +71,10 @@ func GetGoodDetail(ctx context.Context, in *goodspb.GetGoodDetailRequest) (*good
 	defer conn.Close()
 
 	cli := goodspb.NewCloudHashingGoodsClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetGoodDetail(ctx, in)
 }
 
@@ -71,6 +88,10 @@ func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) (*coi
 	defer conn.Close()
 
 	cli := coininfopb.NewSphinxCoinInfoClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCoinInfos(ctx, in)
 }
 
@@ -82,6 +103,10 @@ func GetCoinInfo(ctx context.Context, in *coininfopb.GetCoinInfoRequest) (*coini
 	defer conn.Close()
 
 	cli := coininfopb.NewSphinxCoinInfoClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCoinInfo(ctx, in)
 }
 
@@ -95,6 +120,10 @@ func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.GetOrd
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrder(ctx, in)
 }
 
@@ -106,6 +135,10 @@ func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) (*
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrdersByGood(ctx, in)
 }
 
@@ -117,6 +150,10 @@ func GetCompensatesByOrder(ctx context.Context, in *orderpb.GetCompensatesByOrde
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCompensatesByOrder(ctx, in)
 }
 
@@ -128,6 +165,10 @@ func GetOrderDetail(ctx context.Context, in *orderpb.GetOrderDetailRequest) (*or
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrderDetail(ctx, in)
 }
 
@@ -139,6 +180,10 @@ func GetOrdersDetailByAppUser(ctx context.Context, in *orderpb.GetOrdersDetailBy
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrdersDetailByAppUser(ctx, in)
 }
 
@@ -150,6 +195,10 @@ func GetOrdersDetailByApp(ctx context.Context, in *orderpb.GetOrdersDetailByAppR
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrdersDetailByApp(ctx, in)
 }
 
@@ -161,6 +210,10 @@ func GetOrdersDetailByGood(ctx context.Context, in *orderpb.GetOrdersDetailByGoo
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetOrdersDetailByGood(ctx, in)
 }
 
@@ -172,6 +225,10 @@ func CreateOrder(ctx context.Context, in *orderpb.CreateOrderRequest) (*orderpb.
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateOrder(ctx, in)
 }
 
@@ -183,6 +240,10 @@ func CreateGoodPaying(ctx context.Context, in *orderpb.CreateGoodPayingRequest) 
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateGoodPaying(ctx, in)
 }
 
@@ -194,6 +255,10 @@ func CreateGasPaying(ctx context.Context, in *orderpb.CreateGasPayingRequest) (*
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateGasPaying(ctx, in)
 }
 
@@ -205,6 +270,10 @@ func CreatePayment(ctx context.Context, in *orderpb.CreatePaymentRequest) (*orde
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreatePayment(ctx, in)
 }
 
@@ -216,6 +285,10 @@ func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest
 	defer conn.Close()
 
 	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetPaymentByOrder(ctx, in)
 }
 
@@ -229,6 +302,10 @@ func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRe
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateCoinAccount(ctx, in)
 }
 
@@ -240,6 +317,10 @@ func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBene
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreatePlatformBenefit(ctx, in)
 }
 
@@ -251,6 +332,10 @@ func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitReque
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateUserBenefit(ctx, in)
 }
 
@@ -262,6 +347,10 @@ func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest)
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCoinAccount(ctx, in)
 }
 
@@ -273,6 +362,10 @@ func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSett
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetPlatformSettingByGood(ctx, in)
 }
 
@@ -284,6 +377,10 @@ func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBen
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetPlatformBenefitsByGood(ctx, in)
 }
 
@@ -295,6 +392,10 @@ func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatest
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetLatestPlatformBenefitByGood(ctx, in)
 }
 
@@ -306,6 +407,10 @@ func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLat
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetLatestUserBenefitByGoodAppUser(ctx, in)
 }
 
@@ -317,6 +422,10 @@ func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCoinAccountTransactionsByCoinAccount(ctx, in)
 }
 
@@ -328,6 +437,10 @@ func GetCoinAccountTransactionsByState(ctx context.Context, in *billingpb.GetCoi
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetCoinAccountTransactionsByState(ctx, in)
 }
 
@@ -339,6 +452,10 @@ func CreateCoinAccountTransaction(ctx context.Context, in *billingpb.CreateCoinA
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateCoinAccountTransaction(ctx, in)
 }
 
@@ -350,6 +467,10 @@ func UpdateCoinAccountTransaction(ctx context.Context, in *billingpb.UpdateCoinA
 	defer conn.Close()
 
 	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.UpdateCoinAccountTransaction(ctx, in)
 }
 
@@ -363,6 +484,10 @@ func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (
 	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateWallet(ctx, in)
 }
 
@@ -374,6 +499,10 @@ func GetBalance(ctx context.Context, in *sphinxproxypb.GetBalanceRequest) (*sphi
 	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetBalance(ctx, in)
 }
 
@@ -385,6 +514,10 @@ func CreateTransaction(ctx context.Context, in *sphinxproxypb.CreateTransactionR
 	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.CreateTransaction(ctx, in)
 }
 
@@ -396,6 +529,10 @@ func GetTransaction(ctx context.Context, in *sphinxproxypb.GetTransactionRequest
 	defer conn.Close()
 
 	cli := sphinxproxypb.NewSphinxProxyClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetTransaction(ctx, in)
 }
 
@@ -409,5 +546,9 @@ func GetUser(ctx context.Context, in *usermgrpb.GetUserRequest) (*usermgrpb.GetU
 	defer conn.Close()
 
 	cli := usermgrpb.NewUserClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
 	return cli.GetUser(ctx, in)
 }
