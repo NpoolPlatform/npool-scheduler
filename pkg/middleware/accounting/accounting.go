@@ -9,12 +9,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	billingpb "github.com/NpoolPlatform/cloud-hashing-billing/message/npool"
-	goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
-	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
+	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
+	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
+	usermgrpb "github.com/NpoolPlatform/message/npool/user"
 
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"

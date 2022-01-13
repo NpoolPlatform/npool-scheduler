@@ -6,8 +6,8 @@ import (
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 
-	goodspb "github.com/NpoolPlatform/cloud-hashing-goods/message/npool"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/message/const" //nolint
+	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
 
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	coininfoconst "github.com/NpoolPlatform/sphinx-coininfo/pkg/message/const" //nolint
@@ -15,13 +15,13 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxyconst "github.com/NpoolPlatform/sphinx-proxy/pkg/message/const" //nolint
 
-	orderpb "github.com/NpoolPlatform/cloud-hashing-order/message/npool"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const" //nolint
+	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 
-	billingpb "github.com/NpoolPlatform/cloud-hashing-billing/message/npool"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const" //nolint
+	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
-	usermgrpb "github.com/NpoolPlatform/user-management/message/npool"
+	usermgrpb "github.com/NpoolPlatform/message/npool/user"
 	usermgrconst "github.com/NpoolPlatform/user-management/pkg/message/const" //nolint
 
 	"golang.org/x/xerrors"
