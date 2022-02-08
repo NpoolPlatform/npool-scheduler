@@ -658,8 +658,6 @@ func (ac *accounting) onPayingChecker(ctx context.Context) {
 				toState = billingconst.CoinTransactionStateSuccessful
 				cid = resp.Info.CID
 			// TODO: process review rejected
-			// case sphinxproxypb.TransactionState_TransactionStateRejected:
-			//toState = billingconst.CoinTransactionStateRejected
 			default:
 				continue
 			}
