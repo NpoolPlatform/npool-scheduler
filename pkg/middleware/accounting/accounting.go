@@ -33,9 +33,9 @@ const (
 )
 
 type goodAccounting struct {
-	good                  *goodspb.GoodInfo
-	coininfo              *coininfopb.CoinInfo
-	platformsetting       *billingpb.PlatformSetting
+	good     *goodspb.GoodInfo
+	coininfo *coininfopb.CoinInfo
+	// platformsetting       *billingpb.PlatformSetting
 	goodsetting           *billingpb.GoodBenefit
 	accounts              map[string]*billingpb.CoinAccountInfo
 	benefits              []*billingpb.PlatformBenefit
