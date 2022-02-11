@@ -9,12 +9,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	appusermgrpb "github.com/NpoolPlatform/message/npool/appusermgr"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	usermgrpb "github.com/NpoolPlatform/message/npool/user"
 
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
@@ -35,7 +35,8 @@ const (
 type goodAccounting struct {
 	good                  *goodspb.GoodInfo
 	coininfo              *coininfopb.CoinInfo
-	goodsetting           *billingpb.PlatformSetting
+	platformsetting       *billingpb.PlatformSetting
+	goodsetting           *billingpb.GoodBenefit
 	accounts              map[string]*billingpb.CoinAccountInfo
 	benefits              []*billingpb.PlatformBenefit
 	transactions          []*billingpb.CoinAccountTransaction
@@ -93,7 +94,7 @@ func (ac *accounting) onQueryAccount(ctx context.Context) {
 	acs := []*goodAccounting{}
 
 	for _, gac := range ac.goodAccountings {
-		resp, err := grpc2.GetPlatformSettingByGood(ctx, &billingpb.GetPlatformSettingByGoodRequest{
+		resp, err := grpc2.GetGoodBenefitByGood(ctx, &billingpb.GetGoodBenefitByGoodRequest{
 			GoodID: gac.good.ID,
 		})
 		if err != nil {
@@ -257,7 +258,7 @@ func (ac *accounting) onQueryOrders(ctx context.Context) {
 
 		orders := []*orderpb.Order{}
 		for _, info := range resp.Infos {
-			_, err := grpc2.GetUser(ctx, &usermgrpb.GetUserRequest{
+			_, err := grpc2.GetAppUserByAppUser(ctx, &appusermgrpb.GetAppUserByAppUserRequest{
 				AppID:  info.AppID,
 				UserID: info.UserID,
 			})
@@ -352,15 +353,14 @@ func (ac *accounting) onCreateTransaction(ctx context.Context, gac *goodAccounti
 
 	_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
-			AppID:                 uuid.UUID{}.String(),
-			UserID:                uuid.UUID{}.String(),
-			FromAddressID:         gac.goodsetting.BenefitAccountID,
-			ToAddressID:           toAddressID,
-			CoinTypeID:            gac.coininfo.ID,
-			Amount:                totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
-			Message:               fmt.Sprintf("%v benefit of %v at %v", benefitType, gac.good.ID, time.Now()),
-			PlatformTransactionID: uuid.New().String(),
-			ChainTransactionID:    uuid.New().String(),
+			AppID:              uuid.UUID{}.String(),
+			UserID:             uuid.UUID{}.String(),
+			FromAddressID:      gac.goodsetting.BenefitAccountID,
+			ToAddressID:        toAddressID,
+			CoinTypeID:         gac.coininfo.ID,
+			Amount:             totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
+			Message:            fmt.Sprintf("%v benefit of %v at %v", benefitType, gac.good.ID, time.Now()),
+			ChainTransactionID: uuid.New().String(),
 		},
 	})
 	if err != nil {

@@ -21,8 +21,8 @@ import (
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const" //nolint
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
-	usermgrpb "github.com/NpoolPlatform/message/npool/user"
-	usermgrconst "github.com/NpoolPlatform/user-management/pkg/message/const" //nolint
+	appusermgrconst "github.com/NpoolPlatform/appuser-manager/pkg/message/const" //nolint
+	appusermgrpb "github.com/NpoolPlatform/message/npool/appusermgr"
 
 	"golang.org/x/xerrors"
 )
@@ -292,6 +292,36 @@ func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest
 	return cli.GetPaymentByOrder(ctx, in)
 }
 
+func GetPaymentsByState(ctx context.Context, in *orderpb.GetPaymentsByStateRequest) (*orderpb.GetPaymentsByStateResponse, error) {
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get payment by order: %v", err)
+	}
+	defer conn.Close()
+
+	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetPaymentsByState(ctx, in)
+}
+
+func UpdatePayment(ctx context.Context, in *orderpb.UpdatePaymentRequest) (*orderpb.UpdatePaymentResponse, error) {
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get payment by order: %v", err)
+	}
+	defer conn.Close()
+
+	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.UpdatePayment(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRequest) (*billingpb.CreateCoinAccountResponse, error) {
@@ -354,7 +384,7 @@ func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest)
 	return cli.GetCoinAccount(ctx, in)
 }
 
-func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSettingByGoodRequest) (*billingpb.GetPlatformSettingByGoodResponse, error) {
+func GetPlatformSetting(ctx context.Context, in *billingpb.GetPlatformSettingRequest) (*billingpb.GetPlatformSettingResponse, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -366,7 +396,7 @@ func GetPlatformSettingByGood(ctx context.Context, in *billingpb.GetPlatformSett
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetPlatformSettingByGood(ctx, in)
+	return cli.GetPlatformSetting(ctx, in)
 }
 
 func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBenefitsByGoodRequest) (*billingpb.GetPlatformBenefitsByGoodResponse, error) {
@@ -474,6 +504,51 @@ func UpdateCoinAccountTransaction(ctx context.Context, in *billingpb.UpdateCoinA
 	return cli.UpdateCoinAccountTransaction(ctx, in)
 }
 
+func GetGoodPaymentByAccount(ctx context.Context, in *billingpb.GetGoodPaymentByAccountRequest) (*billingpb.GetGoodPaymentByAccountResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetGoodPaymentByAccount(ctx, in)
+}
+
+func UpdateGoodPayment(ctx context.Context, in *billingpb.UpdateGoodPaymentRequest) (*billingpb.UpdateGoodPaymentResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.UpdateGoodPayment(ctx, in)
+}
+
+func GetGoodBenefitByGood(ctx context.Context, in *billingpb.GetGoodBenefitByGoodRequest) (*billingpb.GetGoodBenefitByGoodResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetGoodBenefitByGood(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (*sphinxproxypb.CreateWalletResponse, error) {
@@ -538,17 +613,17 @@ func GetTransaction(ctx context.Context, in *sphinxproxypb.GetTransactionRequest
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func GetUser(ctx context.Context, in *usermgrpb.GetUserRequest) (*usermgrpb.GetUserResponse, error) {
-	conn, err := grpc2.GetGRPCConn(usermgrconst.ServiceName, grpc2.GRPCTAG)
+func GetAppUserByAppUser(ctx context.Context, in *appusermgrpb.GetAppUserByAppUserRequest) (*appusermgrpb.GetAppUserByAppUserResponse, error) {
+	conn, err := grpc2.GetGRPCConn(appusermgrconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get usermgr connection: %v", err)
 	}
 	defer conn.Close()
 
-	cli := usermgrpb.NewUserClient(conn)
+	cli := appusermgrpb.NewAppUserManagerClient(conn)
 
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetUser(ctx, in)
+	return cli.GetAppUserByAppUser(ctx, in)
 }

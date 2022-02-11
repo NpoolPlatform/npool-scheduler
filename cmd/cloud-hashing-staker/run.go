@@ -9,6 +9,7 @@ import (
 	msglistener "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/listener"
 	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
 	msgsrv "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/server"
+	paywatcher "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/payment-watcher"
 
 	accounting "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/accounting"
 
@@ -48,6 +49,7 @@ var runCmd = &cli.Command{
 		go msglistener.Listen()
 		go msgSender()
 		go accounting.Run(c.Context)
+		go paywatcher.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
