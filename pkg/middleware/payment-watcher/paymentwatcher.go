@@ -34,12 +34,20 @@ func watchPaymentState(ctx context.Context) { //nolint
 			logger.Sugar().Errorf("fail to get coin %v info: %v", pay.CoinInfoID, err)
 			continue
 		}
+		if coinInfo.Info == nil {
+			logger.Sugar().Errorf("fail to get coin %v info", pay.CoinInfoID)
+			continue
+		}
 
 		account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 			ID: pay.AccountID,
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail to get payment account: %v", err)
+			continue
+		}
+		if account.Info == nil {
+			logger.Sugar().Errorf("fail to get payment account")
 			continue
 		}
 
@@ -49,6 +57,10 @@ func watchPaymentState(ctx context.Context) { //nolint
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail to get wallet balance: %v", err)
+			continue
+		}
+		if balance.Info == nil {
+			logger.Sugar().Errorf("fail to get wallet balance")
 			continue
 		}
 
@@ -81,6 +93,10 @@ func watchPaymentState(ctx context.Context) { //nolint
 			})
 			if err != nil {
 				logger.Sugar().Errorf("fail to get good payment: %v", err)
+				continue
+			}
+			if myPayment.Info == nil {
+				logger.Sugar().Errorf("fail to get good payment")
 				continue
 			}
 
