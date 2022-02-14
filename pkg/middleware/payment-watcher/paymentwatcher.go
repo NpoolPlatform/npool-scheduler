@@ -138,7 +138,10 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		if err != nil {
 			logger.Sugar().Errorf("fail to update good payment: %v", err)
 		}
-		redis2.Unlock(lockKey)
+		err = redis2.Unlock(lockKey)
+		if err != nil {
+			logger.Sugar().Errorf("fail to unlock account")
+		}
 	}()
 
 	payment.Idle = false
@@ -165,7 +168,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail get wallet balance: %v", err)
 	}
 
-	coinLimit := 100
+	coinLimit := 0
 
 	coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,

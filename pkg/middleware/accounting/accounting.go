@@ -80,14 +80,14 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	}
 
 	for _, good := range resp.Infos {
-		go func() {
+		go func(myGood *goodspb.GoodInfo) {
 			ac.queryCoinInfo <- &goodAccounting{
-				good:            good,
+				good:            myGood,
 				accounts:        map[string]*billingpb.CoinAccountInfo{},
 				compensates:     map[string][]*orderpb.Compensate{},
 				platformsetting: resp1.Info,
 			}
-		}()
+		}(good)
 	}
 }
 
@@ -359,12 +359,10 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 	}
 	if resp.Info != nil {
 		warmCoinLimit = int(resp.Info.WarmAccountCoinAmount)
-	} else {
-		if gac.platformsetting != nil {
-			price, err := currency.USDPrice(ctx, gac.coininfo.Name)
-			if err == nil && price > 0 {
-				warmCoinLimit = int(gac.platformsetting.WarmAccountUSDAmount / price)
-			}
+	} else if gac.platformsetting != nil {
+		price, err := currency.USDPrice(ctx, gac.coininfo.Name)
+		if err == nil && price > 0 {
+			warmCoinLimit = int(gac.platformsetting.WarmAccountUSDAmount / price)
 		}
 	}
 
