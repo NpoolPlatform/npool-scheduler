@@ -549,6 +549,21 @@ func GetGoodBenefitByGood(ctx context.Context, in *billingpb.GetGoodBenefitByGoo
 	return cli.GetGoodBenefitByGood(ctx, in)
 }
 
+func GetCoinSettingByCoin(ctx context.Context, in *billingpb.GetCoinSettingByCoinRequest) (*billingpb.GetCoinSettingByCoinResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetCoinSettingByCoin(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (*sphinxproxypb.CreateWalletResponse, error) {

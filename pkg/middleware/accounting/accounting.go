@@ -6,6 +6,7 @@ import (
 	"time"
 
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -35,11 +36,13 @@ const (
 type goodAccounting struct {
 	good                  *goodspb.GoodInfo
 	coininfo              *coininfopb.CoinInfo
-	goodsetting           *billingpb.GoodBenefit
+	goodbenefit           *billingpb.GoodBenefit
+	goodsetting           *billingpb.GoodSetting
 	preQueryBalance       float64
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
 	userUnits             uint32
 	platformUnits         uint32
+	platformsetting       *billingpb.PlatformSetting
 	accounts              map[string]*billingpb.CoinAccountInfo
 	benefits              []*billingpb.PlatformBenefit
 	transactions          []*billingpb.CoinAccountTransaction
@@ -50,7 +53,6 @@ type goodAccounting struct {
 type accounting struct {
 	scanTicker     *time.Ticker
 	transferTicker *time.Ticker
-	// platformsetting       *billingpb.PlatformSetting
 
 	queryCoinInfo          chan *goodAccounting
 	queryAccount           chan *goodAccounting
@@ -72,12 +74,19 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 		return
 	}
 
+	resp1, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
+	if err != nil {
+		logger.Sugar().Errorf("fail get platform setting: %v", err)
+		return
+	}
+
 	for _, good := range resp.Infos {
 		go func() {
 			ac.queryCoinInfo <- &goodAccounting{
-				good:        good,
-				accounts:    map[string]*billingpb.CoinAccountInfo{},
-				compensates: map[string][]*orderpb.Compensate{},
+				good:            good,
+				accounts:        map[string]*billingpb.CoinAccountInfo{},
+				compensates:     map[string][]*orderpb.Compensate{},
+				platformsetting: resp1.Info,
 			}
 		}()
 	}
@@ -108,49 +117,49 @@ func (gac *goodAccounting) onQueryAccount(ctx context.Context) {
 		return
 	}
 
-	gac.goodsetting = resp.Info
+	gac.goodbenefit = resp.Info
 }
 
 func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
 	resp, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodsetting.BenefitAccountID,
+		ID: gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodsetting.BenefitAccountID] = resp.Info
+	gac.accounts[gac.goodbenefit.BenefitAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodsetting.PlatformOfflineAccountID,
+		ID: gac.goodbenefit.PlatformOfflineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodsetting.PlatformOfflineAccountID] = resp.Info
+	gac.accounts[gac.goodbenefit.PlatformOfflineAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodsetting.UserOnlineAccountID,
+		ID: gac.goodbenefit.UserOnlineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodsetting.UserOnlineAccountID] = resp.Info
+	gac.accounts[gac.goodbenefit.UserOnlineAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodsetting.UserOfflineAccountID,
+		ID: gac.goodbenefit.UserOfflineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodsetting.UserOfflineAccountID] = resp.Info
+	gac.accounts[gac.goodbenefit.UserOfflineAccountID] = resp.Info
 }
 
 func (gac *goodAccounting) onQueryBenefits(ctx context.Context) {
@@ -168,7 +177,7 @@ func (gac *goodAccounting) onQueryBenefits(ctx context.Context) {
 func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) {
 	resp, err := grpc2.GetCoinAccountTransactionsByCoinAccount(ctx, &billingpb.GetCoinAccountTransactionsByCoinAccountRequest{
 		CoinTypeID: gac.good.CoinInfoID,
-		AddressID:  gac.goodsetting.BenefitAccountID,
+		AddressID:  gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get benefit account transaction by good: %v [%v]", err, gac.good.ID)
@@ -177,7 +186,7 @@ func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) {
 
 	txs := []*billingpb.CoinAccountTransaction{}
 	for _, info := range resp.Infos {
-		if info.ToAddressID == gac.goodsetting.BenefitAccountID {
+		if info.ToAddressID == gac.goodbenefit.BenefitAccountID {
 			logger.Sugar().Errorf("good benefit account should not accept platform incoming transaction: %v [%v]", info.ToAddressID, gac.good.ID)
 			continue
 		}
@@ -200,20 +209,26 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) {
 	}
 
 	if inComing < outComing {
-		logger.Sugar().Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodsetting.BenefitAccountID, inComing, outComing, gac.good.ID)
+		logger.Sugar().Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
+		return
+	}
+
+	account, ok := gac.accounts[gac.goodbenefit.BenefitAccountID]
+	if !ok {
+		logger.Sugar().Errorf("invalid benefit address")
 		return
 	}
 
 	resp, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    gac.coininfo.Name,
-		Address: gac.accounts[gac.goodsetting.BenefitAccountID].Address,
+		Address: account.Address,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
-			gac.goodsetting.BenefitAccountID,
+			gac.goodbenefit.BenefitAccountID,
 			err, gac.good.ID,
 			gac.coininfo.Name,
-			gac.accounts[gac.goodsetting.BenefitAccountID].Address)
+			account.Address)
 		return
 	}
 
@@ -230,6 +245,7 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) {
 		return
 	}
 
+	// TODO: multiple pages order
 	orders := []*orderpb.Order{}
 	for _, info := range resp.Infos {
 		_, err := grpc2.GetAppUserByAppUser(ctx, &appusermgrpb.GetAppUserByAppUserRequest{
@@ -305,12 +321,12 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 	gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
 }
 
-func (gac *goodAccounting) onCreateTransaction(ctx context.Context, totalAmount float64, benefitType string) error {
-	toAddressID := gac.goodsetting.UserOnlineAccountID
+func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) error {
+	toAddressID := gac.goodbenefit.UserOnlineAccountID
 	units := gac.userUnits
 
 	if benefitType == "platform" {
-		toAddressID = gac.goodsetting.PlatformOfflineAccountID
+		toAddressID = gac.goodbenefit.PlatformOfflineAccountID
 		units = gac.platformUnits
 	}
 
@@ -318,7 +334,7 @@ func (gac *goodAccounting) onCreateTransaction(ctx context.Context, totalAmount 
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:              uuid.UUID{}.String(),
 			UserID:             uuid.UUID{}.String(),
-			FromAddressID:      gac.goodsetting.BenefitAccountID,
+			FromAddressID:      gac.goodbenefit.BenefitAccountID,
 			ToAddressID:        toAddressID,
 			CoinTypeID:         gac.coininfo.ID,
 			Amount:             totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
@@ -334,7 +350,67 @@ func (gac *goodAccounting) onCreateTransaction(ctx context.Context, totalAmount 
 }
 
 func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
-	// TODO: check user online threshold and transfer to offline address
+	warmCoinLimit := 100
+	resp, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
+		CoinTypeID: gac.coininfo.ID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get coin setting: %v", err)
+		return
+	}
+	if resp.Info != nil {
+		warmCoinLimit = int(resp.Info.WarmAccountCoinAmount)
+	} else {
+		if gac.platformsetting != nil {
+			price, err := currency.USDPrice(ctx, gac.coininfo.Name)
+			if err == nil && price > 0 {
+				warmCoinLimit = int(gac.platformsetting.WarmAccountUSDAmount / price)
+			}
+		}
+	}
+
+	account, ok := gac.accounts[gac.goodbenefit.UserOnlineAccountID]
+	if !ok {
+		logger.Sugar().Errorf("invalid user online account")
+		return
+	}
+
+	_, ok = gac.accounts[gac.goodbenefit.UserOfflineAccountID]
+	if !ok {
+		logger.Sugar().Errorf("invalid user offline account")
+		return
+	}
+
+	resp1, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    gac.coininfo.Name,
+		Address: account.Address,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
+			gac.goodbenefit.UserOnlineAccountID,
+			err, gac.good.ID,
+			gac.coininfo.Name,
+			account.Address)
+		return
+	}
+
+	if int(resp1.Info.Balance) > warmCoinLimit && int(resp1.Info.Balance)-warmCoinLimit > warmCoinLimit {
+		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+			Info: &billingpb.CoinAccountTransaction{
+				AppID:              uuid.UUID{}.String(),
+				UserID:             uuid.UUID{}.String(),
+				FromAddressID:      gac.goodbenefit.UserOnlineAccountID,
+				ToAddressID:        gac.goodbenefit.UserOfflineAccountID,
+				CoinTypeID:         gac.coininfo.ID,
+				Amount:             resp1.Info.Balance - float64(warmCoinLimit),
+				Message:            fmt.Sprintf("warm transfer of %v at %v", gac.good.ID, time.Now()),
+				ChainTransactionID: uuid.New().String(),
+			},
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail create coin account transaction: %v", err)
+		}
+	}
 }
 
 func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransaction) error {
@@ -420,7 +496,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	_, err = grpc2.CreatePlatformBenefit(ctx, &billingpb.CreatePlatformBenefitRequest{
 		Info: &billingpb.PlatformBenefit{
 			GoodID:               gac.good.ID,
-			BenefitAccountID:     gac.goodsetting.BenefitAccountID,
+			BenefitAccountID:     gac.goodbenefit.BenefitAccountID,
 			Amount:               totalAmount,
 			LastBenefitTimestamp: lastBenefitTimestamp,
 			ChainTransactionID:   uuid.New().String(),
@@ -432,14 +508,14 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 
 	if gac.userUnits > 0 {
-		if err := gac.onCreateTransaction(ctx, totalAmount, "user"); err != nil {
+		if err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user"); err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
 	}
 
 	if gac.platformUnits > 0 {
-		if err := gac.onCreateTransaction(ctx, totalAmount, "platform"); err != nil {
+		if err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
