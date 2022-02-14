@@ -191,12 +191,11 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	}
 
 	if int(balance.Info.Balance) > coinLimit {
-		incoming, err := grpc2.GetGoodIncomingByGoodCoin(ctx, &billingpb.GetGoodIncomingByGoodCoinRequest{
-			GoodID:     payment.GoodID,
+		coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 			CoinTypeID: payment.PaymentCoinTypeID,
 		})
 		if err != nil {
-			return xerrors.Errorf("fail get good incoming: %v", err)
+			return xerrors.Errorf("fail get coin setting: %v", err)
 		}
 
 		// Here we just create transaction, watcher will process it
@@ -205,7 +204,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
 				FromAddressID:      payment.AccountID,
-				ToAddressID:        incoming.Info.AccountID,
+				ToAddressID:        coinsetting.Info.GoodIncomingAccountID,
 				CoinTypeID:         coinInfo.ID,
 				Amount:             balance.Info.Balance - coinInfo.ReservedAmount,
 				Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),

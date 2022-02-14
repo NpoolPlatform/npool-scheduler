@@ -36,6 +36,7 @@ const (
 type goodAccounting struct {
 	good                  *goodspb.GoodInfo
 	coininfo              *coininfopb.CoinInfo
+	coinsetting           *billingpb.CoinSetting
 	goodbenefit           *billingpb.GoodBenefit
 	preQueryBalance       float64
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
@@ -101,6 +102,20 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) {
 	}
 
 	gac.coininfo = resp.Info
+
+	resp1, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
+		CoinTypeID: gac.good.CoinInfoID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get coin setting: %v", err)
+		return
+	}
+	if resp1.Info == nil {
+		logger.Sugar().Errorf("fail get coin setting")
+		return
+	}
+
+	gac.coinsetting = resp1.Info
 }
 
 func (gac *goodAccounting) onQueryAccount(ctx context.Context) {
@@ -131,34 +146,34 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
 	gac.accounts[gac.goodbenefit.BenefitAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodbenefit.PlatformOfflineAccountID,
+		ID: gac.coinsetting.PlatformOfflineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodbenefit.PlatformOfflineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.PlatformOfflineAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodbenefit.UserOnlineAccountID,
+		ID: gac.coinsetting.UserOnlineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodbenefit.UserOnlineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.UserOnlineAccountID] = resp.Info
 
 	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: gac.goodbenefit.UserOfflineAccountID,
+		ID: gac.coinsetting.UserOfflineAccountID,
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
 		return
 	}
 
-	gac.accounts[gac.goodbenefit.UserOfflineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.UserOfflineAccountID] = resp.Info
 }
 
 func (gac *goodAccounting) onQueryBenefits(ctx context.Context) {
@@ -321,11 +336,11 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 }
 
 func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) error {
-	toAddressID := gac.goodbenefit.UserOnlineAccountID
+	toAddressID := gac.coinsetting.UserOnlineAccountID
 	units := gac.userUnits
 
 	if benefitType == "platform" {
-		toAddressID = gac.goodbenefit.PlatformOfflineAccountID
+		toAddressID = gac.coinsetting.PlatformOfflineAccountID
 		units = gac.platformUnits
 	}
 
@@ -366,13 +381,13 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 		}
 	}
 
-	account, ok := gac.accounts[gac.goodbenefit.UserOnlineAccountID]
+	account, ok := gac.accounts[gac.coinsetting.UserOnlineAccountID]
 	if !ok {
 		logger.Sugar().Errorf("invalid user online account")
 		return
 	}
 
-	_, ok = gac.accounts[gac.goodbenefit.UserOfflineAccountID]
+	_, ok = gac.accounts[gac.coinsetting.UserOfflineAccountID]
 	if !ok {
 		logger.Sugar().Errorf("invalid user offline account")
 		return
@@ -384,7 +399,7 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
-			gac.goodbenefit.UserOnlineAccountID,
+			gac.coinsetting.UserOnlineAccountID,
 			err, gac.good.ID,
 			gac.coininfo.Name,
 			account.Address)
@@ -396,8 +411,8 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
-				FromAddressID:      gac.goodbenefit.UserOnlineAccountID,
-				ToAddressID:        gac.goodbenefit.UserOfflineAccountID,
+				FromAddressID:      gac.coinsetting.UserOnlineAccountID,
+				ToAddressID:        gac.coinsetting.UserOfflineAccountID,
 				CoinTypeID:         gac.coininfo.ID,
 				Amount:             resp1.Info.Balance - float64(warmCoinLimit),
 				Message:            fmt.Sprintf("warm transfer of %v at %v", gac.good.ID, time.Now()),
