@@ -37,7 +37,6 @@ type goodAccounting struct {
 	good                  *goodspb.GoodInfo
 	coininfo              *coininfopb.CoinInfo
 	goodbenefit           *billingpb.GoodBenefit
-	goodsetting           *billingpb.GoodSetting
 	preQueryBalance       float64
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
 	userUnits             uint32

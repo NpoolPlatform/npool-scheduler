@@ -10,11 +10,15 @@ import (
 
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
 
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+
+	"github.com/google/uuid"
+	"golang.org/x/xerrors"
 )
 
 func watchPaymentState(ctx context.Context) { //nolint
@@ -100,9 +104,9 @@ func watchPaymentState(ctx context.Context) { //nolint
 				continue
 			}
 
-			// TODO: add incoming transaction
-
 			myPayment.Info.Idle = true
+			myPayment.Info.OccupiedBy = ""
+
 			_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
 				Info: myPayment.Info,
 			})
@@ -119,13 +123,144 @@ func watchPaymentState(ctx context.Context) { //nolint
 	}
 }
 
+func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error {
+	lockKey := AccountLockKey(payment.AccountID)
+	err := redis2.TryLock(lockKey, 10*time.Minute)
+	if err != nil {
+		return xerrors.Errorf("fail lock account: %v", err)
+	}
+	defer func() {
+		payment.Idle = false
+		payment.OccupiedBy = ""
+		_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+			Info: payment,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail to update good payment: %v", err)
+		}
+		redis2.Unlock(lockKey)
+	}()
+
+	payment.Idle = false
+	payment.OccupiedBy = "collecting"
+	_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+		Info: payment,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail to update good payment: %v", err)
+	}
+
+	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: payment.AccountID,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get account: %v", err)
+	}
+
+	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    coinInfo.Name,
+		Address: account.Info.Address,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get wallet balance: %v", err)
+	}
+
+	coinLimit := 100
+
+	coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
+		CoinTypeID: coinInfo.ID,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get coin setting: %v", err)
+	}
+	if coinsetting.Info != nil {
+		coinLimit = int(coinsetting.Info.PaymentAccountCoinAmount)
+	} else {
+		platformsetting, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
+		if err != nil {
+			return xerrors.Errorf("fail get platform setting: %v", err)
+		}
+		price, err := currency.USDPrice(ctx, coinInfo.Name)
+		if err != nil {
+			return xerrors.Errorf("fail get price: %v", err)
+		}
+		coinLimit = int(platformsetting.Info.PaymentAccountUSDAmount / price)
+	}
+
+	if int(balance.Info.Balance) > coinLimit {
+		incoming, err := grpc2.GetGoodIncomingByGoodCoin(ctx, &billingpb.GetGoodIncomingByGoodCoinRequest{
+			GoodID:     payment.GoodID,
+			CoinTypeID: payment.PaymentCoinTypeID,
+		})
+		if err != nil {
+			return xerrors.Errorf("fail get good incoming: %v", err)
+		}
+
+		// Here we just create transaction, watcher will process it
+		_, err = grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+			Info: &billingpb.CoinAccountTransaction{
+				AppID:              uuid.UUID{}.String(),
+				UserID:             uuid.UUID{}.String(),
+				FromAddressID:      payment.AccountID,
+				ToAddressID:        incoming.Info.AccountID,
+				CoinTypeID:         coinInfo.ID,
+				Amount:             balance.Info.Balance - coinInfo.ReservedAmount,
+				Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
+				ChainTransactionID: uuid.New().String(),
+			},
+		})
+		if err != nil {
+			return xerrors.Errorf("fail create transaction")
+		}
+	}
+
+	return nil
+}
+
+func watchPaymentAmount(ctx context.Context) {
+	resp, err := grpc2.GetGoodPayments(ctx, &billingpb.GetGoodPaymentsRequest{})
+	if err != nil {
+		logger.Sugar().Errorf("fail get good payments: %v", err)
+		return
+	}
+
+	coins := map[string]*coininfopb.CoinInfo{}
+
+	for _, payment := range resp.Infos {
+		if !payment.Idle {
+			continue
+		}
+
+		coinInfo, ok := coins[payment.PaymentCoinTypeID]
+		if !ok {
+			resp, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+				ID: payment.PaymentCoinTypeID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail get coin info: %v", err)
+				continue
+			}
+			coins[payment.PaymentCoinTypeID] = resp.Info
+			coinInfo = resp.Info
+		}
+
+		err = checkAndTransfer(ctx, payment, coinInfo)
+		if err != nil {
+			logger.Sugar().Errorf("fail check and transfer: %v", err)
+		}
+	}
+}
+
 func Watch(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Second)
+	payticker := time.NewTicker(30 * time.Second)
+	collectticker := time.NewTicker(24 * time.Hour)
 
 	for { //nolint
 		select {
-		case <-ticker.C:
+		case <-payticker.C:
 			watchPaymentState(ctx)
+		case <-collectticker.C:
+			watchPaymentAmount(ctx)
 		}
 	}
 }

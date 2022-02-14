@@ -564,6 +564,36 @@ func GetCoinSettingByCoin(ctx context.Context, in *billingpb.GetCoinSettingByCoi
 	return cli.GetCoinSettingByCoin(ctx, in)
 }
 
+func GetGoodPayments(ctx context.Context, in *billingpb.GetGoodPaymentsRequest) (*billingpb.GetGoodPaymentsResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetGoodPayments(ctx, in)
+}
+
+func GetGoodIncomingByGoodCoin(ctx context.Context, in *billingpb.GetGoodIncomingByGoodCoinRequest) (*billingpb.GetGoodIncomingByGoodCoinResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetGoodIncomingByGoodCoin(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (*sphinxproxypb.CreateWalletResponse, error) {
