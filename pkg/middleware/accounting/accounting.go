@@ -81,6 +81,7 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	}
 
 	for _, good := range resp.Infos {
+		logger.Sugar().Infof("start accounting for good %v [%v]", good.ID, good.Title)
 		go func(myGood *goodspb.GoodInfo) {
 			ac.queryCoinInfo <- &goodAccounting{
 				good:            myGood,
@@ -92,13 +93,16 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	}
 }
 
-func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) {
+func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
 	resp, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 		ID: gac.good.CoinInfoID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get coin info: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get coin info: %v [%v]", err, gac.good.ID)
+	}
+
+	if resp.Info.PreSale {
+		return xerrors.Errorf("presale product cannot do accounting")
 	}
 
 	gac.coininfo = resp.Info
@@ -107,40 +111,37 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) {
 		CoinTypeID: gac.good.CoinInfoID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get coin setting: %v", err)
-		return
+		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
 	if resp1.Info == nil {
-		logger.Sugar().Errorf("fail get coin setting")
-		return
+		return xerrors.Errorf("fail get coin setting")
 	}
 
 	gac.coinsetting = resp1.Info
+	return nil
 }
 
-func (gac *goodAccounting) onQueryAccount(ctx context.Context) {
+func (gac *goodAccounting) onQueryAccount(ctx context.Context) error {
 	resp, err := grpc2.GetGoodBenefitByGood(ctx, &billingpb.GetGoodBenefitByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get platform setting by good: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get platform setting by good: %v [%v]", err, gac.good.ID)
 	}
 	if resp.Info == nil {
-		logger.Sugar().Errorf("fail get platform setting by good [%v]", gac.good.ID)
-		return
+		return xerrors.Errorf("fail get platform setting by good [%v]", gac.good.ID)
 	}
 
 	gac.goodbenefit = resp.Info
+	return nil
 }
 
-func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
+func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
 	resp, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.goodbenefit.BenefitAccountID] = resp.Info
@@ -149,8 +150,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
 		ID: gac.coinsetting.PlatformOfflineAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.PlatformOfflineAccountID] = resp.Info
@@ -159,8 +159,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
 		ID: gac.coinsetting.UserOnlineAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.UserOnlineAccountID] = resp.Info
@@ -169,33 +168,32 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) {
 		ID: gac.coinsetting.UserOfflineAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.UserOfflineAccountID] = resp.Info
+	return nil
 }
 
-func (gac *goodAccounting) onQueryBenefits(ctx context.Context) {
+func (gac *goodAccounting) onQueryBenefits(ctx context.Context) error {
 	resp, err := grpc2.GetPlatformBenefitsByGood(ctx, &billingpb.GetPlatformBenefitsByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get platform benefits by good: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get platform benefits by good: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.benefits = resp.Infos
+	return nil
 }
 
-func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) {
+func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) error {
 	resp, err := grpc2.GetCoinAccountTransactionsByCoinAccount(ctx, &billingpb.GetCoinAccountTransactionsByCoinAccountRequest{
 		CoinTypeID: gac.good.CoinInfoID,
 		AddressID:  gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get benefit account transaction by good: %v [%v]", err, gac.good.ID)
-		return
+		return xerrors.Errorf("fail get benefit account transaction by good: %v [%v]", err, gac.good.ID)
 	}
 
 	txs := []*billingpb.CoinAccountTransaction{}
@@ -208,9 +206,10 @@ func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) {
 	}
 
 	gac.transactions = txs
+	return nil
 }
 
-func (gac *goodAccounting) onQueryBalance(ctx context.Context) {
+func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 	inComing := float64(0)
 	outComing := float64(0)
 
@@ -223,14 +222,12 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) {
 	}
 
 	if inComing < outComing {
-		logger.Sugar().Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
-		return
+		return xerrors.Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
 	}
 
 	account, ok := gac.accounts[gac.goodbenefit.BenefitAccountID]
 	if !ok {
-		logger.Sugar().Errorf("invalid benefit address")
-		return
+		return xerrors.Errorf("invalid benefit address")
 	}
 
 	resp, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -238,25 +235,31 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) {
 		Address: account.Address,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
+		return xerrors.Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
 			gac.goodbenefit.BenefitAccountID,
 			err, gac.good.ID,
 			gac.coininfo.Name,
 			account.Address)
-		return
+	}
+	if resp.Info == nil {
+		return xerrors.Errorf("fail get balance for good benefit account %v: [%v| %v %v]",
+			gac.goodbenefit.BenefitAccountID,
+			gac.good.ID,
+			gac.coininfo.Name,
+			account.Address)
 	}
 
 	gac.preQueryBalance = inComing - outComing
 	gac.afterQueryBalanceInfo = resp.Info
+	return nil
 }
 
-func (gac *goodAccounting) onQueryOrders(ctx context.Context) {
+func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 	resp, err := grpc2.GetOrdersByGood(ctx, &orderpb.GetOrdersByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get orders by good: %v", err)
-		return
+		return xerrors.Errorf("fail get orders by good: %v", err)
 	}
 
 	// TODO: multiple pages order
@@ -293,6 +296,7 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) {
 	}
 
 	gac.orders = orders
+	return nil
 }
 
 func (gac *goodAccounting) onQueryCompensates(ctx context.Context) {
@@ -736,12 +740,12 @@ func onPayingChecker(ctx context.Context) {
 }
 
 func Run(ctx context.Context) {
-	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
-	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
-	<-startTimer.C
+	// startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	// startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	// <-startTimer.C
 
 	ac := &accounting{
-		scanTicker:             time.NewTicker(24 * time.Hour),
+		scanTicker:             time.NewTicker(5 * time.Minute),
 		transferTicker:         time.NewTicker(30 * time.Second),
 		queryCoinInfo:          make(chan *goodAccounting),
 		queryAccount:           make(chan *goodAccounting),
@@ -759,34 +763,56 @@ func Run(ctx context.Context) {
 	for {
 		select {
 		case <-ac.scanTicker.C:
+			logger.Sugar().Infof("start query goods")
 			ac.onQueryGoods(ctx)
 
 		case gac := <-ac.queryCoinInfo:
-			gac.onQueryCoininfo(ctx)
+			if err := gac.onQueryCoininfo(ctx); err != nil {
+				logger.Sugar().Errorf("fail query coin info: %v", err)
+				continue
+			}
 			go func() { ac.queryAccount <- gac }()
 
 		case gac := <-ac.queryAccount:
-			gac.onQueryAccount(ctx)
+			if err := gac.onQueryAccount(ctx); err != nil {
+				logger.Sugar().Errorf("fail query account: %v", err)
+				continue
+			}
 			go func() { ac.queryAccountInfo <- gac }()
 
 		case gac := <-ac.queryAccountInfo:
-			gac.onQueryAccountInfo(ctx)
+			if err := gac.onQueryAccountInfo(ctx); err != nil {
+				logger.Sugar().Errorf("fail query account info: %v", err)
+				continue
+			}
 			go func() { ac.queryBenefits <- gac }()
 
 		case gac := <-ac.queryBenefits:
-			gac.onQueryBenefits(ctx)
+			if err := gac.onQueryBenefits(ctx); err != nil {
+				logger.Sugar().Errorf("fail query benefits: %v", err)
+				continue
+			}
 			go func() { ac.querySpendTransactions <- gac }()
 
 		case gac := <-ac.querySpendTransactions:
-			gac.onQuerySpendTransactions(ctx)
+			if err := gac.onQuerySpendTransactions(ctx); err != nil {
+				logger.Sugar().Errorf("fail query spend transactions: %v", err)
+				continue
+			}
 			go func() { ac.queryBalance <- gac }()
 
 		case gac := <-ac.queryBalance:
-			gac.onQueryBalance(ctx)
+			if err := gac.onQueryBalance(ctx); err != nil {
+				logger.Sugar().Errorf("fail query balance: %v", err)
+				continue
+			}
 			go func() { ac.queryOrders <- gac }()
 
 		case gac := <-ac.queryOrders:
-			gac.onQueryOrders(ctx)
+			if err := gac.onQueryOrders(ctx); err != nil {
+				logger.Sugar().Errorf("fail query orders: %v", err)
+				continue
+			}
 			go func() { ac.queryCompensates <- gac }()
 
 		case gac := <-ac.queryCompensates:
