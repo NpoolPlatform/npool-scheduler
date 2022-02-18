@@ -457,11 +457,12 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 	}
 
 	// Transfer to chain
-	logger.Sugar().Infof("transfer %v amount %v from %v to %v",
+	logger.Sugar().Infof("transfer %v amount %v from %v to %v coin %v",
 		transaction.ID,
 		transaction.Amount,
 		from.Info.Address,
-		to.Info.Address)
+		to.Info.Address,
+		coininfo.Info.Name)
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
 		Name:          coininfo.Info.Name,
