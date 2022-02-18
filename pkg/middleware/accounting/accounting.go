@@ -740,13 +740,13 @@ func onPayingChecker(ctx context.Context) {
 	}
 }
 
-func Run(ctx context.Context) {
+func Run(ctx context.Context) { //nolint
 	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
 	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
 	<-startTimer.C
 
 	ac := &accounting{
-		scanTicker:             time.NewTicker(24 * time.Hours),
+		scanTicker:             time.NewTicker(24 * time.Hour),
 		transferTicker:         time.NewTicker(30 * time.Second),
 		queryCoinInfo:          make(chan *goodAccounting),
 		queryAccount:           make(chan *goodAccounting),
