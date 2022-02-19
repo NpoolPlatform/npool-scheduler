@@ -561,6 +561,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 				AppID:                order.AppID,
 				UserID:               order.UserID,
 				GoodID:               order.GoodID,
+				CoinTypeID:           gac.coininfo.ID,
 				Amount:               totalAmount * float64(order.Units) * 1.0 / float64(gac.good.Total),
 				LastBenefitTimestamp: lastBenefitTimestamp,
 				OrderID:              order.ID,
