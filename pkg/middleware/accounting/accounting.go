@@ -357,7 +357,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 			CoinTypeID:         gac.coininfo.ID,
 			Amount:             totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
 			Message:            fmt.Sprintf("%v benefit of %v at %v", benefitType, gac.good.ID, time.Now()),
-			ChainTransactionID: uuid.New().String(),
+			ChainTransactionID: "",
 		},
 	})
 	if err != nil {
@@ -420,7 +420,7 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 				CoinTypeID:         gac.coininfo.ID,
 				Amount:             resp1.Info.Balance - float64(warmCoinLimit),
 				Message:            fmt.Sprintf("warm transfer of %v at %v", gac.good.ID, time.Now()),
-				ChainTransactionID: uuid.New().String(),
+				ChainTransactionID: "",
 			},
 		})
 		if err != nil {
@@ -516,7 +516,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 			BenefitAccountID:     gac.goodbenefit.BenefitAccountID,
 			Amount:               totalAmount,
 			LastBenefitTimestamp: lastBenefitTimestamp,
-			ChainTransactionID:   uuid.New().String(),
+			ChainTransactionID:   "",
 		},
 	})
 	if err != nil {
