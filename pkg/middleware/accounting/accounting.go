@@ -729,6 +729,11 @@ func onPayingChecker(ctx context.Context) {
 			toState,
 			cid)
 
+		if toState == billingconst.CoinTransactionStateSuccessful && cid == "" {
+			paying.Message = paying.Message + "(successful without CID)"
+			toState = billingconst.CoinTransactionStateFail
+		}
+
 		paying.State = toState
 		paying.ChainTransactionID = cid
 
