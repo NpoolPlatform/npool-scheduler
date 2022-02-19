@@ -730,7 +730,7 @@ func onPayingChecker(ctx context.Context) {
 			cid)
 
 		if toState == billingconst.CoinTransactionStateSuccessful && cid == "" {
-			paying.Message = paying.Message + "(successful without CID)"
+			paying.Message = fmt.Sprintf("%v (successful without CID)", paying.Message)
 			toState = billingconst.CoinTransactionStateFail
 		}
 
