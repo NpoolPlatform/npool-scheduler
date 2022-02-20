@@ -295,6 +295,16 @@ pipeline {
       }
     }
 
+    stage('Update benefit interval') {
+      when {
+        expression { DEPLOY_TARGET == 'true' }
+        expression { TARGET_ENV == 'development' }
+      }
+      steps {
+        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
+      }
+    }
+
     stage('Deploy for development') {
       when {
         expression { DEPLOY_TARGET == 'true' }

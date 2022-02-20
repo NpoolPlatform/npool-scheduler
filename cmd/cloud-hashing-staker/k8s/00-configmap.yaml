@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: staker-environment
+  namespace: kube-system
+data:
+  environment.benefit_interval_seconds: 86400

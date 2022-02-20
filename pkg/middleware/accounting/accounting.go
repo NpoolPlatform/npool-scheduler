@@ -3,6 +3,8 @@ package accounting
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
@@ -29,9 +31,10 @@ import (
 )
 
 const (
-	secondsInDay  = uint32(24 * 60 * 60)
-	secondsInHour = uint32(60 * 60) //nolint
+	secondsInDay = uint32(24 * 60 * 60)
 )
+
+var benefitIntervalSeconds = secondsInDay
 
 type goodAccounting struct {
 	good                  *goodspb.GoodInfo
@@ -490,7 +493,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 		return
 	}
 
-	lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
+	lastBenefitTimestamp := uint32(time.Now().Unix()) / benefitIntervalSeconds * benefitIntervalSeconds
 
 	preQueryBalance := gac.preQueryBalance
 	if preQueryBalance < gac.coininfo.ReservedAmount {
@@ -554,7 +557,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 			continue
 		}
 
-		lastBenefitTimestamp := uint32(time.Now().Unix()) / secondsInDay * secondsInDay
+		lastBenefitTimestamp := uint32(time.Now().Unix()) / benefitIntervalSeconds * benefitIntervalSeconds
 
 		_, err = grpc2.CreateUserBenefit(ctx, &billingpb.CreateUserBenefitRequest{
 			Info: &billingpb.UserBenefit{
@@ -747,8 +750,18 @@ func onPayingChecker(ctx context.Context) {
 }
 
 func Run(ctx context.Context) { //nolint
+	intervalStr := os.Getenv("ENV_BENEFIT_INTERVAL_SECONDS")
+	if intervalStr != "" {
+		seconds, err := strconv.ParseUint(intervalStr, 10, 64)
+		if err == nil {
+			benefitIntervalSeconds = uint32(seconds)
+		}
+	}
+
+	logger.Sugar().Infof("caculate benefit each %v seconds", benefitIntervalSeconds)
+
 	ac := &accounting{
-		scanTicker:             time.NewTicker(24 * time.Hour),
+		scanTicker:             time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
 		transferTicker:         time.NewTicker(30 * time.Second),
 		queryCoinInfo:          make(chan *goodAccounting),
 		queryAccount:           make(chan *goodAccounting),

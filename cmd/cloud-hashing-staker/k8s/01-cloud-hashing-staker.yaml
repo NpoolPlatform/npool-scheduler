@@ -33,6 +33,11 @@ spec:
             configMapKeyRef:
               name: system-environment
               key: environment.consul_port
+        - name: ENV_BENEFIT_INTERVAL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: staker-environment
+              key: environment.benefit_interval_seconds
         - name: ENV_CLUSTER_NAMESPACE
           valueFrom:
             fieldRef:
