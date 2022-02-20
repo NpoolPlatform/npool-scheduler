@@ -286,7 +286,7 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 			continue
 		}
 		if respPayment.Info == nil {
-			logger.Sugar().Errorf("order is not paid")
+			logger.Sugar().Errorf("order %v is not paid", info.ID)
 			continue
 		}
 
