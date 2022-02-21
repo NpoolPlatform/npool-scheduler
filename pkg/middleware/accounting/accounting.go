@@ -847,9 +847,13 @@ func Run(ctx context.Context) { //nolint
 			gac.onPersistentResult(ctx)
 
 		case <-ac.transferTicker.C:
+			logger.Sugar().Infof("checking created transactions")
 			onCreatedChecker(ctx)
+			logger.Sugar().Infof("checking wait transactions")
 			onWaitChecker(ctx)
+			logger.Sugar().Infof("checking paying transactions")
 			onPayingChecker(ctx)
+			logger.Sugar().Infof("process transactions done")
 		}
 	}
 }
