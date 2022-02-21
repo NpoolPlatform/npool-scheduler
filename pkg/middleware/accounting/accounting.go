@@ -3,6 +3,7 @@ package accounting
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -224,7 +225,7 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 		outComing += spend.Amount
 	}
 
-	if inComing < outComing {
+	if math.Abs(inComing-outComing) > 1 {
 		return xerrors.Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
 	}
 
