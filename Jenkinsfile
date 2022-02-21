@@ -295,6 +295,15 @@ pipeline {
       }
     }
 
+    stage('Use currency environment') {
+      when {
+        expression { DEPLOY_TARGET == 'true' }
+      }
+      steps {
+        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-apis/k8s/00-configmap.yaml'
+      }
+    }
+
     stage('Update benefit interval') {
       when {
         expression { DEPLOY_TARGET == 'true' }

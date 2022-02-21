@@ -38,6 +38,11 @@ spec:
             configMapKeyRef:
               name: staker-environment
               key: environment.benefit_interval_seconds
+        - name: ENV_CURRENCY_REQUEST_PROXY
+          valueFrom:
+            configMapKeyRef:
+              name: staker-environment
+              key: environment.currency_proxy
         - name: ENV_CLUSTER_NAMESPACE
           valueFrom:
             fieldRef:
