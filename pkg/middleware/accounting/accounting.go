@@ -32,7 +32,8 @@ import (
 )
 
 const (
-	secondsInDay = uint32(24 * 60 * 60)
+	secondsInDay  = uint32(24 * 60 * 60)
+	secondsInHour = uint32(60 * 60)
 )
 
 var benefitIntervalSeconds = secondsInDay
@@ -765,6 +766,11 @@ func Run(ctx context.Context) { //nolint
 
 	logger.Sugar().Infof("caculate benefit each %v seconds", benefitIntervalSeconds)
 
+	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
+	logger.Sugar().Infof("wait for %v seconds", startAfter)
+	<-startTimer.C
+
 	ac := &accounting{
 		scanTicker:             time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
 		transferTicker:         time.NewTicker(30 * time.Second),
@@ -852,13 +858,9 @@ func Run(ctx context.Context) { //nolint
 			gac.onPersistentResult(ctx)
 
 		case <-ac.transferTicker.C:
-			logger.Sugar().Infof("checking created transactions")
 			onCreatedChecker(ctx)
-			logger.Sugar().Infof("checking wait transactions")
 			onWaitChecker(ctx)
-			logger.Sugar().Infof("checking paying transactions")
 			onPayingChecker(ctx)
-			logger.Sugar().Infof("process transactions done")
 		}
 	}
 }
