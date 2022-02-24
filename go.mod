@@ -7,10 +7,10 @@ require (
 	github.com/NpoolPlatform/api-manager v0.0.0-20220205130236-69d286e72dba
 	github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220214123916-517341a90b77
-	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220113121137-c2b65b514bad
-	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220211133153-5c577f9d3988
+	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
+	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220224033011-d4a4d2f54501
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220211051615-b2300d03022a
-	github.com/NpoolPlatform/message v0.0.0-20220219081124-ce1bc5eb5f47
+	github.com/NpoolPlatform/message v0.0.0-20220224073733-c770dd948af1
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211208035009-5ad2768d2290
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211209140052-de1778e36e36
 	github.com/go-resty/resty/v2 v2.7.0
