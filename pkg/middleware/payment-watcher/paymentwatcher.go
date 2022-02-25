@@ -74,9 +74,11 @@ func watchPaymentState(ctx context.Context) { //nolint
 		newState := pay.State
 		if balance.Info.Balance-pay.StartAmount > pay.Amount {
 			newState = orderconst.PaymentStateDone
+			pay.FinishAmount = balance.Info.Balance
 		}
 		if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 			newState = orderconst.PaymentStateTimeout
+			pay.FinishAmount = balance.Info.Balance
 		}
 
 		if newState != pay.State {
