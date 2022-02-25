@@ -429,6 +429,21 @@ func GetGoodPayments(ctx context.Context, in *billingpb.GetGoodPaymentsRequest) 
 	return cli.GetGoodPayments(ctx, in)
 }
 
+func CreateUserPaymentBalance(ctx context.Context, in *billingpb.CreateUserPaymentBalanceRequest) (*billingpb.CreateUserPaymentBalanceResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get payment by billing: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.CreateUserPaymentBalance(ctx, in)
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 func CreateAddress(ctx context.Context, in *sphinxproxypb.CreateWalletRequest) (*sphinxproxypb.CreateWalletResponse, error) {

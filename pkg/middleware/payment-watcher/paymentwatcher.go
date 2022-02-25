@@ -72,9 +72,24 @@ func watchPaymentState(ctx context.Context) { //nolint
 			pay.ID, coinInfo.Info.Name, balance.Info.Balance, pay.StartAmount, pay.Amount)
 
 		newState := pay.State
-		if balance.Info.Balance-pay.StartAmount > pay.Amount {
+		if balance.Info.Balance-pay.StartAmount >= pay.Amount {
 			newState = orderconst.PaymentStateDone
 			pay.FinishAmount = balance.Info.Balance
+
+			myAmount := balance.Info.Balance - pay.StartAmount - pay.Amount
+			if myAmount > 0 {
+				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
+					Info: &billingpb.UserPaymentBalance{
+						AppID:     pay.AppID,
+						UserID:    pay.UserID,
+						PaymentID: pay.ID,
+						Amount:    myAmount,
+					},
+				})
+				if err != nil {
+					logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", pay.ID, err)
+				}
+			}
 		}
 		if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 			newState = orderconst.PaymentStateTimeout
