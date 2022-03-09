@@ -766,7 +766,8 @@ func Run(ctx context.Context) { //nolint
 
 	logger.Sugar().Infof("caculate benefit each %v seconds", benefitIntervalSeconds)
 
-	startAfter := (uint32(time.Now().Unix())/secondsInDay+1)*secondsInDay - secondsInHour*4
+	now := uint32(time.Now().Unix())
+	startAfter := (now/secondsInDay+1)*secondsInDay - secondsInHour*4 - now
 	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
 	logger.Sugar().Infof("wait for %v seconds", startAfter)
 	<-startTimer.C
