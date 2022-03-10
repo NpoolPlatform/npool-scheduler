@@ -365,7 +365,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 			ToAddressID:        toAddressID,
 			CoinTypeID:         gac.coininfo.ID,
 			Amount:             totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
-			Message:            fmt.Sprintf("%v benefit of %v at %v", benefitType, gac.good.ID, time.Now()),
+			Message:            fmt.Sprintf("%v benefit of %v units %v total %v at %v", benefitType, gac.good.ID, units, gac.good.Total, time.Now()),
 			ChainTransactionID: "",
 		},
 	})
