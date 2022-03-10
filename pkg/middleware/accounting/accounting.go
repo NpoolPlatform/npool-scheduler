@@ -89,7 +89,7 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	for _, good := range resp.Infos {
 		logger.Sugar().Infof("start accounting for good %v [%v]", good.ID, good.Title)
 		go func(myGood *goodspb.GoodInfo) {
-			ac.queryCoinInfo <- &goodAccounting{
+			ac.checkWaitTransactions <- &goodAccounting{
 				good:            myGood,
 				accounts:        map[string]*billingpb.CoinAccountInfo{},
 				compensates:     map[string][]*orderpb.Compensate{},
@@ -100,6 +100,18 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 }
 
 func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
+	waitResp, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
+		GoodID: gac.good.ID,
+		State:  billingconst.CoinTransactionStateWait,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get wait transactions: %v", err)
+	}
+
+	if len(waitResp.Infos) > 0 {
+		return xerrors.Errorf("wait transactions not empty")
+	}
+
 	return nil
 }
 
@@ -813,7 +825,7 @@ func Run(ctx context.Context) { //nolint
 				logger.Sugar().Errorf("fail check wait transaction: %v", err)
 				continue
 			}
-			go func() { ac.queryAccount <- gac }()
+			go func() { ac.queryCoinInfo <- gac }()
 
 		case gac := <-ac.queryCoinInfo:
 			if err := gac.onQueryCoininfo(ctx); err != nil {
