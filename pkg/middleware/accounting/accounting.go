@@ -59,6 +59,7 @@ type accounting struct {
 	scanTicker     *time.Ticker
 	transferTicker *time.Ticker
 
+	checkWaitTransactions  chan *goodAccounting
 	queryCoinInfo          chan *goodAccounting
 	queryAccount           chan *goodAccounting
 	queryAccountInfo       chan *goodAccounting
@@ -96,6 +97,10 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 			}
 		}(good)
 	}
+}
+
+func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
+	return nil
 }
 
 func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
@@ -348,7 +353,7 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 	gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
 }
 
-func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) error {
+func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) (string, error) {
 	toAddressID := gac.coinsetting.UserOnlineAccountID
 	units := gac.userUnits
 
@@ -357,7 +362,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		units = gac.platformUnits
 	}
 
-	_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+	resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:              uuid.UUID{}.String(),
 			UserID:             uuid.UUID{}.String(),
@@ -370,10 +375,10 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		},
 	})
 	if err != nil {
-		return xerrors.Errorf("fail create coin account transaction: %v", err)
+		return "", xerrors.Errorf("fail create coin account transaction: %v", err)
 	}
 
-	return nil
+	return resp.Info.ID, nil
 }
 
 func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
@@ -533,15 +538,19 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 		return
 	}
 
+	var userTID string
+
 	if gac.userUnits > 0 {
-		if err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user"); err != nil {
+		id, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user")
+		if err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
+		userTID = id
 	}
 
 	if gac.platformUnits > 0 {
-		if err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
+		if _, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
@@ -567,13 +576,14 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 
 		_, err = grpc2.CreateUserBenefit(ctx, &billingpb.CreateUserBenefitRequest{
 			Info: &billingpb.UserBenefit{
-				AppID:                order.AppID,
-				UserID:               order.UserID,
-				GoodID:               order.GoodID,
-				CoinTypeID:           gac.coininfo.ID,
-				Amount:               totalAmount * float64(order.Units) * 1.0 / float64(gac.good.Total),
-				LastBenefitTimestamp: lastBenefitTimestamp,
-				OrderID:              order.ID,
+				AppID:                 order.AppID,
+				UserID:                order.UserID,
+				GoodID:                order.GoodID,
+				CoinTypeID:            gac.coininfo.ID,
+				Amount:                totalAmount * float64(order.Units) * 1.0 / float64(gac.good.Total),
+				LastBenefitTimestamp:  lastBenefitTimestamp,
+				OrderID:               order.ID,
+				PlatformTransactionID: userTID,
 			},
 		})
 		if err != nil {
@@ -778,6 +788,7 @@ func Run(ctx context.Context) { //nolint
 	ac := &accounting{
 		scanTicker:             time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
 		transferTicker:         time.NewTicker(30 * time.Second),
+		checkWaitTransactions:  make(chan *goodAccounting),
 		queryCoinInfo:          make(chan *goodAccounting),
 		queryAccount:           make(chan *goodAccounting),
 		queryAccountInfo:       make(chan *goodAccounting),
@@ -796,6 +807,13 @@ func Run(ctx context.Context) { //nolint
 		case <-ac.scanTicker.C:
 			logger.Sugar().Infof("start query goods")
 			ac.onQueryGoods(ctx)
+
+		case gac := <-ac.checkWaitTransactions:
+			if err := gac.onCheckWaitTransactions(ctx); err != nil {
+				logger.Sugar().Errorf("fail check wait transaction: %v", err)
+				continue
+			}
+			go func() { ac.queryAccount <- gac }()
 
 		case gac := <-ac.queryCoinInfo:
 			if err := gac.onQueryCoininfo(ctx); err != nil {

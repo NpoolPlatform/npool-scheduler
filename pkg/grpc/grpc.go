@@ -324,6 +324,21 @@ func GetCoinAccountTransactionsByState(ctx context.Context, in *billingpb.GetCoi
 	return cli.GetCoinAccountTransactionsByState(ctx, in)
 }
 
+func GetCoinAccountTransactionsByGoodState(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByGoodStateRequest) (*billingpb.GetCoinAccountTransactionsByGoodStateResponse, error) {
+	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := billingpb.NewCloudHashingBillingClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	return cli.GetCoinAccountTransactionsByGoodState(ctx, in)
+}
+
 func CreateCoinAccountTransaction(ctx context.Context, in *billingpb.CreateCoinAccountTransactionRequest) (*billingpb.CreateCoinAccountTransactionResponse, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
