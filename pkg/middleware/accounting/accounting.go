@@ -148,10 +148,10 @@ func (gac *goodAccounting) onQueryAccount(ctx context.Context) error {
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get platform setting by good: %v [%v]", err, gac.good.ID)
+		return xerrors.Errorf("fail get good benefit by good: %v [%v]", err, gac.good.ID)
 	}
 	if resp.Info == nil {
-		return xerrors.Errorf("fail get platform setting by good [%v]", gac.good.ID)
+		return xerrors.Errorf("fail get good benefit by good [%v]", gac.good.ID)
 	}
 
 	gac.goodbenefit = resp.Info
