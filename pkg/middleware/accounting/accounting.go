@@ -362,7 +362,9 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 		gac.userUnits += order.Units
 	}
 
-	gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
+	if uint32(gac.good.Total) > gac.userUnits {
+		gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
+	}
 }
 
 func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) (string, error) {
