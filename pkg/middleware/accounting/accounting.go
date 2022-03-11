@@ -380,6 +380,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:              uuid.UUID{}.String(),
 			UserID:             uuid.UUID{}.String(),
+			GoodID:             gac.good.ID,
 			FromAddressID:      gac.goodbenefit.BenefitAccountID,
 			ToAddressID:        toAddressID,
 			CoinTypeID:         gac.coininfo.ID,
@@ -443,6 +444,7 @@ func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
+				GoodID:             gac.good.ID,
 				FromAddressID:      gac.coinsetting.UserOnlineAccountID,
 				ToAddressID:        gac.coinsetting.UserOfflineAccountID,
 				CoinTypeID:         gac.coininfo.ID,
