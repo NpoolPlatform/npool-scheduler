@@ -99,17 +99,33 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 	}
 }
 
-func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
+func (gac *goodAccounting) onCheckTransactionsByState(ctx context.Context, state string) error {
 	waitResp, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
 		GoodID: gac.good.ID,
-		State:  billingconst.CoinTransactionStateWait,
+		State:  state,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get wait transactions: %v", err)
+		return xerrors.Errorf("fail get %v transactions: %v", state, err)
 	}
 
 	if len(waitResp.Infos) > 0 {
-		return xerrors.Errorf("wait transactions not empty")
+		return xerrors.Errorf("%v transactions not empty", state)
+	}
+
+	return nil
+}
+
+func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
+	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStateWait); err != nil {
+		return xerrors.Errorf("fail check transactions: %v", err)
+	}
+
+	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStateCreated); err != nil {
+		return xerrors.Errorf("fail check transactions: %v", err)
+	}
+
+	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStatePaying); err != nil {
+		return xerrors.Errorf("fail check transactions: %v", err)
 	}
 
 	return nil
