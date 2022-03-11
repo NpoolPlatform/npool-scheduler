@@ -243,7 +243,7 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 		outComing += spend.Amount
 	}
 
-	if math.Abs(inComing-outComing) > 1 {
+	if math.Abs(inComing-outComing) > 1 && inComing < outComing {
 		return xerrors.Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
 	}
 
