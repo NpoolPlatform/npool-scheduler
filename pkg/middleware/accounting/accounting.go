@@ -47,7 +47,6 @@ type goodAccounting struct {
 	afterQueryBalanceInfo *sphinxproxypb.BalanceInfo
 	userUnits             uint32
 	platformUnits         uint32
-	platformsetting       *billingpb.PlatformSetting
 	accounts              map[string]*billingpb.CoinAccountInfo
 	benefits              []*billingpb.PlatformBenefit
 	transactions          []*billingpb.CoinAccountTransaction
@@ -58,6 +57,7 @@ type goodAccounting struct {
 type accounting struct {
 	scanTicker     *time.Ticker
 	transferTicker *time.Ticker
+	checkLimits    chan struct{}
 
 	checkWaitTransactions  chan *goodAccounting
 	checkFailTransactions  chan *goodAccounting
@@ -70,7 +70,6 @@ type accounting struct {
 	queryOrders            chan *goodAccounting
 	queryCompensates       chan *goodAccounting
 	caculateUserBenefit    chan *goodAccounting
-	checkLimits            chan *goodAccounting
 	persistentResult       chan *goodAccounting
 }
 
@@ -81,20 +80,13 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 		return
 	}
 
-	resp1, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
-	if err != nil {
-		logger.Sugar().Errorf("fail get platform setting: %v", err)
-		return
-	}
-
 	for _, good := range resp.Infos {
 		logger.Sugar().Infof("start accounting for good %v [%v]", good.ID, good.Title)
 		go func(myGood *goodspb.GoodInfo) {
 			ac.checkWaitTransactions <- &goodAccounting{
-				good:            myGood,
-				accounts:        map[string]*billingpb.CoinAccountInfo{},
-				compensates:     map[string][]*orderpb.Compensate{},
-				platformsetting: resp1.Info,
+				good:        myGood,
+				accounts:    map[string]*billingpb.CoinAccountInfo{},
+				compensates: map[string][]*orderpb.Compensate{},
 			}
 		}(good)
 	}
@@ -434,65 +426,87 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 	return resp.Info.ID, nil
 }
 
-func (gac *goodAccounting) onLimitsChecker(ctx context.Context) {
+func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error {
 	warmCoinLimit := 100
 	resp, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
-		CoinTypeID: gac.coininfo.ID,
+		CoinTypeID: coinInfo.ID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get coin setting: %v", err)
-		return
+		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
+
+	resp1, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
+	if err != nil {
+		logger.Sugar().Errorf("fail get platform setting: %v", err)
+	}
+
 	if resp.Info != nil {
 		warmCoinLimit = int(resp.Info.WarmAccountCoinAmount)
-	} else if gac.platformsetting != nil {
-		price, err := currency.USDPrice(ctx, gac.coininfo.Name)
+	} else if resp1.Info != nil {
+		price, err := currency.USDPrice(ctx, coinInfo.Name)
 		if err == nil && price > 0 {
-			warmCoinLimit = int(gac.platformsetting.WarmAccountUSDAmount / price)
+			warmCoinLimit = int(resp1.Info.WarmAccountUSDAmount / price)
 		}
 	}
 
-	account, ok := gac.accounts[gac.coinsetting.UserOnlineAccountID]
-	if !ok {
-		logger.Sugar().Errorf("invalid user online account")
-		return
-	}
-
-	_, ok = gac.accounts[gac.coinsetting.UserOfflineAccountID]
-	if !ok {
-		logger.Sugar().Errorf("invalid user offline account")
-		return
-	}
-
-	resp1, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    gac.coininfo.Name,
-		Address: account.Address,
+	resp2, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: resp.Info.UserOnlineAccountID,
 	})
 	if err != nil {
-		logger.Sugar().Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
-			gac.coinsetting.UserOnlineAccountID,
-			err, gac.good.ID,
-			gac.coininfo.Name,
-			account.Address)
-		return
+		return xerrors.Errorf("fail get user online benefit account id: %v", err)
 	}
 
-	if int(resp1.Info.Balance) > warmCoinLimit && int(resp1.Info.Balance)-warmCoinLimit > warmCoinLimit {
+	_, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: resp.Info.UserOfflineAccountID,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get user offline benefit account id: %v", err)
+	}
+
+	resp4, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    coinInfo.Name,
+		Address: resp2.Info.Address,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get balance for account %v: %v [%v %v]",
+			resp.Info.UserOnlineAccountID,
+			err, coinInfo.Name,
+			resp2.Info.Address)
+	}
+
+	if int(resp4.Info.Balance) > warmCoinLimit && int(resp4.Info.Balance)-warmCoinLimit > warmCoinLimit {
 		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
-				GoodID:             gac.good.ID,
-				FromAddressID:      gac.coinsetting.UserOnlineAccountID,
-				ToAddressID:        gac.coinsetting.UserOfflineAccountID,
-				CoinTypeID:         gac.coininfo.ID,
-				Amount:             resp1.Info.Balance - float64(warmCoinLimit),
-				Message:            fmt.Sprintf("warm transfer of %v at %v", gac.good.ID, time.Now()),
+				GoodID:             uuid.UUID{}.String(),
+				FromAddressID:      resp.Info.UserOnlineAccountID,
+				ToAddressID:        resp.Info.UserOfflineAccountID,
+				CoinTypeID:         coinInfo.ID,
+				Amount:             resp4.Info.Balance - float64(warmCoinLimit),
+				Message:            fmt.Sprintf("warm transfer at %v", time.Now()),
 				ChainTransactionID: "",
 			},
 		})
 		if err != nil {
-			logger.Sugar().Errorf("fail create coin account transaction: %v", err)
+			return xerrors.Errorf("fail create coin account transaction: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func onLimitsChecker(ctx context.Context) {
+	resp, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{})
+	if err != nil {
+		logger.Sugar().Errorf("fail get coin infos: %v", err)
+		return
+	}
+
+	for _, info := range resp.Infos {
+		err = onCoinLimitsChecker(ctx, info)
+		if err != nil {
+			logger.Sugar().Errorf("fail check coin limit: %v", err)
 		}
 	}
 }
@@ -843,8 +857,10 @@ func Run(ctx context.Context) { //nolint
 	<-startTimer.C
 
 	ac := &accounting{
-		scanTicker:             time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
-		transferTicker:         time.NewTicker(30 * time.Second),
+		scanTicker:     time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
+		transferTicker: time.NewTicker(30 * time.Second),
+		checkLimits:    make(chan struct{}),
+
 		checkWaitTransactions:  make(chan *goodAccounting),
 		checkFailTransactions:  make(chan *goodAccounting),
 		queryCoinInfo:          make(chan *goodAccounting),
@@ -856,7 +872,6 @@ func Run(ctx context.Context) { //nolint
 		queryOrders:            make(chan *goodAccounting),
 		queryCompensates:       make(chan *goodAccounting),
 		caculateUserBenefit:    make(chan *goodAccounting),
-		checkLimits:            make(chan *goodAccounting),
 		persistentResult:       make(chan *goodAccounting),
 	}
 
@@ -935,10 +950,6 @@ func Run(ctx context.Context) { //nolint
 
 		case gac := <-ac.caculateUserBenefit:
 			gac.onCaculateUserBenefit()
-			go func() { ac.checkLimits <- gac }()
-
-		case gac := <-ac.checkLimits:
-			gac.onLimitsChecker(ctx)
 			go func() { ac.persistentResult <- gac }()
 
 		case gac := <-ac.persistentResult:
@@ -948,6 +959,10 @@ func Run(ctx context.Context) { //nolint
 			onCreatedChecker(ctx)
 			onWaitChecker(ctx)
 			onPayingChecker(ctx)
+			go func() { ac.checkLimits <- struct{}{} }()
+
+		case <-ac.checkLimits:
+			onLimitsChecker(ctx)
 		}
 	}
 }
