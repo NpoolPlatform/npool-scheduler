@@ -434,6 +434,9 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 	if err != nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
+	if resp.Info == nil {
+		return xerrors.Errorf("fail get coin setting: %v", coinInfo.Name)
+	}
 
 	resp1, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
 	if err != nil {
