@@ -60,6 +60,7 @@ type accounting struct {
 	transferTicker *time.Ticker
 
 	checkWaitTransactions  chan *goodAccounting
+	checkFailTransactions  chan *goodAccounting
 	queryCoinInfo          chan *goodAccounting
 	queryAccount           chan *goodAccounting
 	queryAccountInfo       chan *goodAccounting
@@ -126,6 +127,24 @@ func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
 
 	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStatePaying); err != nil {
 		return xerrors.Errorf("fail check transactions: %v", err)
+	}
+
+	return nil
+}
+
+func (gac *goodAccounting) onCheckFailTransactions(ctx context.Context) error {
+	failResp, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
+		GoodID: gac.good.ID,
+		State:  billingconst.CoinTransactionStateFail,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail get fail transactions: %v", err)
+	}
+
+	for _, info := range failResp.Infos {
+		if info.FailHold {
+			return xerrors.Errorf("fail hold by fail transaction")
+		}
 	}
 
 	return nil
@@ -821,6 +840,7 @@ func Run(ctx context.Context) { //nolint
 		scanTicker:             time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
 		transferTicker:         time.NewTicker(30 * time.Second),
 		checkWaitTransactions:  make(chan *goodAccounting),
+		checkFailTransactions:  make(chan *goodAccounting),
 		queryCoinInfo:          make(chan *goodAccounting),
 		queryAccount:           make(chan *goodAccounting),
 		queryAccountInfo:       make(chan *goodAccounting),
@@ -843,6 +863,13 @@ func Run(ctx context.Context) { //nolint
 		case gac := <-ac.checkWaitTransactions:
 			if err := gac.onCheckWaitTransactions(ctx); err != nil {
 				logger.Sugar().Errorf("fail check wait transaction: %v", err)
+				continue
+			}
+			go func() { ac.checkFailTransactions <- gac }()
+
+		case gac := <-ac.checkFailTransactions:
+			if err := gac.onCheckFailTransactions(ctx); err != nil {
+				logger.Sugar().Errorf("fail check fail transaction: %v", err)
 				continue
 			}
 			go func() { ac.queryCoinInfo <- gac }()
