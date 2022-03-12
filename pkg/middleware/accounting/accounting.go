@@ -334,6 +334,9 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 		if uint32(time.Now().Unix()) < info.Start {
 			continue
 		}
+		if info.End < uint32(time.Now().Unix()) {
+			continue
+		}
 
 		// Only paid order should be involved
 		respPayment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
