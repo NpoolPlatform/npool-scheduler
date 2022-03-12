@@ -806,6 +806,9 @@ func onPayingChecker(ctx context.Context) {
 
 		paying.State = toState
 		paying.ChainTransactionID = cid
+		if toState == sphinxproxypb.TransactionState_TransactionStateFail.String() {
+			paying.FailHold = true
+		}
 
 		_, err = grpc2.UpdateCoinAccountTransaction(ctx, &billingpb.UpdateCoinAccountTransactionRequest{
 			Info: paying,
