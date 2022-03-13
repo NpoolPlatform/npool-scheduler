@@ -406,6 +406,9 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		units = gac.platformUnits
 	}
 
+	amount := totalAmount * float64(units) * 1.0 / float64(gac.good.Total)
+	amount = math.Floor(amount*10000) / 10000
+
 	resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:              uuid.UUID{}.String(),
@@ -414,7 +417,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 			FromAddressID:      gac.goodbenefit.BenefitAccountID,
 			ToAddressID:        toAddressID,
 			CoinTypeID:         gac.coininfo.ID,
-			Amount:             totalAmount * float64(units) * 1.0 / float64(gac.good.Total),
+			Amount:             amount,
 			Message:            fmt.Sprintf("%v benefit of %v units %v total %v at %v", benefitType, gac.good.ID, units, gac.good.Total, time.Now()),
 			ChainTransactionID: "",
 		},
@@ -478,6 +481,9 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 	}
 
 	if int(resp4.Info.Balance) > warmCoinLimit && int(resp4.Info.Balance)-warmCoinLimit > warmCoinLimit {
+		amount := resp4.Info.Balance - float64(warmCoinLimit)
+		amount = math.Floor(amount*10000) / 10000
+
 		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
@@ -486,7 +492,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 				FromAddressID:      resp.Info.UserOnlineAccountID,
 				ToAddressID:        resp.Info.UserOfflineAccountID,
 				CoinTypeID:         coinInfo.ID,
-				Amount:             resp4.Info.Balance - float64(warmCoinLimit),
+				Amount:             amount,
 				Message:            fmt.Sprintf("warm transfer at %v", time.Now()),
 				ChainTransactionID: "",
 			},
