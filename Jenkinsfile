@@ -295,25 +295,6 @@ pipeline {
       }
     }
 
-    stage('Use currency environment') {
-      when {
-        expression { DEPLOY_TARGET == 'true' }
-      }
-      steps {
-        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
-      }
-    }
-
-    stage('Update benefit interval') {
-      when {
-        expression { DEPLOY_TARGET == 'true' }
-        expression { TARGET_ENV == 'development' }
-      }
-      steps {
-        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
-      }
-    }
-
     stage('Deploy for development') {
       when {
         expression { DEPLOY_TARGET == 'true' }
@@ -321,6 +302,8 @@ pipeline {
       }
       steps {
         sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml'
+        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
+        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
         sh 'TAG=latest make deploy-to-k8s-cluster'
       }
     }
@@ -338,6 +321,8 @@ pipeline {
           git checkout $tag
           sed -i "s/cloud-hashing-staker:latest/cloud-hashing-staker:$tag/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
           sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
+          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml
+          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml
           TAG=$tag make deploy-to-k8s-cluster
         '''.stripIndent())
       }
@@ -357,7 +342,7 @@ pipeline {
           patch=`echo $tag | awk -F '.' '{ print $3 }'`
           patch=$(( $patch - $patch % 2 ))
           tag=$major.$minor.$patch
-          git reset --hard
+          git reset --hard 
           git checkout $tag
           sed -i "s/cloud-hashing-staker:latest/cloud-hashing-staker:$tag/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
           sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
