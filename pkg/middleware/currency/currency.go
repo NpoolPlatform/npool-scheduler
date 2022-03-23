@@ -25,6 +25,9 @@ func mapCoin(coinName string) string {
 		"btc":       "bitcoin",
 		"bitcoin":   "bitcoin",
 		"tbitcoin":  "bitcoin",
+		"tethereum": "ethereum",
+		"eth":       "ethereum",
+		"ethereum":  "ethereum",
 	}
 	if coin, ok := coinMap[coinName]; ok {
 		return coin
