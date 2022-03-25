@@ -19,17 +19,19 @@ const (
 
 func mapCoin(coinName string) string {
 	coinMap := map[string]string{
-		"fil":       "filecoin",
-		"filecoin":  "filecoin",
-		"tfilecoin": "filecoin",
-		"btc":       "bitcoin",
-		"bitcoin":   "bitcoin",
-		"tbitcoin":  "bitcoin",
-		"tethereum": "ethereum",
-		"eth":       "ethereum",
-		"ethereum":  "ethereum",
-		"tusdt":     "usdt",
-		"usdt":      "usdt",
+		"fil":         "filecoin",
+		"filecoin":    "filecoin",
+		"tfilecoin":   "filecoin",
+		"btc":          "bitcoin",
+		"bitcoin":      "bitcoin",
+		"tbitcoin":     "bitcoin",
+		"tethereum":   "ethereum",
+		"eth":         "ethereum",
+		"ethereum":    "ethereum",
+		"tusdt":           "usdt",
+		"usdt":            "usdt",
+		"tusdterc20":      "usdt",
+		"usdterc20":       "usdt",
 	}
 	if coin, ok := coinMap[coinName]; ok {
 		return coin
