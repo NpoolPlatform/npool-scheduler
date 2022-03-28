@@ -28,10 +28,10 @@ func mapCoin(coinName string) string {
 		"tethereum":  "ethereum",
 		"eth":        "ethereum",
 		"ethereum":   "ethereum",
-		"tusdt":      "usd",
-		"usdt":       "usd",
-		"tusdterc20": "usd",
-		"usdterc20":  "usd",
+		"tusdt":      "tether",
+		"usdt":       "tether",
+		"tusdterc20": "tether",
+		"usdterc20":  "tether",
 	}
 	if coin, ok := coinMap[coinName]; ok {
 		return coin
