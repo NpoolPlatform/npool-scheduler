@@ -136,7 +136,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 	}
 }
 
-func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error {
+func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error { //nolint
 	lockKey := AccountLockKey(payment.AccountID)
 	err := redis2.TryLock(lockKey, 10*time.Minute)
 	if err != nil {

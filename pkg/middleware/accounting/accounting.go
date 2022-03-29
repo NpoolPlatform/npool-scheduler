@@ -427,7 +427,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 	return resp.Info.ID, nil
 }
 
-func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error {
+func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error { //nolint
 	warmCoinLimit := 100
 	coinSetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,
