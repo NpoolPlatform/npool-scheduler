@@ -201,7 +201,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	coinLimit = int(coinsetting.PaymentAccountCoinAmount)
 
 	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
-		err = accountlock.Lock(payment.AccountID)
+		err = accountlock.Unlock(payment.AccountID)
 		if err != nil {
 			return xerrors.Errorf("fail unlock account: %v", err)
 		}
