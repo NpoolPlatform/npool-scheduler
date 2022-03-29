@@ -473,6 +473,11 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		amount := balance.Balance - float64(warmCoinLimit)
 		amount = math.Floor(amount*10000) / 10000
 
+		err = accountlock.Lock(coinSetting.UserOnlineAccountID)
+		if err != nil {
+			return xerrors.Errorf("fail lock account: %v", err)
+		}
+
 		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
@@ -544,11 +549,6 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 		to.Address,
 		coininfo.Name)
 
-	err = accountlock.Lock(from.ID)
-	if err != nil {
-		return xerrors.Errorf("fail lock account: %v", err)
-	}
-
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
 		Name:          coininfo.Name,
@@ -611,6 +611,14 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 
 	var userTID string
+
+	if gac.userUnits > 0 || gac.platformUnits > 0 {
+		err = accountlock.Lock(gac.goodbenefit.BenefitAccountID)
+		if err != nil {
+			logger.Sugar().Errorf("fail unlock benefit account: %v", err)
+			return
+		}
+	}
 
 	if gac.userUnits > 0 {
 		id, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user")
