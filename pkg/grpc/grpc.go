@@ -464,7 +464,7 @@ func GetGoodBenefitByGood(ctx context.Context, in *billingpb.GetGoodBenefitByGoo
 	return cli.GetGoodBenefitByGood(ctx, in)
 }
 
-func GetCoinSettingByCoin(ctx context.Context, in *billingpb.GetCoinSettingByCoinRequest) (*billingpb.GetCoinSettingByCoinResponse, error) {
+func GetCoinSettingByCoin(ctx context.Context, in *billingpb.GetCoinSettingByCoinRequest) (*billingpb.CoinSetting, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -476,7 +476,12 @@ func GetCoinSettingByCoin(ctx context.Context, in *billingpb.GetCoinSettingByCoi
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetCoinSettingByCoin(ctx, in)
+	resp, err := cli.GetCoinSettingByCoin(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get coin setting: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
 func GetGoodPayments(ctx context.Context, in *billingpb.GetGoodPaymentsRequest) (*billingpb.GetGoodPaymentsResponse, error) {

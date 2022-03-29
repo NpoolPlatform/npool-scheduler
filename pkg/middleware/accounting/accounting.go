@@ -156,17 +156,14 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
 
 	gac.coininfo = coinInfo
 
-	resp1, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
+	coinSetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: gac.good.CoinInfoID,
 	})
-	if err != nil {
+	if err != nil || coinSetting == nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
-	if resp1.Info == nil {
-		return xerrors.Errorf("fail get coin setting")
-	}
 
-	gac.coinsetting = resp1.Info
+	gac.coinsetting = coinSetting
 	return nil
 }
 
@@ -432,10 +429,10 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 
 func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error {
 	warmCoinLimit := 100
-	resp, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
+	coinSetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,
 	})
-	if err != nil {
+	if err != nil || coinSetting == nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
 
@@ -444,8 +441,8 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		logger.Sugar().Errorf("fail get platform setting: %v", err)
 	}
 
-	if resp.Info != nil {
-		warmCoinLimit = int(resp.Info.WarmAccountCoinAmount)
+	if coinSetting != nil {
+		warmCoinLimit = int(coinSetting.WarmAccountCoinAmount)
 	} else if platformSetting != nil {
 		price, err := currency.USDPrice(ctx, coinInfo.Name)
 		if err == nil && price > 0 {
@@ -454,14 +451,14 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 	}
 
 	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: resp.Info.UserOnlineAccountID,
+		ID: coinSetting.UserOnlineAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get user online benefit account id: %v", err)
 	}
 
 	_, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-		ID: resp.Info.UserOfflineAccountID,
+		ID: coinSetting.UserOfflineAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get user offline benefit account id: %v", err)
@@ -473,7 +470,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get balance for account %v: %v [%v %v]",
-			resp.Info.UserOnlineAccountID,
+			coinSetting.UserOnlineAccountID,
 			err, coinInfo.Name,
 			account.Address)
 	}
@@ -487,8 +484,8 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
 				GoodID:             uuid.UUID{}.String(),
-				FromAddressID:      resp.Info.UserOnlineAccountID,
-				ToAddressID:        resp.Info.UserOfflineAccountID,
+				FromAddressID:      coinSetting.UserOnlineAccountID,
+				ToAddressID:        coinSetting.UserOfflineAccountID,
 				CoinTypeID:         coinInfo.ID,
 				Amount:             amount,
 				Message:            fmt.Sprintf("warm transfer at %v", time.Now()),

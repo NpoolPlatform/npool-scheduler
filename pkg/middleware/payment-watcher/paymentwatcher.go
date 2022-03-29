@@ -189,8 +189,8 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if err != nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
-	if coinsetting.Info != nil {
-		coinLimit = int(coinsetting.Info.PaymentAccountCoinAmount)
+	if coinsetting != nil {
+		coinLimit = int(coinsetting.PaymentAccountCoinAmount)
 	} else {
 		platformsetting, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
 		if err != nil {
@@ -207,7 +207,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 			CoinTypeID: payment.PaymentCoinTypeID,
 		})
-		if err != nil {
+		if err != nil || coinsetting == nil {
 			return xerrors.Errorf("fail get coin setting: %v", err)
 		}
 
@@ -217,7 +217,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
 				FromAddressID:      payment.AccountID,
-				ToAddressID:        coinsetting.Info.GoodIncomingAccountID,
+				ToAddressID:        coinsetting.GoodIncomingAccountID,
 				CoinTypeID:         coinInfo.ID,
 				Amount:             balance.Info.Balance - coinInfo.ReservedAmount,
 				Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
