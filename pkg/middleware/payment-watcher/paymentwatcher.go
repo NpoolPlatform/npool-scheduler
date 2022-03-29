@@ -10,7 +10,6 @@ import (
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
 	accountlock "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/account"
-	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
 
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
@@ -195,48 +194,36 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,
 	})
-	if err != nil {
+	if err != nil || coinsetting == nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
-	if coinsetting != nil {
-		coinLimit = int(coinsetting.PaymentAccountCoinAmount)
-	} else {
-		platformsetting, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
+
+	coinLimit = int(coinsetting.PaymentAccountCoinAmount)
+
+	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
+		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
-			return xerrors.Errorf("fail get platform setting: %v", err)
+			return xerrors.Errorf("fail unlock account: %v", err)
 		}
-		price, err := currency.USDPrice(ctx, coinInfo.Name)
-		if err != nil {
-			return xerrors.Errorf("fail get price: %v", err)
-		}
-		coinLimit = int(platformsetting.PaymentAccountUSDAmount / price)
+		return nil
 	}
 
-	if int(balance.Balance) > coinLimit {
-		coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
-			CoinTypeID: payment.PaymentCoinTypeID,
-		})
-		if err != nil || coinsetting == nil {
-			return xerrors.Errorf("fail get coin setting: %v", err)
-		}
-
-		// Here we just create transaction, watcher will process it
-		_, err = grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
-			Info: &billingpb.CoinAccountTransaction{
-				AppID:              uuid.UUID{}.String(),
-				UserID:             uuid.UUID{}.String(),
-				GoodID:             uuid.UUID{}.String(),
-				FromAddressID:      payment.AccountID,
-				ToAddressID:        coinsetting.GoodIncomingAccountID,
-				CoinTypeID:         coinInfo.ID,
-				Amount:             balance.Balance - coinInfo.ReservedAmount,
-				Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
-				ChainTransactionID: uuid.New().String(),
-			},
-		})
-		if err != nil {
-			return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
-		}
+	// Here we just create transaction, watcher will process it
+	_, err = grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+		Info: &billingpb.CoinAccountTransaction{
+			AppID:              uuid.UUID{}.String(),
+			UserID:             uuid.UUID{}.String(),
+			GoodID:             uuid.UUID{}.String(),
+			FromAddressID:      payment.AccountID,
+			ToAddressID:        coinsetting.GoodIncomingAccountID,
+			CoinTypeID:         coinInfo.ID,
+			Amount:             balance.Balance - coinInfo.ReservedAmount,
+			Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
+			ChainTransactionID: uuid.New().String(),
+		},
+	})
+	if err != nil {
+		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
 
 	return nil
