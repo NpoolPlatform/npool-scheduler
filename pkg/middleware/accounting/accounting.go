@@ -74,13 +74,13 @@ type accounting struct {
 }
 
 func (ac *accounting) onQueryGoods(ctx context.Context) {
-	resp, err := grpc2.GetGoods(ctx, &goodspb.GetGoodsRequest{})
+	goods, err := grpc2.GetGoods(ctx, &goodspb.GetGoodsRequest{})
 	if err != nil {
 		logger.Sugar().Errorf("fail get goods: %v", err)
 		return
 	}
 
-	for _, good := range resp.Infos {
+	for _, good := range goods {
 		logger.Sugar().Infof("start accounting for good %v [%v]", good.ID, good.Title)
 		go func(myGood *goodspb.GoodInfo) {
 			ac.checkWaitTransactions <- &goodAccounting{

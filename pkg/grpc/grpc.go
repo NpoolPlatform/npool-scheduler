@@ -33,7 +33,7 @@ const (
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) (*goodspb.GetGoodsResponse, error) {
+func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) ([]*goodspb.GoodInfo, error) {
 	conn, err := grpc2.GetGRPCConn(goodsconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get goods connection: %v", err)
@@ -45,7 +45,12 @@ func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) (*goodspb.GetGoo
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetGoods(ctx, in)
+	resp, err := cli.GetGoods(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get goods: %v", err)
+	}
+
+	return resp.Infos, nil
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
