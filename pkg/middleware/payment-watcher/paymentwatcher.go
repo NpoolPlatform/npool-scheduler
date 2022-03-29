@@ -59,20 +59,20 @@ func watchPaymentState(ctx context.Context) { //nolint
 			logger.Sugar().Errorf("fail to get wallet balance: %v", err)
 			continue
 		}
-		if balance.Info == nil {
+		if balance == nil {
 			logger.Sugar().Errorf("fail to get wallet balance")
 			continue
 		}
 
 		logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
-			pay.ID, coinInfo.Name, balance.Info.Balance, pay.StartAmount, pay.Amount)
+			pay.ID, coinInfo.Name, balance.Balance, pay.StartAmount, pay.Amount)
 
 		newState := pay.State
-		if balance.Info.Balance-pay.StartAmount >= pay.Amount {
+		if balance.Balance-pay.StartAmount >= pay.Amount {
 			newState = orderconst.PaymentStateDone
-			pay.FinishAmount = balance.Info.Balance
+			pay.FinishAmount = balance.Balance
 
-			myAmount := balance.Info.Balance - pay.StartAmount - pay.Amount
+			myAmount := balance.Balance - pay.StartAmount - pay.Amount
 			if myAmount > 0 {
 				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
 					Info: &billingpb.UserPaymentBalance{
@@ -89,7 +89,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 		}
 		if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 			newState = orderconst.PaymentStateTimeout
-			pay.FinishAmount = balance.Info.Balance
+			pay.FinishAmount = balance.Balance
 		}
 
 		if newState != pay.State {
@@ -112,16 +112,16 @@ func watchPaymentState(ctx context.Context) { //nolint
 				logger.Sugar().Errorf("fail to get good payment: %v", err)
 				continue
 			}
-			if myPayment.Info == nil {
+			if myPayment == nil {
 				logger.Sugar().Errorf("fail to get good payment")
 				continue
 			}
 
-			myPayment.Info.Idle = true
-			myPayment.Info.OccupiedBy = ""
+			myPayment.Idle = true
+			myPayment.OccupiedBy = ""
 
 			_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
-				Info: myPayment.Info,
+				Info: myPayment,
 			})
 			if err != nil {
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
@@ -178,7 +178,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		Address: account.Address,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get wallet balance: %v", err)
+		return xerrors.Errorf("fail get wallet balance of %v %v: %v", coinInfo.Name, account.Address, err)
 	}
 
 	coinLimit := 0
@@ -203,7 +203,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		coinLimit = int(platformsetting.PaymentAccountUSDAmount / price)
 	}
 
-	if int(balance.Info.Balance) > coinLimit {
+	if int(balance.Balance) > coinLimit {
 		coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 			CoinTypeID: payment.PaymentCoinTypeID,
 		})
@@ -219,7 +219,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 				FromAddressID:      payment.AccountID,
 				ToAddressID:        coinsetting.GoodIncomingAccountID,
 				CoinTypeID:         coinInfo.ID,
-				Amount:             balance.Info.Balance - coinInfo.ReservedAmount,
+				Amount:             balance.Balance - coinInfo.ReservedAmount,
 				Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
 				ChainTransactionID: uuid.New().String(),
 			},
@@ -233,7 +233,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 }
 
 func watchPaymentAmount(ctx context.Context) {
-	resp, err := grpc2.GetGoodPayments(ctx, &billingpb.GetGoodPaymentsRequest{})
+	payments, err := grpc2.GetGoodPayments(ctx, &billingpb.GetGoodPaymentsRequest{})
 	if err != nil {
 		logger.Sugar().Errorf("fail get good payments: %v", err)
 		return
@@ -241,7 +241,7 @@ func watchPaymentAmount(ctx context.Context) {
 
 	coins := map[string]*coininfopb.CoinInfo{}
 
-	for _, payment := range resp.Infos {
+	for _, payment := range payments {
 		if !payment.Idle {
 			continue
 		}

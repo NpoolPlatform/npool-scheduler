@@ -93,7 +93,7 @@ func (ac *accounting) onQueryGoods(ctx context.Context) {
 }
 
 func (gac *goodAccounting) onCheckTransactionsByState(ctx context.Context, state string) error {
-	waitResp, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
+	txs, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
 		GoodID: gac.good.ID,
 		State:  state,
 	})
@@ -101,7 +101,7 @@ func (gac *goodAccounting) onCheckTransactionsByState(ctx context.Context, state
 		return xerrors.Errorf("fail get %v transactions: %v", state, err)
 	}
 
-	if len(waitResp.Infos) > 0 {
+	if len(txs) > 0 {
 		return xerrors.Errorf("%v transactions not empty", state)
 	}
 
@@ -125,7 +125,7 @@ func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
 }
 
 func (gac *goodAccounting) onCheckFailTransactions(ctx context.Context) error {
-	failResp, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
+	txs, err := grpc2.GetCoinAccountTransactionsByGoodState(ctx, &billingpb.GetCoinAccountTransactionsByGoodStateRequest{
 		GoodID: gac.good.ID,
 		State:  billingconst.CoinTransactionStateFail,
 	})
@@ -133,7 +133,7 @@ func (gac *goodAccounting) onCheckFailTransactions(ctx context.Context) error {
 		return xerrors.Errorf("fail get fail transactions: %v", err)
 	}
 
-	for _, info := range failResp.Infos {
+	for _, info := range txs {
 		if info.FailHold {
 			return xerrors.Errorf("fail hold by fail transaction")
 		}
@@ -168,17 +168,17 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
 }
 
 func (gac *goodAccounting) onQueryAccount(ctx context.Context) error {
-	resp, err := grpc2.GetGoodBenefitByGood(ctx, &billingpb.GetGoodBenefitByGoodRequest{
+	benefit, err := grpc2.GetGoodBenefitByGood(ctx, &billingpb.GetGoodBenefitByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get good benefit by good: %v [%v]", err, gac.good.ID)
 	}
-	if resp.Info == nil {
+	if benefit == nil {
 		return xerrors.Errorf("fail get good benefit by good [%v]", gac.good.ID)
 	}
 
-	gac.goodbenefit = resp.Info
+	gac.goodbenefit = benefit
 	return nil
 }
 
@@ -276,27 +276,20 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 		return xerrors.Errorf("invalid benefit address")
 	}
 
-	resp, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    gac.coininfo.Name,
 		Address: account.Address,
 	})
-	if err != nil {
+	if err != nil || balance == nil {
 		return xerrors.Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
 			gac.goodbenefit.BenefitAccountID,
 			err, gac.good.ID,
 			gac.coininfo.Name,
 			account.Address)
 	}
-	if resp.Info == nil {
-		return xerrors.Errorf("fail get balance for good benefit account %v: [%v| %v %v]",
-			gac.goodbenefit.BenefitAccountID,
-			gac.good.ID,
-			gac.coininfo.Name,
-			account.Address)
-	}
 
 	gac.preQueryBalance = inComing - outComing
-	gac.afterQueryBalanceInfo = resp.Info
+	gac.afterQueryBalanceInfo = balance
 	return nil
 }
 
@@ -407,7 +400,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 	amount := totalAmount * float64(units) * 1.0 / float64(gac.good.Total)
 	amount = math.Floor(amount*10000) / 10000
 
-	resp, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
+	tx, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
 			AppID:              uuid.UUID{}.String(),
 			UserID:             uuid.UUID{}.String(),
@@ -424,7 +417,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		return "", xerrors.Errorf("fail create coin account transaction: %v", err)
 	}
 
-	return resp.Info.ID, nil
+	return tx.ID, nil
 }
 
 func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error { //nolint
@@ -464,7 +457,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		return xerrors.Errorf("fail get user offline benefit account id: %v", err)
 	}
 
-	resp4, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    coinInfo.Name,
 		Address: account.Address,
 	})
@@ -475,8 +468,8 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 			account.Address)
 	}
 
-	if int(resp4.Info.Balance) > warmCoinLimit && int(resp4.Info.Balance)-warmCoinLimit > warmCoinLimit {
-		amount := resp4.Info.Balance - float64(warmCoinLimit)
+	if int(balance.Balance) > warmCoinLimit && int(balance.Balance)-warmCoinLimit > warmCoinLimit {
+		amount := balance.Balance - float64(warmCoinLimit)
 		amount = math.Floor(amount*10000) / 10000
 
 		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
@@ -666,7 +659,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 }
 
 func onCreatedChecker(ctx context.Context) {
-	waitResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+	waitTxs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStateWait,
 	})
 	if err != nil {
@@ -674,7 +667,7 @@ func onCreatedChecker(ctx context.Context) {
 		return
 	}
 
-	payingResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+	payingTxs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStatePaying,
 	})
 	if err != nil {
@@ -683,10 +676,10 @@ func onCreatedChecker(ctx context.Context) {
 	}
 
 	infos := []*billingpb.CoinAccountTransaction{}
-	infos = append(infos, waitResp.Infos...)
-	infos = append(infos, payingResp.Infos...)
+	infos = append(infos, waitTxs...)
+	infos = append(infos, payingTxs...)
 
-	createdResp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+	createdTxs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStateCreated,
 	})
 	if err != nil {
@@ -696,7 +689,7 @@ func onCreatedChecker(ctx context.Context) {
 
 	toWait := map[string]struct{}{}
 
-	for _, created := range createdResp.Infos {
+	for _, created := range createdTxs {
 		logger.Sugar().Infof("try wait transaction %v amount %v state %v",
 			created.ID,
 			created.Amount,
@@ -736,7 +729,7 @@ func onCreatedChecker(ctx context.Context) {
 }
 
 func onWaitChecker(ctx context.Context) {
-	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+	txs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStateWait,
 	})
 	if err != nil {
@@ -744,7 +737,7 @@ func onWaitChecker(ctx context.Context) {
 		return
 	}
 
-	for _, wait := range resp.Infos {
+	for _, wait := range txs {
 		if err := onTransfer(ctx, wait); err != nil {
 			logger.Sugar().Errorf("fail transfer transaction: %v", err)
 			continue
@@ -767,7 +760,7 @@ func onWaitChecker(ctx context.Context) {
 }
 
 func onPayingChecker(ctx context.Context) {
-	resp, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
+	txs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStatePaying,
 	})
 	if err != nil {
@@ -775,11 +768,11 @@ func onPayingChecker(ctx context.Context) {
 		return
 	}
 
-	for _, paying := range resp.Infos {
+	for _, paying := range txs {
 		var toState string
 		cid := paying.ChainTransactionID
 
-		resp, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
+		tx, err := grpc2.GetTransaction(ctx, &sphinxproxypb.GetTransactionRequest{
 			TransactionID: paying.ID,
 		})
 		if err != nil {
@@ -800,12 +793,12 @@ func onPayingChecker(ctx context.Context) {
 				continue
 			}
 		} else {
-			switch resp.Info.TransactionState {
+			switch tx.TransactionState {
 			case sphinxproxypb.TransactionState_TransactionStateFail:
 				toState = billingconst.CoinTransactionStateFail
 			case sphinxproxypb.TransactionState_TransactionStateDone:
 				toState = billingconst.CoinTransactionStateSuccessful
-				cid = resp.Info.CID
+				cid = tx.CID
 			// TODO: process review rejected
 			default:
 				continue
