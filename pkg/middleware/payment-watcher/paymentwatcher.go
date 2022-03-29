@@ -143,7 +143,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail lock account: %v", err)
 	}
 	defer func() {
-		payment.Idle = false
+		payment.Idle = true
 		payment.OccupiedBy = ""
 		_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
 			Info: payment,
