@@ -97,7 +97,7 @@ func GetCoinInfo(ctx context.Context, in *coininfopb.GetCoinInfoRequest) (*coini
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
+func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) ([]*orderpb.Order, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
@@ -109,10 +109,15 @@ func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.GetOrd
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetOrder(ctx, in)
+	resp, err := cli.GetOrdersByGood(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get orders: %v", err)
+	}
+
+	return resp.Infos, nil
 }
 
-func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) (*orderpb.GetOrdersByGoodResponse, error) {
+func GetCompensatesByOrder(ctx context.Context, in *orderpb.GetCompensatesByOrderRequest) ([]*orderpb.Compensate, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get order connection: %v", err)
@@ -124,25 +129,15 @@ func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) (*
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetOrdersByGood(ctx, in)
-}
-
-func GetCompensatesByOrder(ctx context.Context, in *orderpb.GetCompensatesByOrderRequest) (*orderpb.GetCompensatesByOrderResponse, error) {
-	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	resp, err := cli.GetCompensatesByOrder(ctx, in)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get order connection: %v", err)
+		return nil, xerrors.Errorf("fail get compensates: %v", err)
 	}
-	defer conn.Close()
 
-	cli := orderpb.NewCloudHashingOrderClient(conn)
-
-	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
-	defer cancel()
-
-	return cli.GetCompensatesByOrder(ctx, in)
+	return resp.Infos, nil
 }
 
-func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest) (*orderpb.GetPaymentByOrderResponse, error) {
+func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest) (*orderpb.Payment, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get payment by order: %v", err)
@@ -154,10 +149,15 @@ func GetPaymentByOrder(ctx context.Context, in *orderpb.GetPaymentByOrderRequest
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetPaymentByOrder(ctx, in)
+	resp, err := cli.GetPaymentByOrder(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get payment: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func GetPaymentsByState(ctx context.Context, in *orderpb.GetPaymentsByStateRequest) (*orderpb.GetPaymentsByStateResponse, error) {
+func UpdatePayment(ctx context.Context, in *orderpb.UpdatePaymentRequest) (*orderpb.Payment, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get payment by order: %v", err)
@@ -169,10 +169,15 @@ func GetPaymentsByState(ctx context.Context, in *orderpb.GetPaymentsByStateReque
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetPaymentsByState(ctx, in)
+	resp, err := cli.UpdatePayment(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail update payment: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func UpdatePayment(ctx context.Context, in *orderpb.UpdatePaymentRequest) (*orderpb.UpdatePaymentResponse, error) {
+func GetPaymentsByState(ctx context.Context, in *orderpb.GetPaymentsByStateRequest) ([]*orderpb.Payment, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get payment by order: %v", err)
@@ -184,12 +189,17 @@ func UpdatePayment(ctx context.Context, in *orderpb.UpdatePaymentRequest) (*orde
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.UpdatePayment(ctx, in)
+	resp, err := cli.GetPaymentsByState(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get payments: %v", err)
+	}
+
+	return resp.Infos, nil
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRequest) (*billingpb.CreateCoinAccountResponse, error) {
+func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBenefitRequest) (*billingpb.PlatformBenefit, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -201,10 +211,15 @@ func CreateBillingAccount(ctx context.Context, in *billingpb.CreateCoinAccountRe
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.CreateCoinAccount(ctx, in)
+	resp, err := cli.CreatePlatformBenefit(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail create platform benefit: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBenefitRequest) (*billingpb.CreatePlatformBenefitResponse, error) {
+func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitRequest) (*billingpb.UserBenefit, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -216,10 +231,15 @@ func CreatePlatformBenefit(ctx context.Context, in *billingpb.CreatePlatformBene
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.CreatePlatformBenefit(ctx, in)
+	resp, err := cli.CreateUserBenefit(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail create user benefit: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitRequest) (*billingpb.CreateUserBenefitResponse, error) {
+func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest) (*billingpb.CoinAccountInfo, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -231,10 +251,15 @@ func CreateUserBenefit(ctx context.Context, in *billingpb.CreateUserBenefitReque
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.CreateUserBenefit(ctx, in)
+	resp, err := cli.GetCoinAccount(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get coin account: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest) (*billingpb.GetCoinAccountResponse, error) {
+func GetPlatformSetting(ctx context.Context, in *billingpb.GetPlatformSettingRequest) (*billingpb.PlatformSetting, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -246,10 +271,15 @@ func GetBillingAccount(ctx context.Context, in *billingpb.GetCoinAccountRequest)
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetCoinAccount(ctx, in)
+	resp, err := cli.GetPlatformSetting(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get platform setting: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func GetPlatformSetting(ctx context.Context, in *billingpb.GetPlatformSettingRequest) (*billingpb.GetPlatformSettingResponse, error) {
+func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBenefitsByGoodRequest) ([]*billingpb.PlatformBenefit, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -261,10 +291,15 @@ func GetPlatformSetting(ctx context.Context, in *billingpb.GetPlatformSettingReq
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetPlatformSetting(ctx, in)
+	resp, err := cli.GetPlatformBenefitsByGood(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get platform benefits: %v", err)
+	}
+
+	return resp.Infos, nil
 }
 
-func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBenefitsByGoodRequest) (*billingpb.GetPlatformBenefitsByGoodResponse, error) {
+func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatestPlatformBenefitByGoodRequest) (*billingpb.PlatformBenefit, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -276,10 +311,15 @@ func GetPlatformBenefitsByGood(ctx context.Context, in *billingpb.GetPlatformBen
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetPlatformBenefitsByGood(ctx, in)
+	resp, err := cli.GetLatestPlatformBenefitByGood(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get latest platform benefit: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatestPlatformBenefitByGoodRequest) (*billingpb.GetLatestPlatformBenefitByGoodResponse, error) {
+func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLatestUserBenefitByGoodAppUserRequest) (*billingpb.UserBenefit, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -291,10 +331,15 @@ func GetLatestPlatformBenefitByGood(ctx context.Context, in *billingpb.GetLatest
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetLatestPlatformBenefitByGood(ctx, in)
+	resp, err := cli.GetLatestUserBenefitByGoodAppUser(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get latest user benefit: %v", err)
+	}
+
+	return resp.Info, nil
 }
 
-func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLatestUserBenefitByGoodAppUserRequest) (*billingpb.GetLatestUserBenefitByGoodAppUserResponse, error) {
+func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByCoinAccountRequest) ([]*billingpb.CoinAccountTransaction, error) {
 	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get billing connection: %v", err)
@@ -306,22 +351,12 @@ func GetLatestUserBenefitByGoodAppUser(ctx context.Context, in *billingpb.GetLat
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetLatestUserBenefitByGoodAppUser(ctx, in)
-}
-
-func GetCoinAccountTransactionsByCoinAccount(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByCoinAccountRequest) (*billingpb.GetCoinAccountTransactionsByCoinAccountResponse, error) {
-	conn, err := grpc2.GetGRPCConn(billingconst.ServiceName, grpc2.GRPCTAG)
+	resp, err := cli.GetCoinAccountTransactionsByCoinAccount(ctx, in)
 	if err != nil {
-		return nil, xerrors.Errorf("fail get billing connection: %v", err)
+		return nil, xerrors.Errorf("fail get coin account transactions: %v", err)
 	}
-	defer conn.Close()
 
-	cli := billingpb.NewCloudHashingBillingClient(conn)
-
-	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
-	defer cancel()
-
-	return cli.GetCoinAccountTransactionsByCoinAccount(ctx, in)
+	return resp.Infos, nil
 }
 
 func GetCoinAccountTransactionsByState(ctx context.Context, in *billingpb.GetCoinAccountTransactionsByStateRequest) (*billingpb.GetCoinAccountTransactionsByStateResponse, error) {

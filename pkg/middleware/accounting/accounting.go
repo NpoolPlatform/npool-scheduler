@@ -186,58 +186,58 @@ func (gac *goodAccounting) onQueryAccount(ctx context.Context) error {
 }
 
 func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
-	resp, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
-	gac.accounts[gac.goodbenefit.BenefitAccountID] = resp.Info
+	gac.accounts[gac.goodbenefit.BenefitAccountID] = account
 
-	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+	account, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: gac.coinsetting.PlatformOfflineAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
 	}
 
-	gac.accounts[gac.coinsetting.PlatformOfflineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.PlatformOfflineAccountID] = account
 
-	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+	account, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: gac.coinsetting.UserOnlineAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
-	gac.accounts[gac.coinsetting.UserOnlineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.UserOnlineAccountID] = account
 
-	resp, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+	account, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: gac.coinsetting.UserOfflineAccountID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
-	gac.accounts[gac.coinsetting.UserOfflineAccountID] = resp.Info
+	gac.accounts[gac.coinsetting.UserOfflineAccountID] = account
 	return nil
 }
 
 func (gac *goodAccounting) onQueryBenefits(ctx context.Context) error {
-	resp, err := grpc2.GetPlatformBenefitsByGood(ctx, &billingpb.GetPlatformBenefitsByGoodRequest{
+	benefits, err := grpc2.GetPlatformBenefitsByGood(ctx, &billingpb.GetPlatformBenefitsByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get platform benefits by good: %v [%v]", err, gac.good.ID)
 	}
 
-	gac.benefits = resp.Infos
+	gac.benefits = benefits
 	return nil
 }
 
 func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) error {
-	resp, err := grpc2.GetCoinAccountTransactionsByCoinAccount(ctx, &billingpb.GetCoinAccountTransactionsByCoinAccountRequest{
+	transactions, err := grpc2.GetCoinAccountTransactionsByCoinAccount(ctx, &billingpb.GetCoinAccountTransactionsByCoinAccountRequest{
 		CoinTypeID: gac.good.CoinInfoID,
 		AddressID:  gac.goodbenefit.BenefitAccountID,
 	})
@@ -246,7 +246,7 @@ func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) error {
 	}
 
 	txs := []*billingpb.CoinAccountTransaction{}
-	for _, info := range resp.Infos {
+	for _, info := range transactions {
 		if info.ToAddressID == gac.goodbenefit.BenefitAccountID {
 			logger.Sugar().Errorf("good benefit account should not accept platform incoming transaction: %v [%v]", info.ToAddressID, gac.good.ID)
 			continue
@@ -304,7 +304,7 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 }
 
 func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
-	resp, err := grpc2.GetOrdersByGood(ctx, &orderpb.GetOrdersByGoodRequest{
+	orders, err := grpc2.GetOrdersByGood(ctx, &orderpb.GetOrdersByGoodRequest{
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
@@ -312,8 +312,9 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 	}
 
 	// TODO: multiple pages order
-	orders := []*orderpb.Order{}
-	for _, info := range resp.Infos {
+	validOrders := []*orderpb.Order{}
+
+	for _, info := range orders {
 		_, err := grpc2.GetAppUserByAppUser(ctx, &appusermgrpb.GetAppUserByAppUserRequest{
 			AppID:  info.AppID,
 			UserID: info.UserID,
@@ -331,33 +332,33 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 		}
 
 		// Only paid order should be involved
-		respPayment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
+		payment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
 			OrderID: info.ID,
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail to get payment of order %v", info.ID)
 			continue
 		}
-		if respPayment.Info == nil {
+		if payment == nil {
 			logger.Sugar().Errorf("order %v is not paid", info.ID)
 			continue
 		}
 
-		if respPayment.Info.State != orderconst.PaymentStateDone {
-			logger.Sugar().Errorf("order %v not paid %+v", info.ID, respPayment.Info.ID)
+		if payment.State != orderconst.PaymentStateDone {
+			logger.Sugar().Errorf("order %v not paid %+v", info.ID, payment.ID)
 			continue
 		}
 
-		orders = append(orders, info)
+		validOrders = append(validOrders, info)
 	}
 
-	gac.orders = orders
+	gac.orders = validOrders
 	return nil
 }
 
 func (gac *goodAccounting) onQueryCompensates(ctx context.Context) {
 	for _, order := range gac.orders {
-		resp, err := grpc2.GetCompensatesByOrder(ctx, &orderpb.GetCompensatesByOrderRequest{
+		compensates, err := grpc2.GetCompensatesByOrder(ctx, &orderpb.GetCompensatesByOrderRequest{
 			OrderID: order.ID,
 		})
 		if err != nil {
@@ -365,7 +366,7 @@ func (gac *goodAccounting) onQueryCompensates(ctx context.Context) {
 			continue
 		}
 
-		gac.compensates[order.ID] = resp.Infos
+		gac.compensates[order.ID] = compensates
 	}
 }
 
@@ -437,25 +438,22 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 	if err != nil {
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
-	if resp.Info == nil {
-		return xerrors.Errorf("fail get coin setting: %v", coinInfo.Name)
-	}
 
-	resp1, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
+	platformSetting, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
 	if err != nil {
 		logger.Sugar().Errorf("fail get platform setting: %v", err)
 	}
 
 	if resp.Info != nil {
 		warmCoinLimit = int(resp.Info.WarmAccountCoinAmount)
-	} else if resp1.Info != nil {
+	} else if platformSetting != nil {
 		price, err := currency.USDPrice(ctx, coinInfo.Name)
 		if err == nil && price > 0 {
-			warmCoinLimit = int(resp1.Info.WarmAccountUSDAmount / price)
+			warmCoinLimit = int(platformSetting.WarmAccountUSDAmount / price)
 		}
 	}
 
-	resp2, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: resp.Info.UserOnlineAccountID,
 	})
 	if err != nil {
@@ -471,13 +469,13 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 
 	resp4, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    coinInfo.Name,
-		Address: resp2.Info.Address,
+		Address: account.Address,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get balance for account %v: %v [%v %v]",
 			resp.Info.UserOnlineAccountID,
 			err, coinInfo.Name,
-			resp2.Info.Address)
+			account.Address)
 	}
 
 	if int(resp4.Info.Balance) > warmCoinLimit && int(resp4.Info.Balance)-warmCoinLimit > warmCoinLimit {
@@ -551,15 +549,15 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 	logger.Sugar().Infof("transfer %v amount %v from %v to %v coin %v",
 		transaction.ID,
 		transaction.Amount,
-		from.Info.Address,
-		to.Info.Address,
+		from.Address,
+		to.Address,
 		coininfo.Name)
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
 		Name:          coininfo.Name,
 		Amount:        transaction.Amount,
-		From:          from.Info.Address,
-		To:            to.Info.Address,
+		From:          from.Address,
+		To:            to.Address,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail create transaction: %v", err)

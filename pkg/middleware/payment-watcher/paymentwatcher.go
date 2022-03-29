@@ -30,7 +30,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 		return
 	}
 
-	for _, pay := range payments.Infos {
+	for _, pay := range payments {
 		coinInfo, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 			ID: pay.CoinInfoID,
 		})
@@ -46,14 +46,14 @@ func watchPaymentState(ctx context.Context) { //nolint
 			logger.Sugar().Errorf("fail to get payment account: %v", err)
 			continue
 		}
-		if account.Info == nil {
+		if account == nil {
 			logger.Sugar().Errorf("fail to get payment account")
 			continue
 		}
 
 		balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 			Name:    coinInfo.Name,
-			Address: account.Info.Address,
+			Address: account.Address,
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail to get wallet balance: %v", err)
@@ -106,7 +106,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 
 		if newState == orderconst.PaymentStateDone {
 			myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
-				AccountID: account.Info.ID,
+				AccountID: account.ID,
 			})
 			if err != nil {
 				logger.Sugar().Errorf("fail to get good payment: %v", err)
@@ -127,7 +127,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
 			}
 
-			lockKey := AccountLockKey(account.Info.ID)
+			lockKey := AccountLockKey(account.ID)
 			err = redis2.Unlock(lockKey)
 			if err != nil {
 				logger.Sugar().Errorf("fail unlock %v: %v", lockKey, err)
@@ -175,7 +175,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 
 	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    coinInfo.Name,
-		Address: account.Info.Address,
+		Address: account.Address,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get wallet balance: %v", err)
@@ -200,7 +200,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		if err != nil {
 			return xerrors.Errorf("fail get price: %v", err)
 		}
-		coinLimit = int(platformsetting.Info.PaymentAccountUSDAmount / price)
+		coinLimit = int(platformsetting.PaymentAccountUSDAmount / price)
 	}
 
 	if int(balance.Info.Balance) > coinLimit {
