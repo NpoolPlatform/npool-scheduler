@@ -506,13 +506,13 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 }
 
 func onLimitsChecker(ctx context.Context) {
-	resp, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{})
+	coins, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{})
 	if err != nil {
 		logger.Sugar().Errorf("fail get coin infos: %v", err)
 		return
 	}
 
-	for _, info := range resp.Infos {
+	for _, info := range coins {
 		err = onCoinLimitsChecker(ctx, info)
 		if err != nil {
 			logger.Sugar().Errorf("fail check coin limit: %v", err)

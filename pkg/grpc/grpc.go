@@ -55,7 +55,7 @@ func GetGoods(ctx context.Context, in *goodspb.GetGoodsRequest) ([]*goodspb.Good
 
 //---------------------------------------------------------------------------------------------------------------------------
 
-func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) (*coininfopb.GetCoinInfosResponse, error) {
+func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) ([]*coininfopb.CoinInfo, error) {
 	conn, err := grpc2.GetGRPCConn(coininfoconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
 		return nil, xerrors.Errorf("fail get coininfo connection: %v", err)
@@ -67,7 +67,12 @@ func GetCoinInfos(ctx context.Context, in *coininfopb.GetCoinInfosRequest) (*coi
 	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
 	defer cancel()
 
-	return cli.GetCoinInfos(ctx, in)
+	resp, err := cli.GetCoinInfos(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get coin infos: %v", err)
+	}
+
+	return resp.Infos, nil
 }
 
 func GetCoinInfo(ctx context.Context, in *coininfopb.GetCoinInfoRequest) (*coininfopb.GetCoinInfoResponse, error) {
