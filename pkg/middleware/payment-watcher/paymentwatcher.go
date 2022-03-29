@@ -225,7 +225,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 			},
 		})
 		if err != nil {
-			return xerrors.Errorf("fail create transaction")
+			return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 		}
 	}
 
