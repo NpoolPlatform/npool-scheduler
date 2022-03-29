@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
 
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+	accountlock "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/account"
 	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
 
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
@@ -127,35 +127,44 @@ func watchPaymentState(ctx context.Context) { //nolint
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
 			}
 
-			lockKey := AccountLockKey(account.ID)
-			err = redis2.Unlock(lockKey)
+			err = accountlock.Unlock(account.ID)
 			if err != nil {
-				logger.Sugar().Errorf("fail unlock %v: %v", lockKey, err)
+				logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
 			}
 		}
 	}
 }
 
+func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) {
+	go func() {
+		for {
+			err := accountlock.Lock(payment.AccountID)
+			if err != nil {
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			payment.Idle = true
+			payment.OccupiedBy = ""
+
+			_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+				Info: payment,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail to update good payment: %v", err)
+			}
+
+			break
+		}
+	}()
+}
+
 func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error { //nolint
-	lockKey := AccountLockKey(payment.AccountID)
-	err := redis2.TryLock(lockKey, 10*time.Minute)
+	err := accountlock.Lock(payment.AccountID)
 	if err != nil {
 		return xerrors.Errorf("fail lock account: %v", err)
 	}
-	defer func() {
-		payment.Idle = true
-		payment.OccupiedBy = ""
-		_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
-			Info: payment,
-		})
-		if err != nil {
-			logger.Sugar().Errorf("fail to update good payment: %v", err)
-		}
-		err = redis2.Unlock(lockKey)
-		if err != nil {
-			logger.Sugar().Errorf("fail to unlock account")
-		}
-	}()
+	defer releasePaymentAccount(ctx, payment)
 
 	payment.Idle = false
 	payment.OccupiedBy = "collecting"
@@ -278,8 +287,4 @@ func Watch(ctx context.Context) {
 			watchPaymentAmount(ctx)
 		}
 	}
-}
-
-func AccountLockKey(accountID string) string {
-	return fmt.Sprintf("%v:%v", orderconst.OrderPaymentLockKeyPrefix, accountID)
 }

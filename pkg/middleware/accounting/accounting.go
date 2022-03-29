@@ -9,9 +9,8 @@ import (
 	"time"
 
 	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
+	accountlock "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/account"
 	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	appusermgrpb "github.com/NpoolPlatform/message/npool/appusermgr"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
@@ -27,6 +26,8 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"golang.org/x/xerrors"
 )
@@ -542,6 +543,12 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 		from.Address,
 		to.Address,
 		coininfo.Name)
+
+	err = accountlock.Lock(from.ID)
+	if err != nil {
+		return xerrors.Errorf("fail lock account: %v", err)
+	}
+
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
 		Name:          coininfo.Name,
@@ -759,7 +766,7 @@ func onWaitChecker(ctx context.Context) {
 	}
 }
 
-func onPayingChecker(ctx context.Context) {
+func onPayingChecker(ctx context.Context) { //nolint
 	txs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStatePaying,
 	})
@@ -829,6 +836,12 @@ func onPayingChecker(ctx context.Context) {
 		})
 		if err != nil {
 			logger.Sugar().Errorf("fail update transaction to %v: %v", toState, err)
+			continue
+		}
+
+		err = accountlock.Unlock(paying.FromAddressID)
+		if err != nil {
+			logger.Sugar().Errorf("fail unlock account: %v", err)
 		}
 	}
 }
