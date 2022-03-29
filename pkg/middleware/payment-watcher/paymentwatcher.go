@@ -267,7 +267,7 @@ func watchPaymentAmount(ctx context.Context) {
 
 func Watch(ctx context.Context) {
 	payticker := time.NewTicker(30 * time.Second)
-	collectticker := time.NewTicker(24 * time.Hour)
+	collectticker := time.NewTicker(1 * time.Minute)
 
 	for { //nolint
 		select {
