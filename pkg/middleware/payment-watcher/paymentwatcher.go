@@ -216,6 +216,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 			Info: &billingpb.CoinAccountTransaction{
 				AppID:              uuid.UUID{}.String(),
 				UserID:             uuid.UUID{}.String(),
+				GoodID:             uuid.UUID{}.String(),
 				FromAddressID:      payment.AccountID,
 				ToAddressID:        coinsetting.GoodIncomingAccountID,
 				CoinTypeID:         coinInfo.ID,
