@@ -584,7 +584,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 
 	totalAmount := gac.afterQueryBalanceInfo.Balance - preQueryBalance
-	if totalAmount < 0 {
+	if totalAmount <= 0 {
 		logger.Sugar().Errorf("invalid amount: balance after query %v < before query %v (%v) [%v]",
 			gac.afterQueryBalanceInfo.Balance,
 			gac.preQueryBalance,
