@@ -199,6 +199,8 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	}
 
 	coinLimit = int(coinsetting.PaymentAccountCoinAmount)
+	logger.Sugar().Infof("balance %v coin limit %v reserved %v of payment %v",
+		balance.Balance, coinLimit, coinInfo.ReservedAmount, payment.AccountID)
 
 	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
 		err = accountlock.Unlock(payment.AccountID)
