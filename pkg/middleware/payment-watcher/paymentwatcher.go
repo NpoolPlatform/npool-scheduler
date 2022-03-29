@@ -177,7 +177,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: payment.AccountID,
 	})
-	if err != nil {
+	if err != nil || account == nil {
 		return xerrors.Errorf("fail get account: %v", err)
 	}
 
