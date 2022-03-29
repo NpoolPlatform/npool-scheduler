@@ -143,18 +143,18 @@ func (gac *goodAccounting) onCheckFailTransactions(ctx context.Context) error {
 }
 
 func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
-	resp, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+	coinInfo, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 		ID: gac.good.CoinInfoID,
 	})
 	if err != nil {
 		return xerrors.Errorf("fail get coin info: %v [%v]", err, gac.good.ID)
 	}
 
-	if resp.Info.PreSale {
+	if coinInfo.PreSale {
 		return xerrors.Errorf("presale product cannot do accounting")
 	}
 
-	gac.coininfo = resp.Info
+	gac.coininfo = coinInfo
 
 	resp1, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: gac.good.CoinInfoID,
@@ -553,10 +553,10 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 		transaction.Amount,
 		from.Info.Address,
 		to.Info.Address,
-		coininfo.Info.Name)
+		coininfo.Name)
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
-		Name:          coininfo.Info.Name,
+		Name:          coininfo.Name,
 		Amount:        transaction.Amount,
 		From:          from.Info.Address,
 		To:            to.Info.Address,

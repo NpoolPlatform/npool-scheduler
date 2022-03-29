@@ -34,12 +34,8 @@ func watchPaymentState(ctx context.Context) { //nolint
 		coinInfo, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 			ID: pay.CoinInfoID,
 		})
-		if err != nil {
+		if err != nil || coinInfo == nil {
 			logger.Sugar().Errorf("fail to get coin %v info: %v", pay.CoinInfoID, err)
-			continue
-		}
-		if coinInfo.Info == nil {
-			logger.Sugar().Errorf("fail to get coin %v info", pay.CoinInfoID)
 			continue
 		}
 
@@ -56,7 +52,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 		}
 
 		balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-			Name:    coinInfo.Info.Name,
+			Name:    coinInfo.Name,
 			Address: account.Info.Address,
 		})
 		if err != nil {
@@ -69,7 +65,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 		}
 
 		logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
-			pay.ID, coinInfo.Info.Name, balance.Info.Balance, pay.StartAmount, pay.Amount)
+			pay.ID, coinInfo.Name, balance.Info.Balance, pay.StartAmount, pay.Amount)
 
 		newState := pay.State
 		if balance.Info.Balance-pay.StartAmount >= pay.Amount {
@@ -252,15 +248,14 @@ func watchPaymentAmount(ctx context.Context) {
 
 		coinInfo, ok := coins[payment.PaymentCoinTypeID]
 		if !ok {
-			resp, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 				ID: payment.PaymentCoinTypeID,
 			})
 			if err != nil {
 				logger.Sugar().Errorf("fail get coin info: %v", err)
 				continue
 			}
-			coins[payment.PaymentCoinTypeID] = resp.Info
-			coinInfo = resp.Info
+			coins[payment.PaymentCoinTypeID] = coinInfo
 		}
 
 		err = checkAndTransfer(ctx, payment, coinInfo)
