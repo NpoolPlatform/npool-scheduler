@@ -403,14 +403,15 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 
 	tx, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
-			AppID:              uuid.UUID{}.String(),
-			UserID:             uuid.UUID{}.String(),
-			GoodID:             gac.good.ID,
-			FromAddressID:      gac.goodbenefit.BenefitAccountID,
-			ToAddressID:        toAddressID,
-			CoinTypeID:         gac.coininfo.ID,
-			Amount:             amount,
-			Message:            fmt.Sprintf("%v benefit of %v units %v total %v at %v", benefitType, gac.good.ID, units, gac.good.Total, time.Now()),
+			AppID:         uuid.UUID{}.String(),
+			UserID:        uuid.UUID{}.String(),
+			GoodID:        gac.good.ID,
+			FromAddressID: gac.goodbenefit.BenefitAccountID,
+			ToAddressID:   toAddressID,
+			CoinTypeID:    gac.coininfo.ID,
+			Amount:        amount,
+			Message: fmt.Sprintf("%v benefit of %v units %v total %v | %v at %v",
+				benefitType, gac.good.ID, units, gac.good.Total, totalAmount, time.Now()),
 			ChainTransactionID: "",
 		},
 	})
