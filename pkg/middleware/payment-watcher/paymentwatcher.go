@@ -153,6 +153,11 @@ func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) 
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
 			}
 
+			err = accountlock.Unlock(payment.AccountID)
+			if err != nil {
+				logger.Sugar().Warnf("fail unlock account: %v", err)
+			}
+
 			break
 		}
 	}()
