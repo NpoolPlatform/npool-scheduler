@@ -389,7 +389,7 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 	}
 }
 
-func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) (string, error) {
+func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, totalAmount float64, benefitType string) (string, float64, error) { //nolint
 	toAddressID := gac.coinsetting.UserOnlineAccountID
 	units := gac.userUnits
 
@@ -400,6 +400,9 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 
 	amount := totalAmount * float64(units) * 1.0 / float64(gac.good.Total)
 	amount = math.Floor(amount*10000) / 10000
+	if amount < 0.0001 {
+		return "", 0, nil
+	}
 
 	tx, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
@@ -416,10 +419,10 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		},
 	})
 	if err != nil {
-		return "", xerrors.Errorf("fail create coin account transaction: %v", err)
+		return "", amount, xerrors.Errorf("fail create coin account transaction: %v", err)
 	}
 
-	return tx.ID, nil
+	return tx.ID, amount, nil
 }
 
 func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) error { //nolint
@@ -612,6 +615,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 
 	var userTID string
+	var userAmount float64
 
 	if gac.userUnits > 0 || gac.platformUnits > 0 {
 		err = accountlock.Lock(gac.goodbenefit.BenefitAccountID)
@@ -622,19 +626,24 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	}
 
 	if gac.userUnits > 0 {
-		id, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user")
+		id, amount, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "user")
 		if err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
 		userTID = id
+		userAmount = amount
 	}
 
 	if gac.platformUnits > 0 {
-		if _, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
+		if _, _, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
 			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
+	}
+
+	if userAmount <= 0 {
+		return
 	}
 
 	// Create user benefit according to valid order share of the good
