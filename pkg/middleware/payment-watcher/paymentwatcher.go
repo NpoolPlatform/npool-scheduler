@@ -155,7 +155,7 @@ func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) 
 
 			err = accountlock.Unlock(payment.AccountID)
 			if err != nil {
-				logger.Sugar().Warnf("fail unlock account: %v", err)
+				logger.Sugar().Warnf("fail unlock account %v: %v", payment.AccountID, err)
 			}
 
 			break
@@ -210,7 +210,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
 		err = accountlock.Unlock(payment.AccountID)
 		if err != nil {
-			return xerrors.Errorf("fail unlock account: %v", err)
+			return xerrors.Errorf("fail unlock account %v: %v", payment.AccountID, err)
 		}
 		return nil
 	}
