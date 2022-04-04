@@ -620,7 +620,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	if gac.userUnits > 0 || gac.platformUnits > 0 {
 		err = accountlock.Lock(gac.goodbenefit.BenefitAccountID)
 		if err != nil {
-			logger.Sugar().Errorf("fail lock benefit account %v: %v", gas.goodbenefit.BenefitAccountID, err)
+			logger.Sugar().Errorf("fail lock benefit account %v: %v", gac.goodbenefit.BenefitAccountID, err)
 			return
 		}
 	}
