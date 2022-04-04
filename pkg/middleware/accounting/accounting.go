@@ -859,7 +859,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 
 		err = accountlock.Unlock(paying.FromAddressID)
 		if err != nil {
-			logger.Sugar().Errorf("fail unlock account: %v", err)
+			logger.Sugar().Errorf("fail unlock account %v: %v", paying.FromAddressID, err)
 		}
 	}
 }
