@@ -289,6 +289,8 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 			account.Address)
 	}
 
+	logger.Sugar().Infof("query coin %v address %v balance %v", gac.coininfo.Name, account.Address, balance)
+
 	gac.preQueryBalance = inComing - outComing
 	gac.afterQueryBalanceInfo = balance
 	return nil
@@ -477,6 +479,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		amount := balance.Balance - float64(warmCoinLimit)
 		amount = math.Floor(amount*10000) / 10000
 
+		logger.Sugar().Infof("try lock online account %v", coinSetting.UserOnlineAccountID)
 		err = accountlock.Lock(coinSetting.UserOnlineAccountID)
 		if err != nil {
 			return xerrors.Errorf("fail lock account: %v", err)
@@ -618,9 +621,17 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 	var userAmount float64
 
 	if gac.userUnits > 0 || gac.platformUnits > 0 {
+		logger.Sugar().Infof("try lock benefit account %v", gac.goodbenefit.BenefitAccountID)
 		err = accountlock.Lock(gac.goodbenefit.BenefitAccountID)
 		if err != nil {
 			logger.Sugar().Errorf("fail lock benefit account %v: %v", gac.goodbenefit.BenefitAccountID, err)
+			return
+		}
+	}
+
+	if gac.platformUnits > 0 {
+		if _, _, err := gac.onCreateBenefitTransaction(ctx, totalAmount, "platform"); err != nil {
+			logger.Sugar().Errorf("fail transfer: %v", err)
 			return
 		}
 	}

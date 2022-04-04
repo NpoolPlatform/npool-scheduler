@@ -137,6 +137,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) {
 	go func() {
 		for {
+			logger.Sugar().Infof("try lock payment account %v", payment.AccountID)
 			err := accountlock.Lock(payment.AccountID)
 			if err != nil {
 				time.Sleep(10 * time.Second)
@@ -164,6 +165,7 @@ func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) 
 }
 
 func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error { //nolint
+	logger.Sugar().Infof("try lock payment check account %v", payment.AccountID)
 	err := accountlock.Lock(payment.AccountID)
 	if err != nil {
 		return xerrors.Errorf("fail lock account: %v", err)
