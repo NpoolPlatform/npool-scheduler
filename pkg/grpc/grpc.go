@@ -97,6 +97,26 @@ func GetCoinInfo(ctx context.Context, in *coininfopb.GetCoinInfoRequest) (*coini
 
 //---------------------------------------------------------------------------------------------------------------------------
 
+func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.Order, error) {
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get order connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	resp, err := cli.GetOrder(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get order: %v", err)
+	}
+
+	return resp.Info, nil
+}
+
 func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) ([]*orderpb.Order, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {

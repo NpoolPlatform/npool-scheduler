@@ -10,11 +10,11 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220225132002-fbc8b850fb8c
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220404143809-82c40930388a
-	github.com/NpoolPlatform/libent-cruder v0.0.0-20220501040231-b762759f7d91
-	github.com/NpoolPlatform/message v0.0.0-20220501030927-34f296682c0c
+	github.com/NpoolPlatform/libent-cruder v0.0.0-20220501112906-1fd771ed0198
+	github.com/NpoolPlatform/message v0.0.0-20220501143407-c230f4ca021b
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211208035009-5ad2768d2290
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211209140052-de1778e36e36
-	github.com/NpoolPlatform/stock-manager v0.0.0-20220501042229-49653324ab6a
+	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.8.0

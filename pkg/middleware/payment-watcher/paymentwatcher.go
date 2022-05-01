@@ -16,6 +16,12 @@ import (
 	coininfopb "github.com/NpoolPlatform/message/npool/coininfo"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	"google.golang.org/protobuf/types/known/structpb"
+
+	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
+	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
+
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 )
@@ -66,10 +72,24 @@ func watchPaymentState(ctx context.Context) { //nolint
 		logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
 			pay.ID, coinInfo.Name, balance.Balance, pay.StartAmount, pay.Amount)
 
+		unLocked := int32(0)
+		inService := int32(0)
+
+		order, err := grpc2.GetOrder(ctx, &orderpb.GetOrderRequest{
+			ID: pay.OrderID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get order: %v", err)
+			continue
+		}
+
 		newState := pay.State
 		if balance.Balance-pay.StartAmount >= pay.Amount {
 			newState = orderconst.PaymentStateDone
 			pay.FinishAmount = balance.Balance
+
+			unLocked += int32(order.Units)
+			inService += int32(order.Units)
 
 			myAmount := balance.Balance - pay.StartAmount - pay.Amount
 			if myAmount > 0 {
@@ -85,10 +105,10 @@ func watchPaymentState(ctx context.Context) { //nolint
 					logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", pay.ID, err)
 				}
 			}
-		}
-		if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
+		} else if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 			newState = orderconst.PaymentStateTimeout
 			pay.FinishAmount = balance.Balance
+			unLocked += int32(order.Units)
 		}
 
 		if newState != pay.State {
@@ -129,6 +149,29 @@ func watchPaymentState(ctx context.Context) { //nolint
 			err = accountlock.Unlock(account.ID)
 			if err != nil {
 				logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
+			}
+		}
+
+		stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
+			WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(pay.GoodID)))
+		if err != nil || stock == nil {
+			logger.Sugar().Errorf("fail get good stock: %v", err)
+			continue
+		}
+
+		fields := cruder.NewFilterFields()
+		if inService > 0 {
+			fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inService)))
+		}
+		if unLocked > 0 {
+			fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unLocked*-1)))
+		}
+
+		if len(fields) > 0 {
+			stock, err = stockcli.AddStockFields(ctx, stock.ID, fields)
+			if err != nil {
+				logger.Sugar().Errorf("fail add good in service: %v", err)
+				continue
 			}
 		}
 	}

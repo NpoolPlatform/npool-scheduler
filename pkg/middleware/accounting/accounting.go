@@ -391,15 +391,15 @@ func (gac *goodAccounting) onCaculateUserBenefit(ctx context.Context) {
 		gac.userUnits += order.Units
 	}
 
-	stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
 		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
-	if err != nil || len(stocks) == 0 {
+	if err != nil || stock == nil {
 		logger.Sugar().Errorf("fail get good stock: %v", err)
 		return
 	}
 
-	if uint32(stocks[0].Total) > gac.userUnits {
-		gac.platformUnits = uint32(stocks[0].Total) - gac.userUnits
+	if uint32(stock.Total) > gac.userUnits {
+		gac.platformUnits = uint32(stock.Total) - gac.userUnits
 	}
 }
 
@@ -412,14 +412,14 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		units = gac.platformUnits
 	}
 
-	stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
 		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
-	if err != nil || len(stocks) == 0 {
+	if err != nil || stock == nil {
 		logger.Sugar().Errorf("fail get good stock: %v", err)
 		return "", 0, nil
 	}
 
-	amount := totalAmount * float64(units) * 1.0 / float64(stocks[0].Total)
+	amount := totalAmount * float64(units) * 1.0 / float64(stock.Total)
 	amount = math.Floor(amount*10000) / 10000
 	if amount < 0.0001 {
 		return "", 0, nil
@@ -435,7 +435,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 			CoinTypeID:    gac.coininfo.ID,
 			Amount:        amount,
 			Message: fmt.Sprintf("%v benefit of %v units %v total %v | %v at %v",
-				benefitType, gac.good.ID, units, stocks[0].Total, totalAmount, time.Now()),
+				benefitType, gac.good.ID, units, stock.Total, totalAmount, time.Now()),
 			ChainTransactionID: "",
 		},
 	})
@@ -694,9 +694,9 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 
 		lastBenefitTimestamp := uint32(time.Now().Unix()) / benefitIntervalSeconds * benefitIntervalSeconds
 
-		stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+		stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
 			WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
-		if err != nil || len(stocks) == 0 {
+		if err != nil || stock == nil {
 			logger.Sugar().Errorf("fail get good stock: %v", err)
 			continue
 		}
@@ -707,7 +707,7 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 				UserID:                order.UserID,
 				GoodID:                order.GoodID,
 				CoinTypeID:            gac.coininfo.ID,
-				Amount:                totalAmount * float64(order.Units) * 1.0 / float64(stocks[0].Total),
+				Amount:                totalAmount * float64(order.Units) * 1.0 / float64(stock.Total),
 				LastBenefitTimestamp:  lastBenefitTimestamp,
 				OrderID:               order.ID,
 				PlatformTransactionID: userTID,
