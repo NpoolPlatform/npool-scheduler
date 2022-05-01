@@ -398,8 +398,8 @@ func (gac *goodAccounting) onCaculateUserBenefit(ctx context.Context) {
 		return
 	}
 
-	if uint32(stock.Total) > gac.userUnits {
-		gac.platformUnits = uint32(stock.Total) - gac.userUnits
+	if stock.Total > gac.userUnits {
+		gac.platformUnits = stock.Total - gac.userUnits
 	}
 }
 
