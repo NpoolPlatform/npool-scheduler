@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/empty"
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/predicate"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/empty"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/predicate"
 )
 
 // EmptyQuery is the builder for querying Empty entities.
@@ -106,7 +106,7 @@ func (eq *EmptyQuery) FirstIDX(ctx context.Context) int {
 }
 
 // Only returns a single Empty entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Empty entity is not found.
+// Returns a *NotSingularError when more than one Empty entity is found.
 // Returns a *NotFoundError when no Empty entities are found.
 func (eq *EmptyQuery) Only(ctx context.Context) (*Empty, error) {
 	nodes, err := eq.Limit(2).All(ctx)
@@ -133,7 +133,7 @@ func (eq *EmptyQuery) OnlyX(ctx context.Context) *Empty {
 }
 
 // OnlyID is like Only, but returns the only Empty ID in the query.
-// Returns a *NotSingularError when exactly one Empty ID is not found.
+// Returns a *NotSingularError when more than one Empty ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (eq *EmptyQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
@@ -242,8 +242,9 @@ func (eq *EmptyQuery) Clone() *EmptyQuery {
 		order:      append([]OrderFunc{}, eq.order...),
 		predicates: append([]predicate.Empty{}, eq.predicates...),
 		// clone intermediate query.
-		sql:  eq.sql.Clone(),
-		path: eq.path,
+		sql:    eq.sql.Clone(),
+		path:   eq.path,
+		unique: eq.unique,
 	}
 }
 
@@ -312,6 +313,10 @@ func (eq *EmptyQuery) sqlAll(ctx context.Context) ([]*Empty, error) {
 
 func (eq *EmptyQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := eq.querySpec()
+	_spec.Node.Columns = eq.fields
+	if len(eq.fields) > 0 {
+		_spec.Unique = eq.unique != nil && *eq.unique
+	}
 	return sqlgraph.CountNodes(ctx, eq.driver, _spec)
 }
 
@@ -382,6 +387,9 @@ func (eq *EmptyQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if eq.sql != nil {
 		selector = eq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if eq.unique != nil && *eq.unique {
+		selector.Distinct()
 	}
 	for _, p := range eq.predicates {
 		p(selector)
@@ -661,9 +669,7 @@ func (egb *EmptyGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range egb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(egb.fields...)...)

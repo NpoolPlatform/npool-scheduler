@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/empty"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/empty"
 )
 
 // EmptyCreate is the builder for creating a Empty entity.
@@ -167,7 +167,7 @@ type (
 	}
 )
 
-// UpdateNewValues updates the fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
 //	client.Empty.Create().
@@ -365,7 +365,7 @@ type EmptyUpsertBulk struct {
 	create *EmptyCreateBulk
 }
 
-// UpdateNewValues updates the fields using the new values that
+// UpdateNewValues updates the mutable fields using the new values that
 // were set on create. Using this option is equivalent to using:
 //
 //	client.Empty.Create().

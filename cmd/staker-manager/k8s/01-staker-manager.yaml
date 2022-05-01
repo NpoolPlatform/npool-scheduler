@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cloud-hashing-staker
+  name: staker-manager
   namespace: kube-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cloud-hashing-staker
+      app: staker-manager
   template:
     metadata:
       labels:
-        app: cloud-hashing-staker
+        app: staker-manager
     spec:
       containers:
-      - name: cloud-hashing-staker
-        image: uhub.service.ucloud.cn/entropypool/cloud-hashing-staker:latest
+      - name: staker-manager
+        image: uhub.service.ucloud.cn/entropypool/staker-manager:latest
         imagePullPolicy: Always
         env:
         - name: ENV_ENVIRONMENT_TARGET
@@ -52,7 +52,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cloud-hashing-staker
+  name: staker-manager
   namespace: kube-system
 spec:
   ports:
@@ -66,4 +66,4 @@ spec:
     port: 50182
     targetPort: 50182
   selector:
-    app: cloud-hashing-staker
+    app: staker-manager

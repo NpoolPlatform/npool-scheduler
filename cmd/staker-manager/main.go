@@ -7,7 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/app"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/service-name" //nolint
+	"github.com/NpoolPlatform/staker-manager/pkg/service-name" //nolint
 
 	mysqlconst "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
 	rabbitmqconst "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/const"

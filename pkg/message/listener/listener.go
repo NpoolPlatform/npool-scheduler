@@ -1,9 +1,9 @@
 package listener
 
 import (
-	msgcli "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/client"
-	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	msgcli "github.com/NpoolPlatform/staker-manager/pkg/message/client"
+	msg "github.com/NpoolPlatform/staker-manager/pkg/message/message"
 )
 
 func listenTemplateExample() {

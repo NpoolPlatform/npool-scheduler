@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
-	accountlock "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/account"
-	currency "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/currency"
+	grpc2 "github.com/NpoolPlatform/staker-manager/pkg/grpc"
+	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
+	currency "github.com/NpoolPlatform/staker-manager/pkg/middleware/currency"
 
 	appusermgrpb "github.com/NpoolPlatform/message/npool/appusermgr"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
@@ -22,6 +22,11 @@ import (
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/const"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
+
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
+	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -363,7 +368,7 @@ func (gac *goodAccounting) onQueryCompensates(ctx context.Context) {
 	}
 }
 
-func (gac *goodAccounting) onCaculateUserBenefit() {
+func (gac *goodAccounting) onCaculateUserBenefit(ctx context.Context) {
 	if gac.good.BenefitType == goodsconst.BenefitTypePool {
 		return
 	}
@@ -386,8 +391,15 @@ func (gac *goodAccounting) onCaculateUserBenefit() {
 		gac.userUnits += order.Units
 	}
 
-	if uint32(gac.good.Total) > gac.userUnits {
-		gac.platformUnits = uint32(gac.good.Total) - gac.userUnits
+	stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
+	if err != nil || len(stocks) == 0 {
+		logger.Sugar().Errorf("fail get good stock: %v", err)
+		return
+	}
+
+	if uint32(stocks[0].Total) > gac.userUnits {
+		gac.platformUnits = uint32(stocks[0].Total) - gac.userUnits
 	}
 }
 
@@ -400,7 +412,14 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		units = gac.platformUnits
 	}
 
-	amount := totalAmount * float64(units) * 1.0 / float64(gac.good.Total)
+	stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
+	if err != nil || len(stocks) == 0 {
+		logger.Sugar().Errorf("fail get good stock: %v", err)
+		return "", 0, nil
+	}
+
+	amount := totalAmount * float64(units) * 1.0 / float64(stocks[0].Total)
 	amount = math.Floor(amount*10000) / 10000
 	if amount < 0.0001 {
 		return "", 0, nil
@@ -416,7 +435,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 			CoinTypeID:    gac.coininfo.ID,
 			Amount:        amount,
 			Message: fmt.Sprintf("%v benefit of %v units %v total %v | %v at %v",
-				benefitType, gac.good.ID, units, gac.good.Total, totalAmount, time.Now()),
+				benefitType, gac.good.ID, units, stocks[0].Total, totalAmount, time.Now()),
 			ChainTransactionID: "",
 		},
 	})
@@ -675,13 +694,20 @@ func (gac *goodAccounting) onPersistentResult(ctx context.Context) { //nolint
 
 		lastBenefitTimestamp := uint32(time.Now().Unix()) / benefitIntervalSeconds * benefitIntervalSeconds
 
+		stocks, err := stockcli.Stocks(ctx, cruder.NewFilterConds().
+			WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(gac.good.ID)))
+		if err != nil || len(stocks) == 0 {
+			logger.Sugar().Errorf("fail get good stock: %v", err)
+			continue
+		}
+
 		_, err = grpc2.CreateUserBenefit(ctx, &billingpb.CreateUserBenefitRequest{
 			Info: &billingpb.UserBenefit{
 				AppID:                 order.AppID,
 				UserID:                order.UserID,
 				GoodID:                order.GoodID,
 				CoinTypeID:            gac.coininfo.ID,
-				Amount:                totalAmount * float64(order.Units) * 1.0 / float64(gac.good.Total),
+				Amount:                totalAmount * float64(order.Units) * 1.0 / float64(stocks[0].Total),
 				LastBenefitTimestamp:  lastBenefitTimestamp,
 				OrderID:               order.ID,
 				PlatformTransactionID: userTID,
@@ -988,7 +1014,7 @@ func Run(ctx context.Context) { //nolint
 			go func() { ac.caculateUserBenefit <- gac }()
 
 		case gac := <-ac.caculateUserBenefit:
-			gac.onCaculateUserBenefit()
+			gac.onCaculateUserBenefit(ctx)
 			go func() { ac.persistentResult <- gac }()
 
 		case gac := <-ac.persistentResult:

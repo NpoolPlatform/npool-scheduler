@@ -5,9 +5,9 @@ import (
 
 	"golang.org/x/xerrors"
 
-	constant "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/const"
-	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
 	msgcli "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/client"
+	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
+	msg "github.com/NpoolPlatform/staker-manager/pkg/message/message"
 
 	"github.com/streadway/amqp"
 )

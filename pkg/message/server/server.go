@@ -1,8 +1,8 @@
 package server
 
 import (
-	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
 	msgsrv "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/server"
+	msg "github.com/NpoolPlatform/staker-manager/pkg/message/message"
 )
 
 func Init() error {

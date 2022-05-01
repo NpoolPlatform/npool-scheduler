@@ -4,13 +4,14 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/empty"
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/predicate"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/empty"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/predicate"
 )
 
 // EmptyUpdate is the builder for updating Empty entities.
@@ -201,7 +202,7 @@ func (euo *EmptyUpdateOne) sqlSave(ctx context.Context) (_node *Empty, err error
 	}
 	id, ok := euo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Empty.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Empty.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := euo.fields; len(fields) > 0 {

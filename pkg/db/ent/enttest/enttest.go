@@ -5,9 +5,9 @@ package enttest
 import (
 	"context"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
 	// required by schema hooks.
-	_ "github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/runtime"
+	_ "github.com/NpoolPlatform/staker-manager/pkg/db/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
 )

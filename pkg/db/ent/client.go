@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/migrate"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/migrate"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent/empty"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/empty"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -87,6 +87,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
+		ctx:    ctx,
 		config: cfg,
 		Empty:  NewEmptyClient(cfg),
 	}, nil

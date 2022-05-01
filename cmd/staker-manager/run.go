@@ -3,15 +3,15 @@ package main
 import (
 	"time"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/api"
-	db "github.com/NpoolPlatform/cloud-hashing-staker/pkg/db"
-	msgcli "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/client"
-	msglistener "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/listener"
-	msg "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/message"
-	msgsrv "github.com/NpoolPlatform/cloud-hashing-staker/pkg/message/server"
-	paywatcher "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/payment-watcher"
+	"github.com/NpoolPlatform/staker-manager/api"
+	db "github.com/NpoolPlatform/staker-manager/pkg/db"
+	msgcli "github.com/NpoolPlatform/staker-manager/pkg/message/client"
+	msglistener "github.com/NpoolPlatform/staker-manager/pkg/message/listener"
+	msg "github.com/NpoolPlatform/staker-manager/pkg/message/message"
+	msgsrv "github.com/NpoolPlatform/staker-manager/pkg/message/server"
+	paywatcher "github.com/NpoolPlatform/staker-manager/pkg/middleware/payment-watcher"
 
-	accounting "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/accounting"
+	accounting "github.com/NpoolPlatform/staker-manager/pkg/middleware/accounting"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"

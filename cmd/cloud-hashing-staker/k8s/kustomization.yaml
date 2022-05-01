@@ -1,8 +1,0 @@
-commonLabels:
-  # app: cloud-hashing-staker
-
-resources:
-- 00-configmap.yaml
-- 01-cloud-hashing-staker.yaml
-- 02-traefik-ingress.yaml
-- 03-nginx-ingress.yaml

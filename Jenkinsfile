@@ -99,7 +99,7 @@ pipeline {
       steps {
         sh (returnStdout: false, script: '''
           devboxpod=`kubectl get pods -A | grep development-box | awk '{print $2}'`
-          servicename="cloud-hashing-staker"
+          servicename="staker-manager"
 
           kubectl exec --namespace kube-system $devboxpod -- make -C /tmp/$servicename after-test || true
           kubectl exec --namespace kube-system $devboxpod -- rm -rf /tmp/$servicename || true
@@ -245,7 +245,7 @@ pipeline {
       steps {
         sh 'TAG=latest DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images'
         sh(returnStdout: true, script: '''
-          images=`docker images | grep entropypool | grep cloud-hashing-staker | grep none | awk '{ print $3 }'`
+          images=`docker images | grep entropypool | grep staker-manager | grep none | awk '{ print $3 }'`
           for image in $images; do
             docker rmi $image -f
           done
@@ -263,7 +263,7 @@ pipeline {
           tag=`git describe --tags $revlist`
 
           set +e
-          docker images | grep cloud-hashing-staker | grep $tag
+          docker images | grep staker-manager | grep $tag
           rc=$?
           set -e
           if [ 0 -eq $rc ]; then
@@ -290,7 +290,7 @@ pipeline {
           tag=$major.$minor.$patch
 
           set +e
-          docker images | grep cloud-hashing-staker | grep $tag
+          docker images | grep staker-manager | grep $tag
           rc=$?
           set -e
           if [ 0 -eq $rc ]; then
@@ -306,9 +306,9 @@ pipeline {
         expression { TARGET_ENV ==~ /.*development.*/ }
       }
       steps {
-        sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml'
-        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
-        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml'
+        sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml'
+        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/staker-manager/k8s/00-configmap.yaml'
+        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/staker-manager/k8s/00-configmap.yaml'
         sh 'TAG=latest make deploy-to-k8s-cluster'
       }
     }
@@ -324,10 +324,10 @@ pipeline {
           tag=`git describe --tags $revlist`
           git reset --hard
           git checkout $tag
-          sed -i "s/cloud-hashing-staker:latest/cloud-hashing-staker:$tag/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
-          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml
-          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/cloud-hashing-staker/k8s/00-configmap.yaml
+          sed -i "s/staker-manager:latest/staker-manager:$tag/g" cmd/staker-manager/k8s/01-staker-manager.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml
+          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/staker-manager/k8s/00-configmap.yaml
+          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/staker-manager/k8s/00-configmap.yaml
           TAG=$tag make deploy-to-k8s-cluster
         '''.stripIndent())
       }
@@ -347,10 +347,10 @@ pipeline {
           patch=`echo $tag | awk -F '.' '{ print $3 }'`
           patch=$(( $patch - $patch % 2 ))
           tag=$major.$minor.$patch
-          git reset --hard 
+          git reset --hard
           git checkout $tag
-          sed -i "s/cloud-hashing-staker:latest/cloud-hashing-staker:$tag/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/cloud-hashing-staker/k8s/01-cloud-hashing-staker.yaml
+          sed -i "s/staker-manager:latest/staker-manager:$tag/g" cmd/staker-manager/k8s/01-staker-manager.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml
           TAG=$tag make deploy-to-k8s-cluster
         '''.stripIndent())
       }

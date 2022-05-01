@@ -1,14 +1,14 @@
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: cloud-hashing-staker-ingress
+  name: staker-manager-ingress
   namespace: kube-system
   annotations:
-    k8s.kuboard.cn/displayName: cloud-hashing-staker
-    k8s.kuboard.cn/workload: cloud-hashing-staker
+    k8s.kuboard.cn/displayName: staker-manager
+    k8s.kuboard.cn/workload: staker-manager
     kubernetes.io/ingress.class: "traefik-internet"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-cloud-hashing-staker-prefix@kubernetescrd,kube-system-common-headers@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-staker-manager-prefix@kubernetescrd,kube-system-common-headers@kubernetescrd
 
 spec:
   tls:
@@ -17,9 +17,9 @@ spec:
     - host: api.npool.top
       http: &http_rules
         paths:
-          - path: /api/cloud-hashing-staker/version
+          - path: /api/staker-manager/version
             backend:
-              serviceName: cloud-hashing-staker
+              serviceName: staker-manager
               servicePort: 50180
     - host: api.xpool.top
       http: *http_rules
@@ -37,9 +37,9 @@ spec:
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
-  name: strip-cloud-hashing-staker-prefix
+  name: strip-staker-manager-prefix
   namespace: kube-system
 spec:
   stripPrefix:
     prefixes:
-      - /api/cloud-hashing-staker
+      - /api/staker-manager

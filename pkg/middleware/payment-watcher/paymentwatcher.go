@@ -8,8 +8,8 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-	grpc2 "github.com/NpoolPlatform/cloud-hashing-staker/pkg/grpc"
-	accountlock "github.com/NpoolPlatform/cloud-hashing-staker/pkg/middleware/account"
+	grpc2 "github.com/NpoolPlatform/staker-manager/pkg/grpc"
+	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
 
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"

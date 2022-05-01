@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/cloud-hashing-staker/pkg/db/ent"
+	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
 )
 
 // The EmptyFunc type is an adapter to allow the use of ordinary
