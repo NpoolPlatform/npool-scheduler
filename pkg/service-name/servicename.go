@@ -1,5 +1,5 @@
 package servicename
 
 const (
-	ServiceName = "Cloud Hashing Staker"
+	ServiceName = "Staker Manager"
 )
