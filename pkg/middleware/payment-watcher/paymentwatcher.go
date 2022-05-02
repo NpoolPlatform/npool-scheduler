@@ -52,6 +52,10 @@ func watchPaymentState(ctx context.Context) { //nolint
 				return
 			}
 
+			if payment.State != orderconst.PaymentStateWait {
+				continue
+			}
+
 			unLocked := int32(0)
 			inService := int32(0)
 			myAmount := float64(0)
