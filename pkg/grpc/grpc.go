@@ -117,6 +117,26 @@ func GetOrder(ctx context.Context, in *orderpb.GetOrderRequest) (*orderpb.Order,
 	return resp.Info, nil
 }
 
+func GetOrders(ctx context.Context, in *orderpb.GetOrdersRequest) ([]*orderpb.Order, error) {
+	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get order connection: %v", err)
+	}
+	defer conn.Close()
+
+	cli := orderpb.NewCloudHashingOrderClient(conn)
+
+	ctx, cancel := context.WithTimeout(ctx, grpcTimeout)
+	defer cancel()
+
+	resp, err := cli.GetOrders(ctx, in)
+	if err != nil {
+		return nil, xerrors.Errorf("fail get orders: %v", err)
+	}
+
+	return resp.Infos, nil
+}
+
 func GetOrdersByGood(ctx context.Context, in *orderpb.GetOrdersByGoodRequest) ([]*orderpb.Order, error) {
 	conn, err := grpc2.GetGRPCConn(orderconst.ServiceName, grpc2.GRPCTAG)
 	if err != nil {
