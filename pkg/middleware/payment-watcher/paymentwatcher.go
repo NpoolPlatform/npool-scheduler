@@ -61,10 +61,8 @@ func watchPaymentState(ctx context.Context) { //nolint
 			var balance *sphinxproxypb.BalanceInfo
 
 			if payment == nil {
-				if order.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
-					unLocked += int32(order.Units)
-					goto lUpdateStock
-				}
+				// TODO: process order without payment
+				continue
 			}
 
 			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
