@@ -52,6 +52,11 @@ func watchPaymentState(ctx context.Context) { //nolint
 				return
 			}
 
+			if payment == nil {
+				// TODO: process order without payment
+				continue
+			}
+
 			if payment.State != orderconst.PaymentStateWait {
 				continue
 			}
@@ -62,11 +67,6 @@ func watchPaymentState(ctx context.Context) { //nolint
 			var coinInfo *coininfopb.CoinInfo
 			var account *billingpb.CoinAccountInfo
 			var balance *sphinxproxypb.BalanceInfo
-
-			if payment == nil {
-				// TODO: process order without payment
-				continue
-			}
 
 			newState := payment.State
 
