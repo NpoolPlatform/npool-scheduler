@@ -74,6 +74,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 
 		unLocked := int32(0)
 		inService := int32(0)
+		myAmount := float64(0)
 
 		order, err := grpc2.GetOrder(ctx, &orderpb.GetOrderRequest{
 			ID: pay.OrderID,
@@ -91,24 +92,27 @@ func watchPaymentState(ctx context.Context) { //nolint
 			unLocked += int32(order.Units)
 			inService += int32(order.Units)
 
-			myAmount := balance.Balance - pay.StartAmount - pay.Amount
-			if myAmount > 0 {
-				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
-					Info: &billingpb.UserPaymentBalance{
-						AppID:     pay.AppID,
-						UserID:    pay.UserID,
-						PaymentID: pay.ID,
-						Amount:    myAmount,
-					},
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", pay.ID, err)
-				}
-			}
+			myAmount = balance.Balance - pay.StartAmount - pay.Amount
 		} else if pay.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 			newState = orderconst.PaymentStateTimeout
 			pay.FinishAmount = balance.Balance
 			unLocked += int32(order.Units)
+
+			myAmount = balance.Balance - pay.StartAmount
+		}
+
+		if myAmount > 0 {
+			_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
+				Info: &billingpb.UserPaymentBalance{
+					AppID:     pay.AppID,
+					UserID:    pay.UserID,
+					PaymentID: pay.ID,
+					Amount:    myAmount,
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", pay.ID, err)
+			}
 		}
 
 		if newState != pay.State {
