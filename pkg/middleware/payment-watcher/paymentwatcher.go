@@ -55,7 +55,6 @@ func watchPaymentState(ctx context.Context) { //nolint
 			unLocked := int32(0)
 			inService := int32(0)
 			myAmount := float64(0)
-			newState := orderconst.PaymentStateWait //nolint
 			var coinInfo *coininfopb.CoinInfo
 			var account *billingpb.CoinAccountInfo
 			var balance *sphinxproxypb.BalanceInfo
@@ -64,6 +63,8 @@ func watchPaymentState(ctx context.Context) { //nolint
 				// TODO: process order without payment
 				continue
 			}
+
+			newState := payment.State
 
 			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 				ID: payment.CoinInfoID,
