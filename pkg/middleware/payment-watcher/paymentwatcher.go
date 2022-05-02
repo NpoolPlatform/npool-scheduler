@@ -177,7 +177,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 
 		lUpdateStock:
 			stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
-				WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(payment.GoodID)))
+				WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
 			if err != nil || stock == nil {
 				logger.Sugar().Errorf("fail get good stock: %v", err)
 				continue
