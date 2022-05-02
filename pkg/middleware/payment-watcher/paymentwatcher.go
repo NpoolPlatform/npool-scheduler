@@ -172,6 +172,8 @@ func watchPaymentState(ctx context.Context) { //nolint
 		}
 
 		if len(fields) > 0 {
+			logger.Sugar().Infof("update stock for order %v payment %v state %v -> %v in service %v unlocked %v",
+				order.ID, pay.ID, pay.State, newState, inService, unLocked)
 			_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
 			if err != nil {
 				logger.Sugar().Errorf("fail add good in service: %v", err)
