@@ -52,6 +52,11 @@ func watchPaymentState(ctx context.Context) { //nolint
 				return
 			}
 
+			if payment == nil {
+				// TODO: process order without payment
+				continue
+			}
+
 			if payment.State != orderconst.PaymentStateWait {
 				continue
 			}
