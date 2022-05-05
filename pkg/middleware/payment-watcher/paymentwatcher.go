@@ -68,8 +68,6 @@ func watchPaymentState(ctx context.Context) { //nolint
 				continue
 			}
 
-			newState := payment.State
-
 			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 				ID: payment.CoinInfoID,
 			})
@@ -106,7 +104,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
 				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount)
 
-			newState = payment.State
+			newState := payment.State
 			if balance.Balance-payment.StartAmount >= payment.Amount {
 				newState = orderconst.PaymentStateDone
 				payment.FinishAmount = balance.Balance
