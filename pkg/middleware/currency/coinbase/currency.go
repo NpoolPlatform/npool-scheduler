@@ -74,7 +74,7 @@ func USDPrice(ctx context.Context, coinName string) (float64, error) {
 	}
 
 	if coin != r.Base {
-		return 0, xerrors.Errorf("invalid get coin currently: %v", resp.Body())
+		return 0, xerrors.Errorf("invalid get coin currency from %v: %v", url, string(resp.Body()))
 	}
 
 	amount, err := strconv.ParseFloat(r.Amount, 64)
