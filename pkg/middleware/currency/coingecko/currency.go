@@ -32,6 +32,8 @@ func mapCoin(coinName string) string {
 		"usdt":       "tether",
 		"tusdterc20": "tether",
 		"usdterc20":  "tether",
+		"tusdttrc20": "tether",
+		"usdttrc20":  "tether",
 		"sol":        "solana",
 		"solana":     "solana",
 		"tsolana":    "solana",

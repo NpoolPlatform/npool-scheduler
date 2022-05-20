@@ -32,6 +32,8 @@ func mapCoin(coinName string) string {
 		"usdt":       "USDT",
 		"tusdterc20": "USDT",
 		"usdterc20":  "USDT",
+		"tusdttrc20": "USDT",
+		"usdttrc20":  "USDT",
 		"sol":        "SOL",
 		"solana":     "SOL",
 		"tsolana":    "SOL",
