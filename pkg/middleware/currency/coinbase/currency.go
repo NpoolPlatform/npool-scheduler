@@ -44,10 +44,14 @@ func mapCoin(coinName string) string {
 	return coinName
 }
 
-type apiResp struct {
+type apiData struct {
 	Base     string `json:"base"`
 	Currency string `json:"currency"`
 	Amount   string `json:"amount"`
+}
+
+type apiResp struct {
+	Data apiData `json:"data"`
 }
 
 func USDPrice(ctx context.Context, coinName string) (float64, error) {
@@ -73,11 +77,11 @@ func USDPrice(ctx context.Context, coinName string) (float64, error) {
 		return 0, xerrors.Errorf("fail parse currency %v: %v", coin, err)
 	}
 
-	if coin != r.Base {
+	if coin != r.Data.Base {
 		return 0, xerrors.Errorf("invalid get coin currency from %v: %v", url, string(resp.Body()))
 	}
 
-	amount, err := strconv.ParseFloat(r.Amount, 64)
+	amount, err := strconv.ParseFloat(r.Data.Amount, 64)
 	if err != nil {
 		return 0, xerrors.Errorf("invalid coin currency amount: %v", err)
 	}
