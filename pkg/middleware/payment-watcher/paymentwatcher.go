@@ -68,7 +68,10 @@ func watchPaymentState(ctx context.Context) { //nolint
 			var account *billingpb.CoinAccountInfo
 			var balance *sphinxproxypb.BalanceInfo
 
-			newState := payment.State
+			if payment == nil {
+				// TODO: process order without payment
+				continue
+			}
 
 			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 				ID: payment.CoinInfoID,
@@ -106,7 +109,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
 				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount)
 
-			newState = payment.State
+			newState := payment.State
 			if balance.Balance-payment.StartAmount >= payment.Amount {
 				newState = orderconst.PaymentStateDone
 				payment.FinishAmount = balance.Balance
