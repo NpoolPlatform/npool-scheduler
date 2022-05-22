@@ -269,7 +269,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail get wallet balance of %v %v: %v", coinInfo.Name, account.Address, err)
 	}
 
-	coinLimit := 0
+	coinLimit := 0.0
 
 	coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,
@@ -278,11 +278,11 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
 
-	coinLimit = int(coinsetting.PaymentAccountCoinAmount)
+	coinLimit = coinsetting.PaymentAccountCoinAmount
 	logger.Sugar().Infof("balance %v coin limit %v reserved %v of payment %v",
 		balance.Balance, coinLimit, coinInfo.ReservedAmount, payment.AccountID)
 
-	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
+	if balance.Balance <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
 		err = accountlock.Unlock(payment.AccountID)
 		if err != nil {
 			return xerrors.Errorf("fail unlock account %v: %v", payment.AccountID, err)
