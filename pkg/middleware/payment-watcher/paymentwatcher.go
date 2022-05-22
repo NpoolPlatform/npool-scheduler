@@ -118,7 +118,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				inService += int32(order.Units)
 
 				myAmount = balance.Balance - payment.StartAmount - payment.Amount
-			} else if payment.CreateAt+orderconst.TimeoutSeconds/60 < uint32(time.Now().Unix()) {
+			} else if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 				newState = orderconst.PaymentStateTimeout
 				payment.FinishAmount = balance.Balance
 				unLocked += int32(order.Units)
