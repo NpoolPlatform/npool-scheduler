@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NpoolPlatform/staker-manager/pkg/middleware/currency/common"
 	"github.com/go-resty/resty/v2"
 
 	"golang.org/x/xerrors"
@@ -17,35 +18,8 @@ const (
 	coinGeckoAPI = "https://api.coingecko.com/api/v3"
 )
 
-func mapCoin(coinName string) string {
-	coinMap := map[string]string{
-		"fil":        "filecoin",
-		"filecoin":   "filecoin",
-		"tfilecoin":  "filecoin",
-		"btc":        "bitcoin",
-		"bitcoin":    "bitcoin",
-		"tbitcoin":   "bitcoin",
-		"tethereum":  "ethereum",
-		"eth":        "ethereum",
-		"ethereum":   "ethereum",
-		"tusdt":      "tether",
-		"usdt":       "tether",
-		"tusdterc20": "tether",
-		"usdterc20":  "tether",
-		"tusdttrc20": "tether",
-		"usdttrc20":  "tether",
-		"sol":        "solana",
-		"solana":     "solana",
-		"tsolana":    "solana",
-	}
-	if coin, ok := coinMap[coinName]; ok {
-		return coin
-	}
-	return coinName
-}
-
 func USDPrice(ctx context.Context, coinName string) (float64, error) {
-	coin := mapCoin(strings.ToLower(coinName))
+	coin := common.MapCoin(strings.ToLower(coinName))
 
 	socksProxy := os.Getenv("ENV_CURRENCY_REQUEST_PROXY")
 	url := fmt.Sprintf("%v%v?ids=%v&vs_currencies=usd", coinGeckoAPI, "/simple/price", coin)

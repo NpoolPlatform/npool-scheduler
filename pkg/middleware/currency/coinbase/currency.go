@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NpoolPlatform/staker-manager/pkg/middleware/currency/common"
 	"github.com/go-resty/resty/v2"
 
 	"golang.org/x/xerrors"
@@ -16,33 +17,6 @@ import (
 const (
 	coinbaseAPI = "https://api.coinbase.com/v2/prices/COIN-USD/sell"
 )
-
-func mapCoin(coinName string) string {
-	coinMap := map[string]string{
-		"fil":        "FIL",
-		"filecoin":   "FIL",
-		"tfilecoin":  "FIL",
-		"btc":        "BTC",
-		"bitcoin":    "BTC",
-		"tbitcoin":   "BTC",
-		"tethereum":  "ETH",
-		"eth":        "ETH",
-		"ethereum":   "ETH",
-		"tusdt":      "USDT",
-		"usdt":       "USDT",
-		"tusdterc20": "USDT",
-		"usdterc20":  "USDT",
-		"tusdttrc20": "USDT",
-		"usdttrc20":  "USDT",
-		"sol":        "SOL",
-		"solana":     "SOL",
-		"tsolana":    "SOL",
-	}
-	if coin, ok := coinMap[coinName]; ok {
-		return coin
-	}
-	return coinName
-}
 
 type apiData struct {
 	Base     string `json:"base"`
@@ -55,7 +29,7 @@ type apiResp struct {
 }
 
 func USDPrice(ctx context.Context, coinName string) (float64, error) {
-	coin := mapCoin(strings.ToLower(coinName))
+	coin := common.MapCoin(strings.ToLower(coinName))
 
 	socksProxy := os.Getenv("ENV_CURRENCY_REQUEST_PROXY")
 
