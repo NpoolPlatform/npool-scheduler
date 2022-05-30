@@ -209,21 +209,32 @@ func watchPaymentState(ctx context.Context) { //nolint
 	}
 }
 
-func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment) {
+func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, idle bool, occupiedBy string) error {
+	payment.Idle = idle
+	payment.OccupiedBy = occupiedBy
+
+	_, err := grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+		Info: payment,
+	})
+	if err != nil {
+		return xerrors.Errorf("fail to update good payment: %v", err)
+	}
+
+	return nil
+}
+
+func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, err error) {
 	go func() {
 		for {
-			err := accountlock.Lock(payment.AccountID)
-			if err != nil {
-				time.Sleep(10 * time.Second)
-				continue
+			if err == nil {
+				err = accountlock.Lock(payment.AccountID)
+				if err != nil {
+					time.Sleep(10 * time.Second)
+					continue
+				}
 			}
 
-			payment.Idle = true
-			payment.OccupiedBy = ""
-
-			_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
-				Info: payment,
-			})
+			err = setPaymentAccountIdle(ctx, payment, true, "")
 			if err != nil {
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
 			}
@@ -243,13 +254,9 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if err != nil {
 		return xerrors.Errorf("fail lock account: %v", err)
 	}
-	defer releasePaymentAccount(ctx, payment)
+	defer releasePaymentAccount(ctx, payment, err)
 
-	payment.Idle = false
-	payment.OccupiedBy = "collecting"
-	_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
-		Info: payment,
-	})
+	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
 	if err != nil {
 		return xerrors.Errorf("fail to update good payment: %v", err)
 	}
@@ -269,7 +276,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail get wallet balance of %v %v: %v", coinInfo.Name, account.Address, err)
 	}
 
-	coinLimit := 0
+	coinLimit := 0.0
 
 	coinsetting, err := grpc2.GetCoinSettingByCoin(ctx, &billingpb.GetCoinSettingByCoinRequest{
 		CoinTypeID: coinInfo.ID,
@@ -278,15 +285,11 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail get coin setting: %v", err)
 	}
 
-	coinLimit = int(coinsetting.PaymentAccountCoinAmount)
+	coinLimit = coinsetting.PaymentAccountCoinAmount
 	logger.Sugar().Infof("balance %v coin limit %v reserved %v of payment %v",
 		balance.Balance, coinLimit, coinInfo.ReservedAmount, payment.AccountID)
 
-	if int(balance.Balance) <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
-		err = accountlock.Unlock(payment.AccountID)
-		if err != nil {
-			return xerrors.Errorf("fail unlock account %v: %v", payment.AccountID, err)
-		}
+	if balance.Balance <= coinLimit || balance.Balance <= coinInfo.ReservedAmount {
 		return nil
 	}
 
