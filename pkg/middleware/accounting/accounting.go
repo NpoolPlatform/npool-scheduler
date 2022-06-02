@@ -577,7 +577,7 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 	_, err = grpc2.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: transaction.ID,
 		Name:          coininfo.Name,
-		Amount:        transaction.Amount,
+		Amount:        transaction.Amount - transaction.TransactionFee,
 		From:          from.Address,
 		To:            to.Address,
 	})
