@@ -110,7 +110,14 @@ func watchPaymentState(ctx context.Context) { //nolint
 				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount)
 
 			newState := payment.State
-			if balance.Balance-payment.StartAmount >= payment.Amount {
+			if payment.UserSetCanceled {
+				newState = orderconst.PaymentStateCanceled
+				payment.FinishAmount = balance.Balance
+
+				unLocked += int32(order.Units)
+
+				myAmount = balance.Balance - payment.StartAmount
+			} else if balance.Balance-payment.StartAmount >= payment.Amount {
 				newState = orderconst.PaymentStateDone
 				payment.FinishAmount = balance.Balance
 
@@ -121,6 +128,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 			} else if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 				newState = orderconst.PaymentStateTimeout
 				payment.FinishAmount = balance.Balance
+
 				unLocked += int32(order.Units)
 
 				myAmount = balance.Balance - payment.StartAmount
