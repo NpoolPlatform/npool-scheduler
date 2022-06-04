@@ -914,7 +914,6 @@ func Run(ctx context.Context) { //nolint
 	}
 	startTimer := time.NewTimer(time.Duration(startAfter) * time.Second)
 	logger.Sugar().Infof("wait for %v seconds", startAfter)
-	<-startTimer.C
 
 	ac := &accounting{
 		scanTicker:     time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second),
@@ -937,6 +936,10 @@ func Run(ctx context.Context) { //nolint
 
 	for {
 		select {
+		case <-startTimer.C:
+			time.Sleep(10 * time.Second)
+			ac.onQueryGoods(ctx)
+			ac.scanTicker = time.NewTicker(time.Duration(benefitIntervalSeconds) * time.Second)
 		case <-ac.scanTicker.C:
 			logger.Sugar().Infof("start query goods")
 			ac.onQueryGoods(ctx)
