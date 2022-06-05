@@ -160,7 +160,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				}
 			}
 
-			if newState == orderconst.PaymentStateDone {
+			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled {
 				myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
 					AccountID: account.ID,
 				})
