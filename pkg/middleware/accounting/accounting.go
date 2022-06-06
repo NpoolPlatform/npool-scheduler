@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	currency "github.com/NpoolPlatform/oracle-manager/pkg/middleware/currency"
 	grpc2 "github.com/NpoolPlatform/staker-manager/pkg/grpc"
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
-	currency "github.com/NpoolPlatform/staker-manager/pkg/middleware/currency"
 
 	appusermgrpb "github.com/NpoolPlatform/message/npool/appusermgr"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
