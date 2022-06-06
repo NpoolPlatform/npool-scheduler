@@ -816,6 +816,10 @@ func onWaitChecker(ctx context.Context) {
 	}
 }
 
+// Feed Gas
+// Withdraw: need lock
+// Benefit to cold wallet
+
 func onPayingChecker(ctx context.Context) { //nolint
 	txs, err := grpc2.GetCoinAccountTransactionsByState(ctx, &billingpb.GetCoinAccountTransactionsByStateRequest{
 		State: billingconst.CoinTransactionStatePaying,
