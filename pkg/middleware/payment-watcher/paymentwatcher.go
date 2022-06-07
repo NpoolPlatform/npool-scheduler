@@ -117,7 +117,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				unLocked += int32(order.Units)
 
 				myAmount = balance.Balance - payment.StartAmount
-			} else if balance.Balance-payment.StartAmount >= payment.Amount {
+			} else if balance.Balance >= payment.Amount+payment.StartAmount {
 				newState = orderconst.PaymentStateDone
 				payment.FinishAmount = balance.Balance
 
