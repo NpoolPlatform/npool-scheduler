@@ -264,7 +264,9 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	}
 
 	tryLock := false
-	defer releasePaymentAccount(ctx, payment, tryLock)
+	defer func() {
+		releasePaymentAccount(ctx, payment, tryLock)
+	}()
 
 	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
 	if err != nil {
@@ -321,7 +323,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
 
-	tryLock = true // nolint
+	tryLock = true
 	return nil
 }
 
