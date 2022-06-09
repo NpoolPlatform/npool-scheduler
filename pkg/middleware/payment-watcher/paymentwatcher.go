@@ -231,18 +231,18 @@ func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, 
 	return nil
 }
 
-func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, err error) {
+func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, tryLock bool) {
 	go func() {
 		for {
-			if err == nil {
-				err = accountlock.Lock(payment.AccountID)
+			if tryLock {
+				err := accountlock.Lock(payment.AccountID)
 				if err != nil {
 					time.Sleep(10 * time.Second)
 					continue
 				}
 			}
 
-			err = setPaymentAccountIdle(ctx, payment, true, "")
+			err := setPaymentAccountIdle(ctx, payment, true, "")
 			if err != nil {
 				logger.Sugar().Errorf("fail to update good payment: %v", err)
 			}
@@ -262,7 +262,9 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if err != nil {
 		return xerrors.Errorf("fail lock account: %v", err)
 	}
-	defer releasePaymentAccount(ctx, payment, err)
+
+	tryLock := false
+	defer releasePaymentAccount(ctx, payment, tryLock)
 
 	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
 	if err != nil {
@@ -319,6 +321,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
 
+	tryLock = true // nolint
 	return nil
 }
 
