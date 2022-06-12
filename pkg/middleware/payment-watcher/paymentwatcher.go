@@ -68,11 +68,6 @@ func watchPaymentState(ctx context.Context) { //nolint
 			var account *billingpb.CoinAccountInfo
 			var balance *sphinxproxypb.BalanceInfo
 
-			if payment == nil {
-				// TODO: process order without payment
-				continue
-			}
-
 			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 				ID: payment.CoinInfoID,
 			})
@@ -160,7 +155,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				}
 			}
 
-			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled {
+			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled || newState == orderconst.PaymentStateTimeout {
 				myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
 					AccountID: account.ID,
 				})
