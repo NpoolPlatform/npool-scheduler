@@ -255,9 +255,7 @@ func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, 
 func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error { //nolint
 	err := accountlock.Lock(payment.AccountID)
 	if err != nil {
-		if payment.Idle || payment.OccupiedBy != "collecting" {
-			return xerrors.Errorf("fail lock account: %v", err)
-		}
+		return xerrors.Errorf("fail lock account: %v", err)
 	}
 
 	tryLock := false
