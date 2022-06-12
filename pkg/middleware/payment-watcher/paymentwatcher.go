@@ -380,6 +380,10 @@ func restoreTimeoutPayment(ctx context.Context) {
 			continue
 		}
 
+		if payment.Idle {
+			continue
+		}
+
 		err = setPaymentAccountIdle(ctx, payment, true, "")
 		if err != nil {
 			logger.Sugar().Errorf("fail to update good payment: %v", err)
