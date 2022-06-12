@@ -11,7 +11,7 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220225132002-fbc8b850fb8c
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220404143809-82c40930388a
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220526050249-956b54fac9f1
-	github.com/NpoolPlatform/message v0.0.0-20220606130737-824c3198b695
+	github.com/NpoolPlatform/message v0.0.0-20220612172448-4993521df82a
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220606135947-0f09e9f3818a
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211208035009-5ad2768d2290
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211209140052-de1778e36e36

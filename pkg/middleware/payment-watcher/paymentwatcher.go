@@ -155,7 +155,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				}
 			}
 
-			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled || newState == orderconst.PaymentStateTimeout {
+			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled {
 				myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
 					AccountID: account.ID,
 				})
@@ -355,6 +355,43 @@ func watchPaymentAmount(ctx context.Context) {
 	}
 }
 
+func restoreTimeoutPayment(ctx context.Context) {
+	payments, err := grpc2.GetPaymentsByState(ctx, &orderpb.GetPaymentsByStateRequest{
+		State: orderconst.PaymentStateTimeout,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail get timeout payments: %v", err)
+		return
+	}
+
+	now := uint32(time.Now().Unix())
+	timeout := uint32(1 * 60 * 60)
+
+	for _, pay := range payments {
+		if pay.UpdateAt+timeout > now {
+			continue
+		}
+
+		payment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
+			AccountID: pay.AccountID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail get good payment: %v", err)
+			continue
+		}
+
+		err = setPaymentAccountIdle(ctx, payment, true, "")
+		if err != nil {
+			logger.Sugar().Errorf("fail to update good payment: %v", err)
+		}
+
+		err = accountlock.Unlock(pay.AccountID)
+		if err != nil {
+			logger.Sugar().Errorf("fail unlock %v: %v", pay.AccountID, err)
+		}
+	}
+}
+
 func Watch(ctx context.Context) {
 	payticker := time.NewTicker(30 * time.Second)
 	collectticker := time.NewTicker(1 * time.Minute)
@@ -365,6 +402,7 @@ func Watch(ctx context.Context) {
 			watchPaymentState(ctx)
 		case <-collectticker.C:
 			watchPaymentAmount(ctx)
+			restoreTimeoutPayment(ctx)
 		}
 	}
 }
