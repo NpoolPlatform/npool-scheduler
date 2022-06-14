@@ -388,17 +388,21 @@ func restoreTimeoutPayment(ctx context.Context) {
 	}
 }
 
-func Watch(ctx context.Context) {
-	payticker := time.NewTicker(30 * time.Second)
+func collect(ctx context.Context) {
 	collectticker := time.NewTicker(1 * time.Minute)
 
-	for { //nolint
-		select {
-		case <-payticker.C:
-			watchPaymentState(ctx)
-		case <-collectticker.C:
-			watchPaymentAmount(ctx)
-			restoreTimeoutPayment(ctx)
-		}
+	for range collectticker.C { //nolint
+		watchPaymentAmount(ctx)
+		restoreTimeoutPayment(ctx)
+	}
+}
+
+func Watch(ctx context.Context) {
+	payticker := time.NewTicker(30 * time.Second)
+
+	go collect(ctx)
+
+	for range payticker.C { //nolint
+		watchPaymentState(ctx)
 	}
 }
