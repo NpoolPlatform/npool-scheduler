@@ -6,12 +6,12 @@ require (
 	entgo.io/ent v0.10.1
 	github.com/NpoolPlatform/api-manager v0.0.0-20220205130236-69d286e72dba
 	github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89
-	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220214123916-517341a90b77
+	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220614030114-0f11beeee655
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220225132002-fbc8b850fb8c
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220404143809-82c40930388a
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220526050249-956b54fac9f1
-	github.com/NpoolPlatform/message v0.0.0-20220612172448-4993521df82a
+	github.com/NpoolPlatform/message v0.0.0-20220614023533-f7ae7ffcc1a2
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220606135947-0f09e9f3818a
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20211208035009-5ad2768d2290
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20211209140052-de1778e36e36

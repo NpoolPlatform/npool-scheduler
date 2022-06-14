@@ -893,6 +893,32 @@ func onPayingChecker(ctx context.Context) { //nolint
 			continue
 		}
 
+		switch paying.CreatedFor {
+		case billingconst.TransactionForCollecting:
+			payment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
+				AccountID: paying.FromAddressID,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail get good payment: %v", err)
+				break
+			}
+
+			if payment.Idle {
+				logger.Sugar().Errorf("fail payment idle state: %v", err)
+				break
+			}
+
+			payment.Idle = true
+			payment.OccupiedBy = ""
+
+			_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+				Info: payment,
+			})
+			if err != nil {
+				logger.Sugar().Errorf("fail to update good payment: %v", err)
+			}
+		}
+
 		err = accountlock.Unlock(paying.FromAddressID)
 		if err != nil {
 			logger.Sugar().Errorf("fail unlock account %v: %v", paying.FromAddressID, err)

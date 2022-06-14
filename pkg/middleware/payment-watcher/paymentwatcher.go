@@ -7,6 +7,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
+	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	grpc2 "github.com/NpoolPlatform/staker-manager/pkg/grpc"
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
@@ -226,48 +227,23 @@ func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, 
 	return nil
 }
 
-func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, tryLock bool) {
-	go func() {
-		for {
-			if tryLock {
-				err := accountlock.Lock(payment.AccountID)
-				if err != nil {
-					time.Sleep(10 * time.Second)
-					continue
-				}
-			}
+func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, unlock bool) {
+	if !unlock {
+		return
+	}
 
-			err := setPaymentAccountIdle(ctx, payment, true, "")
-			if err != nil {
-				logger.Sugar().Errorf("fail to update good payment: %v", err)
-			}
+	err := setPaymentAccountIdle(ctx, payment, true, "")
+	if err != nil {
+		logger.Sugar().Errorf("fail to update good payment: %v", err)
+	}
 
-			err = accountlock.Unlock(payment.AccountID)
-			if err != nil {
-				logger.Sugar().Warnf("fail unlock account %v: %v", payment.AccountID, err)
-			}
-
-			break
-		}
-	}()
+	err = accountlock.Unlock(payment.AccountID)
+	if err != nil {
+		logger.Sugar().Warnf("fail unlock account %v: %v", payment.AccountID, err)
+	}
 }
 
 func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinInfo *coininfopb.CoinInfo) error { //nolint
-	err := accountlock.Lock(payment.AccountID)
-	if err != nil {
-		return xerrors.Errorf("fail lock account: %v", err)
-	}
-
-	tryLock := false
-	defer func() {
-		releasePaymentAccount(ctx, payment, tryLock)
-	}()
-
-	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
-	if err != nil {
-		return xerrors.Errorf("fail to update good payment: %v", err)
-	}
-
 	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: payment.AccountID,
 	})
@@ -300,6 +276,21 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		return nil
 	}
 
+	err = accountlock.Lock(payment.AccountID)
+	if err != nil {
+		return xerrors.Errorf("fail lock account: %v", err)
+	}
+
+	unlock := true
+	defer func() {
+		releasePaymentAccount(ctx, payment, unlock)
+	}()
+
+	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
+	if err != nil {
+		return xerrors.Errorf("fail to update good payment: %v", err)
+	}
+
 	// Here we just create transaction, watcher will process it
 	_, err = grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
 		Info: &billingpb.CoinAccountTransaction{
@@ -312,13 +303,14 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 			Amount:             balance.Balance - coinInfo.ReservedAmount,
 			Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
 			ChainTransactionID: uuid.New().String(),
+			CreatedFor:         billingconst.TransactionForCollecting,
 		},
 	})
 	if err != nil {
 		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
 
-	tryLock = true
+	unlock = false
 	return nil
 }
 
