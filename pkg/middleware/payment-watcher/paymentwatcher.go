@@ -127,8 +127,9 @@ func watchPaymentState(ctx context.Context) { //nolint
 				myAmount = balance.Balance - payment.StartAmount
 			}
 
-			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v %v -> %v",
-				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount, payment.State, newState)
+			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v due amount %v %v -> %v",
+				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount,
+				payment.Amount+payment.StartAmount, payment.State, newState)
 
 			if myAmount > 0 {
 				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
