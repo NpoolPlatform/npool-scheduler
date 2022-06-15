@@ -102,9 +102,6 @@ func watchPaymentState(ctx context.Context) { //nolint
 				continue
 			}
 
-			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v",
-				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount)
-
 			newState := payment.State
 			if payment.UserSetCanceled {
 				newState = orderconst.PaymentStateCanceled
@@ -129,6 +126,9 @@ func watchPaymentState(ctx context.Context) { //nolint
 
 				myAmount = balance.Balance - payment.StartAmount
 			}
+
+			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v %v -> %v",
+				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount, payment.State, newState)
 
 			if myAmount > 0 {
 				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
