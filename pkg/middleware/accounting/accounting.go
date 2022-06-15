@@ -525,7 +525,10 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 }
 
 func onLimitsChecker(ctx context.Context) {
-	coins, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{})
+	coins, err := grpc2.GetCoinInfos(ctx, &coininfopb.GetCoinInfosRequest{
+		Offset: 0,
+		Limit:  100,
+	})
 	if err != nil {
 		logger.Sugar().Errorf("fail get coin infos: %v", err)
 		return
