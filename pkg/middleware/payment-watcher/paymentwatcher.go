@@ -53,6 +53,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 				continue
 			default:
 				logger.Sugar().Errorf("invalid order type: %v", order.OrderType)
+				continue
 			}
 
 			payment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
