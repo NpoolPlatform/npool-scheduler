@@ -207,6 +207,9 @@ func watchFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.
 	}
 
 	payment.State = orderconst.PaymentStateDone
+	payment.FakePayment = true
+	payment.FinishAmount = payment.StartAmount
+
 	_, err = grpc2.UpdatePayment(ctx, &orderpb.UpdatePaymentRequest{
 		Info: payment,
 	})
