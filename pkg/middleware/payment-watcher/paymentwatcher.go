@@ -45,6 +45,16 @@ func watchPaymentState(ctx context.Context) { //nolint
 		}
 
 		for _, order := range orders {
+			switch order.OrderType {
+			case orderconst.OrderTypeNormal:
+			case orderconst.OrderTypeOffline:
+				fallthrough //nolint
+			case orderconst.OrderTypeAirdrop:
+				continue
+			default:
+				logger.Sugar().Errorf("invalid order type: %v", order.OrderType)
+			}
+
 			payment, err := grpc2.GetPaymentByOrder(ctx, &orderpb.GetPaymentByOrderRequest{
 				OrderID: order.ID,
 			})
@@ -229,6 +239,7 @@ func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, 
 }
 
 func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, unlock bool) {
+	logger.Sugar().Infof("release paymetn account %v: %v", payment.AccountID, unlock)
 	if !unlock {
 		return
 	}
@@ -310,6 +321,8 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if err != nil {
 		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
+
+	logger.Sugar().Infof("created paymetn collecting %v", payment.AccountID)
 
 	unlock = false
 	return nil
