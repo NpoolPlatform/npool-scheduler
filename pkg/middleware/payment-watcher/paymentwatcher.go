@@ -178,7 +178,82 @@ func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderp
 	}
 }
 
-func watchPaymentState(ctx context.Context) { //nolint
+func watchFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) {
+	unLocked := int32(order.Units)
+	inService := int32(order.Units)
+
+	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: payment.AccountID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get payment account: %v", err)
+		return
+	}
+	if account == nil {
+		logger.Sugar().Errorf("fail to get payment account")
+		return
+	}
+
+	myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
+		AccountID: account.ID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get good payment: %v", err)
+		return
+	}
+	if myPayment == nil {
+		logger.Sugar().Errorf("fail to get good payment")
+		return
+	}
+
+	payment.State = orderconst.PaymentStateDone
+	_, err = grpc2.UpdatePayment(ctx, &orderpb.UpdatePaymentRequest{
+		Info: payment,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to update payment state: %v", err)
+	}
+
+	myPayment.Idle = true
+	myPayment.OccupiedBy = ""
+
+	_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+		Info: myPayment,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to update good payment: %v", err)
+	}
+
+	err = accountlock.Unlock(account.ID)
+	if err != nil {
+		logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
+	}
+
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
+	if err != nil || stock == nil {
+		logger.Sugar().Errorf("fail get good stock: %v", err)
+		return
+	}
+
+	fields := cruder.NewFilterFields()
+	if inService > 0 {
+		fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inService)))
+	}
+	if unLocked > 0 {
+		fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unLocked*-1)))
+	}
+
+	if len(fields) > 0 {
+		logger.Sugar().Infof("update good %v stock in service %v unlocked %v", order.GoodID, inService, unLocked)
+		_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
+		if err != nil {
+			logger.Sugar().Errorf("fail add good in service: %v", err)
+		}
+	}
+}
+
+func watchPaymentState(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
@@ -219,6 +294,7 @@ func watchPaymentState(ctx context.Context) { //nolint
 			case orderconst.OrderTypeOffline:
 				fallthrough //nolint
 			case orderconst.OrderTypeAirdrop:
+				watchFakeOrder(ctx, order, payment)
 				continue
 			default:
 				logger.Sugar().Errorf("invalid order type: %v", order.OrderType)
