@@ -303,7 +303,6 @@ func watchPaymentState(ctx context.Context) {
 				logger.Sugar().Errorf("invalid order type: %v", order.OrderType)
 				continue
 			}
-
 		}
 		offset += limit
 	}
