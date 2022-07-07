@@ -27,7 +27,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) {
+func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) { //nolint
 	unLocked := int32(0)
 	inService := int32(0)
 	myAmount := float64(0)
@@ -256,7 +256,7 @@ func watchFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.
 	}
 }
 
-func watchPaymentState(ctx context.Context) { //nolint
+func watchPaymentState(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
