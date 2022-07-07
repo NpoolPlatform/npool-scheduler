@@ -256,7 +256,7 @@ func watchFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.
 	}
 }
 
-func watchPaymentState(ctx context.Context) {
+func watchPaymentState(ctx context.Context) { //nolint
 	offset := int32(0)
 	limit := int32(1000)
 
