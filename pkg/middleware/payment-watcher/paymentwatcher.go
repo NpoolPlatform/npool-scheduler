@@ -101,10 +101,12 @@ func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderp
 	if myAmount > 0 {
 		_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
 			Info: &billingpb.UserPaymentBalance{
-				AppID:     payment.AppID,
-				UserID:    payment.UserID,
-				PaymentID: payment.ID,
-				Amount:    myAmount,
+				AppID:           payment.AppID,
+				UserID:          payment.UserID,
+				PaymentID:       payment.ID,
+				Amount:          myAmount,
+				CoinTypeID:      payment.CoinInfoID,
+				CoinUSDCurrency: payment.CoinUSDCurrency,
 			},
 		})
 		if err != nil {
