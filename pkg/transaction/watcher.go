@@ -84,15 +84,24 @@ func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
 	if err != nil {
 		return fmt.Errorf("fail get account: %v", err)
 	}
+	if from == nil {
+		return fmt.Errorf("invalid from address")
+	}
 
 	to, err := billingcli.GetAccount(ctx, tx.ToAddressID)
 	if err != nil {
 		return fmt.Errorf("fail get account: %v", err)
 	}
+	if to == nil {
+		return fmt.Errorf("invalid from address")
+	}
 
 	coin, err := coininfocli.GetCoinInfo(ctx, tx.CoinTypeID)
 	if err != nil {
 		return fmt.Errorf("fail get coininfo: %v", err)
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid coininfo")
 	}
 
 	logger.Sugar().Infow("transaction", "id", tx.ID,
@@ -163,6 +172,10 @@ func onPayingChecker(ctx context.Context) {
 			default:
 				continue
 			}
+		}
+
+		if tx == nil {
+			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", "invalid transaction id")
 		}
 
 		if toState == billingconst.CoinTransactionStatePaying {
