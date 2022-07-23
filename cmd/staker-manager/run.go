@@ -3,9 +3,7 @@ package main
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
 	db "github.com/NpoolPlatform/staker-manager/pkg/db"
-	paywatcher "github.com/NpoolPlatform/staker-manager/pkg/middleware/payment-watcher"
-
-	accounting "github.com/NpoolPlatform/staker-manager/pkg/middleware/accounting"
+	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -33,8 +31,7 @@ var runCmd = &cli.Command{
 			}
 		}()
 
-		go accounting.Run(c.Context)
-		go paywatcher.Watch(c.Context)
+		go transaction.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
