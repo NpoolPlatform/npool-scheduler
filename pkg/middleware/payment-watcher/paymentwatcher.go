@@ -24,7 +24,6 @@ import (
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
 
 	"github.com/google/uuid"
-	"golang.org/x/xerrors"
 )
 
 func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) { //nolint
@@ -318,7 +317,7 @@ func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, 
 		Info: payment,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail to update good payment: %v", err)
+		return fmt.Errorf("fail to update good payment: %v", err)
 	}
 
 	return nil
@@ -346,7 +345,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		ID: payment.AccountID,
 	})
 	if err != nil || account == nil {
-		return xerrors.Errorf("fail get account: %v", err)
+		return fmt.Errorf("fail get account: %v", err)
 	}
 
 	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -354,7 +353,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		Address: account.Address,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get wallet balance of %v %v: %v", coinInfo.Name, account.Address, err)
+		return fmt.Errorf("fail get wallet balance of %v %v: %v", coinInfo.Name, account.Address, err)
 	}
 
 	coinLimit := 0.0
@@ -363,7 +362,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		CoinTypeID: coinInfo.ID,
 	})
 	if err != nil || coinsetting == nil {
-		return xerrors.Errorf("fail get coin setting: %v", err)
+		return fmt.Errorf("fail get coin setting: %v", err)
 	}
 
 	coinLimit = coinsetting.PaymentAccountCoinAmount
@@ -376,7 +375,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 
 	err = accountlock.Lock(payment.AccountID)
 	if err != nil {
-		return xerrors.Errorf("fail lock account: %v", err)
+		return fmt.Errorf("fail lock account: %v", err)
 	}
 
 	unlock := true
@@ -386,7 +385,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 
 	err = setPaymentAccountIdle(ctx, payment, false, "collecting")
 	if err != nil {
-		return xerrors.Errorf("fail to update good payment: %v", err)
+		return fmt.Errorf("fail to update good payment: %v", err)
 	}
 
 	// Here we just create transaction, watcher will process it
@@ -405,7 +404,7 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 		},
 	})
 	if err != nil {
-		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
+		return fmt.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
 
 	logger.Sugar().Infof("created paymetn collecting %v", payment.AccountID)

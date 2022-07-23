@@ -33,8 +33,6 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"golang.org/x/xerrors"
 )
 
 const (
@@ -104,11 +102,11 @@ func (gac *goodAccounting) onCheckTransactionsByState(ctx context.Context, state
 		State:  state,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get %v transactions: %v", state, err)
+		return fmt.Errorf("fail get %v transactions: %v", state, err)
 	}
 
 	if len(txs) > 0 {
-		return xerrors.Errorf("%v transactions not empty", state)
+		return fmt.Errorf("%v transactions not empty", state)
 	}
 
 	return nil
@@ -116,15 +114,15 @@ func (gac *goodAccounting) onCheckTransactionsByState(ctx context.Context, state
 
 func (gac *goodAccounting) onCheckWaitTransactions(ctx context.Context) error {
 	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStateWait); err != nil {
-		return xerrors.Errorf("fail check transactions: %v", err)
+		return fmt.Errorf("fail check transactions: %v", err)
 	}
 
 	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStateCreated); err != nil {
-		return xerrors.Errorf("fail check transactions: %v", err)
+		return fmt.Errorf("fail check transactions: %v", err)
 	}
 
 	if err := gac.onCheckTransactionsByState(ctx, billingconst.CoinTransactionStatePaying); err != nil {
-		return xerrors.Errorf("fail check transactions: %v", err)
+		return fmt.Errorf("fail check transactions: %v", err)
 	}
 
 	return nil
@@ -136,12 +134,12 @@ func (gac *goodAccounting) onCheckFailTransactions(ctx context.Context) error {
 		State:  billingconst.CoinTransactionStateFail,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get fail transactions: %v", err)
+		return fmt.Errorf("fail get fail transactions: %v", err)
 	}
 
 	for _, info := range txs {
 		if info.FailHold {
-			return xerrors.Errorf("fail hold by fail transaction")
+			return fmt.Errorf("fail hold by fail transaction")
 		}
 	}
 
@@ -153,11 +151,11 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
 		ID: gac.good.CoinInfoID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get coin info: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get coin info: %v [%v]", err, gac.good.ID)
 	}
 
 	if coinInfo.PreSale {
-		return xerrors.Errorf("presale product cannot do accounting")
+		return fmt.Errorf("presale product cannot do accounting")
 	}
 
 	gac.coininfo = coinInfo
@@ -166,7 +164,7 @@ func (gac *goodAccounting) onQueryCoininfo(ctx context.Context) error {
 		CoinTypeID: gac.good.CoinInfoID,
 	})
 	if err != nil || coinSetting == nil {
-		return xerrors.Errorf("fail get coin setting: %v", err)
+		return fmt.Errorf("fail get coin setting: %v", err)
 	}
 
 	gac.coinsetting = coinSetting
@@ -178,10 +176,10 @@ func (gac *goodAccounting) onQueryAccount(ctx context.Context) error {
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get good benefit by good: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get good benefit by good: %v [%v]", err, gac.good.ID)
 	}
 	if benefit == nil {
-		return xerrors.Errorf("fail get good benefit by good [%v]", gac.good.ID)
+		return fmt.Errorf("fail get good benefit by good [%v]", gac.good.ID)
 	}
 
 	gac.goodbenefit = benefit
@@ -193,7 +191,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
 		ID: gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get good benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.goodbenefit.BenefitAccountID] = account
@@ -202,7 +200,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
 		ID: gac.coinsetting.PlatformOfflineAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get good platform offline account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.PlatformOfflineAccountID] = account
@@ -211,7 +209,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
 		ID: gac.coinsetting.UserOnlineAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get good user online benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.UserOnlineAccountID] = account
@@ -220,7 +218,7 @@ func (gac *goodAccounting) onQueryAccountInfo(ctx context.Context) error {
 		ID: gac.coinsetting.UserOfflineAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get good user offline benefit account id: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.accounts[gac.coinsetting.UserOfflineAccountID] = account
@@ -232,7 +230,7 @@ func (gac *goodAccounting) onQueryBenefits(ctx context.Context) error {
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get platform benefits by good: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get platform benefits by good: %v [%v]", err, gac.good.ID)
 	}
 
 	gac.benefits = benefits
@@ -245,7 +243,7 @@ func (gac *goodAccounting) onQuerySpendTransactions(ctx context.Context) error {
 		AddressID:  gac.goodbenefit.BenefitAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get benefit account transaction by good: %v [%v]", err, gac.good.ID)
+		return fmt.Errorf("fail get benefit account transaction by good: %v [%v]", err, gac.good.ID)
 	}
 
 	txs := []*billingpb.CoinAccountTransaction{}
@@ -274,12 +272,12 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 	}
 
 	if math.Abs(inComing-outComing) > 1 && inComing < outComing {
-		return xerrors.Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
+		return fmt.Errorf("address %v invalid incoming %v < outcoming %v [%v]", gac.goodbenefit.BenefitAccountID, inComing, outComing, gac.good.ID)
 	}
 
 	account, ok := gac.accounts[gac.goodbenefit.BenefitAccountID]
 	if !ok {
-		return xerrors.Errorf("invalid benefit address")
+		return fmt.Errorf("invalid benefit address")
 	}
 
 	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -287,7 +285,7 @@ func (gac *goodAccounting) onQueryBalance(ctx context.Context) error {
 		Address: account.Address,
 	})
 	if err != nil || balance == nil {
-		return xerrors.Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
+		return fmt.Errorf("fail get balance for good benefit account %v: %v [%v| %v %v]",
 			gac.goodbenefit.BenefitAccountID,
 			err, gac.good.ID,
 			gac.coininfo.Name,
@@ -306,7 +304,7 @@ func (gac *goodAccounting) onQueryOrders(ctx context.Context) error {
 		GoodID: gac.good.ID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get orders by good: %v", err)
+		return fmt.Errorf("fail get orders by good: %v", err)
 	}
 
 	// TODO: multiple pages order
@@ -440,7 +438,7 @@ func (gac *goodAccounting) onCreateBenefitTransaction(ctx context.Context, total
 		},
 	})
 	if err != nil {
-		return "", amount, xerrors.Errorf("fail create coin account transaction: %v", err)
+		return "", amount, fmt.Errorf("fail create coin account transaction: %v", err)
 	}
 
 	return tx.ID, amount, nil
@@ -452,7 +450,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		CoinTypeID: coinInfo.ID,
 	})
 	if err != nil || coinSetting == nil {
-		return xerrors.Errorf("fail get coin setting: %v", err)
+		return fmt.Errorf("fail get coin setting: %v", err)
 	}
 
 	platformSetting, err := grpc2.GetPlatformSetting(ctx, &billingpb.GetPlatformSettingRequest{})
@@ -473,14 +471,14 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		ID: coinSetting.UserOnlineAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get user online benefit account id: %v", err)
+		return fmt.Errorf("fail get user online benefit account id: %v", err)
 	}
 
 	_, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: coinSetting.UserOfflineAccountID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get user offline benefit account id: %v", err)
+		return fmt.Errorf("fail get user offline benefit account id: %v", err)
 	}
 
 	balance, err := grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -488,7 +486,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 		Address: account.Address,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get balance for account %v: %v [%v %v]",
+		return fmt.Errorf("fail get balance for account %v: %v [%v %v]",
 			coinSetting.UserOnlineAccountID,
 			err, coinInfo.Name,
 			account.Address)
@@ -500,7 +498,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 
 		err = accountlock.Lock(coinSetting.UserOnlineAccountID)
 		if err != nil {
-			return xerrors.Errorf("fail lock account: %v", err)
+			return fmt.Errorf("fail lock account: %v", err)
 		}
 
 		_, err := grpc2.CreateCoinAccountTransaction(ctx, &billingpb.CreateCoinAccountTransactionRequest{
@@ -517,7 +515,7 @@ func onCoinLimitsChecker(ctx context.Context, coinInfo *coininfopb.CoinInfo) err
 			},
 		})
 		if err != nil {
-			return xerrors.Errorf("fail create coin account transaction: %v", err)
+			return fmt.Errorf("fail create coin account transaction: %v", err)
 		}
 	}
 
@@ -552,21 +550,21 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 		ID: transaction.FromAddressID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get from address: %v [%v]", err, transaction.FromAddressID)
+		return fmt.Errorf("fail get from address: %v [%v]", err, transaction.FromAddressID)
 	}
 
 	to, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
 		ID: transaction.ToAddressID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get to address: %v [%v]", err, transaction.ToAddressID)
+		return fmt.Errorf("fail get to address: %v [%v]", err, transaction.ToAddressID)
 	}
 
 	coininfo, err := grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
 		ID: transaction.CoinTypeID,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail get coin info: %v", err)
+		return fmt.Errorf("fail get coin info: %v", err)
 	}
 
 	// Transfer to chain
@@ -585,7 +583,7 @@ func onTransfer(ctx context.Context, transaction *billingpb.CoinAccountTransacti
 		To:            to.Address,
 	})
 	if err != nil {
-		return xerrors.Errorf("fail create transaction: %v", err)
+		return fmt.Errorf("fail create transaction: %v", err)
 	}
 
 	return nil

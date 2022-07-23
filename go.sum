@@ -85,8 +85,8 @@ github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220224025352-b4d29cbbeeb
 github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220723134041-3f68f956572e h1:TweiULkQU1qX9L00KvH2eBR5GucluamjS3bmZsgD7xE=
 github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220723134041-3f68f956572e/go.mod h1:aiQdNT5LdIw0OHTxQrEqYp/Z8+vrdvcyKvyadaOwzPo=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20220120091626-4e8035637592/go.mod h1:JqrktA7gNQe/Uprnr6DCs5UCFpheCZ30lDd0OkyRtC4=
-github.com/NpoolPlatform/go-service-framework v0.0.0-20220723040805-27af9fb6d458 h1:5ZwEeNVpBKUJp5QQt/0HWKLMj1+aL+br3Pg54pKHFwY=
-github.com/NpoolPlatform/go-service-framework v0.0.0-20220723040805-27af9fb6d458/go.mod h1:o9I+ipazkngO2E5yC7LOdLTA6nlvf4uTUMOOZ2sRiRU=
+github.com/NpoolPlatform/go-service-framework v0.0.0-20220723135257-710ae88c12af h1:E9GKBO45QGU0J+tsMNhA0YNL356bsv/4BfKrerWKe6U=
+github.com/NpoolPlatform/go-service-framework v0.0.0-20220723135257-710ae88c12af/go.mod h1:o9I+ipazkngO2E5yC7LOdLTA6nlvf4uTUMOOZ2sRiRU=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5 h1:JF3d0OshTe/tHBKflk2x71N83ZgwxNF+EjApSa6qm1M=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
 github.com/NpoolPlatform/message v0.0.0-20220120075427-38182760a780/go.mod h1:tnsf7zHQ5Mv2uG0ezOwCfm/bxluiRW10DeuIl4SjG4Y=

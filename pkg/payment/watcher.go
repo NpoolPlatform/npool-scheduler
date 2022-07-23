@@ -30,7 +30,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func processState(ctx context.Context, payment *orderpb.Payment, balance decimal.Decimal) string {
+func processState(payment *orderpb.Payment, balance decimal.Decimal) string {
 	if payment.UserSetCanceled {
 		return orderconst.PaymentStateCanceled
 	}
@@ -44,7 +44,7 @@ func processState(ctx context.Context, payment *orderpb.Payment, balance decimal
 	return payment.State
 }
 
-func processFinishAmount(ctx context.Context, payment *orderpb.Payment, balance decimal.Decimal) decimal.Decimal {
+func processFinishAmount(payment *orderpb.Payment, balance decimal.Decimal) decimal.Decimal {
 	// TODO: use payment string amount to avoid float accuracy problem
 	payment.FinishAmount = balance.InexactFloat64()
 
@@ -62,7 +62,7 @@ func processFinishAmount(ctx context.Context, payment *orderpb.Payment, balance 
 	return decimal.NewFromInt(0)
 }
 
-func processStock(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, balance decimal.Decimal) (int32, int32) {
+func processStock(order *orderpb.Order, payment *orderpb.Payment, balance decimal.Decimal) (unlocked, inservice int32) {
 	if payment.UserSetCanceled {
 		return int32(order.Units), 0
 	}
@@ -114,7 +114,11 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 	if err != nil {
 		return err
 	}
-	defer accountlock.Unlock(payment.AccountID)
+	defer func() {
+		if err := accountlock.Unlock(payment.AccountID); err != nil {
+			logger.Sugar().Warnw("tryFinishPayment", "account", payment.AccountID)
+		}
+	}()
 
 	_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
 	return err
@@ -181,9 +185,9 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		return err
 	}
 
-	state := processState(ctx, payment, bal)
-	remain := processFinishAmount(ctx, payment, bal)
-	unlocked, inservice := processStock(ctx, order, payment, bal)
+	state := processState(payment, bal)
+	remain := processFinishAmount(payment, bal)
+	unlocked, inservice := processStock(order, payment, bal)
 
 	logger.Sugar().Infow("processOrder", "order", order.ID, "payment",
 		payment.ID, "coin", coin.Name, "startAmount", payment.StartAmount,
@@ -212,7 +216,7 @@ func processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Pa
 	case orderconst.OrderTypeAirdrop:
 		return _processOrder(ctx, order, payment)
 	default:
-		logger.Sugar().Errorw("processOrder", "order", order.ID, "payment", "payment.ID")
+		logger.Sugar().Errorw("processOrder", "order", order.ID, "payment", payment.ID)
 	}
 	return nil
 }

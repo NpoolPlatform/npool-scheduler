@@ -45,7 +45,7 @@ func onCreatedChecker(ctx context.Context) {
 		return
 	}
 
-	waiteds := append(waits, payings...)
+	waits = append(waits, payings...)
 	thisWait := map[string]struct{}{}
 
 tryWaitOne:
@@ -56,7 +56,7 @@ tryWaitOne:
 
 		logger.Sugar().Infow("transaction", "id", created.ID, "amount", created.Amount, "state", created.State)
 
-		for _, waited := range waiteds {
+		for _, waited := range waits {
 			if created.FromAddressID == waited.FromAddressID {
 				continue tryWaitOne
 			}
