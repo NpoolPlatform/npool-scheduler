@@ -8,7 +8,7 @@ require (
 	github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220723051558-cba48d2c1641
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
-	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220225132002-fbc8b850fb8c
+	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220706022206-f2cdf41ea8ed
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220723040805-27af9fb6d458
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220526050249-956b54fac9f1
 	github.com/NpoolPlatform/message v0.0.0-20220714075917-2ba73782c509

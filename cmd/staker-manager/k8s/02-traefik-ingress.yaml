@@ -8,11 +8,14 @@ metadata:
     k8s.kuboard.cn/workload: staker-manager
     kubernetes.io/ingress.class: "traefik-internet"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-staker-manager-prefix@kubernetescrd,kube-system-common-headers@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-subscribe-manager-prefix@kubernetescrd,
+                                                      kube-system-common-headers@kubernetescrd,
+                                                      kube-system-headers-appid-to-body@kubernetescrd,
+                                                      kube-system-headers-userid-to-body@kubernetescrd,
+                                                      kube-system-headers-app-login-token-to-body@kubernetescrd,
+                                                      kube-system-app-rbac-auth@kubernetescrd
 
 spec:
-  tls:
-    - secretName: procyon-vip-tls
   rules:
     - host: api.npool.top
       http: &http_rules
@@ -21,15 +24,21 @@ spec:
             backend:
               serviceName: staker-manager
               servicePort: 50180
+    - host: api.procyon.vip
+      http: *http_rules
     - host: api.xpool.top
       http: *http_rules
-    - host: www.npool.top
+    - host: api.ohhash.com
       http: *http_rules
-    - host: www.xpool.top
+    - host: api.ohhash-production.npool.top
       http: *http_rules
-    - host: www.procyon.vip
+    - host: api.japan-procyon-production.npool.top
       http: *http_rules
-    - host: procyon.vip
+    - host: api.jh-testing.npool.top
+      http: *http_rules
+    - host: api.jh-development.npool.top
+      http: *http_rules
+    - host: api.singapore-testing.npool.top
       http: *http_rules
 
 ---

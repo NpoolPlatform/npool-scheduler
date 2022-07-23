@@ -27,7 +27,238 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func watchPaymentState(ctx context.Context) { //nolint
+func watchNormalOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) { //nolint
+	unLocked := int32(0)
+	inService := int32(0)
+	myAmount := float64(0)
+	var coinInfo *coininfopb.CoinInfo
+	var account *billingpb.CoinAccountInfo
+	var balance *sphinxproxypb.BalanceInfo
+	var err error
+
+	coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
+		ID: payment.CoinInfoID,
+	})
+	if err != nil || coinInfo == nil {
+		logger.Sugar().Errorf("fail to get coin %v info: %v", payment.CoinInfoID, err)
+		return
+	}
+
+	account, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: payment.AccountID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get payment account: %v", err)
+		return
+	}
+	if account == nil {
+		logger.Sugar().Errorf("fail to get payment account")
+		return
+	}
+
+	balance, err = grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    coinInfo.Name,
+		Address: account.Address,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get wallet balance: %v", err)
+		return
+	}
+	if balance == nil {
+		logger.Sugar().Errorf("fail to get wallet balance")
+		return
+	}
+
+	newState := payment.State
+	if payment.UserSetCanceled {
+		newState = orderconst.PaymentStateCanceled
+		payment.FinishAmount = balance.Balance
+
+		unLocked += int32(order.Units)
+
+		myAmount = balance.Balance - payment.StartAmount
+	} else if balance.Balance+10e-6 >= payment.Amount+payment.StartAmount {
+		newState = orderconst.PaymentStateDone
+		payment.FinishAmount = balance.Balance
+
+		unLocked += int32(order.Units)
+		inService += int32(order.Units)
+
+		myAmount = balance.Balance - payment.StartAmount - payment.Amount
+	} else if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
+		newState = orderconst.PaymentStateTimeout
+		payment.FinishAmount = balance.Balance
+
+		unLocked += int32(order.Units)
+
+		myAmount = balance.Balance - payment.StartAmount
+	}
+
+	logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v due amount %v %v -> %v",
+		payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount,
+		payment.Amount+payment.StartAmount, payment.State, newState)
+
+	if myAmount > 0 {
+		_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
+			Info: &billingpb.UserPaymentBalance{
+				AppID:           payment.AppID,
+				UserID:          payment.UserID,
+				PaymentID:       payment.ID,
+				Amount:          myAmount,
+				CoinTypeID:      payment.CoinInfoID,
+				CoinUSDCurrency: payment.CoinUSDCurrency,
+			},
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", payment.ID, err)
+		}
+	}
+
+	if newState != payment.State {
+		logger.Sugar().Infof("payment %v try %v -> %v", payment.ID, payment.State, newState)
+		payment.State = newState
+		_, err := grpc2.UpdatePayment(ctx, &orderpb.UpdatePaymentRequest{
+			Info: payment,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail to update payment state: %v", err)
+			return
+		}
+	}
+
+	if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled {
+		myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
+			AccountID: account.ID,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail to get good payment: %v", err)
+			return
+		}
+		if myPayment == nil {
+			logger.Sugar().Errorf("fail to get good payment")
+			return
+		}
+
+		myPayment.Idle = true
+		myPayment.OccupiedBy = ""
+
+		_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+			Info: myPayment,
+		})
+		if err != nil {
+			logger.Sugar().Errorf("fail to update good payment: %v", err)
+		}
+
+		err = accountlock.Unlock(account.ID)
+		if err != nil {
+			logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
+		}
+	}
+
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
+	if err != nil || stock == nil {
+		logger.Sugar().Errorf("fail get good stock: %v", err)
+		return
+	}
+
+	fields := cruder.NewFilterFields()
+	if inService > 0 {
+		fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inService)))
+	}
+	if unLocked > 0 {
+		fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unLocked*-1)))
+	}
+
+	if len(fields) > 0 {
+		logger.Sugar().Infof("update good %v stock in service %v unlocked %v (%v)", order.GoodID, inService, unLocked, newState)
+		_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
+		if err != nil {
+			logger.Sugar().Errorf("fail add good in service: %v", err)
+			return
+		}
+	}
+}
+
+func watchFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) {
+	unLocked := int32(order.Units)
+	inService := int32(order.Units)
+
+	account, err := grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
+		ID: payment.AccountID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get payment account: %v", err)
+		return
+	}
+	if account == nil {
+		logger.Sugar().Errorf("fail to get payment account")
+		return
+	}
+
+	myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
+		AccountID: account.ID,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to get good payment: %v", err)
+		return
+	}
+	if myPayment == nil {
+		logger.Sugar().Errorf("fail to get good payment")
+		return
+	}
+
+	payment.State = orderconst.PaymentStateDone
+	payment.FakePayment = true
+	payment.FinishAmount = payment.StartAmount
+
+	_, err = grpc2.UpdatePayment(ctx, &orderpb.UpdatePaymentRequest{
+		Info: payment,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to update payment state: %v", err)
+	}
+
+	myPayment.Idle = true
+	myPayment.OccupiedBy = ""
+
+	_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
+		Info: myPayment,
+	})
+	if err != nil {
+		logger.Sugar().Errorf("fail to update good payment: %v", err)
+	}
+
+	err = accountlock.Unlock(account.ID)
+	if err != nil {
+		logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
+	}
+
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
+	if err != nil || stock == nil {
+		logger.Sugar().Errorf("fail get good stock: %v", err)
+		return
+	}
+
+	fields := cruder.NewFilterFields()
+	if inService > 0 {
+		fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inService)))
+	}
+	if unLocked > 0 {
+		fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unLocked*-1)))
+	}
+
+	if len(fields) > 0 {
+		logger.Sugar().Infof("update good %v stock in service %v unlocked %v", order.GoodID, inService, unLocked)
+		_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
+		if err != nil {
+			logger.Sugar().Errorf("fail add good in service: %v", err)
+		}
+	}
+}
+
+func watchPaymentState(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
@@ -62,152 +293,17 @@ func watchPaymentState(ctx context.Context) { //nolint
 				continue
 			}
 
-			unLocked := int32(0)
-			inService := int32(0)
-			myAmount := float64(0)
-			var coinInfo *coininfopb.CoinInfo
-			var account *billingpb.CoinAccountInfo
-			var balance *sphinxproxypb.BalanceInfo
-
-			coinInfo, err = grpc2.GetCoinInfo(ctx, &coininfopb.GetCoinInfoRequest{
-				ID: payment.CoinInfoID,
-			})
-			if err != nil || coinInfo == nil {
-				logger.Sugar().Errorf("fail to get coin %v info: %v", payment.CoinInfoID, err)
+			switch order.OrderType {
+			case orderconst.OrderTypeNormal:
+				watchNormalOrder(ctx, order, payment)
+			case orderconst.OrderTypeOffline:
+				fallthrough //nolint
+			case orderconst.OrderTypeAirdrop:
+				watchFakeOrder(ctx, order, payment)
 				continue
-			}
-
-			account, err = grpc2.GetBillingAccount(ctx, &billingpb.GetCoinAccountRequest{
-				ID: payment.AccountID,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail to get payment account: %v", err)
+			default:
+				logger.Sugar().Errorf("invalid order type: %v", order.OrderType)
 				continue
-			}
-			if account == nil {
-				logger.Sugar().Errorf("fail to get payment account")
-				continue
-			}
-
-			balance, err = grpc2.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-				Name:    coinInfo.Name,
-				Address: account.Address,
-			})
-			if err != nil {
-				logger.Sugar().Errorf("fail to get wallet balance: %v", err)
-				continue
-			}
-			if balance == nil {
-				logger.Sugar().Errorf("fail to get wallet balance")
-				continue
-			}
-
-			newState := payment.State
-			if payment.UserSetCanceled {
-				newState = orderconst.PaymentStateCanceled
-				payment.FinishAmount = balance.Balance
-
-				unLocked += int32(order.Units)
-
-				myAmount = balance.Balance - payment.StartAmount
-			} else if balance.Balance+10e-6 >= payment.Amount+payment.StartAmount {
-				newState = orderconst.PaymentStateDone
-				payment.FinishAmount = balance.Balance
-
-				unLocked += int32(order.Units)
-				inService += int32(order.Units)
-
-				myAmount = balance.Balance - payment.StartAmount - payment.Amount
-			} else if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
-				newState = orderconst.PaymentStateTimeout
-				payment.FinishAmount = balance.Balance
-
-				unLocked += int32(order.Units)
-
-				myAmount = balance.Balance - payment.StartAmount
-			}
-
-			logger.Sugar().Infof("payment %v checking coin %v balance %v start amount %v pay amount %v due amount %v %v -> %v",
-				payment.ID, coinInfo.Name, balance.Balance, payment.StartAmount, payment.Amount,
-				payment.Amount+payment.StartAmount, payment.State, newState)
-
-			if myAmount > 0 {
-				_, err := grpc2.CreateUserPaymentBalance(ctx, &billingpb.CreateUserPaymentBalanceRequest{
-					Info: &billingpb.UserPaymentBalance{
-						AppID:     payment.AppID,
-						UserID:    payment.UserID,
-						PaymentID: payment.ID,
-						Amount:    myAmount,
-					},
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail create user payment balance for payment %v: %v", payment.ID, err)
-				}
-			}
-
-			if newState != payment.State {
-				logger.Sugar().Infof("payment %v try %v -> %v", payment.ID, payment.State, newState)
-				payment.State = newState
-				_, err := grpc2.UpdatePayment(ctx, &orderpb.UpdatePaymentRequest{
-					Info: payment,
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail to update payment state: %v", err)
-					continue
-				}
-			}
-
-			if newState == orderconst.PaymentStateDone || newState == orderconst.PaymentStateCanceled {
-				myPayment, err := grpc2.GetGoodPaymentByAccount(ctx, &billingpb.GetGoodPaymentByAccountRequest{
-					AccountID: account.ID,
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail to get good payment: %v", err)
-					continue
-				}
-				if myPayment == nil {
-					logger.Sugar().Errorf("fail to get good payment")
-					continue
-				}
-
-				myPayment.Idle = true
-				myPayment.OccupiedBy = ""
-
-				_, err = grpc2.UpdateGoodPayment(ctx, &billingpb.UpdateGoodPaymentRequest{
-					Info: myPayment,
-				})
-				if err != nil {
-					logger.Sugar().Errorf("fail to update good payment: %v", err)
-				}
-
-				err = accountlock.Unlock(account.ID)
-				if err != nil {
-					logger.Sugar().Errorf("fail unlock %v: %v", account.ID, err)
-				}
-			}
-
-			stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
-				WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
-			if err != nil || stock == nil {
-				logger.Sugar().Errorf("fail get good stock: %v", err)
-				continue
-			}
-
-			fields := cruder.NewFilterFields()
-			if inService > 0 {
-				fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inService)))
-			}
-			if unLocked > 0 {
-				fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unLocked*-1)))
-			}
-
-			if len(fields) > 0 {
-				logger.Sugar().Infof("update good %v stock in service %v unlocked %v (%v)", order.GoodID, inService, unLocked, newState)
-				_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
-				if err != nil {
-					logger.Sugar().Errorf("fail add good in service: %v", err)
-					continue
-				}
 			}
 		}
 		offset += limit
@@ -229,6 +325,7 @@ func setPaymentAccountIdle(ctx context.Context, payment *billingpb.GoodPayment, 
 }
 
 func releasePaymentAccount(ctx context.Context, payment *billingpb.GoodPayment, unlock bool) {
+	logger.Sugar().Infof("release paymetn account %v: %v", payment.AccountID, unlock)
 	if !unlock {
 		return
 	}
@@ -310,6 +407,8 @@ func checkAndTransfer(ctx context.Context, payment *billingpb.GoodPayment, coinI
 	if err != nil {
 		return xerrors.Errorf("fail create transaction of %v: %v", payment.AccountID, err)
 	}
+
+	logger.Sugar().Infof("created paymetn collecting %v", payment.AccountID)
 
 	unlock = false
 	return nil
