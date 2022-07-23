@@ -204,17 +204,46 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		return err
 	}
 
+	// TODO: save ledger detail and general
+
+	return updateStock(ctx, order, unlocked, inservice)
+}
+
+func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+	coin, err := coininfocli.GetCoinInfo(ctx, payment.CoinInfoID)
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid coininfo")
+	}
+
+	state := orderconst.PaymentStateDone
+	unlocked, inservice := int32(order.Units), int32(order.Units)
+	payment.FakePayment = true
+	payment.FinishAmount = payment.StartAmount
+
+	logger.Sugar().Infow("processFakeOrder", "order", order.ID, "payment",
+		payment.ID, "coin", coin.Name, "startAmount", payment.StartAmount,
+		"finishAmount", payment.FinishAmount, "amount", payment.Amount,
+		"dueAmount", payment.Amount+payment.StartAmount, "state", payment.State,
+		"newState", state, "unlocked", unlocked, "inservice", inservice)
+
+	if err := tryFinishPayment(ctx, payment, state); err != nil {
+		return err
+	}
+
 	return updateStock(ctx, order, unlocked, inservice)
 }
 
 func processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	switch order.OrderType {
 	case orderconst.OrderTypeNormal:
-		fallthrough //nolint
+		return _processOrder(ctx, order, payment)
 	case orderconst.OrderTypeOffline:
 		fallthrough //nolint
 	case orderconst.OrderTypeAirdrop:
-		return _processOrder(ctx, order, payment)
+		return _processFakeOrder(ctx, order, payment)
 	default:
 		logger.Sugar().Errorw("processOrder", "order", order.ID, "payment", payment.ID)
 	}
