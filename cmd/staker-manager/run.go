@@ -1,17 +1,9 @@
 package main
 
 import (
-	"time"
-
 	"github.com/NpoolPlatform/staker-manager/api"
 	db "github.com/NpoolPlatform/staker-manager/pkg/db"
-	msgcli "github.com/NpoolPlatform/staker-manager/pkg/message/client"
-	msglistener "github.com/NpoolPlatform/staker-manager/pkg/message/listener"
-	msg "github.com/NpoolPlatform/staker-manager/pkg/message/message"
-	msgsrv "github.com/NpoolPlatform/staker-manager/pkg/message/server"
-	paywatcher "github.com/NpoolPlatform/staker-manager/pkg/middleware/payment-watcher"
-
-	accounting "github.com/NpoolPlatform/staker-manager/pkg/middleware/accounting"
+	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -39,17 +31,7 @@ var runCmd = &cli.Command{
 			}
 		}()
 
-		if err := msgsrv.Init(); err != nil {
-			return err
-		}
-		if err := msgcli.Init(); err != nil {
-			return err
-		}
-
-		go msglistener.Listen()
-		go msgSender()
-		go accounting.Run(c.Context)
-		go paywatcher.Watch(c.Context)
+		go transaction.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
@@ -69,20 +51,4 @@ func rpcGatewayRegister(mux *runtime.ServeMux, endpoint string, opts []grpc.Dial
 	apimgrcli.Register(mux)
 
 	return nil
-}
-
-func msgSender() {
-	id := 0
-	for {
-		err := msgsrv.PublishExample(&msg.Example{
-			ID:      id,
-			Example: "hello world",
-		})
-		if err != nil {
-			logger.Sugar().Errorf("fail to send example: %v", err)
-			return
-		}
-		id++
-		time.Sleep(3 * time.Second)
-	}
 }
