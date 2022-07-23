@@ -2,12 +2,22 @@ package transaction
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
+	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+
+	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+
+	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func onCreatedChecker(ctx context.Context) {
@@ -67,12 +77,122 @@ tryWaitOne:
 	}
 }
 
-func onWaitChecker(ctx context.Context) {
+func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
+	logger.Sugar().Infow("transaction", "id", tx.ID, "amount", tx.Amount, "state", tx.State)
 
+	from, err := billingcli.GetAccount(ctx, tx.FromAddressID)
+	if err != nil {
+		return fmt.Errorf("fail get account: %v", err)
+	}
+
+	to, err := billingcli.GetAccount(ctx, tx.ToAddressID)
+	if err != nil {
+		return fmt.Errorf("fail get account: %v", err)
+	}
+
+	coin, err := coininfocli.GetCoinInfo(ctx, tx.CoinTypeID)
+	if err != nil {
+		return fmt.Errorf("fail get coininfo: %v", err)
+	}
+
+	logger.Sugar().Infow("transaction", "id", tx.ID,
+		"coin", coin.Name, "from", from.Address, "to", to.Address,
+		"amount", tx.Amount, "fee", tx.TransactionFee)
+
+	err = sphinxproxycli.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
+		TransactionID: tx.ID,
+		Name:          coin.Name,
+		Amount:        tx.Amount - tx.TransactionFee,
+		From:          from.Address,
+		To:            to.Address,
+	})
+	if err != nil {
+		return fmt.Errorf("fail transfer: %v", err)
+	}
+
+	return nil
+}
+
+func onWaitChecker(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	waits, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateWait)
+	if err != nil {
+		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStateWait, "error", err)
+		return
+	}
+
+	for _, wait := range waits {
+		if err := transfer(ctx, wait); err != nil {
+			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
+			return
+		}
+
+		wait.State = billingconst.CoinTransactionStatePaying
+		_, err := billingcli.UpdateTransaction(ctx, wait)
+		if err != nil {
+			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
+			return
+		}
+	}
 }
 
 func onPayingChecker(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
+	payings, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStatePaying)
+	if err != nil {
+		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStatePaying, "error", err)
+		return
+	}
+
+	for _, paying := range payings {
+		toState := billingconst.CoinTransactionStatePaying
+		cid := ""
+
+		tx, err := sphinxproxycli.GetTransaction(ctx, paying.ID)
+		if err != nil {
+			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", err)
+			switch status.Code(err) {
+			case codes.InvalidArgument:
+				toState = billingconst.CoinTransactionStateFail
+			case codes.NotFound:
+				toState = billingconst.CoinTransactionStateFail
+			default:
+				continue
+			}
+		}
+
+		if toState == billingconst.CoinTransactionStatePaying {
+			switch tx.TransactionState {
+			case sphinxproxypb.TransactionState_TransactionStateFail:
+				toState = billingconst.CoinTransactionStateFail
+				paying.FailHold = true
+			case sphinxproxypb.TransactionState_TransactionStateDone:
+				toState = billingconst.CoinTransactionStateSuccessful
+				if tx.CID == "" {
+					paying.Message = fmt.Sprintf("%v (successful without CID)", paying.Message)
+					toState = billingconst.CoinTransactionStateFail
+					paying.FailHold = true
+				}
+				cid = tx.CID
+			default:
+				continue
+			}
+		}
+
+		paying.State = toState
+		paying.ChainTransactionID = cid
+
+		logger.Sugar().Infow("transaction", "id", paying.ID, "amount", paying.Amount,
+			"state", paying.State, "toState", toState, "cid", cid)
+		_, err = billingcli.UpdateTransaction(ctx, paying)
+		if err != nil {
+			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", err)
+		}
+	}
 }
 
 func Watch(ctx context.Context) {
