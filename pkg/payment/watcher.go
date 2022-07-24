@@ -324,8 +324,10 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		return err
 	}
 
-	if err := commissioncli.CalculateCommission(ctx, order.ID); err != nil {
-		return err
+	if payment.State == orderconst.PaymentStateDone {
+		if err := commissioncli.CalculateCommission(ctx, order.ID); err != nil {
+			return err
+		}
 	}
 
 	return updateStock(ctx, order, unlocked, inservice)
