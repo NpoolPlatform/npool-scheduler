@@ -4,8 +4,9 @@ import (
 	"github.com/NpoolPlatform/staker-manager/api"
 	db "github.com/NpoolPlatform/staker-manager/pkg/db"
 
-	collector "github.com/NpoolPlatform/staker-manager/pkg/collector"
 	payment "github.com/NpoolPlatform/staker-manager/pkg/payment"
+	collector "github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
+	limitation "github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
 	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
@@ -37,6 +38,7 @@ var runCmd = &cli.Command{
 		go transaction.Watch(c.Context)
 		go payment.Watch(c.Context)
 		go collector.Watch(c.Context)
+		go limitation.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
