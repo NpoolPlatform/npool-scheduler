@@ -189,6 +189,10 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 			Op:    cruder.EQ,
 			Value: payment.UserID,
 		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.CoinInfoID,
+		},
 	})
 	if err != nil {
 		return err
@@ -208,7 +212,8 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 	incoming := fmt.Sprintf("%v", payment.FinishAmount-payment.StartAmount)
 
 	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		Incoming: &incoming,
+		Incoming:  &incoming,
+		Spendable: &incoming,
 	})
 	if err != nil {
 		return err
@@ -233,6 +238,7 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
 	amount := fmt.Sprintf("%v", payment.Amount)
+	spendable := fmt.Sprintf("-%v", payment.Amount)
 	ioType := ledgerdetailpb.IOType_Outcoming
 	ioSubType := ledgerdetailpb.IOSubType_Payment
 
@@ -244,6 +250,14 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 		IOSubType:  &ioSubType,
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
+		Outcoming: &amount,
+		Spendable: &spendable,
 	})
 
 	return err
