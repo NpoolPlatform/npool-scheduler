@@ -19,7 +19,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
+	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
@@ -245,7 +245,7 @@ func processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Pa
 	case orderconst.OrderTypeAirdrop:
 		return _processFakeOrder(ctx, order, payment)
 	default:
-		logger.Sugar().Errorw("processOrder", "order", order.ID, "payment", payment.ID)
+		logger.Sugar().Errorw("processOrder", "order", order.ID, "type", order.OrderType, "payment", payment.ID)
 	}
 	return nil
 }

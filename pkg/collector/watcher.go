@@ -19,7 +19,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/middleware/account"
+	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
