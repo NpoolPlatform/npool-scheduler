@@ -4,14 +4,15 @@ go 1.17
 
 require (
 	entgo.io/ent v0.11.1
-	github.com/NpoolPlatform/api-manager v0.0.0-20220328101926-8907b2f76c6d
+	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
 	github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89
+	github.com/NpoolPlatform/archivement-manager v0.0.0-20220724114908-5eeb61501517
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220812032117-44ecffa2bb95
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20220723032539-bb2dffc7c96c
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20220724094449-9e03b1cb2968
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220723151446-6227c7e48f7c
+	github.com/NpoolPlatform/message v0.0.0-20220724104259-34caa66d02e9
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
@@ -30,7 +31,7 @@ require (
 
 require (
 	ariga.io/atlas v0.5.0 // indirect
-	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220224025352-b4d29cbbeebc // indirect
+	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220724104912-5495b0c02d63 // indirect
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
