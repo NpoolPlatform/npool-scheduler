@@ -13,7 +13,10 @@ import (
 	rabbitmqconst "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/const"
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
+	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/message/const"
+	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 
 	cli "github.com/urfave/cli/v2"
 )
@@ -39,6 +42,9 @@ func main() {
 		rabbitmqconst.RabbitMQServiceName,
 		redisconst.RedisServiceName,
 		goodsconst.ServiceName,
+		ledgerconst.ServiceName,
+		orderconst.ServiceName,
+		billingconst.ServiceName,
 	)
 	if err != nil {
 		logger.Sugar().Errorf("fail to create %v: %v", serviceName, err)
