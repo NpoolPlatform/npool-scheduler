@@ -29,6 +29,8 @@ import (
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
 	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
 
+	commissioncli "github.com/NpoolPlatform/archivement-manager/pkg/client/commission"
+
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -322,7 +324,9 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		return err
 	}
 
-	// TODO: update inviters' commission ledger
+	if err := commissioncli.CalculateCommission(ctx, order.ID); err != nil {
+		return err
+	}
 
 	return updateStock(ctx, order, unlocked, inservice)
 }
