@@ -24,7 +24,13 @@ import (
 	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
 
+	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
+	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
+	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
+	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
+
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/shopspring/decimal"
@@ -92,6 +98,15 @@ func trySavePaymentBalance(ctx context.Context, payment *orderpb.Payment, balanc
 }
 
 func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState string) error {
+	if newState != payment.State {
+		logger.Sugar().Infow("tryFinishPayment", "payment", payment.ID, "state", payment.State, "newState", newState)
+		payment.State = newState
+		_, err := ordercli.UpdatePayment(ctx, payment)
+		if err != nil {
+			return err
+		}
+	}
+
 	switch newState {
 	case orderconst.PaymentStateDone:
 	case orderconst.PaymentStateCanceled:
@@ -152,6 +167,88 @@ func updateStock(ctx context.Context, order *orderpb.Order, unlocked, inservice 
 	return err
 }
 
+func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+	if payment.FinishAmount <= payment.StartAmount {
+		return nil
+	}
+
+	switch payment.State {
+	case orderconst.PaymentStateDone:
+	case orderconst.PaymentStateCanceled:
+	case orderconst.PaymentStateTimeout:
+	default:
+		return nil
+	}
+
+	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.UserID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if general == nil {
+		_, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
+			AppID:      &payment.AppID,
+			UserID:     &payment.UserID,
+			CoinTypeID: &payment.CoinInfoID,
+		})
+		if err != nil {
+			return nil
+		}
+	}
+
+	incoming := fmt.Sprintf("%v", payment.FinishAmount-payment.StartAmount)
+
+	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
+		Incoming: &incoming,
+	})
+	if err != nil {
+		return err
+	}
+
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
+	ioType := ledgerdetailpb.IOType_Incoming
+	ioSubType := ledgerdetailpb.IOSubType_Payment
+
+	_, err = ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+		AppID:      &payment.AppID,
+		UserID:     &payment.UserID,
+		CoinTypeID: &payment.CoinInfoID,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &incoming,
+		IOExtra:    &ioExtra,
+	})
+	return err
+}
+
+func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
+	amount := fmt.Sprintf("%v", payment.Amount)
+	ioType := ledgerdetailpb.IOType_Outcoming
+	ioSubType := ledgerdetailpb.IOSubType_Payment
+
+	_, err := ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+		AppID:      &payment.AppID,
+		UserID:     &payment.UserID,
+		CoinTypeID: &payment.CoinInfoID,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &amount,
+		IOExtra:    &ioExtra,
+	})
+
+	return err
+}
+
 func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	coin, err := coininfocli.GetCoinInfo(ctx, payment.CoinInfoID)
 	if err != nil {
@@ -204,7 +301,14 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		return err
 	}
 
-	// TODO: save ledger detail and general
+	if err := tryUpdatePaymentLedger(ctx, order, payment); err != nil {
+		return err
+	}
+	if err := tryUpdateOrderLedger(ctx, order, payment); err != nil {
+		return err
+	}
+
+	// TODO: update inviters' commission ledger
 
 	return updateStock(ctx, order, unlocked, inservice)
 }
