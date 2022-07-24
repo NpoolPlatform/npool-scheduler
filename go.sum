@@ -77,8 +77,8 @@ github.com/NpoolPlatform/api-manager v0.0.0-20220328101926-8907b2f76c6d h1:lbBWd
 github.com/NpoolPlatform/api-manager v0.0.0-20220328101926-8907b2f76c6d/go.mod h1:ubnvHuhc0o6drhdYrT+nM5DXZW/yEesObWky6oRsHoQ=
 github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89 h1:IzsES3R82ztzQOb4EotHkbqKhQKNoJdRPpIy3gLJBiM=
 github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89/go.mod h1:6yR7+wzkEEYss6p8oX+SjvHaDl65HelY3TCqbL4OrlQ=
-github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220723162026-0465dbdfd5cc h1:7dzS/XDtZz5JF6AgDzceQgqMUPkqIbVxd+4HbVbLZb4=
-github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220723162026-0465dbdfd5cc/go.mod h1:RpChPk9kWRo2oO0UdaB6VkRdz5InZ2yqVoQyCiRbTQc=
+github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4 h1:nmL9sPaLQ+ej9jiB3ZsCHxIjPD/QpbmzykJIPZC58ig=
+github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4/go.mod h1:RpChPk9kWRo2oO0UdaB6VkRdz5InZ2yqVoQyCiRbTQc=
 github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28 h1:2ZyCMWRL+C6Yoj34Lph1h+jFMaax2c96kXEl0RaNox8=
 github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28/go.mod h1:ASSd0tr5C5b3lDto6QNE9KGyULdKHB++ulMt3wZA+Xk=
 github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220224025352-b4d29cbbeebc h1:cqdD6f0QAZYsUm4tLg5hgaUiOFUdbdg2mc/1Nm6YV1w=
