@@ -29,6 +29,7 @@ import (
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
 	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
 
+	archivementcli "github.com/NpoolPlatform/archivement-manager/pkg/client/archivement"
 	commissioncli "github.com/NpoolPlatform/archivement-manager/pkg/client/commission"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -328,9 +329,10 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		if err := commissioncli.CalculateCommission(ctx, order.ID); err != nil {
 			return err
 		}
+		if err := archivementcli.CalculateArchivement(ctx, order.ID); err != nil {
+			return err
+		}
 	}
-
-	// TODO: add archivement for kols
 
 	return updateStock(ctx, order, unlocked, inservice)
 }
