@@ -330,6 +330,8 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		}
 	}
 
+	// TODO: add archivement for kols
+
 	return updateStock(ctx, order, unlocked, inservice)
 }
 
