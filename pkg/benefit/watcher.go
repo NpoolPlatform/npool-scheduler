@@ -166,10 +166,6 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		return fmt.Errorf("invalid units total %v, orderUnits %v, inService %v", _gp.totalUnits, _gp.totalOrderUnits, _gp.inService)
 	}
 
-	if err := _gp.addDailyProfit(ctx, timestamp); err != nil {
-		return err
-	}
-
 	offset = 0
 
 	for {
@@ -200,13 +196,15 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		offset += limit
 	}
 
-	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "stage", "unsold")
-	if err := _gp.processUnsold(ctx, timestamp); err != nil {
+	if err := _gp.transfer(ctx, timestamp); err != nil {
 		return err
 	}
 
-	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "stage", "transfer")
-	if err := _gp.transfer(ctx, timestamp); err != nil {
+	if err := _gp.addDailyProfit(ctx, timestamp); err != nil {
+		return err
+	}
+
+	if err := _gp.processUnsold(ctx, timestamp); err != nil {
 		return err
 	}
 
