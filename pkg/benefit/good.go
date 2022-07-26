@@ -21,8 +21,10 @@ import (
 
 	profitdetailpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/detail"
 	profitgeneralpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/general"
+	profitunsoldpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/unsold"
 	profitdetailcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/detail"
 	profitgeneralcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/general"
+	profitunsoldcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/unsold"
 
 	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
 	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
@@ -47,9 +49,10 @@ type gp struct {
 	goodName        string
 	profitGeneralID string
 
-	totalUnits      uint32
-	inService       uint32
-	totalOrderUnits uint32
+	totalUnits      uint32 // from stock
+	inService       uint32 // from stock for verification
+	totalOrderUnits uint32 // from sold order
+	serviceUnits    uint32 // unsold + sold waiting
 
 	benefitAddress       string
 	benefitAccountID     string
@@ -342,4 +345,39 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 	})
 
 	return err
+}
+
+func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
+	_, err := profitunsoldcli.GetUnsoldOnly(ctx, &profitunsoldpb.Conds{
+		GoodID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: g.goodID,
+		},
+		BenefitDate: &commonpb.Uint32Val{
+			Op:    cruder.EQ,
+			Value: uint32(timestamp.Unix()),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	amount := g.dailyProfit.
+		Mul(decimal.NewFromInt(int64(g.totalUnits - g.serviceUnits))).
+		Div(decimal.NewFromInt(int64(g.totalUnits))).
+		String()
+	tsUnix := uint32(timestamp.Unix())
+
+	_, err = profitunsoldcli.CreateUnsold(ctx, &profitunsoldpb.UnsoldReq{
+		GoodID:      &g.goodID,
+		CoinTypeID:  &g.coinTypeID,
+		Amount:      &amount,
+		BenefitDate: &tsUnix,
+	})
+
+	return err
+}
+
+func (g *gp) transfer(ctx context.Context) error {
+	return nil
 }
