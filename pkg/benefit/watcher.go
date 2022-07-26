@@ -115,10 +115,13 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 	limit := int32(1000)
 
 	_gp := &gp{
-		goodID:     good.ID,
-		goodName:   good.Title,
-		coinTypeID: coin.ID,
-		coinName:   coin.Name,
+		goodID:                   good.ID,
+		goodName:                 good.Title,
+		coinTypeID:               coin.ID,
+		coinName:                 coin.Name,
+		coinReservedAmount:       decimal.NewFromFloat(coin.ReservedAmount),
+		userOnlineAccountID:      setting.UserOnlineAccountID,
+		platformOfflineAccountID: setting.PlatformOfflineAccountID,
 	}
 
 	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
@@ -187,7 +190,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 				continue
 			}
 
-			_gp.serviceUnits += 1
+			_gp.serviceUnits++
 
 			if err := _gp.processOrder(ctx, order, timestamp); err != nil {
 				return err
@@ -203,7 +206,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 	}
 
 	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "stage", "transfer")
-	if err := _gp.transfer(ctx); err != nil {
+	if err := _gp.transfer(ctx, timestamp); err != nil {
 		return err
 	}
 
