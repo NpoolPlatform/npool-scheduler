@@ -87,7 +87,7 @@ func (g *gp) profitBalance(ctx context.Context) (decimal.Decimal, error) {
 		return decimal.NewFromInt(0), err
 	}
 	if general == nil {
-		_, err = profitgeneralcli.CreateGeneral(ctx, &profitgeneralpb.GeneralReq{
+		general, err = profitgeneralcli.CreateGeneral(ctx, &profitgeneralpb.GeneralReq{
 			GoodID:     &g.goodID,
 			CoinTypeID: &g.coinTypeID,
 		})
