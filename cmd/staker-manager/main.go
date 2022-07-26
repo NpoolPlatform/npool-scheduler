@@ -13,10 +13,12 @@ import (
 	rabbitmqconst "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/const"
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
+	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
+	miningconst "github.com/NpoolPlatform/mining-manager/pkg/message/const"
 
 	cli "github.com/urfave/cli/v2"
 )
@@ -43,6 +45,8 @@ func main() {
 		redisconst.RedisServiceName,
 		goodsconst.ServiceName,
 		ledgerconst.ServiceName,
+		miningconst.ServiceName,
+		archivementconst.ServiceName,
 		orderconst.ServiceName,
 		billingconst.ServiceName,
 	)

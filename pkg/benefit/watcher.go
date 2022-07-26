@@ -93,6 +93,10 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		return fmt.Errorf("invalid coin")
 	}
 
+	if coin.PreSale {
+		return nil
+	}
+
 	setting, err := billingcli.GetCoinSetting(ctx, good.CoinInfoID)
 	if err != nil {
 		return err
@@ -121,9 +125,39 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		return nil
 	}
 
-	if err := gp.stock(ctx); err != nil {
+	if err := _gp.stock(ctx); err != nil {
 		return err
 	}
+
+	for {
+		orders, err := ordercli.GetGoodOrders(ctx, good.ID, offset, limit)
+		if err != nil {
+			return err
+		}
+
+		for _, order := range orders {
+			validate, err := validateGoodOrder(ctx, order, timestamp)
+			if err != nil {
+				return err
+			}
+			if !validate {
+				continue
+			}
+			_gp.totalOrderUnits += order.Units
+		}
+
+		offset += limit
+	}
+
+	if _gp.totalUnits < _gp.totalOrderUnits || _gp.inService != _gp.totalOrderUnits {
+		return fmt.Errorf("invalid units total %v, orderUnits %v, inService %v", _gp.totalUnits, _gp.totalOrderUnits, _gp.inService)
+	}
+
+	if err := _gp.addDailyProfit(ctx, timestamp); err != nil {
+		return err
+	}
+
+	offset = 0
 
 	for {
 		orders, err := ordercli.GetGoodOrders(ctx, good.ID, offset, limit)
