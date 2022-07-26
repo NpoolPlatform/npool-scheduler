@@ -24,6 +24,11 @@ import (
 	profitdetailcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/detail"
 	profitgeneralcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/general"
 
+	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
+	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
+	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
+	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
+
 	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
 
@@ -245,5 +250,96 @@ func (g *gp) stock(ctx context.Context) error {
 func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) error {
 	logger.Sugar().Infow("processOrder", "timestamp", timestamp, "goodID", g.goodID, "goodName", g.goodName, "profit",
 		g.dailyProfit, "totalUnits", g.totalUnits, "order", order.ID, "orderUnits", order.Units)
-	return nil
+
+	amount := g.dailyProfit.
+		Mul(decimal.NewFromInt(int64(order.Units))).
+		Div(decimal.NewFromInt(int64(g.totalUnits))).
+		String()
+	ioExtra := fmt.Sprintf(`{"GoodID": "%v", "BenefitDate": "%v", "OrderID": "%v"}`,
+		g.goodID, timestamp, order.ID)
+
+	detail, err := ledgerdetailcli.GetDetailOnly(ctx, &ledgerdetailpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.UserID,
+		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: g.coinTypeID,
+		},
+		IOType: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(ledgerdetailpb.IOType_Incoming),
+		},
+		IOSubType: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(ledgerdetailpb.IOSubType_MiningBenefit),
+		},
+		IOExtra: &commonpb.StringVal{
+			Op:    cruder.LIKE,
+			Value: ioExtra,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if detail != nil {
+		return fmt.Errorf("ledger detail exist")
+	}
+
+	ioType := ledgerdetailpb.IOType_Incoming
+	ioSubType := ledgerdetailpb.IOSubType_MiningBenefit
+
+	_, err = ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+		AppID:      &order.AppID,
+		UserID:     &order.UserID,
+		CoinTypeID: &g.coinTypeID,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &amount,
+		IOExtra:    &ioExtra,
+	})
+	if err != nil {
+		return err
+	}
+
+	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.UserID,
+		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: g.coinTypeID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if general == nil {
+		general, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
+			AppID:      &order.AppID,
+			UserID:     &order.UserID,
+			CoinTypeID: &g.coinTypeID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
+		ID:        &general.ID,
+		Incoming:  &amount,
+		Spendable: &amount,
+	})
+
+	return err
 }
