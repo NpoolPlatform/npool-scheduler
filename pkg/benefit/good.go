@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
 	_ "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
@@ -22,7 +24,11 @@ import (
 	profitdetailcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/detail"
 	profitgeneralcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/general"
 
+	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
+	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
+
 	commonpb "github.com/NpoolPlatform/message/npool"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
@@ -32,15 +38,21 @@ import (
 // TODO: support multiple coin type profit of one good
 
 type gp struct {
-	goodID                 string
-	benefitAddress         string
-	benefitAccountID       string
-	benefitIntervalHours   uint32
-	dailyProfit            decimal.Decimal
+	goodID     string
+	goodName   string
+	totalUnits uint32
+	inService  uint32
+
+	benefitAddress       string
+	benefitAccountID     string
+	benefitIntervalHours uint32
+	dailyProfit          decimal.Decimal
+
 	userOnlineAddress      string
 	platformOfflineAddress string
-	coinName               string
-	coinTypeID             string
+
+	coinName   string
+	coinTypeID string
 }
 
 func (g *gp) profitExist(ctx context.Context, timestamp time.Time) (bool, error) {
@@ -156,12 +168,31 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 		return err
 	}
 
+	logger.Sugar().Infow("processDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "benefitAddress",
+		g.benefitAddress, "remain", remain, "balance", balance)
+
 	// TODO: if too less, do not transfer
 	if balance.Cmp(remain) <= 0 {
 		return nil
 	}
 
 	g.dailyProfit = balance.Sub(remain)
+
+	return nil
+}
+
+func (g *gp) stock(ctx context.Context) error {
+	stock, err := stockcli.GetStock(ctx, cruder.NewFilterConds().
+		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(g.goodID)))
+	if err != nil {
+		return err
+	}
+	if stock == nil {
+		return fmt.Errorf("invalid good stock")
+	}
+
+	g.totalUnits = stock.Total
+	g.inService = stock.InService
 
 	return nil
 }

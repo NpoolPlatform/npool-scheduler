@@ -106,6 +106,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 
 	_gp := &gp{
 		goodID:     good.ID,
+		goodName:   good.Title,
 		coinTypeID: coin.ID,
 		coinName:   coin.Name,
 	}
@@ -113,8 +114,15 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
 		return err
 	}
+
+	logger.Sugar().Infow("benefit", "timestamp", timestamp, "goodID", good.ID, "goodName", good.Title, "profit", _gp.dailyProfit)
+
 	if _gp.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
+	}
+
+	if err := gp.stock(ctx); err != nil {
+		return err
 	}
 
 	for {
@@ -150,7 +158,6 @@ func processGoods(ctx context.Context, timestamp time.Time) {
 	for _, good := range goods {
 		if err := processGood(ctx, good, timestamp); err != nil {
 			logger.Sugar().Errorw("processGoods", "goodID", good.ID, "goodName", good.Title, "error", err)
-			return
 		}
 	}
 }
@@ -164,6 +171,7 @@ func Watch(ctx context.Context) {
 	ticker := time.NewTicker(benefitInterval)
 	for {
 		timestamp := todayStart()
+		logger.Sugar().Infow("benefit", "timestamp", timestamp)
 		processGoods(ctx, timestamp)
 		<-ticker.C
 	}
