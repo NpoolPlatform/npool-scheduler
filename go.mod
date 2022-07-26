@@ -8,12 +8,12 @@ require (
 	github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220725073941-622be6a4c44f
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4
-	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220224053549-7b30ca7c2e28
-	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220724100245-c13847eff60c
+	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7
+	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220726024402-8a4b5a272447
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220812032117-44ecffa2bb95
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20220724094449-9e03b1cb2968
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20220725013303-51e65b263313
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220725060000-8aa65440c2b7
+	github.com/NpoolPlatform/message v0.0.0-20220726024153-ef9baba6a446
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
