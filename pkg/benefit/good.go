@@ -348,7 +348,7 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 }
 
 func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
-	_, err := profitunsoldcli.GetUnsoldOnly(ctx, &profitunsoldpb.Conds{
+	unsold, err := profitunsoldcli.GetUnsoldOnly(ctx, &profitunsoldpb.Conds{
 		GoodID: &commonpb.StringVal{
 			Op:    cruder.EQ,
 			Value: g.goodID,
@@ -360,6 +360,9 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 	})
 	if err != nil {
 		return err
+	}
+	if unsold != nil {
+		return fmt.Errorf("profit unsold exist")
 	}
 
 	amount := g.dailyProfit.
