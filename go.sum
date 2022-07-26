@@ -78,8 +78,8 @@ github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89 h1:I
 github.com/NpoolPlatform/appuser-manager v0.0.0-20220210093932-4b9db1361d89/go.mod h1:6yR7+wzkEEYss6p8oX+SjvHaDl65HelY3TCqbL4OrlQ=
 github.com/NpoolPlatform/archivement-manager v0.0.0-20220725073941-622be6a4c44f h1:yTaBKl8EnDMZZSafUncKlvbOQRJFFAlWuGY0oDI6DqQ=
 github.com/NpoolPlatform/archivement-manager v0.0.0-20220725073941-622be6a4c44f/go.mod h1:vjM0pWMJ60ob0bobcNqaHCCEjJ7hzeO6DZmHZ8PShVc=
-github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4 h1:nmL9sPaLQ+ej9jiB3ZsCHxIjPD/QpbmzykJIPZC58ig=
-github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220724044052-11a02d15f5d4/go.mod h1:RpChPk9kWRo2oO0UdaB6VkRdz5InZ2yqVoQyCiRbTQc=
+github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7 h1:cvMNa0gI61tl4lud1dCR3dGh3FZn55VBTO8GfZKQhPQ=
+github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7/go.mod h1:RpChPk9kWRo2oO0UdaB6VkRdz5InZ2yqVoQyCiRbTQc=
 github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7 h1:7w+Ydg4Vbzi++9Hn9EkmaU8TKuUcXzI056r9eeHoBKU=
 github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7/go.mod h1:aFvLR1M7HtXB2A0hyC7q83/H8WPv9jJaw30XrhSKNFI=
 github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220724104912-5495b0c02d63 h1:7An2Wwkz+eiRWPiHdkdT8f1lMMfQveFJUsTSO76Tai8=
@@ -98,6 +98,8 @@ github.com/NpoolPlatform/message v0.0.0-20220121040326-31d316062cdc/go.mod h1:tn
 github.com/NpoolPlatform/message v0.0.0-20220210092619-65547799bb09/go.mod h1:r9cCQsBi8z8pljMAHa6sK6o2iXIG9tRpZ9idBxVpc44=
 github.com/NpoolPlatform/message v0.0.0-20220726024153-ef9baba6a446 h1:M5TjbznAiTlGOi6u7MzRUSfjQzAC6MRUmrOG3mJvlqY=
 github.com/NpoolPlatform/message v0.0.0-20220726024153-ef9baba6a446/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
+github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1 h1:p/4T3TUcq1avVZjmht4WcKXtHQqc+zKLNSQ26idsMYo=
+github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1/go.mod h1:skV4N2i/K4VAEnaw3UP/nHdMDWJ4PDqWexIg+VSHET8=
 github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14 h1:I+vtZheHl4SeKqi8UEoraqlMgWtxP2wgj8ERjNxWk94=
 github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14/go.mod h1:f9Seypsw5N+Kc0P13IurAD/WNHXhzYsBt+d/R17oLfA=
 github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c h1:Gll6yDpSSfr6RPHdDRD7/XPGdfOOZu57D641JQAkx3I=

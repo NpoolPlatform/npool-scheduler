@@ -16,11 +16,11 @@ import (
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+
+	"github.com/shopspring/decimal"
 )
 
-var (
-	benefitInterval = 24 * time.Hour
-)
+var benefitInterval = 24 * time.Hour
 
 func interval() time.Duration {
 	if duration, err := time.ParseDuration(
@@ -68,12 +68,16 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 	limit := int32(1000)
 
 	_gp := &gp{
-		coin:    coin,
-		setting: setting,
+		goodID:     good.ID,
+		coinTypeID: coin.ID,
+		coinName:   coin.Name,
 	}
 
-	if err := _gp.dailyProfit(ctx); err != nil {
+	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
 		return err
+	}
+	if _gp.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
 	}
 
 	for {
@@ -90,8 +94,6 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 
 		offset += limit
 	}
-
-	return nil
 }
 
 func processGoods(ctx context.Context, timestamp time.Time) {
