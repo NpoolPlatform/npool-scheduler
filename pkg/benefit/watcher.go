@@ -186,6 +186,9 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 			if !validate {
 				continue
 			}
+
+			_gp.serviceUnits += 1
+
 			if err := _gp.processOrder(ctx, order, timestamp); err != nil {
 				return err
 			}
@@ -194,7 +197,15 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		offset += limit
 	}
 
-	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "offset", offset)
+	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "stage", "unsold")
+	if err := _gp.processUnsold(ctx, timestamp); err != nil {
+		return err
+	}
+
+	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "stage", "transfer")
+	if err := _gp.transfer(ctx); err != nil {
+		return err
+	}
 
 	return nil
 }
