@@ -148,30 +148,38 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 		Mul(decimal.NewFromInt(int64(g.totalOrderUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
 	toUser := toUserD.String()
-	toPlatform := g.dailyProfit.
+	toPlatformD := g.dailyProfit.
 		Sub(g.initialKept).
-		Sub(toUserD).String()
+		Sub(toUserD)
+	toPlatform := toPlatformD.String()
 
 	tsUnix := uint32(timestamp.Unix())
 
-	_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
-		GoodID:      &g.goodID,
-		CoinTypeID:  &g.coinTypeID,
-		Amount:      &amount,
-		BenefitDate: &tsUnix,
-	})
-	if err != nil {
-		return err
+	if toUserD.Cmp(decimal.NewFromInt(0)) > 0 {
+		_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
+			GoodID:      &g.goodID,
+			CoinTypeID:  &g.coinTypeID,
+			Amount:      &amount,
+			BenefitDate: &tsUnix,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
-		ID:         &g.profitGeneralID,
-		Amount:     &amount,
-		ToPlatform: &toPlatform,
-		ToUser:     &toUser,
-	})
+	if toPlatformD.Cmp(decimal.NewFromInt(0)) > 0 {
+		_, err := profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
+			ID:         &g.profitGeneralID,
+			Amount:     &amount,
+			ToPlatform: &toPlatform,
+			ToUser:     &toUser,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-	return err
+	return nil
 }
 
 func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
@@ -227,13 +235,9 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 	}
 
 	logger.Sugar().Infow("processDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "benefitAddress",
-		g.benefitAddress, "remain", remain, "balance", balance)
+		g.benefitAddress, "remain", remain, "balance", balance, "reserveAmount", g.coinReservedAmount)
 
 	if balance.Cmp(remain) <= 0 {
-		return nil
-	}
-
-	if balance.Cmp(g.coinReservedAmount) <= 0 {
 		return nil
 	}
 
@@ -405,26 +409,28 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		"userAmount", userAmount, "platformAmount", platformAmount,
 		"initialKept", g.initialKept)
 
-	_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
-		AppID:         uuid.UUID{}.String(),
-		UserID:        uuid.UUID{}.String(),
-		GoodID:        g.goodID,
-		CoinTypeID:    g.coinTypeID,
-		FromAddressID: g.benefitAccountID,
-		ToAddressID:   g.userOnlineAccountID,
-		Amount:        userAmount.InexactFloat64(),
-		Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
-		CreatedFor:    billingconst.TransactionForUserBenefit,
-	})
-	if err != nil {
-		return err
+	if userAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+		_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
+			AppID:         uuid.UUID{}.String(),
+			UserID:        uuid.UUID{}.String(),
+			GoodID:        g.goodID,
+			CoinTypeID:    g.coinTypeID,
+			FromAddressID: g.benefitAccountID,
+			ToAddressID:   g.userOnlineAccountID,
+			Amount:        userAmount.InexactFloat64(),
+			Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
+			CreatedFor:    billingconst.TransactionForUserBenefit,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if platformAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
 
-	_, err = billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
+	_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
 		AppID:         uuid.UUID{}.String(),
 		UserID:        uuid.UUID{}.String(),
 		GoodID:        g.goodID,
