@@ -243,5 +243,7 @@ func (g *gp) stock(ctx context.Context) error {
 }
 
 func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) error {
+	logger.Sugar().Infow("processOrder", "timestamp", timestamp, "goodID", g.goodID, "goodName", g.goodName, "profit",
+		g.dailyProfit, "totalUnits", g.totalUnits, "order", order.ID, "orderUnits", order.Units)
 	return nil
 }
