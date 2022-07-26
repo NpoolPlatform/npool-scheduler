@@ -155,28 +155,24 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 
 	tsUnix := uint32(timestamp.Unix())
 
-	if toUserD.Cmp(decimal.NewFromInt(0)) > 0 {
-		_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
-			GoodID:      &g.goodID,
-			CoinTypeID:  &g.coinTypeID,
-			Amount:      &amount,
-			BenefitDate: &tsUnix,
-		})
-		if err != nil {
-			return err
-		}
+	_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
+		GoodID:      &g.goodID,
+		CoinTypeID:  &g.coinTypeID,
+		Amount:      &amount,
+		BenefitDate: &tsUnix,
+	})
+	if err != nil {
+		return err
 	}
 
-	if toPlatformD.Cmp(decimal.NewFromInt(0)) > 0 {
-		_, err := profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
-			ID:         &g.profitGeneralID,
-			Amount:     &amount,
-			ToPlatform: &toPlatform,
-			ToUser:     &toUser,
-		})
-		if err != nil {
-			return err
-		}
+	_, err = profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
+		ID:         &g.profitGeneralID,
+		Amount:     &amount,
+		ToPlatform: &toPlatform,
+		ToUser:     &toUser,
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil
