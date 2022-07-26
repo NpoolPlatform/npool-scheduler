@@ -57,7 +57,7 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func validateGoodOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) (bool, error) {
+func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool, timestamp time.Time) (bool, error) {
 	payment, err := ordercli.GetOrderPayment(ctx, order.ID)
 	if err != nil {
 		return false, err
@@ -73,14 +73,20 @@ func validateGoodOrder(ctx context.Context, order *orderpb.Order, timestamp time
 	if orderEnd < uint32(time.Now().Unix()) {
 		return false, nil
 	}
-	if order.Start > uint32(time.Now().Unix()) {
-		return false, nil
+	if !waiting {
+		if order.Start > uint32(time.Now().Unix()) {
+			return false, nil
+		}
 	}
 
 	return true, nil
 }
 
 func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error {
+	if good.ID != "19f31fb6-32a8-436d-b52d-5967119554ec" {
+		return nil
+	}
+
 	if good.StartAt > uint32(time.Now().Unix()) {
 		return nil
 	}
@@ -122,6 +128,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 	logger.Sugar().Infow("benefit", "timestamp", timestamp, "goodID", good.ID, "goodName", good.Title, "profit", _gp.dailyProfit)
 
 	if _gp.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		logger.Sugar().Infow("benefit", "goodID", good.ID, "goodName", good.Title, "dailyProfit", _gp.dailyProfit)
 		return nil
 	}
 
@@ -134,9 +141,12 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		if err != nil {
 			return err
 		}
+		if len(orders) == 0 {
+			break
+		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, timestamp)
+			validate, err := validateGoodOrder(ctx, order, true, timestamp)
 			if err != nil {
 				return err
 			}
@@ -164,9 +174,12 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		if err != nil {
 			return err
 		}
+		if len(orders) == 0 {
+			break
+		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, timestamp)
+			validate, err := validateGoodOrder(ctx, order, false, timestamp)
 			if err != nil {
 				return err
 			}
@@ -180,6 +193,10 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 
 		offset += limit
 	}
+
+	logger.Sugar().Infow("processGood", "goodID", good.ID, "goodName", good.Title, "offset", offset)
+
+	return nil
 }
 
 func processGoods(ctx context.Context, timestamp time.Time) {
