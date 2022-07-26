@@ -83,10 +83,6 @@ func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool) 
 }
 
 func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error { //nolint
-	if good.ID != "19f31fb6-32a8-436d-b52d-5967119554ec" {
-		return nil
-	}
-
 	if good.StartAt > uint32(time.Now().Unix()) {
 		return nil
 	}
