@@ -38,10 +38,13 @@ import (
 // TODO: support multiple coin type profit of one good
 
 type gp struct {
-	goodID     string
-	goodName   string
-	totalUnits uint32
-	inService  uint32
+	goodID          string
+	goodName        string
+	profitGeneralID string
+
+	totalUnits      uint32
+	inService       uint32
+	totalOrderUnits uint32
 
 	benefitAddress       string
 	benefitAccountID     string
@@ -92,8 +95,12 @@ func (g *gp) profitBalance(ctx context.Context) (decimal.Decimal, error) {
 			return decimal.NewFromInt(0), err
 		}
 
+		g.profitGeneralID = general.ID
+
 		return decimal.NewFromInt(0), nil
 	}
+
+	g.profitGeneralID = general.ID
 
 	amount, err := decimal.NewFromString(general.Amount)
 	if err != nil {
@@ -114,6 +121,44 @@ func (g *gp) profitBalance(ctx context.Context) (decimal.Decimal, error) {
 	}
 
 	return remain, nil
+}
+
+func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
+	}
+
+	if g.totalUnits <= 0 {
+		return fmt.Errorf("invalid stock units")
+	}
+
+	amount := g.dailyProfit.String()
+	toUserD := g.dailyProfit.
+		Mul(decimal.NewFromInt(int64(g.totalOrderUnits))).
+		Div(decimal.NewFromInt(int64(g.totalUnits)))
+	toUser := toUserD.String()
+	toPlatform := g.dailyProfit.Sub(toUserD).String()
+
+	tsUnix := uint32(timestamp.Unix())
+
+	_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
+		GoodID:      &g.goodID,
+		CoinTypeID:  &g.coinTypeID,
+		Amount:      &amount,
+		BenefitDate: &tsUnix,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
+		ID:         &g.profitGeneralID,
+		Amount:     &amount,
+		ToPlatform: &toPlatform,
+		ToUser:     &toUser,
+	})
+
+	return err
 }
 
 func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
@@ -182,7 +227,7 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 }
 
 func (g *gp) stock(ctx context.Context) error {
-	stock, err := stockcli.GetStock(ctx, cruder.NewFilterConds().
+	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
 		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(g.goodID)))
 	if err != nil {
 		return err
