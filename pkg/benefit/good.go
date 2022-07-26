@@ -155,6 +155,13 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 
 	tsUnix := uint32(timestamp.Unix())
 
+	transferredToPlatform := g.transferredToPlatform.String()
+	transferredToUser := g.transferredToUser.String()
+
+	logger.Sugar().Infow("addDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
+		"userAmount", toUser, "platformAmount", toPlatform, "transferredToUser",
+		transferredToUser, "transferredToPlatform", transferredToPlatform, "initialKept", g.initialKept)
+
 	if toUserD.Cmp(decimal.NewFromInt(0)) > 0 {
 		_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
 			GoodID:      &g.goodID,
@@ -166,9 +173,6 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 			return err
 		}
 	}
-
-	transferredToPlatform := g.transferredToPlatform.String()
-	transferredToUser := g.transferredToUser.String()
 
 	if toPlatformD.Cmp(decimal.NewFromInt(0)) > 0 {
 		_, err := profitgeneralcli.AddGeneral(ctx, &profitgeneralpb.GeneralReq{
@@ -403,6 +407,10 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 }
 
 func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(g.initialKept) <= 0 {
+		return nil
+	}
+
 	userAmount := g.dailyProfit.
 		Mul(decimal.NewFromInt(int64(g.serviceUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
@@ -410,8 +418,8 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		Sub(g.initialKept).
 		Sub(userAmount)
 
-	logger.Sugar().Infow("transfer", "goodID", g.goodID, "goodName", g.goodName,
-		"userAmount", userAmount, "platformAmount", platformAmount)
+	logger.Sugar().Infow("transfer", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
+		"userAmount", userAmount, "platformAmount", platformAmount, "initialKept", g.initialKept)
 
 	if userAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
