@@ -57,7 +57,7 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool, timestamp time.Time) (bool, error) {
+func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool) (bool, error) {
 	payment, err := ordercli.GetOrderPayment(ctx, order.ID)
 	if err != nil {
 		return false, err
@@ -82,7 +82,7 @@ func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool, 
 	return true, nil
 }
 
-func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error {
+func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error { //nolint
 	if good.ID != "19f31fb6-32a8-436d-b52d-5967119554ec" {
 		return nil
 	}
@@ -146,7 +146,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, true, timestamp)
+			validate, err := validateGoodOrder(ctx, order, true)
 			if err != nil {
 				return err
 			}
@@ -179,7 +179,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, false, timestamp)
+			validate, err := validateGoodOrder(ctx, order, false)
 			if err != nil {
 				return err
 			}
