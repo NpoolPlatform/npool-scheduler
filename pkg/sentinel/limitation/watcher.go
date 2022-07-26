@@ -182,9 +182,6 @@ func checkCoinLimits(ctx context.Context) {
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(4 * time.Hour)
 
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
 	for {
 		checkCoinLimits(ctx)
 		<-ticker.C

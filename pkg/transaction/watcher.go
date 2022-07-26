@@ -21,9 +21,6 @@ import (
 )
 
 func onCreatedChecker(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
 	createds, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateCreated)
 	if err != nil {
 		logger.Sugar().Error("transaction", "state", billingconst.CoinTransactionStateCreated, "error", err)
@@ -123,9 +120,6 @@ func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
 }
 
 func onWaitChecker(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
 	waits, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateWait)
 	if err != nil {
 		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStateWait, "error", err)
@@ -148,9 +142,6 @@ func onWaitChecker(ctx context.Context) {
 }
 
 func onPayingChecker(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
 	payings, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStatePaying)
 	if err != nil {
 		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStatePaying, "error", err)
