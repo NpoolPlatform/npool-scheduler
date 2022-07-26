@@ -34,14 +34,20 @@ func interval() time.Duration {
 	return benefitInterval
 }
 
-func dayStart() time.Time {
+func todayStart() time.Time {
 	now := time.Now()
 	y, m, d := now.Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, now.Location())
 }
 
+func tomorrowStart() time.Time {
+	now := time.Now()
+	y, m, d := now.Date()
+	return time.Date(y, m, d+1, 0, 0, 0, 0, now.Location())
+}
+
 func delay() {
-	start := dayStart()
+	start := tomorrowStart()
 	if time.Until(start) > benefitInterval {
 		start = time.Now().Add(benefitInterval)
 	}
@@ -157,7 +163,7 @@ func Watch(ctx context.Context) {
 
 	ticker := time.NewTicker(benefitInterval)
 	for {
-		timestamp := dayStart()
+		timestamp := todayStart()
 		processGoods(ctx, timestamp)
 		<-ticker.C
 	}
