@@ -8,13 +8,10 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	_ "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
-
-	_ "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
+	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
+	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
-
-	_ "github.com/NpoolPlatform/message/npool/coininfo"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -40,6 +37,8 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	"github.com/shopspring/decimal"
+
+	"github.com/google/uuid"
 )
 
 // TODO: support multiple coin type profit of one good
@@ -57,13 +56,16 @@ type gp struct {
 	benefitAddress       string
 	benefitAccountID     string
 	benefitIntervalHours uint32
-	dailyProfit          decimal.Decimal
 
-	userOnlineAddress      string
-	platformOfflineAddress string
+	dailyProfit decimal.Decimal
+	initialKept decimal.Decimal
 
-	coinName   string
-	coinTypeID string
+	userOnlineAccountID      string
+	platformOfflineAccountID string
+
+	coinName           string
+	coinTypeID         string
+	coinReservedAmount decimal.Decimal
 }
 
 func (g *gp) profitExist(ctx context.Context, timestamp time.Time) (bool, error) {
@@ -142,10 +144,13 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 
 	amount := g.dailyProfit.String()
 	toUserD := g.dailyProfit.
+		Sub(g.initialKept).
 		Mul(decimal.NewFromInt(int64(g.totalOrderUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
 	toUser := toUserD.String()
-	toPlatform := g.dailyProfit.Sub(toUserD).String()
+	toPlatform := g.dailyProfit.
+		Sub(g.initialKept).
+		Sub(toUserD).String()
 
 	tsUnix := uint32(timestamp.Unix())
 
@@ -224,9 +229,16 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 	logger.Sugar().Infow("processDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "benefitAddress",
 		g.benefitAddress, "remain", remain, "balance", balance)
 
-	// TODO: if too less, do not transfer
 	if balance.Cmp(remain) <= 0 {
 		return nil
+	}
+
+	if balance.Cmp(g.coinReservedAmount) <= 0 {
+		return nil
+	}
+
+	if remain.Cmp(g.coinReservedAmount) <= 0 {
+		g.initialKept = g.coinReservedAmount
 	}
 
 	g.dailyProfit = balance.Sub(remain)
@@ -381,6 +393,48 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 	return err
 }
 
-func (g *gp) transfer(ctx context.Context) error {
-	return nil
+func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
+	userAmount := g.dailyProfit.
+		Mul(decimal.NewFromInt(int64(g.serviceUnits))).
+		Div(decimal.NewFromInt(int64(g.totalUnits)))
+	platformAmount := g.dailyProfit.
+		Sub(g.initialKept).
+		Sub(userAmount)
+
+	logger.Sugar().Infow("transfer", "goodID", g.goodID, "goodName", g.goodName,
+		"userAmount", userAmount, "platformAmount", platformAmount,
+		"initialKept", g.initialKept)
+
+	_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
+		AppID:         uuid.UUID{}.String(),
+		UserID:        uuid.UUID{}.String(),
+		GoodID:        g.goodID,
+		CoinTypeID:    g.coinTypeID,
+		FromAddressID: g.benefitAccountID,
+		ToAddressID:   g.userOnlineAccountID,
+		Amount:        userAmount.InexactFloat64(),
+		Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
+		CreatedFor:    billingconst.TransactionForUserBenefit,
+	})
+	if err != nil {
+		return err
+	}
+
+	if platformAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
+
+	_, err = billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
+		AppID:         uuid.UUID{}.String(),
+		UserID:        uuid.UUID{}.String(),
+		GoodID:        g.goodID,
+		CoinTypeID:    g.coinTypeID,
+		FromAddressID: g.benefitAccountID,
+		ToAddressID:   g.platformOfflineAccountID,
+		Amount:        platformAmount.InexactFloat64(),
+		Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
+		CreatedFor:    billingconst.TransactionForPlatformBenefit,
+	})
+
+	return err
 }
