@@ -14,6 +14,8 @@ import (
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
 
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
+	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
+	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
@@ -21,6 +23,8 @@ import (
 )
 
 var benefitInterval = 24 * time.Hour
+
+const secondsPerDay = 24 * 60 * 60
 
 func interval() time.Duration {
 	if duration, err := time.ParseDuration(
@@ -47,7 +51,34 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
+func validateGoodOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) (bool, error) {
+	payment, err := ordercli.GetOrderPayment(ctx, order.ID)
+	if err != nil {
+		return false, err
+	}
+	if payment == nil {
+		return false, nil
+	}
+	if payment.State != orderconst.PaymentStateDone {
+		return false, nil
+	}
+
+	orderEnd := order.CreateAt + secondsPerDay
+	if orderEnd < uint32(time.Now().Unix()) {
+		return false, nil
+	}
+	if order.Start > uint32(time.Now().Unix()) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error {
+	if good.StartAt > uint32(time.Now().Unix()) {
+		return nil
+	}
+
 	coin, err := coininfocli.GetCoinInfo(ctx, good.CoinInfoID)
 	if err != nil {
 		return err
@@ -87,6 +118,13 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		}
 
 		for _, order := range orders {
+			validate, err := validateGoodOrder(ctx, order, timestamp)
+			if err != nil {
+				return err
+			}
+			if !validate {
+				continue
+			}
 			if err := _gp.processOrder(ctx, order, timestamp); err != nil {
 				return err
 			}
