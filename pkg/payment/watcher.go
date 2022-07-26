@@ -399,9 +399,6 @@ func processOrders(ctx context.Context, orders []*orderpb.Order) error {
 }
 
 func checkOrders(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
 	offset := int32(0)
 	limit := int32(1000)
 

@@ -221,9 +221,6 @@ func checkCollectingPayments(ctx context.Context) {
 }
 
 func Watch(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	ticker := time.NewTicker(1 * time.Minute)
 	for range ticker.C {
 		checkGoodPayments(ctx)
