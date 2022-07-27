@@ -56,10 +56,14 @@ func processFinishAmount(payment *orderpb.Payment, balance decimal.Decimal) deci
 	if payment.UserSetCanceled {
 		return decimal.NewFromFloat(payment.FinishAmount).Sub(decimal.NewFromFloat(payment.StartAmount))
 	}
-	if payment.Amount+payment.StartAmount <= balance.InexactFloat64()+10e-4 {
-		return decimal.NewFromFloat(payment.FinishAmount).
+	if payment.Amount+payment.StartAmount <= balance.InexactFloat64()+10e-7 {
+		remain := decimal.NewFromFloat(payment.FinishAmount).
 			Sub(decimal.NewFromFloat(payment.StartAmount)).
 			Sub(decimal.NewFromFloat(payment.Amount))
+		if remain.Cmp(decimal.NewFromInt(0)) <= 0 {
+			remain = decimal.NewFromInt(0)
+		}
+		return remain
 	}
 	if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
 		return decimal.NewFromFloat(payment.FinishAmount).Sub(decimal.NewFromFloat(payment.StartAmount))
