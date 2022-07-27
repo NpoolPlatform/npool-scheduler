@@ -1,4 +1,4 @@
-package payment
+package order
 
 import (
 	"context"
@@ -21,9 +21,6 @@ import (
 
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
-	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
-	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
-
 	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
 	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
@@ -34,7 +31,6 @@ import (
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/shopspring/decimal"
 )
@@ -142,34 +138,6 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 	return err
 }
 
-func updateStock(ctx context.Context, order *orderpb.Order, unlocked, inservice int32) error {
-	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
-		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(order.GoodID)))
-	if err != nil {
-		return err
-	}
-	if stock == nil {
-		return fmt.Errorf("invalid stock")
-	}
-
-	fields := cruder.NewFilterFields()
-	if inservice > 0 {
-		fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inservice)))
-	}
-	if unlocked > 0 {
-		fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unlocked*-1)))
-	}
-
-	if len(fields) == 0 {
-		return nil
-	}
-
-	logger.Sugar().Infow("updateStock", "good", order.GoodID, "inservice", inservice, "unlocked", unlocked)
-
-	_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
-	return err
-}
-
 func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	if payment.FinishAmount <= payment.StartAmount {
 		return nil
@@ -266,7 +234,7 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 	return err
 }
 
-func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	coin, err := coininfocli.GetCoinInfo(ctx, payment.CoinInfoID)
 	if err != nil {
 		return err
@@ -303,7 +271,7 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 	remain := processFinishAmount(payment, bal)
 	unlocked, inservice := processStock(order, payment, bal)
 
-	logger.Sugar().Infow("processOrder", "order", order.ID, "payment",
+	logger.Sugar().Infow("processOrderPayment", "order", order.ID, "payment",
 		payment.ID, "coin", coin.Name, "startAmount", payment.StartAmount,
 		"finishAmount", payment.FinishAmount, "amount", payment.Amount,
 		"dueAmount", payment.Amount+payment.StartAmount, "state", payment.State,
@@ -334,7 +302,7 @@ func _processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		}
 	}
 
-	return updateStock(ctx, order, unlocked, inservice)
+	return updateStock(ctx, order.GoodID, unlocked, inservice)
 }
 
 func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
@@ -361,24 +329,24 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *order
 		return err
 	}
 
-	return updateStock(ctx, order, unlocked, inservice)
+	return updateStock(ctx, order.GoodID, unlocked, inservice)
 }
 
-func processOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+func processOrderPayment(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	switch order.OrderType {
 	case orderconst.OrderTypeNormal:
-		return _processOrder(ctx, order, payment)
+		return _processOrderPayment(ctx, order, payment)
 	case orderconst.OrderTypeOffline:
 		fallthrough //nolint
 	case orderconst.OrderTypeAirdrop:
 		return _processFakeOrder(ctx, order, payment)
 	default:
-		logger.Sugar().Errorw("processOrder", "order", order.ID, "type", order.OrderType, "payment", payment.ID)
+		logger.Sugar().Errorw("processOrderPayment", "order", order.ID, "type", order.OrderType, "payment", payment.ID)
 	}
 	return nil
 }
 
-func processOrders(ctx context.Context, orders []*orderpb.Order) error {
+func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 	for _, order := range orders {
 		payment, err := ordercli.GetOrderPayment(ctx, order.ID)
 		if err != nil {
@@ -391,14 +359,14 @@ func processOrders(ctx context.Context, orders []*orderpb.Order) error {
 			continue
 		}
 
-		if err := processOrder(ctx, order, payment); err != nil {
+		if err := processOrderPayment(ctx, order, payment); err != nil {
 			return fmt.Errorf("fail process order: %v", err)
 		}
 	}
 	return nil
 }
 
-func checkOrders(ctx context.Context) {
+func checkOrderPayments(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
@@ -412,19 +380,12 @@ func checkOrders(ctx context.Context) {
 			return
 		}
 
-		err = processOrders(ctx, orders)
+		err = processOrderPayments(ctx, orders)
 		if err != nil {
-			logger.Sugar().Errorw("processOrders", "offset", offset, "limit", limit)
+			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit)
 			return
 		}
 
 		offset += limit
-	}
-}
-
-func Watch(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Second)
-	for range ticker.C {
-		checkOrders(ctx)
 	}
 }

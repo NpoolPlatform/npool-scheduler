@@ -12,9 +12,10 @@ require (
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220812032117-44ecffa2bb95
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220725013303-51e65b263313
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220726132959-3952c6e83cf0
+	github.com/NpoolPlatform/message v0.0.0-20220727044316-8140ce66bb18
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
+	github.com/NpoolPlatform/order-manager v0.0.0-20220727052656-21d025110ea8
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
