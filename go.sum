@@ -85,12 +85,14 @@ github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5 h1:JF3
 github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
 github.com/NpoolPlatform/message v0.0.0-20220120075427-38182760a780/go.mod h1:tnsf7zHQ5Mv2uG0ezOwCfm/bxluiRW10DeuIl4SjG4Y=
 github.com/NpoolPlatform/message v0.0.0-20220121040326-31d316062cdc/go.mod h1:tnsf7zHQ5Mv2uG0ezOwCfm/bxluiRW10DeuIl4SjG4Y=
-github.com/NpoolPlatform/message v0.0.0-20220726132959-3952c6e83cf0 h1:QzaYS29Vqu1/a9G/K6y9+tWMUfJbuTyrQtHUpf39HgM=
-github.com/NpoolPlatform/message v0.0.0-20220726132959-3952c6e83cf0/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
+github.com/NpoolPlatform/message v0.0.0-20220727044316-8140ce66bb18 h1:Y29aaDCEeUY+sE4skyiHICmpwJY36/FUVpcFpMobYg4=
+github.com/NpoolPlatform/message v0.0.0-20220727044316-8140ce66bb18/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1 h1:p/4T3TUcq1avVZjmht4WcKXtHQqc+zKLNSQ26idsMYo=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1/go.mod h1:skV4N2i/K4VAEnaw3UP/nHdMDWJ4PDqWexIg+VSHET8=
 github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14 h1:I+vtZheHl4SeKqi8UEoraqlMgWtxP2wgj8ERjNxWk94=
 github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14/go.mod h1:f9Seypsw5N+Kc0P13IurAD/WNHXhzYsBt+d/R17oLfA=
+github.com/NpoolPlatform/order-manager v0.0.0-20220727052656-21d025110ea8 h1:6YmIaI+ZGfMfDUoGL/WbRYUyIpV3FC71LpMUGZ4Fjzs=
+github.com/NpoolPlatform/order-manager v0.0.0-20220727052656-21d025110ea8/go.mod h1:wnKFFo7Hs28ANppHTOscjOuYWjAZ6k/kLNFskbA/3gk=
 github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c h1:Gll6yDpSSfr6RPHdDRD7/XPGdfOOZu57D641JQAkx3I=
 github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c/go.mod h1:6x2MevuQNEWnB/uJl8REgHUH2F+mBadmMtexHDO1/NA=
 github.com/NpoolPlatform/sphinx-plugin v0.0.0-20220615111041-1f66f3b8e0d0 h1:y0CX49H0fHXY0Zqg/QiJDVOo50l4SXL2uXlU1J9Pp9w=

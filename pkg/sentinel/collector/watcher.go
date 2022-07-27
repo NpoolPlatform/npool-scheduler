@@ -173,20 +173,20 @@ func checkTimeoutPayments(ctx context.Context) {
 func checkCollectingPayments(ctx context.Context) {
 	payments, err := billingcli.GetGoodPayments(ctx, cruder.NewFilterConds())
 	if err != nil {
-		logger.Sugar().Errorw("checkPaymentAmount", "error", err)
+		logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 		return
 	}
 
 	for _, payment := range payments {
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
-			logger.Sugar().Errorf("checkTimeoutPayments", "error", err)
+			logger.Sugar().Errorf("checkCollectingPayments", "error", err)
 			continue
 		}
 
 		unlock := func() {
 			if err := accountlock.Unlock(payment.AccountID); err != nil {
-				logger.Sugar().Errorw("checkTimeoutPayments", "error", err)
+				logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 			}
 		}
 
@@ -197,7 +197,7 @@ func checkCollectingPayments(ctx context.Context) {
 
 		tx, err := billingcli.GetTransaction(ctx, payment.CollectingTID)
 		if err != nil {
-			logger.Sugar().Errorw("checkTimeoutPayments", "error", err)
+			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 			unlock()
 			continue
 		}

@@ -5,7 +5,7 @@ import (
 	db "github.com/NpoolPlatform/staker-manager/pkg/db"
 
 	benefit "github.com/NpoolPlatform/staker-manager/pkg/benefit"
-	payment "github.com/NpoolPlatform/staker-manager/pkg/payment"
+	order "github.com/NpoolPlatform/staker-manager/pkg/order"
 	collector "github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
 	limitation "github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
 	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
@@ -37,7 +37,7 @@ var runCmd = &cli.Command{
 		}()
 
 		go transaction.Watch(c.Context)
-		go payment.Watch(c.Context)
+		go order.Watch(c.Context)
 		go collector.Watch(c.Context)
 		go limitation.Watch(c.Context)
 		go benefit.Watch(c.Context)
