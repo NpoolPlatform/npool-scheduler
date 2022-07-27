@@ -40,7 +40,7 @@ func processState(payment *orderpb.Payment, balance decimal.Decimal) string {
 		return orderconst.PaymentStateCanceled
 	}
 	// TODO: use payment string amount to avoid float accuracy problem
-	if payment.Amount+payment.StartAmount <= balance.InexactFloat64()+10e-4 {
+	if payment.Amount+payment.StartAmount <= balance.InexactFloat64() {
 		return orderconst.PaymentStateDone
 	}
 	if payment.CreateAt+orderconst.TimeoutSeconds < uint32(time.Now().Unix()) {
