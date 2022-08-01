@@ -16,17 +16,19 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	profitdetailpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/detail"
-	profitgeneralpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/general"
-	profitunsoldpb "github.com/NpoolPlatform/message/npool/miningmgr/profit/unsold"
+	profitdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/detail"
+	profitgeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/general"
+	profitunsoldpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/unsold"
 	profitdetailcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/detail"
 	profitgeneralcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/general"
 	profitunsoldcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/unsold"
 
 	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
 	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
-	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
-	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
+	ledgerprofitcli "github.com/NpoolPlatform/ledger-manager/pkg/client/profit"
+	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
+	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
+	ledgerprofitpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/profit"
 
 	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
@@ -367,6 +369,42 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 		ID:        &general.ID,
 		Incoming:  &amount,
 		Spendable: &amount,
+	})
+	if err != nil {
+		return err
+	}
+
+	profit, err := ledgerprofitcli.GetProfitOnly(ctx, &ledgerprofitpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.UserID,
+		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: g.coinTypeID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if profit == nil {
+		profit, err = ledgerprofitcli.CreateProfit(ctx, &ledgerprofitpb.ProfitReq{
+			AppID:      &order.AppID,
+			UserID:     &order.UserID,
+			CoinTypeID: &g.coinTypeID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = ledgerprofitcli.AddProfit(ctx, &ledgerprofitpb.ProfitReq{
+		ID:       &profit.ID,
+		Incoming: &amount,
 	})
 
 	return err

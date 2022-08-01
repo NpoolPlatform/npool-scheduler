@@ -13,7 +13,7 @@ import (
 
 	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
 
-	orderstatepb "github.com/NpoolPlatform/message/npool/ordermgr/state"
+	orderstatepb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
 	orderstatecli "github.com/NpoolPlatform/order-manager/pkg/client/state"
 
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"

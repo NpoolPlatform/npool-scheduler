@@ -23,11 +23,11 @@ import (
 
 	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
 	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
-	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledgermgr/detail"
-	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledgermgr/general"
+	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
+	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
 
-	archivementcli "github.com/NpoolPlatform/archivement-manager/pkg/client/archivement"
-	commissioncli "github.com/NpoolPlatform/archivement-manager/pkg/client/commission"
+	archivementcli "github.com/NpoolPlatform/archivement-middleware/pkg/client/archivement"
+	commissioncli "github.com/NpoolPlatform/archivement-middleware/pkg/client/commission"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
