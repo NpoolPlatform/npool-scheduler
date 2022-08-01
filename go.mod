@@ -5,17 +5,18 @@ go 1.17
 require (
 	entgo.io/ent v0.11.1
 	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
-	github.com/NpoolPlatform/archivement-manager v0.0.0-20220725073941-622be6a4c44f
+	github.com/NpoolPlatform/archivement-manager v0.0.0-20220801035550-1b55a6b8d4bf
+	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220801040020-7e7879775e62
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220726024402-8a4b5a272447
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20220812032117-44ecffa2bb95
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20220725013303-51e65b263313
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20220726144547-41aefeaea336
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20220801083606-458fa4cd2fbe
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220727044316-8140ce66bb18
-	github.com/NpoolPlatform/mining-manager v0.0.0-20220725160204-9df06b47f8e1
+	github.com/NpoolPlatform/message v0.0.0-20220801081511-acab711a9946
+	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
-	github.com/NpoolPlatform/order-manager v0.0.0-20220727052656-21d025110ea8
+	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
