@@ -6,9 +6,9 @@ require (
 	entgo.io/ent v0.11.1
 	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220801035550-1b55a6b8d4bf
-	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220801040020-7e7879775e62
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7
+	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220724104912-5495b0c02d63
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220726024402-8a4b5a272447
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220726144547-41aefeaea336
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220801083606-458fa4cd2fbe
@@ -27,6 +27,7 @@ require (
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.7.1
 	github.com/urfave/cli/v2 v2.5.0
+	go.opentelemetry.io/otel v1.8.0
 	google.golang.org/grpc v1.48.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
 	google.golang.org/protobuf v1.28.0
@@ -34,7 +35,6 @@ require (
 
 require (
 	ariga.io/atlas v0.5.0 // indirect
-	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220724104912-5495b0c02d63 // indirect
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
@@ -99,7 +99,6 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.31.0 // indirect
-	go.opentelemetry.io/otel v1.8.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.6.3 // indirect
 	go.opentelemetry.io/otel/sdk v1.6.3 // indirect
 	go.opentelemetry.io/otel/trace v1.8.0 // indirect

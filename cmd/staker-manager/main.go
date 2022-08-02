@@ -14,7 +14,6 @@ import (
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
 	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
-	archivementmwconst "github.com/NpoolPlatform/archivement-middleware/pkg/message/const"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 	goodsconst "github.com/NpoolPlatform/cloud-hashing-goods/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
@@ -48,7 +47,6 @@ func main() {
 		ledgerconst.ServiceName,
 		miningconst.ServiceName,
 		archivementconst.ServiceName,
-		archivementmwconst.ServiceName,
 		orderconst.ServiceName,
 		billingconst.ServiceName,
 	)
