@@ -26,8 +26,8 @@ import (
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
 
-	archivementcli "github.com/NpoolPlatform/archivement-middleware/pkg/client/archivement"
-	commissioncli "github.com/NpoolPlatform/archivement-middleware/pkg/client/commission"
+	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
+	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
@@ -298,10 +298,10 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 	}
 
 	if payment.State == orderconst.PaymentStateDone {
-		if err := commissioncli.CalculateCommission(ctx, order.ID); err != nil {
+		if err := commission.CalculateCommission(ctx, order.ID); err != nil {
 			return err
 		}
-		if err := archivementcli.CalculateArchivement(ctx, order.ID); err != nil {
+		if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
 			return err
 		}
 	}
