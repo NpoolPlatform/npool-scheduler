@@ -10,6 +10,7 @@ import (
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
@@ -117,6 +118,14 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 		return nil
 	}
 
+	err := accountlock.Lock(payment.AccountID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		accountlock.Unlock(payment.AccountID) //nolint
+	}()
+
 	goodPayment, err := billingcli.GetAccountGoodPayment(ctx, payment.AccountID)
 	if err != nil {
 		return err
@@ -127,16 +136,6 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 
 	goodPayment.Idle = true
 	goodPayment.OccupiedBy = ""
-
-	err = accountlock.Lock(payment.AccountID)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := accountlock.Unlock(payment.AccountID); err != nil {
-			logger.Sugar().Warnw("tryFinishPayment", "account", payment.AccountID)
-		}
-	}()
 
 	_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
 	return err
@@ -174,7 +173,7 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 	}
 
 	if general == nil {
-		_, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
+		general, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
 			AppID:      &payment.AppID,
 			UserID:     &payment.UserID,
 			CoinTypeID: &payment.CoinInfoID,
@@ -187,8 +186,12 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 	incoming := fmt.Sprintf("%v", payment.FinishAmount-payment.StartAmount)
 
 	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		Incoming:  &incoming,
-		Spendable: &incoming,
+		ID:         &general.ID,
+		AppID:      &payment.AppID,
+		UserID:     &payment.UserID,
+		CoinTypeID: &payment.CoinInfoID,
+		Incoming:   &incoming,
+		Spendable:  &incoming,
 	})
 	if err != nil {
 		return err
@@ -230,9 +233,87 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 		return err
 	}
 
+	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.UserID,
+		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.CoinInfoID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
 	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		Outcoming: &amount,
-		Spendable: &spendable,
+		ID:         &general.ID,
+		AppID:      &payment.AppID,
+		UserID:     &payment.UserID,
+		CoinTypeID: &payment.CoinInfoID,
+		Outcoming:  &amount,
+		Spendable:  &spendable,
+	})
+
+	return err
+}
+
+func updateLedgerBalance(ctx context.Context, payment *orderpb.Payment) error {
+	outcomingD := decimal.NewFromInt(0)
+	unlockedD := decimal.NewFromInt(0)
+	spendableD := decimal.NewFromInt(0)
+	var err error
+
+	switch payment.State {
+	case orderconst.PaymentStateTimeout:
+		unlockedD, err = decimal.NewFromString(payment.PayWithBalanceAmount)
+		if err != nil {
+			return err
+		}
+		spendableD = unlockedD
+		fallthrough //nolint
+	case orderconst.PaymentStateDone:
+		outcomingD = unlockedD
+		spendableD = decimal.NewFromInt(0)
+	default:
+		return nil
+	}
+
+	outcoming := outcomingD.String()
+	unlocked := fmt.Sprintf("-%v", unlockedD)
+	spendable := spendableD.String()
+
+	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.AppID,
+		},
+		UserID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.UserID,
+		},
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: payment.CoinInfoID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
+		ID:         &general.ID,
+		AppID:      &payment.AppID,
+		UserID:     &payment.UserID,
+		CoinTypeID: &payment.CoinInfoID,
+		Outcoming:  &outcoming,
+		Locked:     &unlocked,
+		Spendable:  &spendable,
 	})
 
 	return err
@@ -306,6 +387,10 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		}
 	}
 
+	if err := updateLedgerBalance(ctx, payment); err != nil {
+		return err
+	}
+
 	return updateStock(ctx, order.GoodID, unlocked, inservice)
 }
 
@@ -339,10 +424,16 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *order
 func processOrderPayment(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	switch order.OrderType {
 	case orderconst.OrderTypeNormal:
+		fallthrough //nolint
+	case ordermgrpb.OrderType_Normal.String():
 		return _processOrderPayment(ctx, order, payment)
 	case orderconst.OrderTypeOffline:
 		fallthrough //nolint
+	case ordermgrpb.OrderType_Offline.String():
+		fallthrough //nolint
 	case orderconst.OrderTypeAirdrop:
+		fallthrough //nolint
+	case ordermgrpb.OrderType_Airdrop.String():
 		return _processFakeOrder(ctx, order, payment)
 	default:
 		logger.Sugar().Errorw("processOrderPayment", "order", order.ID, "type", order.OrderType, "payment", payment.ID)
