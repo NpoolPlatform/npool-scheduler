@@ -263,7 +263,7 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 	return err
 }
 
-func updateLedgerBalance(ctx context.Context, payment *orderpb.Payment) error {
+func updateLedgerBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	outcomingD := decimal.NewFromInt(0)
 	unlockedD := decimal.NewFromInt(0)
 	spendableD := decimal.NewFromInt(0)
@@ -280,9 +280,30 @@ func updateLedgerBalance(ctx context.Context, payment *orderpb.Payment) error {
 	case orderconst.PaymentStateDone:
 		outcomingD = unlockedD
 		spendableD = decimal.NewFromInt(0)
+
+		ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "BalanceAmount": "%v"}`,
+			payment.ID, order.ID, payment.PayWithBalanceAmount)
+		amount := fmt.Sprintf("%v", payment.PayWithBalanceAmount)
+		ioType := ledgerdetailpb.IOType_Outcoming
+		ioSubType := ledgerdetailpb.IOSubType_Payment
+
+		_, err := ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+			AppID:      &payment.AppID,
+			UserID:     &payment.UserID,
+			CoinTypeID: &payment.CoinInfoID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &amount,
+			IOExtra:    &ioExtra,
+		})
+		if err != nil {
+			return err
+		}
 	default:
 		return nil
 	}
+
+	// TODO: implement to ledger middleware with TX
 
 	outcoming := outcomingD.String()
 	unlocked := fmt.Sprintf("-%v", unlockedD)
@@ -304,6 +325,9 @@ func updateLedgerBalance(ctx context.Context, payment *orderpb.Payment) error {
 	})
 	if err != nil {
 		return err
+	}
+	if general == nil {
+		return fmt.Errorf("invalid general")
 	}
 
 	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
@@ -387,7 +411,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		}
 	}
 
-	if err := updateLedgerBalance(ctx, payment); err != nil {
+	if err := updateLedgerBalance(ctx, order, payment); err != nil {
 		return err
 	}
 
