@@ -121,5 +121,7 @@ func checkOrderExpiries(ctx context.Context) {
 				return
 			}
 		}
+
+		offset += limit
 	}
 }
