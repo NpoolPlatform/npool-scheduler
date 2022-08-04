@@ -47,23 +47,52 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 	for _, inviter := range inviters {
 		myInviter := inviter
 
+		exist, err := detailcli.ExistDetailConds(ctx, &detailpb.Conds{
+			AppID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: payment.AppID,
+			},
+			UserID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: payment.UserID,
+			},
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: payment.GoodID,
+			},
+			CoinTypeID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: good.CoinInfoID,
+			},
+			PaymentID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: payment.ID,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if exist {
+			continue
+		}
+
 		commissionD := decimal.NewFromInt(0)
 
-		sets, ok := settings[inviter]
-		if ok {
-			for _, set := range sets {
-				if set.Start <= payment.CreateAt && (set.End == 0 || payment.CreateAt <= set.End) && subPercent < set.Percent {
-					commissionD = commissionD.
-						Add(usdAmountD.Mul(
-							decimal.NewFromInt(int64(set.Percent - subPercent))).
-							Div(decimal.NewFromInt(100))) //nolint
-					subPercent = set.Percent
-					break
-				}
+		sets := settings[inviter]
+		for _, set := range sets {
+			if set.Start <= payment.CreateAt && (set.End == 0 || payment.CreateAt <= set.End) && subPercent < set.Percent {
+				commissionD = commissionD.
+					Add(usdAmountD.Mul(
+						decimal.NewFromInt(int64(set.Percent - subPercent))).
+						Div(decimal.NewFromInt(100))) //nolint
+				subPercent = set.Percent
+				break
 			}
 		}
 
 		commission := commissionD.String()
+
+		// TODO: move to ledger TX
 
 		_, err = detailcli.CreateDetail(ctx, &detailpb.DetailReq{
 			AppID:                  &payment.AppID,
