@@ -50,7 +50,7 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 
 	account, err := billingcli.GetAccount(ctx, payment.AccountID)
 	if err != nil || account == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "account", account, "error", err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		Address: account.Address,
 	})
 	if err != nil || balance == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "balance", balance, "error", err)
 		return
 	}
 
