@@ -23,12 +23,8 @@ import (
 	profitgeneralcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/general"
 	profitunsoldcli "github.com/NpoolPlatform/mining-manager/pkg/client/profit/unsold"
 
-	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
-	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
-	ledgerprofitcli "github.com/NpoolPlatform/ledger-manager/pkg/client/profit"
+	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
-	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
-	ledgerprofitpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/profit"
 
 	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
 	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
@@ -278,9 +274,6 @@ func (g *gp) stock(ctx context.Context) error {
 }
 
 func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) error {
-	logger.Sugar().Infow("processOrder", "timestamp", timestamp, "goodID", g.goodID, "goodName", g.goodName, "profit",
-		g.dailyProfit, "totalUnits", g.totalUnits, "order", order.ID, "orderUnits", order.Units)
-
 	amount := g.dailyProfit.
 		Mul(decimal.NewFromInt(int64(order.Units))).
 		Div(decimal.NewFromInt(int64(g.totalUnits))).
@@ -288,43 +281,10 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 	ioExtra := fmt.Sprintf(`{"GoodID": "%v", "BenefitDate": "%v", "OrderID": "%v"}`,
 		g.goodID, timestamp, order.ID)
 
-	detail, err := ledgerdetailcli.GetDetailOnly(ctx, &ledgerdetailpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: g.coinTypeID,
-		},
-		IOType: &commonpb.Int32Val{
-			Op:    cruder.EQ,
-			Value: int32(ledgerdetailpb.IOType_Incoming),
-		},
-		IOSubType: &commonpb.Int32Val{
-			Op:    cruder.EQ,
-			Value: int32(ledgerdetailpb.IOSubType_MiningBenefit),
-		},
-		IOExtra: &commonpb.StringVal{
-			Op:    cruder.LIKE,
-			Value: ioExtra,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if detail != nil {
-		return fmt.Errorf("ledger detail exist")
-	}
-
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_MiningBenefit
 
-	_, err = ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &order.AppID,
 		UserID:     &order.UserID,
 		CoinTypeID: &g.coinTypeID,
@@ -333,81 +293,6 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	})
-	if err != nil {
-		return err
-	}
-
-	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: g.coinTypeID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if general == nil {
-		general, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
-			AppID:      &order.AppID,
-			UserID:     &order.UserID,
-			CoinTypeID: &g.coinTypeID,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		ID:        &general.ID,
-		Incoming:  &amount,
-		Spendable: &amount,
-	})
-	if err != nil {
-		return err
-	}
-
-	profit, err := ledgerprofitcli.GetProfitOnly(ctx, &ledgerprofitpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: g.coinTypeID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if profit == nil {
-		profit, err = ledgerprofitcli.CreateProfit(ctx, &ledgerprofitpb.ProfitReq{
-			AppID:      &order.AppID,
-			UserID:     &order.UserID,
-			CoinTypeID: &g.coinTypeID,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = ledgerprofitcli.AddProfit(ctx, &ledgerprofitpb.ProfitReq{
-		ID:       &profit.ID,
-		Incoming: &amount,
-	})
-
-	return err
 }
 
 func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
