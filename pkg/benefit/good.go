@@ -16,6 +16,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
+	// TODO: move mining profit to middleware TX
 	profitdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/detail"
 	profitgeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/general"
 	profitunsoldpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/mining/profit/unsold"
