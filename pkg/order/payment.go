@@ -22,16 +22,11 @@ import (
 
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
-	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
-	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
+	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
-	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
 
 	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
 	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
-
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 
 	"github.com/shopspring/decimal"
 )
@@ -154,73 +149,14 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 		return nil
 	}
 
-	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.CoinInfoID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if general == nil {
-		general, err = ledgergeneralcli.CreateGeneral(ctx, &ledgergeneralpb.GeneralReq{
-			AppID:      &payment.AppID,
-			UserID:     &payment.UserID,
-			CoinTypeID: &payment.CoinInfoID,
-		})
-		if err != nil {
-			return nil
-		}
-	}
-
-	incoming := fmt.Sprintf("%v", payment.FinishAmount-payment.StartAmount)
-
-	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		ID:         &general.ID,
-		AppID:      &payment.AppID,
-		UserID:     &payment.UserID,
-		CoinTypeID: &payment.CoinInfoID,
-		Incoming:   &incoming,
-		Spendable:  &incoming,
-	})
-	if err != nil {
-		return err
-	}
-
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Payment
+	amount := decimal.NewFromFloat(payment.FinishAmount).
+		Sub(decimal.NewFromFloat(payment.StartAmount)).
+		String()
 
-	_, err = ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
-		AppID:      &payment.AppID,
-		UserID:     &payment.UserID,
-		CoinTypeID: &payment.CoinInfoID,
-		IOType:     &ioType,
-		IOSubType:  &ioSubType,
-		Amount:     &incoming,
-		IOExtra:    &ioExtra,
-	})
-	return err
-}
-
-func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
-	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
-	amount := fmt.Sprintf("%v", payment.Amount)
-	spendable := fmt.Sprintf("-%v", payment.Amount)
-	ioType := ledgerdetailpb.IOType_Outcoming
-	ioSubType := ledgerdetailpb.IOSubType_Payment
-
-	_, err := ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &payment.AppID,
 		UserID:     &payment.UserID,
 		CoinTypeID: &payment.CoinInfoID,
@@ -229,118 +165,53 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	})
-	if err != nil {
-		return err
-	}
+}
 
-	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.CoinInfoID,
-		},
-	})
-	if err != nil {
-		return err
-	}
+func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
+	amount := fmt.Sprintf("%v", payment.Amount)
+	ioType := ledgerdetailpb.IOType_Outcoming
+	ioSubType := ledgerdetailpb.IOSubType_Payment
 
-	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		ID:         &general.ID,
+	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &payment.AppID,
 		UserID:     &payment.UserID,
 		CoinTypeID: &payment.CoinInfoID,
-		Outcoming:  &amount,
-		Spendable:  &spendable,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &amount,
+		IOExtra:    &ioExtra,
 	})
-
-	return err
 }
 
-func updateLedgerBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
-	outcomingD := decimal.NewFromInt(0)
-	unlockedD := decimal.NewFromInt(0)
-	spendableD := decimal.NewFromInt(0)
+func unlockBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	var err error
+
+	outcoming := decimal.NewFromInt(0)
+	unlocked, err := decimal.NewFromString(payment.PayWithBalanceAmount)
+	if err != nil {
+		return err
+	}
+
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "BalanceAmount": "%v"}`,
+		payment.ID, order.ID, payment.PayWithBalanceAmount)
 
 	switch payment.State {
 	case orderconst.PaymentStateTimeout:
-		unlockedD, err = decimal.NewFromString(payment.PayWithBalanceAmount)
-		if err != nil {
-			return err
-		}
-		spendableD = unlockedD
 		fallthrough //nolint
 	case orderconst.PaymentStateDone:
-		outcomingD = unlockedD
-		spendableD = decimal.NewFromInt(0)
-
-		ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "BalanceAmount": "%v"}`,
-			payment.ID, order.ID, payment.PayWithBalanceAmount)
-		amount := fmt.Sprintf("%v", payment.PayWithBalanceAmount)
-		ioType := ledgerdetailpb.IOType_Outcoming
-		ioSubType := ledgerdetailpb.IOSubType_Payment
-
-		_, err := ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
-			AppID:      &payment.AppID,
-			UserID:     &payment.UserID,
-			CoinTypeID: &payment.CoinInfoID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &amount,
-			IOExtra:    &ioExtra,
-		})
-		if err != nil {
-			return err
-		}
+		outcoming = unlocked
 	default:
 		return nil
 	}
 
-	// TODO: implement to ledger middleware with TX
-
-	outcoming := outcomingD.String()
-	unlocked := fmt.Sprintf("-%v", unlockedD)
-	spendable := spendableD.String()
-
-	general, err := ledgergeneralcli.GetGeneralOnly(ctx, &ledgergeneralpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.UserID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: payment.CoinInfoID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if general == nil {
-		return fmt.Errorf("invalid general")
-	}
-
-	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		ID:         &general.ID,
-		AppID:      &payment.AppID,
-		UserID:     &payment.UserID,
-		CoinTypeID: &payment.CoinInfoID,
-		Outcoming:  &outcoming,
-		Locked:     &unlocked,
-		Spendable:  &spendable,
-	})
-
-	return err
+	return ledgermwcli.UnlockBalance(
+		ctx,
+		payment.AppID, payment.UserID, payment.CoinInfoID,
+		ledgerdetailpb.IOSubType_Payment,
+		unlocked, outcoming,
+		ioExtra,
+	)
 }
 
 func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
@@ -411,7 +282,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		}
 	}
 
-	if err := updateLedgerBalance(ctx, order, payment); err != nil {
+	if err := unlockBalance(ctx, order, payment); err != nil {
 		return err
 	}
 
