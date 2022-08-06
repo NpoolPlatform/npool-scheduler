@@ -11,17 +11,11 @@ import (
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 
-	ledgerdetailcli "github.com/NpoolPlatform/ledger-manager/pkg/client/detail"
-	ledgergeneralcli "github.com/NpoolPlatform/ledger-manager/pkg/client/general"
+	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
-	ledgergeneralpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/general"
-
-	commonpb "github.com/NpoolPlatform/message/npool"
 
 	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
 	"github.com/NpoolPlatform/staker-manager/pkg/referral"
-
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,44 +29,10 @@ func tryUpdateCommissionLedger(
 ) error {
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "OrderUserID": "%v"}`, paymentID, orderID, orderUserID)
 	amountStr := amount.String()
-	spendable := amount.String()
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
-	detail, err := ledgerdetailcli.GetDetailOnly(ctx, &ledgerdetailpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: appID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: userID,
-		},
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: coinTypeID,
-		},
-		IOType: &commonpb.Int32Val{
-			Op:    cruder.EQ,
-			Value: int32(ioType),
-		},
-		IOSubType: &commonpb.Int32Val{
-			Op:    cruder.EQ,
-			Value: int32(ioSubType),
-		},
-		IOExtra: &commonpb.StringVal{
-			Op:    cruder.LIKE,
-			Value: orderID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if detail != nil {
-		return fmt.Errorf("commission already exist")
-	}
-
-	_, err = ledgerdetailcli.CreateDetail(ctx, &ledgerdetailpb.DetailReq{
+	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &appID,
 		UserID:     &userID,
 		CoinTypeID: &coinTypeID,
@@ -81,16 +41,6 @@ func tryUpdateCommissionLedger(
 		Amount:     &amountStr,
 		IOExtra:    &ioExtra,
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = ledgergeneralcli.AddGeneral(ctx, &ledgergeneralpb.GeneralReq{
-		Incoming:  &amountStr,
-		Spendable: &spendable,
-	})
-
-	return err
 }
 
 // TODO: calculate commission according to different app commission strategy
