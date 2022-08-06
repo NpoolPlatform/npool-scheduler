@@ -266,6 +266,8 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		return err
 	}
 
+	// TODO: move to TX
+
 	if err := tryUpdatePaymentLedger(ctx, order, payment); err != nil {
 		return err
 	}
