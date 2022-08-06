@@ -168,6 +168,16 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 }
 
 func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+	if payment.Amount > 0 {
+		return nil
+	}
+
+	switch payment.State {
+	case orderconst.PaymentStateDone:
+	default:
+		return nil
+	}
+
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, payment.ID, order.ID)
 	amount := fmt.Sprintf("%v", payment.Amount)
 	ioType := ledgerdetailpb.IOType_Outcoming
@@ -185,7 +195,18 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *or
 }
 
 func unlockBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
-	var err error
+	if payment.PayWithBalanceAmount == "" {
+		return nil
+	}
+
+	balance, err := decimal.NewFromString(payment.PayWithBalanceAmount)
+	if err != nil {
+		return err
+	}
+
+	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
 
 	outcoming := decimal.NewFromInt(0)
 	unlocked, err := decimal.NewFromString(payment.PayWithBalanceAmount)
@@ -197,6 +218,8 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 		payment.ID, order.ID, payment.PayWithBalanceAmount)
 
 	switch payment.State {
+	case orderconst.PaymentStateCanceled:
+		fallthrough //nolint
 	case orderconst.PaymentStateTimeout:
 		fallthrough //nolint
 	case orderconst.PaymentStateDone:
@@ -256,7 +279,9 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		"finishAmount", payment.FinishAmount, "amount", payment.Amount,
 		"dueAmount", payment.Amount+payment.StartAmount, "state", payment.State,
 		"newState", state, "remain", remain, "unlocked", unlocked,
-		"inservice", inservice, "balance", bal)
+		"inservice", inservice, "balance", bal,
+		"coin", coin.Name, "address", account.Address, "balance", balance,
+	)
 
 	if err := trySavePaymentBalance(ctx, payment, remain); err != nil {
 		return err
@@ -271,6 +296,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 	if err := tryUpdatePaymentLedger(ctx, order, payment); err != nil {
 		return err
 	}
+
 	if err := tryUpdateOrderLedger(ctx, order, payment); err != nil {
 		return err
 	}
@@ -342,7 +368,8 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 	for _, order := range orders {
 		payment, err := ordercli.GetOrderPayment(ctx, order.ID)
 		if err != nil {
-			return fmt.Errorf("fail get order payment: %v", err)
+			logger.Sugar().Infow("processOrderPayments", "OrderID", order.ID, "error", err)
+			return err
 		}
 		if payment == nil {
 			continue
@@ -352,7 +379,7 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 		}
 
 		if err := processOrderPayment(ctx, order, payment); err != nil {
-			return fmt.Errorf("fail process order: %v", err)
+			return err
 		}
 	}
 	return nil
@@ -365,7 +392,7 @@ func checkOrderPayments(ctx context.Context) {
 	for {
 		orders, err := ordercli.GetOrders(ctx, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("getOrders", "offset", offset, "limit", limit)
+			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
 			return
 		}
 		if len(orders) == 0 {
@@ -374,7 +401,7 @@ func checkOrderPayments(ctx context.Context) {
 
 		err = processOrderPayments(ctx, orders)
 		if err != nil {
-			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit)
+			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
 			return
 		}
 
