@@ -168,7 +168,7 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order, payment *
 }
 
 func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
-	if payment.Amount > 0 {
+	if payment.Amount <= 0 {
 		return nil
 	}
 
