@@ -25,17 +25,17 @@ import (
 )
 
 const (
-	defaultLimitAmount      = uint32(10000)
-	leastLimitAmount        = uint32(1)
+	defaultLimitAmount      = 10000.0
+	leastLimitAmount        = 0.1
 	accountCoollDownSeconds = 1 * 60 * 60
 )
 
-func coinLimit(ctx context.Context, coin *coininfopb.CoinInfo, setting *billingpb.CoinSetting) (uint32, error) {
-	limit := uint32(0)
+func coinLimit(ctx context.Context, coin *coininfopb.CoinInfo, setting *billingpb.CoinSetting) (float64, error) {
+	limit := 0.0
 
 	if setting != nil {
 		// TODO: use decimal for amount
-		limit = uint32(setting.WarmAccountCoinAmount)
+		limit = setting.WarmAccountCoinAmount
 	}
 
 	if limit == 0 {
@@ -49,11 +49,11 @@ func coinLimit(ctx context.Context, coin *coininfopb.CoinInfo, setting *billingp
 			return defaultLimitAmount, err
 		}
 
-		limit = uint32(psetting.WarmAccountUSDAmount / price)
+		limit = psetting.WarmAccountUSDAmount / price
 	}
 
 	if limit < leastLimitAmount {
-		limit = defaultLimitAmount
+		return leastLimitAmount, nil
 	}
 
 	return limit, nil
@@ -138,7 +138,7 @@ func checkCoinLimit(ctx context.Context, coin *coininfopb.CoinInfo) error {
 	}
 
 	// TODO: use decimal other than float
-	if uint32(balance.Balance) < limit*2 {
+	if balance.Balance < limit*2 {
 		return nil
 	}
 
@@ -157,7 +157,7 @@ func checkCoinLimit(ctx context.Context, coin *coininfopb.CoinInfo) error {
 		FromAddressID:      csetting.UserOnlineAccountID,
 		ToAddressID:        csetting.UserOfflineAccountID,
 		CoinTypeID:         coin.ID,
-		Amount:             balance.Balance - float64(limit),
+		Amount:             balance.Balance - limit,
 		Message:            fmt.Sprintf("warm transfer at %v", time.Now()),
 		ChainTransactionID: "",
 		CreatedFor:         billingconst.TransactionForWarmTransfer,
