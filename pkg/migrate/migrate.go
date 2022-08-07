@@ -64,7 +64,9 @@ func open(hostname string) (conn *sql.DB, err error) {
 	return conn, nil
 }
 
-func migrate(order *sql.DB, billing *sql.DB, archivement *sql.DB, ledger *sql.DB) error {
+func migrate(order, billing, archivement, ledger *sql.DB) error {
+	// Migrate payments to ledger details and general
+	// Migrate commission to ledger detail and general
 	return nil
 }
 
@@ -74,29 +76,26 @@ func Migrate(ctx context.Context) (err error) {
 		logger.Sugar().Infow("Migrate", "Done", "...", "error", err)
 	}()
 
-	_, err = open(orderconst.ServiceName)
+	// Prepare mysql instance for order / billing / ledger
+	order, err := open(orderconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
-	_, err = open(billingconst.ServiceName)
+	billing, err := open(billingconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
-	_, err = open(archivementconst.ServiceName)
+	archivement, err := open(archivementconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
-	_, err = open(ledgerconst.ServiceName)
+	ledger, err := open(ledgerconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
-	// Prepare mysql instant for order / billing / ledger
-	// Migrate payments to ledger details and general
-	// Migrate commission to ledger detail and general
-
-	return nil
+	return migrate(order, billing, archivement, ledger)
 }
