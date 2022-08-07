@@ -219,9 +219,7 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 
 	switch payment.State {
 	case orderconst.PaymentStateCanceled:
-		fallthrough //nolint
 	case orderconst.PaymentStateTimeout:
-		fallthrough //nolint
 	case orderconst.PaymentStateDone:
 		outcoming = unlocked
 	default:
