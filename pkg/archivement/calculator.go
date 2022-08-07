@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	"github.com/shopspring/decimal"
 
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
@@ -15,12 +14,8 @@ import (
 	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
 	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
 
-	commonpb "github.com/NpoolPlatform/message/npool"
+	archivementcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/archivement"
 	detailpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/archivement/detail"
-	generalpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/archivement/general"
-
-	detailcli "github.com/NpoolPlatform/archivement-manager/pkg/client/detail"
-	generalcli "github.com/NpoolPlatform/archivement-manager/pkg/client/general"
 
 	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
 	"github.com/NpoolPlatform/staker-manager/pkg/referral"
@@ -46,55 +41,27 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 
 	for _, inviter := range inviters {
 		myInviter := inviter
-
-		exist, err := detailcli.ExistDetailConds(ctx, &detailpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.AppID,
-			},
-			UserID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.UserID,
-			},
-			GoodID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.GoodID,
-			},
-			CoinTypeID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: good.CoinInfoID,
-			},
-			PaymentID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.ID,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if exist {
-			continue
-		}
-
 		commissionD := decimal.NewFromInt(0)
 
 		sets := settings[inviter]
 		for _, set := range sets {
-			if set.Start <= payment.CreateAt && (set.End == 0 || payment.CreateAt <= set.End) && subPercent < set.Percent {
-				commissionD = commissionD.
-					Add(usdAmountD.Mul(
-						decimal.NewFromInt(int64(set.Percent - subPercent))).
-						Div(decimal.NewFromInt(100))) //nolint
+			if set.Start <= payment.CreateAt &&
+				(set.End == 0 || payment.CreateAt <= set.End) {
+				if subPercent < set.Percent {
+					commissionD = commissionD.
+						Add(usdAmountD.Mul(
+							decimal.NewFromInt(int64(set.Percent - subPercent))).
+							Div(decimal.NewFromInt(100))) //nolint
+				}
 				subPercent = set.Percent
 				break
 			}
 		}
 
 		commission := commissionD.String()
+		selfOrder := inviter == payment.UserID
 
-		// TODO: move to ledger TX
-
-		_, err = detailcli.CreateDetail(ctx, &detailpb.DetailReq{
+		detailReq := &detailpb.DetailReq{
 			AppID:                  &payment.AppID,
 			UserID:                 &myInviter,
 			GoodID:                 &order.GoodID,
@@ -107,70 +74,9 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 			Amount:                 &amount,
 			Commission:             &commission,
 			USDAmount:              &usdAmount,
-		})
-		if err != nil {
-			return err
+			SelfOrder:              &selfOrder,
 		}
-
-		general, err := generalcli.GetGeneralOnly(ctx, &generalpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.AppID,
-			},
-			UserID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.UserID,
-			},
-			GoodID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: payment.GoodID,
-			},
-			CoinTypeID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: good.CoinInfoID,
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		selfUnits := uint32(0)
-		selfAmountD := decimal.NewFromInt(0)
-		selfCommissionD := decimal.NewFromInt(0)
-
-		if inviter == payment.UserID {
-			selfUnits = order.Units
-			selfAmountD = selfAmountD.Add(usdAmountD)
-			selfCommissionD = selfCommissionD.Add(commissionD)
-		}
-
-		selfAmount := selfAmountD.String()
-		selfCommission := selfCommissionD.String()
-
-		if general == nil {
-			general, err = generalcli.CreateGeneral(ctx, &generalpb.GeneralReq{
-				AppID:      &payment.AppID,
-				UserID:     &myInviter,
-				GoodID:     &order.GoodID,
-				CoinTypeID: &good.CoinInfoID,
-			})
-			if err != nil {
-				return err
-			}
-		}
-
-		generalID := general.ID
-
-		_, err = generalcli.AddGeneral(ctx, &generalpb.GeneralReq{
-			ID:              &generalID,
-			TotalAmount:     &usdAmount,
-			SelfAmount:      &selfAmount,
-			TotalUnits:      &order.Units,
-			SelfUnits:       &selfUnits,
-			TotalCommission: &commission,
-			SelfCommission:  &selfCommission,
-		})
-		if err != nil {
+		if err := archivementcli.BookKeeping(ctx, detailReq); err != nil {
 			return err
 		}
 	}
