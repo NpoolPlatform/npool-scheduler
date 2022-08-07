@@ -6,12 +6,23 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+
+	entsql "entgo.io/ent/dialect/sql"
+
 	constant "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
 
+	archivementent "github.com/NpoolPlatform/archivement-manager/pkg/db/ent"
 	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
+
+	billingent "github.com/NpoolPlatform/cloud-hashing-billing/pkg/db/ent"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+
+	ledgerent "github.com/NpoolPlatform/ledger-manager/pkg/db/ent"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
+
+	orderent "github.com/NpoolPlatform/cloud-hashing-order/pkg/db/ent"
+	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/config"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -64,10 +75,42 @@ func open(hostname string) (conn *sql.DB, err error) {
 	return conn, nil
 }
 
-func migrate(order, billing, archivement, ledger *sql.DB) error {
+func _migrate(
+	ctx context.Context,
+	order *orderent.Client,
+	billing *billingent.Client,
+	archivement *archivementent.Client,
+	ledger *ledgerent.Client,
+) error {
 	// Migrate payments to ledger details and general
 	// Migrate commission to ledger detail and general
 	return nil
+}
+
+func migrate(ctx context.Context, order, billing, archivement, ledger *sql.DB) error {
+	return _migrate(
+		ctx,
+		orderent.NewClient(
+			orderent.Driver(
+				entsql.OpenDB(dialect.MySQL, order),
+			),
+		),
+		billingent.NewClient(
+			billingent.Driver(
+				entsql.OpenDB(dialect.MySQL, billing),
+			),
+		),
+		archivementent.NewClient(
+			archivementent.Driver(
+				entsql.OpenDB(dialect.MySQL, archivement),
+			),
+		),
+		ledgerent.NewClient(
+			ledgerent.Driver(
+				entsql.OpenDB(dialect.MySQL, ledger),
+			),
+		),
+	)
 }
 
 func Migrate(ctx context.Context) (err error) {
@@ -97,5 +140,5 @@ func Migrate(ctx context.Context) (err error) {
 		return err
 	}
 
-	return migrate(order, billing, archivement, ledger)
+	return migrate(ctx, order, billing, archivement, ledger)
 }
