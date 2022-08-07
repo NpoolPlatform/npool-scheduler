@@ -11,10 +11,10 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220724104912-5495b0c02d63
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220726144547-41aefeaea336
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20220805030941-bc13c2f4b4e7
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20220806113240-28fa97aaab72
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805063908-87b7977e088b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220805061724-df509f48af55
+	github.com/NpoolPlatform/message v0.0.0-20220806113143-fcf0c3f89b35
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
