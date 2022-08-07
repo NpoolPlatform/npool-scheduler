@@ -13,8 +13,8 @@ import (
 
 	constant "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
 
-	archivementent "github.com/NpoolPlatform/archivement-manager/pkg/db/ent"
-	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
+	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
+	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
 
 	billingent "github.com/NpoolPlatform/cloud-hashing-billing/pkg/db/ent"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
@@ -158,7 +158,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	ioType = ledgerdetailpb.IOType_Outcoming
 	ioSubType = ledgerdetailpb.IOSubType_Payment
 
-	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+	if err := ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &order.AppID,
 		UserID:     &order.UserID,
 		CoinTypeID: &order.PaymentCoinTypeID,
@@ -166,17 +166,26 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		IOSubType:  &ioSubType,
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
-	})
+	}); err != nil {
+		return err
+	}
 
-	// Migrate commission to ledger detail and general
+	if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
+		return err
+	}
+
+	if err := commission.CalculateCommission(ctx, order.ID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func _migrate(
 	ctx context.Context,
 	order *orderent.Client,
-	billing *billingent.Client,
-	archivement *archivementent.Client,
-	ledger *ledgerent.Client,
+	_billing *billingent.Client, //nolint
+	_ledger *ledgerent.Client, //nolint
 ) error {
 	offset := 0
 	limit := 1000
@@ -205,7 +214,7 @@ func _migrate(
 	}
 }
 
-func migrate(ctx context.Context, order, billing, archivement, ledger *sql.DB) error {
+func migrate(ctx context.Context, order, billing, ledger *sql.DB) error {
 	return _migrate(
 		ctx,
 		orderent.NewClient(
@@ -216,11 +225,6 @@ func migrate(ctx context.Context, order, billing, archivement, ledger *sql.DB) e
 		billingent.NewClient(
 			billingent.Driver(
 				entsql.OpenDB(dialect.MySQL, billing),
-			),
-		),
-		archivementent.NewClient(
-			archivementent.Driver(
-				entsql.OpenDB(dialect.MySQL, archivement),
 			),
 		),
 		ledgerent.NewClient(
@@ -248,15 +252,10 @@ func Migrate(ctx context.Context) (err error) {
 		return err
 	}
 
-	archivement, err := open(archivementconst.ServiceName)
-	if err != nil {
-		return err
-	}
-
 	ledger, err := open(ledgerconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
-	return migrate(ctx, order, billing, archivement, ledger)
+	return migrate(ctx, order, billing, ledger)
 }
