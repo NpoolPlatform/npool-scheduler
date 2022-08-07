@@ -133,7 +133,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	ioSubType := ledgerdetailpb.IOSubType_Payment
 	amount := finishAmount.Sub(startAmount).String()
 
-	if err = ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+	if err := ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &order.AppID,
 		UserID:     &order.UserID,
 		CoinTypeID: &order.PaymentCoinTypeID,
@@ -178,25 +178,31 @@ func _migrate(
 	archivement *archivementent.Client,
 	ledger *ledgerent.Client,
 ) error {
-	infos := []*ordermwpb.Order{}
+	offset := 0
+	limit := 1000
 
-	stm := order.Order.Query()
-	err := ordermw.Join(stm).Scan(ctx, &infos)
-	if err != nil {
-		return err
-	}
+	for {
+		infos := []*ordermwpb.Order{}
 
-	invalidID := uuid.UUID{}.String()
-	for _, info := range infos {
-		if info.PaymentID == "" || info.PaymentID == invalidID {
-			continue
+		stm := order.Order.Query().Offset(offset).Limit(limit)
+		err := ordermw.Join(stm).Scan(ctx, &infos)
+		if err != nil {
+			return err
 		}
-		if err := processOrder(ctx, ordermw.Post(info)); err != nil {
-			logger.Sugar().Warnw("_migrate", "OrderID", info.ID, "PaymentID", info.PaymentID, "error", err)
+		if len(infos) == 0 {
+			return nil
+		}
+
+		invalidID := uuid.UUID{}.String()
+		for _, info := range infos {
+			if info.PaymentID == "" || info.PaymentID == invalidID {
+				continue
+			}
+			if err := processOrder(ctx, ordermw.Post(info)); err != nil {
+				logger.Sugar().Warnw("_migrate", "OrderID", info.ID, "PaymentID", info.PaymentID, "error", err)
+			}
 		}
 	}
-
-	return nil
 }
 
 func migrate(ctx context.Context, order, billing, archivement, ledger *sql.DB) error {
