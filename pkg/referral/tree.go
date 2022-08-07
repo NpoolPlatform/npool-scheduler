@@ -15,6 +15,7 @@ func GetReferrals(
 	curUser := userID
 
 	settings = map[string][]*inspirepb.AppPurchaseAmountSetting{}
+	inviters = append(inviters, userID)
 
 	for {
 		sets, err := inspirecli.GetAmountSettings(ctx, appID, curUser)
