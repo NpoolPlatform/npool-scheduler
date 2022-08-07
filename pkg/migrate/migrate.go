@@ -23,6 +23,7 @@ import (
 
 	orderent "github.com/NpoolPlatform/cloud-hashing-order/pkg/db/ent"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+	orderstpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermw "github.com/NpoolPlatform/order-middleware/pkg/order"
 
@@ -79,6 +80,20 @@ func open(hostname string) (conn *sql.DB, err error) {
 	return conn, nil
 }
 
+func processOrder(ctx context.Context, order *ordermwpb.Order) error {
+	// Migrate payments to ledger details and general
+	switch order.PaymentState {
+	case orderstpb.EState_Paid.String():
+	default:
+		return nil
+	}
+
+	logger.Sugar().Infow("processOrder", order.ID, order.PaymentID, order.PaymentAmount, order.PaymentState)
+
+	// Migrate commission to ledger detail and general
+	return nil
+}
+
 func _migrate(
 	ctx context.Context,
 	order *orderent.Client,
@@ -95,15 +110,15 @@ func _migrate(
 	}
 
 	invalidID := uuid.UUID{}.String()
-	for i, info := range infos {
+	for _, info := range infos {
 		if info.PaymentID == "" || info.PaymentID == invalidID {
 			continue
 		}
-		infos[i] = ordermw.Post(info)
+		if err := processOrder(ctx, ordermw.Post(info)); err != nil {
+			return err
+		}
 	}
 
-	// Migrate payments to ledger details and general
-	// Migrate commission to ledger detail and general
 	return nil
 }
 
