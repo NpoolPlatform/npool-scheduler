@@ -112,15 +112,21 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		return nil
 	}
 
-	logger.Sugar().Infow(
-		"processOrder",
-		"Order", order.ID,
-		"Payment", order.PaymentID,
-		"Amount", order.PaymentAmount,
-		"StartAmount", order.PaymentStartAmount,
-		"FinishAmount", order.PaymentFinishAmount,
-		"State", order.PaymentState,
-	)
+	defer func() {
+		logger.Sugar().Infow(
+			"processOrder",
+			"AppID", order.AppID,
+			"UserID", order.UserID,
+			"PaymentCoinTypeID", order.PaymentCoinTypeID,
+			"OrderID", order.ID,
+			"PaymentID", order.PaymentID,
+			"Amount", order.PaymentAmount,
+			"StartAmount", order.PaymentStartAmount,
+			"FinishAmount", order.PaymentFinishAmount,
+			"State", order.PaymentState,
+			"Error", err,
+		)
+	}()
 
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, order.PaymentID, order.ID)
 	ioType := ledgerdetailpb.IOType_Incoming
@@ -161,6 +167,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	})
+
 	// Migrate commission to ledger detail and general
 }
 
@@ -185,7 +192,7 @@ func _migrate(
 			continue
 		}
 		if err := processOrder(ctx, ordermw.Post(info)); err != nil {
-			return err
+			logger.Sugar().Warnw("_migrate", "OrderID", info.ID, "PaymentID", info.PaymentID, "error", err)
 		}
 	}
 
