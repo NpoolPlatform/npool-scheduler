@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"entgo.io/ent/dialect"
+	"github.com/shopspring/decimal"
 
+	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 
 	constant "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
@@ -26,6 +27,9 @@ import (
 	orderstpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermw "github.com/NpoolPlatform/order-middleware/pkg/order"
+
+	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
+	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/config"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -84,14 +88,80 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	// Migrate payments to ledger details and general
 	switch order.PaymentState {
 	case orderstpb.EState_Paid.String():
+	case orderstpb.EState_PaymentTimeout.String():
+	case orderstpb.EState_Canceled.String():
 	default:
 		return nil
 	}
 
-	logger.Sugar().Infow("processOrder", order.ID, order.PaymentID, order.PaymentAmount, order.PaymentState)
+	if order.PaymentStartAmount == "" || order.PaymentFinishAmount == "" {
+		return nil
+	}
 
+	startAmount, err := decimal.NewFromString(order.PaymentStartAmount)
+	if err != nil {
+		return err
+	}
+
+	finishAmount, err := decimal.NewFromString(order.PaymentFinishAmount)
+	if err != nil {
+		return err
+	}
+
+	if finishAmount.Cmp(startAmount) <= 0 {
+		return nil
+	}
+
+	logger.Sugar().Infow(
+		"processOrder",
+		"Order", order.ID,
+		"Payment", order.PaymentID,
+		"Amount", order.PaymentAmount,
+		"StartAmount", order.PaymentStartAmount,
+		"FinishAmount", order.PaymentFinishAmount,
+		"State", order.PaymentState,
+	)
+
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, order.PaymentID, order.ID)
+	ioType := ledgerdetailpb.IOType_Incoming
+	ioSubType := ledgerdetailpb.IOSubType_Payment
+	amount := finishAmount.Sub(startAmount).String()
+
+	if err = ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+		AppID:      &order.AppID,
+		UserID:     &order.UserID,
+		CoinTypeID: &order.PaymentCoinTypeID,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &amount,
+		IOExtra:    &ioExtra,
+	}); err != nil {
+		return err
+	}
+
+	switch order.PaymentState {
+	case orderstpb.EState_Paid.String():
+	default:
+		return nil
+	}
+
+	paymentAmount := decimal.RequireFromString(order.PaymentAmount)
+
+	ioExtra = fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, order.PaymentID, order.ID)
+	amount = paymentAmount.String()
+	ioType = ledgerdetailpb.IOType_Outcoming
+	ioSubType = ledgerdetailpb.IOSubType_Payment
+
+	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+		AppID:      &order.AppID,
+		UserID:     &order.UserID,
+		CoinTypeID: &order.PaymentCoinTypeID,
+		IOType:     &ioType,
+		IOSubType:  &ioSubType,
+		Amount:     &amount,
+		IOExtra:    &ioExtra,
+	})
 	// Migrate commission to ledger detail and general
-	return nil
 }
 
 func _migrate(

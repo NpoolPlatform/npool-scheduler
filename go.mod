@@ -12,13 +12,13 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220807091054-871fc936ff5e
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220806113240-28fa97aaab72
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805063908-87b7977e088b
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
-	github.com/NpoolPlatform/message v0.0.0-20220807093727-0df2f4ca5dff
+	github.com/NpoolPlatform/message v0.0.0-20220807104044-d91b3ab486c3
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
-	github.com/NpoolPlatform/order-middleware v0.0.0-20220807094322-74277ca57a16
+	github.com/NpoolPlatform/order-middleware v0.0.0-20220807111936-fc013baf80d3
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
