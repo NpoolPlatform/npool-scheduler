@@ -289,7 +289,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		return err
 	}
 
-	// TODO: move to TX
+	// TODO: move to TX begin
 
 	if err := tryUpdatePaymentLedger(ctx, order, payment); err != nil {
 		return err
@@ -299,6 +299,12 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		return err
 	}
 
+	if err := unlockBalance(ctx, order, payment); err != nil {
+		return err
+	}
+
+	// TODO: move to TX end
+
 	if payment.State == orderconst.PaymentStateDone {
 		if err := commission.CalculateCommission(ctx, order.ID); err != nil {
 			return err
@@ -306,10 +312,6 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
 			return err
 		}
-	}
-
-	if err := unlockBalance(ctx, order, payment); err != nil {
-		return err
 	}
 
 	return updateStock(ctx, order.GoodID, unlocked, inservice)
