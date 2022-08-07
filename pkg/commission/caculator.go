@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/shopspring/decimal"
 
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"

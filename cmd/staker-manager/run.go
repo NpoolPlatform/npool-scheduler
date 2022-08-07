@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
-	db "github.com/NpoolPlatform/staker-manager/pkg/db"
 
 	benefit "github.com/NpoolPlatform/staker-manager/pkg/benefit"
+	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
 	order "github.com/NpoolPlatform/staker-manager/pkg/order"
 	collector "github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
 	limitation "github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
@@ -27,7 +27,7 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		if err := db.Init(); err != nil {
+		if err := migrate.Migrate(c.Context); err != nil {
 			return err
 		}
 
