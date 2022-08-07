@@ -23,11 +23,15 @@ import (
 
 	orderent "github.com/NpoolPlatform/cloud-hashing-order/pkg/db/ent"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermw "github.com/NpoolPlatform/order-middleware/pkg/order"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/config"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	_ "github.com/go-sql-driver/mysql" // nolint
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -82,6 +86,22 @@ func _migrate(
 	archivement *archivementent.Client,
 	ledger *ledgerent.Client,
 ) error {
+	infos := []*ordermwpb.Order{}
+
+	stm := order.Order.Query()
+	err := ordermw.Join(stm).Scan(ctx, &infos)
+	if err != nil {
+		return err
+	}
+
+	invalidID := uuid.UUID{}.String()
+	for i, info := range infos {
+		if info.PaymentID == "" || info.PaymentID == invalidID {
+			continue
+		}
+		infos[i] = ordermw.Post(info)
+	}
+
 	// Migrate payments to ledger details and general
 	// Migrate commission to ledger detail and general
 	return nil

@@ -383,6 +383,7 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 	return nil
 }
 
+// TODO: use order middlware api
 func checkOrderPayments(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
