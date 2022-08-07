@@ -8,8 +8,10 @@ import (
 
 	constant "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
 
+	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/config"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -62,13 +64,32 @@ func open(hostname string) (conn *sql.DB, err error) {
 	return conn, nil
 }
 
-func Migrate(ctx context.Context) error {
-	_, err := open(orderconst.ServiceName)
+func migrate(order *sql.DB, billing *sql.DB, archivement *sql.DB, ledger *sql.DB) error {
+	return nil
+}
+
+func Migrate(ctx context.Context) (err error) {
+	logger.Sugar().Infow("Migrate", "Start", "...")
+	defer func() {
+		logger.Sugar().Infow("Migrate", "Done", "...", "error", err)
+	}()
+
+	_, err = open(orderconst.ServiceName)
 	if err != nil {
 		return err
 	}
 
 	_, err = open(billingconst.ServiceName)
+	if err != nil {
+		return err
+	}
+
+	_, err = open(archivementconst.ServiceName)
+	if err != nil {
+		return err
+	}
+
+	_, err = open(ledgerconst.ServiceName)
 	if err != nil {
 		return err
 	}
