@@ -62,17 +62,22 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 			}
 		}
 
-		if percent <= subPercent {
-			logger.Sugar().Errorw("calculateCommission", "user", user, "percent", percent, "subPercent", subPercent, "users", inviters)
+		if percent < subPercent {
 			break
+		}
+
+		if percent == subPercent {
+			continue
 		}
 
 		amount := decimal.NewFromFloat(payment.Amount)
 		amount = amount.Mul(decimal.NewFromInt(int64(percent - subPercent)))
 		amount = amount.Div(decimal.NewFromInt(100)) //nolint
 
-		if err := tryUpdateCommissionLedger(ctx, payment.AppID, user, payment.UserID,
-			order.ID, payment.ID, payment.CoinInfoID, amount); err != nil {
+		if err := tryUpdateCommissionLedger(
+			ctx, payment.AppID, user, payment.UserID,
+			order.ID, payment.ID, payment.CoinInfoID, amount,
+		); err != nil {
 			return err
 		}
 
@@ -110,7 +115,6 @@ func CalculateCommission(ctx context.Context, orderID string) error {
 	switch payment.State {
 	case orderconst.PaymentStateDone:
 	default:
-		logger.Sugar().Errorw("CalculateOrderCommission", "payment", payment.ID, "state", payment.State)
 		return fmt.Errorf("invalid payment state")
 	}
 
