@@ -14,7 +14,7 @@ import (
 	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
 	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
 
-	archivementcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/archivement"
+	archivementcli "github.com/NpoolPlatform/archivement-middleware/pkg/client/archivement"
 	detailpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/archivement/detail"
 
 	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
