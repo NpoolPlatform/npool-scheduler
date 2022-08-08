@@ -108,6 +108,10 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 		amount = amount.Mul(decimal.NewFromInt(int64(percent - subPercent)))
 		amount = amount.Div(decimal.NewFromInt(100)) //nolint
 
+		// Also calculate balance as amount
+		balanceAmount, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+		amount = amount.Add(balanceAmount)
+
 		if err := tryUpdateCommissionLedger(
 			ctx, payment.AppID, user, payment.UserID,
 			order.ID, payment.ID, payment.CoinInfoID,
