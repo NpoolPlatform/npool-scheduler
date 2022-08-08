@@ -37,6 +37,8 @@ import (
 	_ "github.com/go-sql-driver/mysql" // nolint
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -142,7 +144,9 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	}); err != nil {
-		return err
+		if status.Code(err) != codes.AlreadyExists {
+			logger.Sugar().Warnw("processOrder", "error", err)
+		}
 	}
 
 	switch order.PaymentState {
@@ -167,15 +171,17 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	}); err != nil {
-		return err
+		if status.Code(err) != codes.AlreadyExists {
+			logger.Sugar().Warnw("processOrder", "error", err)
+		}
 	}
 
 	if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
-		return err
+		logger.Sugar().Warnw("processOrder", "error", err)
 	}
 
 	if err := commission.CalculateCommission(ctx, order.ID); err != nil {
-		return err
+		logger.Sugar().Warnw("processOrder", "error", err)
 	}
 
 	return nil
@@ -211,6 +217,8 @@ func _migrate(
 				logger.Sugar().Warnw("_migrate", "OrderID", info.ID, "PaymentID", info.PaymentID, "error", err)
 			}
 		}
+
+		offset += limit
 	}
 }
 
