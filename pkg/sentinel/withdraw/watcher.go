@@ -53,16 +53,20 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 		outcoming = unlocked
 	}
 
+	// TODO: move to TX
+
 	if err := ledgermwcli.UnlockBalance(
 		ctx,
 		withdraw.AppID, withdraw.UserID, withdraw.CoinTypeID,
 		ledgerdetailmgrpb.IOSubType_Withdrawal,
 		unlocked, outcoming,
 		fmt.Sprintf(
-			`{"WithdrawID":"%v","TransactionID":"%v","CID":"%v"}`,
+			`{"WithdrawID":"%v","TransactionID":"%v","CID":"%v","TransactionFee":"%v","AccountID":"%v"}`,
 			withdraw.ID,
 			withdraw.PlatformTransactionID,
 			tx.ChainTransactionID,
+			tx.TransactionFee,
+			withdraw.AccountID,
 		),
 	); err != nil {
 		return err

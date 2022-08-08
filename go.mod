@@ -14,12 +14,13 @@ require (
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20220807091054-871fc936ff5e
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220806113240-28fa97aaab72
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
-	github.com/NpoolPlatform/libent-cruder v0.0.0-20220621110548-8f3f8049ecc5
+	github.com/NpoolPlatform/libent-cruder v0.0.0-20220801075201-cab5db8b6290
 	github.com/NpoolPlatform/message v0.0.0-20220807174528-a8ac0f4f956f
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
 	github.com/NpoolPlatform/order-middleware v0.0.0-20220807111936-fc013baf80d3
+	github.com/NpoolPlatform/review-service v0.0.0-20220806150215-be6314965b82
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
