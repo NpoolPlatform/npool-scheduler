@@ -28,32 +28,36 @@ import (
 func tryUpdateCommissionLedger(
 	ctx context.Context,
 	appID, userID, orderUserID, orderID, paymentID, coinTypeID string,
-	amount, currency decimal.Decimal, createdAt uint32,
+	amount, currency decimal.Decimal,
+	createdAt uint32, oldOrder bool,
 ) error {
-	// For old order, always transfer to USDT TRC20
-	coins, err := coininfocli.GetCoinInfos(ctx, cruder.NewFilterConds())
-	if err != nil {
-		return err
-	}
-
-	trc20CoinID := ""
-	for _, coin := range coins {
-		if coin.Name == "usdttrc20" {
-			trc20CoinID = coin.ID
-			break
-		}
-	}
-
-	if trc20CoinID == "" {
-		return fmt.Errorf("invalid trc20 coin")
-	}
-
-	const upgradeAt = uint32(1660492800) // 2022-8-15
 	commissionCoinID := coinTypeID
 
-	if createdAt < upgradeAt && coinTypeID != trc20CoinID {
-		commissionCoinID = trc20CoinID
-		amount = amount.Mul(currency)
+	if oldOrder {
+		// For old order, always transfer to USDT TRC20
+		coins, err := coininfocli.GetCoinInfos(ctx, cruder.NewFilterConds())
+		if err != nil {
+			return err
+		}
+
+		trc20CoinID := ""
+		for _, coin := range coins {
+			if coin.Name == "usdttrc20" {
+				trc20CoinID = coin.ID
+				break
+			}
+		}
+
+		if trc20CoinID == "" {
+			return fmt.Errorf("invalid trc20 coin")
+		}
+
+		const upgradeAt = uint32(1660492800) // 2022-8-15
+
+		if createdAt < upgradeAt && coinTypeID != trc20CoinID {
+			commissionCoinID = trc20CoinID
+			amount = amount.Mul(currency)
+		}
 	}
 
 	ioExtra := fmt.Sprintf(`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v",}`, paymentID, orderID, orderUserID)
@@ -74,7 +78,7 @@ func tryUpdateCommissionLedger(
 }
 
 // TODO: calculate commission according to different app commission strategy
-func calculateCommission(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
+func calculateCommission(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, oldOrder bool) error {
 	inviters, settings, err := referral.GetReferrals(ctx, order.AppID, order.UserID)
 	if err != nil {
 		return err
@@ -108,7 +112,7 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 			ctx, payment.AppID, user, payment.UserID,
 			order.ID, payment.ID, payment.CoinInfoID,
 			amount, decimal.NewFromFloat(payment.CoinUSDCurrency),
-			payment.CreateAt,
+			payment.CreateAt, oldOrder,
 		); err != nil {
 			return err
 		}
@@ -119,7 +123,7 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 	return nil
 }
 
-func CalculateCommission(ctx context.Context, orderID string) error {
+func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) error {
 	var err error
 
 	_, span := otel.Tracer(constant.ServiceName).Start(ctx, "CreateGeneral")
@@ -150,7 +154,7 @@ func CalculateCommission(ctx context.Context, orderID string) error {
 		return fmt.Errorf("invalid payment state")
 	}
 
-	if err := calculateCommission(ctx, order, payment); err != nil {
+	if err := calculateCommission(ctx, order, payment, oldOrder); err != nil {
 		return err
 	}
 

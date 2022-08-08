@@ -184,7 +184,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		logger.Sugar().Warnw("processOrder", "error", err)
 	}
 
-	if err := commission.CalculateCommission(ctx, order.ID); err != nil {
+	if err := commission.CalculateCommission(ctx, order.ID, true); err != nil {
 		logger.Sugar().Warnw("processOrder", "error", err)
 	}
 
