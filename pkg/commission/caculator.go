@@ -151,7 +151,7 @@ func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) err
 	switch payment.State {
 	case orderconst.PaymentStateDone:
 	default:
-		return fmt.Errorf("invalid payment state")
+		return nil
 	}
 
 	if err := calculateCommission(ctx, order, payment, oldOrder); err != nil {
