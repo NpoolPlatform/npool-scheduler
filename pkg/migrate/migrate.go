@@ -16,6 +16,8 @@ import (
 	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
 	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
 
+	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
+	billingstconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	billingent "github.com/NpoolPlatform/cloud-hashing-billing/pkg/db/ent"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 
@@ -25,8 +27,13 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermw "github.com/NpoolPlatform/order-middleware/pkg/order"
 
+	withdrawcli "github.com/NpoolPlatform/ledger-manager/pkg/client/withdraw"
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
+	withdrawmgrpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/withdraw"
+
+	reviewcli "github.com/NpoolPlatform/review-service/pkg/client"
+	reviewconst "github.com/NpoolPlatform/review-service/pkg/const"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/config"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -214,8 +221,137 @@ func processOrders(ctx context.Context, order *orderent.Client) error {
 	}
 }
 
+func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem) error {
+	tx, err := billingcli.GetTransaction(ctx, withdraw.PlatformTransactionID.String())
+	if err != nil {
+		return err
+	}
+
+	state := withdrawmgrpb.WithdrawState_Successful
+
+	if tx != nil {
+		switch tx.State {
+		case billingstconst.CoinTransactionStateFail:
+			state = withdrawmgrpb.WithdrawState_TransactionFail
+		case billingstconst.CoinTransactionStateSuccessful:
+			state = withdrawmgrpb.WithdrawState_Successful
+		default:
+			logger.Sugar().Warnw("processWithdraw", "State", tx.State)
+			return nil
+		}
+	} else {
+		rvs, err := reviewcli.GetObjectReviews(
+			ctx,
+			withdraw.AppID.String(), withdraw.UserID.String(),
+			"withdraw", withdraw.ID.String(),
+		)
+		if err != nil {
+			return err
+		}
+		if len(rvs) == 0 {
+			return fmt.Errorf("invalid withdraw")
+		}
+
+		for _, rv := range rvs {
+			if rv.State == reviewconst.StateRejected {
+				state = withdrawmgrpb.WithdrawState_Rejected
+				break
+			}
+		}
+
+		if state != withdrawmgrpb.WithdrawState_Rejected {
+			return fmt.Errorf("invalid withdraw")
+		}
+	}
+
+	amount := decimal.NewFromFloat(tx.Amount).String()
+
+	// TODO: move to TX
+
+	id := withdraw.ID.String()
+	appID := withdraw.AppID.String()
+	userID := withdraw.UserID.String()
+	coinTypeID := withdraw.CoinTypeID.String()
+	accountID := withdraw.WithdrawToAccountID.String()
+
+	_, err = withdrawcli.CreateWithdraw(ctx, &withdrawmgrpb.WithdrawReq{
+		ID:         &id,
+		AppID:      &appID,
+		UserID:     &userID,
+		CoinTypeID: &coinTypeID,
+		AccountID:  &accountID,
+		Amount:     &amount,
+	})
+	if err != nil {
+		return err
+	}
+
+	if state == withdrawmgrpb.WithdrawState_Successful {
+		ioExtra := fmt.Sprintf(
+			`{"WithdrawID":"%v","TransactionID":"%v","CID":"%v","TransactionFee":"%v","AccountID":"%v"}`,
+			withdraw.ID,
+			withdraw.PlatformTransactionID,
+			tx.ChainTransactionID,
+			tx.TransactionFee,
+			withdraw.WithdrawToAccountID,
+		)
+		amount := fmt.Sprintf("%v", withdraw.Amount)
+		ioType := ledgerdetailpb.IOType_Outcoming
+		ioSubType := ledgerdetailpb.IOSubType_Withdrawal
+
+		if err := ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+			AppID:      &appID,
+			UserID:     &userID,
+			CoinTypeID: &coinTypeID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &amount,
+			IOExtra:    &ioExtra,
+		}); err != nil {
+			return err
+		}
+	}
+
+	u := &withdrawmgrpb.WithdrawReq{
+		ID:                 &id,
+		State:              &state,
+		ChainTransactionID: &tx.ChainTransactionID,
+	}
+	_, err = withdrawcli.UpdateWithdraw(ctx, u)
+	return err
+}
+
 func processWithdraws(ctx context.Context, billing *billingent.Client) error {
-	return nil
+	offset := 0
+	limit := 1000
+
+	for {
+		infos, err := billing.
+			UserWithdrawItem.
+			Query().
+			Offset(offset).
+			Limit(limit).
+			All(ctx)
+		if err != nil {
+			return err
+		}
+		if len(infos) == 0 {
+			return nil
+		}
+
+		invalidID := uuid.UUID{}
+		for _, info := range infos {
+			if info.PlatformTransactionID == invalidID {
+				continue
+			}
+
+			if err := processWithdraw(ctx, info); err != nil {
+				return err
+			}
+		}
+
+		offset += limit
+	}
 }
 
 func _migrate(ctx context.Context, order *orderent.Client, billing *billingent.Client) error {
