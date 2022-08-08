@@ -19,9 +19,6 @@ import (
 	billingent "github.com/NpoolPlatform/cloud-hashing-billing/pkg/db/ent"
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 
-	ledgerent "github.com/NpoolPlatform/ledger-manager/pkg/db/ent"
-	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
-
 	orderent "github.com/NpoolPlatform/cloud-hashing-order/pkg/db/ent"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
 	orderstpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
@@ -187,12 +184,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	return nil
 }
 
-func _migrate(
-	ctx context.Context,
-	order *orderent.Client,
-	_billing *billingent.Client, //nolint
-	_ledger *ledgerent.Client, //nolint
-) error {
+func processOrders(ctx context.Context, order *orderent.Client) error {
 	offset := 0
 	limit := 1000
 
@@ -222,7 +214,17 @@ func _migrate(
 	}
 }
 
-func migrate(ctx context.Context, order, billing, ledger *sql.DB) error {
+func processWithdraws(ctx context.Context, billing *billingent.Client) error {
+	return nil
+}
+
+func _migrate(ctx context.Context, order *orderent.Client, billing *billingent.Client) error {
+	_ = processOrders(ctx, order)      //nolint
+	_ = processWithdraws(ctx, billing) //nolint
+	return nil
+}
+
+func migrate(ctx context.Context, order, billing *sql.DB) error {
 	return _migrate(
 		ctx,
 		orderent.NewClient(
@@ -233,11 +235,6 @@ func migrate(ctx context.Context, order, billing, ledger *sql.DB) error {
 		billingent.NewClient(
 			billingent.Driver(
 				entsql.OpenDB(dialect.MySQL, billing),
-			),
-		),
-		ledgerent.NewClient(
-			ledgerent.Driver(
-				entsql.OpenDB(dialect.MySQL, ledger),
 			),
 		),
 	)
@@ -260,10 +257,5 @@ func Migrate(ctx context.Context) (err error) {
 		return err
 	}
 
-	ledger, err := open(ledgerconst.ServiceName)
-	if err != nil {
-		return err
-	}
-
-	return migrate(ctx, order, billing, ledger)
+	return migrate(ctx, order, billing)
 }
