@@ -39,9 +39,7 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		return
 	}
 	defer func() {
-		if err := accountlock.Unlock(payment.AccountID); err != nil {
-			logger.Sugar().Errorw("checkGoodPayment", "error", err)
-		}
+		_ = accountlock.Unlock(payment.AccountID) //nolint
 	}()
 
 	if !payment.Idle {
