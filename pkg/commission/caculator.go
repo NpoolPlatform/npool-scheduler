@@ -13,8 +13,12 @@ import (
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
+	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+
 	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
 	"github.com/NpoolPlatform/staker-manager/pkg/referral"
+
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,17 +28,44 @@ import (
 func tryUpdateCommissionLedger(
 	ctx context.Context,
 	appID, userID, orderUserID, orderID, paymentID, coinTypeID string,
-	amount decimal.Decimal,
+	amount, currency decimal.Decimal, createdAt uint32,
 ) error {
-	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "OrderUserID": "%v"}`, paymentID, orderID, orderUserID)
-	amountStr := amount.String()
+	// For old order, always transfer to USDT TRC20
+	coins, err := coininfocli.GetCoinInfos(ctx, cruder.NewFilterConds())
+	if err != nil {
+		return err
+	}
+
+	trc20CoinID := ""
+	for _, coin := range coins {
+		if coin.Name == "usdttrc20" {
+			trc20CoinID = coin.ID
+			break
+		}
+	}
+
+	if trc20CoinID == "" {
+		return fmt.Errorf("invalid trc20 coin")
+	}
+
+	const upgradeAt = uint32(1660492800) // 2022-8-15
+	commissionCoinID := coinTypeID
+
+	if createdAt < upgradeAt && coinTypeID != trc20CoinID {
+		commissionCoinID = trc20CoinID
+		amount = amount.Mul(currency)
+	}
+
+	ioExtra := fmt.Sprintf(`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v",}`, paymentID, orderID, orderUserID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
+
+	amountStr := amount.String()
 
 	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &appID,
 		UserID:     &userID,
-		CoinTypeID: &coinTypeID,
+		CoinTypeID: &commissionCoinID,
 		IOType:     &ioType,
 		IOSubType:  &ioSubType,
 		Amount:     &amountStr,
@@ -75,7 +106,9 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 
 		if err := tryUpdateCommissionLedger(
 			ctx, payment.AppID, user, payment.UserID,
-			order.ID, payment.ID, payment.CoinInfoID, amount,
+			order.ID, payment.ID, payment.CoinInfoID,
+			amount, decimal.NewFromFloat(payment.CoinUSDCurrency),
+			payment.CreateAt,
 		); err != nil {
 			return err
 		}
