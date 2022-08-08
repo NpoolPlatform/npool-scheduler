@@ -139,20 +139,18 @@ func checkTimeoutPayments(ctx context.Context) {
 
 		goodPayment, err := billingcli.GetAccountGoodPayment(ctx, payment.AccountID)
 		if err != nil {
-			logger.Sugar().Errorf("checkTimeoutPayments", "error", err)
+			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
 			return
 		}
 
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
-			logger.Sugar().Errorf("checkTimeoutPayments", "error", err)
+			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
 			continue
 		}
 
 		unlock := func() {
-			if err := accountlock.Unlock(payment.AccountID); err != nil {
-				logger.Sugar().Errorf("checkTimeoutPayments", "error", err)
-			}
+			_ = accountlock.Unlock(payment.AccountID) //nolint
 		}
 
 		if goodPayment.Idle {
@@ -164,7 +162,7 @@ func checkTimeoutPayments(ctx context.Context) {
 		goodPayment.OccupiedBy = billingconst.TransactionForNotUsed
 		_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
 		if err != nil {
-			logger.Sugar().Errorw("checkGoodPayment", "error", err)
+			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
 		}
 		unlock()
 	}
@@ -180,7 +178,7 @@ func checkCollectingPayments(ctx context.Context) {
 	for _, payment := range payments {
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
-			logger.Sugar().Errorf("checkCollectingPayments", "error", err)
+			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 			continue
 		}
 
