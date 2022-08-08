@@ -242,14 +242,16 @@ func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem)
 	} else {
 		rvs, err := reviewcli.GetObjectReviews(
 			ctx,
-			withdraw.AppID.String(), withdraw.UserID.String(),
-			"withdraw", withdraw.ID.String(),
+			withdraw.AppID.String(),
+			billingconst.ServiceName,
+			"withdraw",
+			withdraw.ID.String(),
 		)
 		if err != nil {
 			return err
 		}
 		if len(rvs) == 0 {
-			return fmt.Errorf("invalid withdraw")
+			return fmt.Errorf("invalid withdraw review")
 		}
 
 		for _, rv := range rvs {
@@ -260,7 +262,7 @@ func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem)
 		}
 
 		if state != withdrawmgrpb.WithdrawState_Rejected {
-			return fmt.Errorf("invalid withdraw")
+			return fmt.Errorf("invalid withdraw state %v", state)
 		}
 	}
 
@@ -273,6 +275,18 @@ func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem)
 	userID := withdraw.UserID.String()
 	coinTypeID := withdraw.CoinTypeID.String()
 	accountID := withdraw.WithdrawToAccountID.String()
+
+	logger.Sugar().Infow(
+		"processWithdraw",
+		"ID", id,
+		"AppID", appID,
+		"UserID", userID,
+		"CoinTypeID", coinTypeID,
+		"AccountID", accountID,
+		"Amount", amount,
+		"TransactionID", withdraw.PlatformTransactionID,
+		"CID", tx.ChainTransactionID,
+	)
 
 	_, err = withdrawcli.CreateWithdraw(ctx, &withdrawmgrpb.WithdrawReq{
 		ID:         &id,
@@ -335,6 +349,7 @@ func processWithdraws(ctx context.Context, billing *billingent.Client) error {
 		if err != nil {
 			return err
 		}
+
 		if len(infos) == 0 {
 			return nil
 		}
@@ -346,7 +361,7 @@ func processWithdraws(ctx context.Context, billing *billingent.Client) error {
 			}
 
 			if err := processWithdraw(ctx, info); err != nil {
-				return err
+				logger.Sugar().Errorw("processWithdraws", "ID", info.ID, "TID", info.PlatformTransactionID, "error", err)
 			}
 		}
 
