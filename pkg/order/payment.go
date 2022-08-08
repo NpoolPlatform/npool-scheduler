@@ -306,7 +306,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 	// TODO: move to TX end
 
 	if payment.State == orderconst.PaymentStateDone {
-		if err := commission.CalculateCommission(ctx, order.ID); err != nil {
+		if err := commission.CalculateCommission(ctx, order.ID, false); err != nil {
 			return err
 		}
 		if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
