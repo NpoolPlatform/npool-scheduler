@@ -13,6 +13,9 @@ import (
 
 	constant "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
 
+	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
+	ledgermwpkg "github.com/NpoolPlatform/ledger-middleware/pkg/ledger"
+
 	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
 	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
 
@@ -133,6 +136,18 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 			"Error", err,
 		)
 	}()
+
+	if order.PaymentState == orderstpb.EState_Paid.String() {
+		good, err := goodscli.GetGood(ctx, order.GoodID)
+		if err != nil {
+			return err
+		}
+
+		_, err = ledgermwpkg.TryCreateProfit(ctx, order.AppID, order.UserID, good.CoinInfoID)
+		if err != nil {
+			return err
+		}
+	}
 
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, order.PaymentID, order.ID)
 	ioType := ledgerdetailpb.IOType_Incoming
