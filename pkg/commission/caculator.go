@@ -60,7 +60,7 @@ func tryUpdateCommissionLedger(
 		}
 	}
 
-	ioExtra := fmt.Sprintf(`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v",}`, paymentID, orderID, orderUserID)
+	ioExtra := fmt.Sprintf(`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v"}`, paymentID, orderID, orderUserID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
