@@ -93,6 +93,7 @@ func open(hostname string) (conn *sql.DB, err error) {
 	return conn, nil
 }
 
+// nolint
 func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	// Migrate payments to ledger details and general
 	switch order.PaymentState {
