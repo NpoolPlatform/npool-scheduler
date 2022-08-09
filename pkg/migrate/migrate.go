@@ -26,6 +26,7 @@ import (
 
 	orderent "github.com/NpoolPlatform/cloud-hashing-order/pkg/db/ent"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/message/const"
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 	orderstpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermw "github.com/NpoolPlatform/order-middleware/pkg/order"
@@ -95,6 +96,10 @@ func open(hostname string) (conn *sql.DB, err error) {
 
 // nolint
 func processOrder(ctx context.Context, order *ordermwpb.Order) error {
+	if order.OrderType != ordermgrpb.OrderType_Normal {
+		return nil
+	}
+
 	// Migrate payments to ledger details and general
 	switch order.PaymentState {
 	case orderstpb.EState_Paid.String():
