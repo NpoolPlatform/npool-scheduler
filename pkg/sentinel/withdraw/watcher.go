@@ -97,6 +97,9 @@ func processWithdraws(ctx context.Context) {
 			logger.Sugar().Infow("processWithdraws", "error", err)
 			return
 		}
+		if len(withdraws) == 0 {
+			return
+		}
 
 		// TODO: batch get transaction
 
