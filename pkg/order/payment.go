@@ -12,6 +12,8 @@ import (
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
+	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
+
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
@@ -23,6 +25,7 @@ import (
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
+	ledgermwpkg "github.com/NpoolPlatform/ledger-middleware/pkg/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
 	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
@@ -235,6 +238,7 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, payment *orderpb.P
 	)
 }
 
+// nolint
 func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
 	coin, err := coininfocli.GetCoinInfo(ctx, payment.CoinInfoID)
 	if err != nil {
@@ -280,6 +284,18 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		"inservice", inservice, "balance", bal,
 		"coin", coin.Name, "address", account.Address, "balance", balance,
 	)
+
+	if state == orderconst.PaymentStateDone {
+		good, err := goodscli.GetGood(ctx, order.GoodID)
+		if err != nil {
+			return err
+		}
+
+		_, err = ledgermwpkg.TryCreateProfit(ctx, payment.AppID, payment.UserID, good.CoinInfoID)
+		if err != nil {
+			return err
+		}
+	}
 
 	if err := trySavePaymentBalance(ctx, payment, remain); err != nil {
 		return err
