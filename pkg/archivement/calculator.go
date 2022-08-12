@@ -2,7 +2,6 @@ package archivement
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/shopspring/decimal"
@@ -118,7 +117,7 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 	case orderconst.PaymentStateDone:
 	default:
 		logger.Sugar().Errorw("CalculateOrderArchivement", "payment", payment.ID, "state", payment.State)
-		return fmt.Errorf("invalid payment state")
+		return nil
 	}
 
 	if err := calculateArchivement(ctx, order, payment, good); err != nil {
