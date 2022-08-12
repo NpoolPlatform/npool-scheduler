@@ -29,6 +29,10 @@ if [ "xdevelopment" == "x$2" ]; then
   version=latest
 fi
 
+if [ "xfeature" == "x$2" ]; then
+  version=feature
+fi
+
 registry=uhub.service.ucloud.cn
 if [ "x" != $3 ]; then
   registry=$3

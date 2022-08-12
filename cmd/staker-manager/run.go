@@ -2,10 +2,14 @@ package main
 
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
-	db "github.com/NpoolPlatform/staker-manager/pkg/db"
-	paywatcher "github.com/NpoolPlatform/staker-manager/pkg/middleware/payment-watcher"
 
-	accounting "github.com/NpoolPlatform/staker-manager/pkg/middleware/accounting"
+	benefit "github.com/NpoolPlatform/staker-manager/pkg/benefit"
+	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
+	order "github.com/NpoolPlatform/staker-manager/pkg/order"
+	collector "github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
+	limitation "github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
+	withdraw "github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
+	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -23,7 +27,7 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		if err := db.Init(); err != nil {
+		if err := migrate.Migrate(c.Context); err != nil {
 			return err
 		}
 
@@ -33,8 +37,12 @@ var runCmd = &cli.Command{
 			}
 		}()
 
-		go accounting.Run(c.Context)
-		go paywatcher.Watch(c.Context)
+		go transaction.Watch(c.Context)
+		go order.Watch(c.Context)
+		go collector.Watch(c.Context)
+		go limitation.Watch(c.Context)
+		go withdraw.Watch(c.Context)
+		go benefit.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
