@@ -29,7 +29,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1
-	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.7.1
 	github.com/urfave/cli/v2 v2.5.0
 	go.opentelemetry.io/otel v1.8.0
@@ -124,4 +123,3 @@ require (
 )
 
 replace google.golang.org/grpc => github.com/grpc/grpc-go v1.41.0
-
