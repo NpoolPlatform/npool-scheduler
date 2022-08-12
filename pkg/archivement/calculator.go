@@ -52,11 +52,11 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 				continue
 			}
 
-			if set.End != 0 {
+			if set.Start > payment.CreateAt {
 				continue
 			}
 
-			if set.Start > payment.CreateAt || set.End < payment.CreateAt {
+			if set.End > 0 && set.End < payment.CreateAt {
 				continue
 			}
 

@@ -102,11 +102,15 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 				continue
 			}
 
-			if set.Start > payment.CreateAt || set.End < payment.CreateAt {
+			if set.Start > payment.CreateAt {
 				continue
 			}
 
-			subPercent = set.Percent
+			if set.End > 0 && set.End < payment.CreateAt {
+				continue
+			}
+
+			percent = set.Percent
 			break
 		}
 
