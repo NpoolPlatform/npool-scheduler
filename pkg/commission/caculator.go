@@ -80,6 +80,7 @@ func tryUpdateCommissionLedger(
 }
 
 // TODO: calculate commission according to different app commission strategy
+// nolint
 func calculateCommission(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, oldOrder bool) error {
 	inviters, settings, err := referral.GetReferrals(ctx, order.AppID, order.UserID)
 	if err != nil {

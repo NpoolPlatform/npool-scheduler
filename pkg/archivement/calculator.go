@@ -40,6 +40,7 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 	currency := decimal.NewFromFloat(payment.CoinUSDCurrency).String()
 
 	subPercent := uint32(0)
+	var subContributor *string
 
 	for _, inviter := range inviters {
 		myInviter := inviter
@@ -75,6 +76,7 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 		detailReq := &detailpb.DetailReq{
 			AppID:                  &payment.AppID,
 			UserID:                 &myInviter,
+			DirectContributorID:    subContributor,
 			GoodID:                 &order.GoodID,
 			OrderID:                &order.ID,
 			PaymentID:              &payment.ID,
@@ -90,6 +92,8 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 		if err := archivementcli.BookKeeping(ctx, detailReq); err != nil {
 			return err
 		}
+
+		subContributor = &myInviter
 	}
 
 	return nil
