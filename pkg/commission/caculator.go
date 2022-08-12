@@ -156,6 +156,10 @@ func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) err
 		return err
 	}
 
+	if payment.Amount <= 0 {
+		return nil
+	}
+
 	switch payment.State {
 	case orderconst.PaymentStateDone:
 	default:

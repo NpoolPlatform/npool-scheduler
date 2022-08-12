@@ -113,6 +113,10 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 		return err
 	}
 
+	if payment.Amount <= 0 {
+		return nil
+	}
+
 	switch payment.State {
 	case orderconst.PaymentStateDone:
 	default:
