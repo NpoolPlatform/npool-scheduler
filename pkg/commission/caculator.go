@@ -27,7 +27,7 @@ import (
 
 func tryUpdateCommissionLedger(
 	ctx context.Context,
-	appID, userID, orderUserID, orderID, paymentID, coinTypeID string,
+	appID, userID, subContributor, orderUserID, orderID, paymentID, coinTypeID string,
 	amount, currency decimal.Decimal,
 	createdAt uint32, oldOrder bool,
 ) error {
@@ -60,7 +60,9 @@ func tryUpdateCommissionLedger(
 		}
 	}
 
-	ioExtra := fmt.Sprintf(`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v"}`, paymentID, orderID, orderUserID)
+	ioExtra := fmt.Sprintf(
+		`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v",,"OrderUserID":"%v"}`,
+		paymentID, orderID, subContributor, orderUserID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
@@ -86,6 +88,7 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 
 	percent := uint32(0)
 	subPercent := uint32(0)
+	subContributor := ""
 
 	for _, user := range inviters {
 		sets := settings[user]
@@ -113,7 +116,7 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 		amount = amount.Div(decimal.NewFromInt(100)) //nolint
 
 		if err := tryUpdateCommissionLedger(
-			ctx, payment.AppID, user, payment.UserID,
+			ctx, payment.AppID, user, subContributor, payment.UserID,
 			order.ID, payment.ID, payment.CoinInfoID,
 			amount, decimal.NewFromFloat(payment.CoinUSDCurrency),
 			payment.CreateAt, oldOrder,
@@ -122,6 +125,7 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 		}
 
 		subPercent = percent
+		subContributor = user
 	}
 
 	return nil
