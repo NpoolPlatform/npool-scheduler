@@ -129,7 +129,8 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 		return err
 	}
 
-	if payment.Amount <= 0 {
+	ba, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+	if ba.Add(decimal.NewFromFloat(payment.Amount)).Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
 
