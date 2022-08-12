@@ -47,17 +47,26 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 
 		sets := settings[inviter]
 		for _, set := range sets {
-			if set.Start <= payment.CreateAt &&
-				(set.End == 0 || payment.CreateAt <= set.End) {
-				if subPercent < set.Percent {
-					commissionD = commissionD.
-						Add(usdAmountD.Mul(
-							decimal.NewFromInt(int64(set.Percent - subPercent))).
-							Div(decimal.NewFromInt(100))) //nolint
-				}
-				subPercent = set.Percent
-				break
+			if set.GoodID != order.GoodID {
+				continue
 			}
+
+			if set.End != 0 {
+				continue
+			}
+
+			if set.Start > payment.CreateAt || set.End < payment.CreateAt {
+				continue
+			}
+
+			if subPercent < set.Percent {
+				commissionD = commissionD.
+					Add(usdAmountD.Mul(
+						decimal.NewFromInt(int64(set.Percent - subPercent))).
+						Div(decimal.NewFromInt(100))) //nolint
+			}
+			subPercent = set.Percent
+			break
 		}
 
 		commission := commissionD.String()
