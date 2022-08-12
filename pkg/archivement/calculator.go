@@ -2,7 +2,6 @@ package archivement
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/shopspring/decimal"
@@ -32,8 +31,11 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 	}
 
 	amountD := decimal.NewFromFloat(payment.Amount)
+	balanceAmount, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+	amountD = amountD.Add(balanceAmount)
+
 	amount := amountD.String()
-	usdAmountD := decimal.NewFromFloat(payment.Amount).Mul(decimal.NewFromFloat(payment.CoinUSDCurrency))
+	usdAmountD := amountD.Mul(decimal.NewFromFloat(payment.CoinUSDCurrency))
 	usdAmount := usdAmountD.String()
 	currency := decimal.NewFromFloat(payment.CoinUSDCurrency).String()
 
@@ -45,17 +47,26 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 
 		sets := settings[inviter]
 		for _, set := range sets {
-			if set.Start <= payment.CreateAt &&
-				(set.End == 0 || payment.CreateAt <= set.End) {
-				if subPercent < set.Percent {
-					commissionD = commissionD.
-						Add(usdAmountD.Mul(
-							decimal.NewFromInt(int64(set.Percent - subPercent))).
-							Div(decimal.NewFromInt(100))) //nolint
-				}
-				subPercent = set.Percent
-				break
+			if set.GoodID != order.GoodID {
+				continue
 			}
+
+			if set.End != 0 {
+				continue
+			}
+
+			if set.Start > payment.CreateAt || set.End < payment.CreateAt {
+				continue
+			}
+
+			if subPercent < set.Percent {
+				commissionD = commissionD.
+					Add(usdAmountD.Mul(
+						decimal.NewFromInt(int64(set.Percent - subPercent))).
+						Div(decimal.NewFromInt(100))) //nolint
+			}
+			subPercent = set.Percent
+			break
 		}
 
 		commission := commissionD.String()
@@ -114,11 +125,15 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 		return err
 	}
 
+	if payment.Amount <= 0 {
+		return nil
+	}
+
 	switch payment.State {
 	case orderconst.PaymentStateDone:
 	default:
 		logger.Sugar().Errorw("CalculateOrderArchivement", "payment", payment.ID, "state", payment.State)
-		return fmt.Errorf("invalid payment state")
+		return nil
 	}
 
 	if err := calculateArchivement(ctx, order, payment, good); err != nil {

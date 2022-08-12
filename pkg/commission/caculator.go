@@ -93,10 +93,20 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 	for _, user := range inviters {
 		sets := settings[user]
 		for _, set := range sets {
-			if set.Start <= payment.CreateAt && (set.End == 0 || payment.CreateAt <= set.End) {
-				percent = set.Percent
-				break
+			if set.GoodID != order.GoodID {
+				continue
 			}
+
+			if set.End != 0 {
+				continue
+			}
+
+			if set.Start > payment.CreateAt || set.End < payment.CreateAt {
+				continue
+			}
+
+			subPercent = set.Percent
+			break
 		}
 
 		if percent < subPercent {
@@ -154,6 +164,10 @@ func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) err
 	payment, err := ordercli.GetOrderPayment(ctx, orderID)
 	if err != nil {
 		return err
+	}
+
+	if payment.Amount <= 0 {
+		return nil
 	}
 
 	switch payment.State {

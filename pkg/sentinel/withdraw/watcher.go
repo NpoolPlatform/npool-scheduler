@@ -30,11 +30,10 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 		return err
 	}
 
-	unlocked := decimal.NewFromInt(0)
 	outcoming := decimal.NewFromInt(0)
 	state := withdraw.State
 
-	unlocked, err = decimal.NewFromString(withdraw.Amount)
+	unlocked, err := decimal.NewFromString(withdraw.Amount)
 	if err != nil {
 		return err
 	}
