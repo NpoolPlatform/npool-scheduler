@@ -79,10 +79,10 @@ github.com/Masterminds/sprig v2.22.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuN
 github.com/NpoolPlatform/api-manager v0.0.0-20220205130236-69d286e72dba/go.mod h1:ubnvHuhc0o6drhdYrT+nM5DXZW/yEesObWky6oRsHoQ=
 github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83 h1:eCBDqxMZ80eHjjFVX7M9UwMq8mOqRvkkuvQco4WAHaE=
 github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83/go.mod h1:Z7h/p6Dsv0WaS2Ig3esHVtoIcv1xC9vXVIs2PK6kM8o=
-github.com/NpoolPlatform/archivement-manager v0.0.0-20220807172210-33ec808ccd6c h1:xNilgDyR/jjrLKSU5RnMnUeF/P+Nxflv8K3yYMELxMM=
-github.com/NpoolPlatform/archivement-manager v0.0.0-20220807172210-33ec808ccd6c/go.mod h1:i8s2/kAmiB+HzWmQaBOCfUrGZztZD77ZJL9SOD6MePA=
-github.com/NpoolPlatform/archivement-middleware v0.0.0-20220807175132-f1ff67770787 h1:CmaJoUMwzKhaJ0aZ7ZJ0iu8lrih7P0X5x4MR//h04ls=
-github.com/NpoolPlatform/archivement-middleware v0.0.0-20220807175132-f1ff67770787/go.mod h1:l8Ak6JRZ/zYOa+7+VuUPb+qqkZHVq4hvoJ/LW4dQis0=
+github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8 h1:qeuyQwPftTSvKgHcRGt51/v3WESefxfvmx7kFzKgdTI=
+github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8/go.mod h1:sVBfvSvtGUXevf+NuyjBKrRiE2UC67dQHnQFT/18TuY=
+github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b h1:rLlobGvmzNoBoHDGtDqPrLoTPXZyTqMJ8nUCSYrRQ48=
+github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b/go.mod h1:I7Lc5awCcBn8pkzYoDlNinr4CXutpfdK6SRAIOe+iLM=
 github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7 h1:cvMNa0gI61tl4lud1dCR3dGh3FZn55VBTO8GfZKQhPQ=
 github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220725100543-57bb94e7bbc7/go.mod h1:RpChPk9kWRo2oO0UdaB6VkRdz5InZ2yqVoQyCiRbTQc=
 github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20211224023221-a715aef93510/go.mod h1:YcH4tmsnOFfsFeBG6tqT6W5Z6yKvQA2W+b9RBhSAzMo=
@@ -106,8 +106,8 @@ github.com/NpoolPlatform/libent-cruder v0.0.0-20220801075201-cab5db8b6290/go.mod
 github.com/NpoolPlatform/message v0.0.0-20220120075427-38182760a780/go.mod h1:tnsf7zHQ5Mv2uG0ezOwCfm/bxluiRW10DeuIl4SjG4Y=
 github.com/NpoolPlatform/message v0.0.0-20220121040326-31d316062cdc/go.mod h1:tnsf7zHQ5Mv2uG0ezOwCfm/bxluiRW10DeuIl4SjG4Y=
 github.com/NpoolPlatform/message v0.0.0-20220501030927-34f296682c0c/go.mod h1:i/F/sQWjQk44RGvfgEB0zH0oAK/0qLvgJ1AsJDZQDkk=
-github.com/NpoolPlatform/message v0.0.0-20220810073217-a25d0782903c h1:FRPOeT87yIZ4t0EpmUbScHLE+VE4E1Qnr4M/61oU5UE=
-github.com/NpoolPlatform/message v0.0.0-20220810073217-a25d0782903c/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
+github.com/NpoolPlatform/message v0.0.0-20220812100206-67b8140ad838 h1:z5lj4WJaYR304FtHVM5Bgsnl9dJQT46HueYoJLBLwWE=
+github.com/NpoolPlatform/message v0.0.0-20220812100206-67b8140ad838/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0 h1:y1zXV3qp7SfJ0pCNGty+qmUVKLespSFokgt/SF+G7aA=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0/go.mod h1:5alA0KJVRHt4C4LUBeXS0bQIsGk4vdSWyfBzNOuqjuU=
 github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14 h1:I+vtZheHl4SeKqi8UEoraqlMgWtxP2wgj8ERjNxWk94=
