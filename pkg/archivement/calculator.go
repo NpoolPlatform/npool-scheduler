@@ -31,8 +31,11 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 	}
 
 	amountD := decimal.NewFromFloat(payment.Amount)
+	balanceAmount, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+	amountD = amountD.Add(balanceAmount)
+
 	amount := amountD.String()
-	usdAmountD := decimal.NewFromFloat(payment.Amount).Mul(decimal.NewFromFloat(payment.CoinUSDCurrency))
+	usdAmountD := amountD.Mul(decimal.NewFromFloat(payment.CoinUSDCurrency))
 	usdAmount := usdAmountD.String()
 	currency := decimal.NewFromFloat(payment.CoinUSDCurrency).String()
 
