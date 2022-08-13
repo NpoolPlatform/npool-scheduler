@@ -139,18 +139,7 @@ func checkTimeoutPayments(ctx context.Context) {
 		return
 	}
 
-	timeout := uint32(1 * 60 * 60)
 	for _, payment := range payments {
-		if payment.UpdateAt+timeout > uint32(time.Now().Unix()) {
-			continue
-		}
-
-		goodPayment, err := billingcli.GetAccountGoodPayment(ctx, payment.AccountID)
-		if err != nil {
-			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
-			return
-		}
-
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
 			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
@@ -159,6 +148,13 @@ func checkTimeoutPayments(ctx context.Context) {
 
 		unlock := func() {
 			_ = accountlock.Unlock(payment.AccountID) //nolint
+		}
+
+		goodPayment, err := billingcli.GetAccountGoodPayment(ctx, payment.AccountID)
+		if err != nil {
+			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
+			unlock()
+			return
 		}
 
 		if goodPayment.Idle {
