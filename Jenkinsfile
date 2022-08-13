@@ -256,7 +256,15 @@ pipeline {
         expression { RELEASE_TARGET == 'true' }
       }
       steps {
-        sh 'TAG=feature DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images'
+        sh(returnStdout: false, script: '''
+          set +e
+          docker images | grep staker-manager | grep feature
+          rc=$?
+          set -e
+          if [ 0 -eq $rc ]; then
+            TAG=feature DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
+          fi
+        '''.stripIndent())
       }
     }
 
