@@ -357,6 +357,10 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *order
 		return err
 	}
 
+	if err := commission.CalculateCommission(ctx, order.ID, false); err != nil {
+		return err
+	}
+
 	return updateStock(ctx, order.GoodID, unlocked, inservice)
 }
 

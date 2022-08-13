@@ -9,6 +9,7 @@ import (
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
 	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
 	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
@@ -46,28 +47,31 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 		myInviter := inviter
 		commissionD := decimal.NewFromInt(0)
 
-		sets := settings[inviter]
-		for _, set := range sets {
-			if set.GoodID != order.GoodID {
-				continue
-			}
+		if order.OrderType == ordermgrpb.OrderType_Normal.String() ||
+			order.OrderType == orderconst.OrderTypeNormal {
+			sets := settings[inviter]
+			for _, set := range sets {
+				if set.GoodID != order.GoodID {
+					continue
+				}
 
-			if set.Start > payment.CreateAt {
-				continue
-			}
+				if set.Start > payment.CreateAt {
+					continue
+				}
 
-			if set.End > 0 && set.End < payment.CreateAt {
-				continue
-			}
+				if set.End > 0 && set.End < payment.CreateAt {
+					continue
+				}
 
-			if subPercent < set.Percent {
-				commissionD = commissionD.
-					Add(usdAmountD.Mul(
-						decimal.NewFromInt(int64(set.Percent - subPercent))).
-						Div(decimal.NewFromInt(100))) //nolint
+				if subPercent < set.Percent {
+					commissionD = commissionD.
+						Add(usdAmountD.Mul(
+							decimal.NewFromInt(int64(set.Percent - subPercent))).
+							Div(decimal.NewFromInt(100))) //nolint
+				}
+				subPercent = set.Percent
+				break
 			}
-			subPercent = set.Percent
-			break
 		}
 
 		commission := commissionD.String()
@@ -117,6 +121,15 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 	order, err := ordercli.GetOrder(ctx, orderID)
 	if err != nil {
 		return err
+	}
+
+	switch order.OrderType {
+	case orderconst.OrderTypeOffline:
+	case orderconst.OrderTypeNormal:
+	case ordermgrpb.OrderType_Normal.String():
+	case ordermgrpb.OrderType_Offline.String():
+	default:
+		return nil
 	}
 
 	good, err := goodscli.GetGood(ctx, order.GoodID)
