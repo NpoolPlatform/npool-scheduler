@@ -357,7 +357,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *order
 		return err
 	}
 
-	if err := commission.CalculateCommission(ctx, order.ID, false); err != nil {
+	if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
 		return err
 	}
 
