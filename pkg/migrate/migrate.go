@@ -96,7 +96,10 @@ func open(hostname string) (conn *sql.DB, err error) {
 
 // nolint
 func processOrder(ctx context.Context, order *ordermwpb.Order) error {
-	if order.OrderType != ordermgrpb.OrderType_Normal {
+	switch order.OrderType {
+	case ordermgrpb.OrderType_Normal:
+	case ordermgrpb.OrderType_Offline:
+	default:
 		return nil
 	}
 
@@ -201,14 +204,6 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 		}
 	}
 
-	if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
-		logger.Sugar().Warnw("processOrder", "error", err)
-	}
-
-	if err := commission.CalculateCommission(ctx, order.ID, true); err != nil {
-		logger.Sugar().Warnw("processOrder", "error", err)
-	}
-
 	return nil
 }
 
@@ -233,8 +228,18 @@ func processOrders(ctx context.Context, order *orderent.Client) error {
 			if info.PaymentID == "" || info.PaymentID == invalidID {
 				continue
 			}
-			if err := processOrder(ctx, ordermw.Post(info)); err != nil {
+
+			info1 := ordermw.Post(info)
+			if err := processOrder(ctx, info1); err != nil {
 				logger.Sugar().Warnw("_migrate", "OrderID", info.ID, "PaymentID", info.PaymentID, "error", err)
+			}
+
+			if err := archivement.CalculateArchivement(ctx, info.ID); err != nil {
+				logger.Sugar().Warnw("processOrder", "error", err)
+			}
+
+			if err := commission.CalculateCommission(ctx, info.ID, true); err != nil {
+				logger.Sugar().Warnw("processOrder", "error", err)
 			}
 		}
 
