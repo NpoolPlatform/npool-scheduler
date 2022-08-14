@@ -98,10 +98,6 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 				continue
 			}
 
-			if set.End != 0 {
-				continue
-			}
-
 			if set.Start > payment.CreateAt {
 				continue
 			}
