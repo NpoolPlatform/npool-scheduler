@@ -207,6 +207,7 @@ func processOrder(ctx context.Context, order *ordermwpb.Order) error {
 	return nil
 }
 
+// nolint
 func processOrders(ctx context.Context, order *orderent.Client) error {
 	offset := 0
 	limit := 1000
