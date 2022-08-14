@@ -9,6 +9,7 @@ import (
 	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
@@ -160,6 +161,13 @@ func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) err
 	order, err := ordercli.GetOrder(ctx, orderID)
 	if err != nil {
 		return err
+	}
+
+	switch order.OrderType {
+	case orderconst.OrderTypeNormal:
+	case ordermgrpb.OrderType_Normal.String():
+	default:
+		return nil
 	}
 
 	payment, err := ordercli.GetOrderPayment(ctx, orderID)
