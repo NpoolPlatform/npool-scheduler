@@ -17,6 +17,7 @@ import (
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
+	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -112,6 +113,7 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 	switch newState {
 	case orderconst.PaymentStateDone:
 	case orderconst.PaymentStateCanceled:
+	case orderconst.PaymentStateTimeout:
 	default:
 		return nil
 	}
@@ -133,7 +135,7 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 	}
 
 	goodPayment.Idle = true
-	goodPayment.OccupiedBy = ""
+	goodPayment.OccupiedBy = billingconst.TransactionForNotUsed
 
 	_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
 	return err

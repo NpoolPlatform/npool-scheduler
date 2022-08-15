@@ -11,9 +11,6 @@ import (
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
-	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -132,46 +129,6 @@ func checkGoodPayments(ctx context.Context) {
 	}
 }
 
-func checkTimeoutPayments(ctx context.Context) {
-	payments, err := ordercli.GetStatePayments(ctx, orderconst.PaymentStateTimeout)
-	if err != nil {
-		logger.Sugar().Errorw("checkTimeoutPayments", "error", err)
-		return
-	}
-
-	for _, payment := range payments {
-		err = accountlock.Lock(payment.AccountID)
-		if err != nil {
-			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
-			continue
-		}
-
-		unlock := func() {
-			_ = accountlock.Unlock(payment.AccountID) //nolint
-		}
-
-		goodPayment, err := billingcli.GetAccountGoodPayment(ctx, payment.AccountID)
-		if err != nil {
-			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
-			unlock()
-			return
-		}
-
-		if goodPayment.Idle {
-			unlock()
-			continue
-		}
-
-		goodPayment.Idle = true
-		goodPayment.OccupiedBy = billingconst.TransactionForNotUsed
-		_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
-		if err != nil {
-			logger.Sugar().Errorw("checkTimeoutPayments", "AccountID", payment.AccountID, "error", err)
-		}
-		unlock()
-	}
-}
-
 // nolint
 func checkCollectingPayments(ctx context.Context) {
 	payments, err := billingcli.GetGoodPayments(ctx, cruder.NewFilterConds())
@@ -242,7 +199,6 @@ func Watch(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	for range ticker.C {
 		checkGoodPayments(ctx)
-		checkTimeoutPayments(ctx)
 		checkCollectingPayments(ctx)
 	}
 }
