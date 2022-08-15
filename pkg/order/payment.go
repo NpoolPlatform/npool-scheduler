@@ -332,7 +332,17 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 		}
 	}
 
-	return updateStock(ctx, order.GoodID, unlocked, inservice)
+	switch state {
+	case orderconst.PaymentStateDone:
+		fallthrough //nolint
+	case orderconst.PaymentStateCanceled:
+		fallthrough //nolint
+	case orderconst.PaymentStateTimeout:
+		return updateStock(ctx, order.GoodID, unlocked, inservice)
+	}
+
+	return nil
+
 }
 
 func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {
