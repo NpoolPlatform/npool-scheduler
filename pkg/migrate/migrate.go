@@ -336,7 +336,7 @@ func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem)
 			tx.TransactionFee,
 			withdraw.WithdrawToAccountID,
 		)
-		amount := fmt.Sprintf("%v", withdraw.Amount)
+		amount := fmt.Sprintf("%v", tx.Amount)
 		ioType := ledgerdetailpb.IOType_Outcoming
 		ioSubType := ledgerdetailpb.IOSubType_Withdrawal
 
@@ -396,8 +396,7 @@ func processWithdraws(ctx context.Context, billing *billingent.Client) error {
 	}
 }
 
-func _migrate(ctx context.Context, order *orderent.Client, billing *billingent.Client) error {
-	_ = processOrders(ctx, order)      //nolint
+func _migrate(ctx context.Context, order *orderent.Client, billing *billingent.Client) error { //nolint
 	_ = processWithdraws(ctx, billing) //nolint
 	return nil
 }
