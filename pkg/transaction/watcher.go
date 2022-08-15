@@ -127,6 +127,16 @@ func onWaitChecker(ctx context.Context) {
 	}
 
 	for _, wait := range waits {
+		tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID)
+		if tx != nil {
+			wait.State = billingconst.CoinTransactionStatePaying
+			_, err := billingcli.UpdateTransaction(ctx, wait)
+			if err != nil {
+				logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
+			}
+			continue
+		}
+
 		if err := transfer(ctx, wait); err != nil {
 			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
 			continue
