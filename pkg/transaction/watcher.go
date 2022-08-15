@@ -129,14 +129,13 @@ func onWaitChecker(ctx context.Context) {
 	for _, wait := range waits {
 		if err := transfer(ctx, wait); err != nil {
 			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
-			return
+			continue
 		}
 
 		wait.State = billingconst.CoinTransactionStatePaying
 		_, err := billingcli.UpdateTransaction(ctx, wait)
 		if err != nil {
 			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
-			return
 		}
 	}
 }
