@@ -127,7 +127,7 @@ func onWaitChecker(ctx context.Context) {
 	}
 
 	for _, wait := range waits {
-		tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID)
+		tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID) //nolint
 		if tx != nil {
 			wait.State = billingconst.CoinTransactionStatePaying
 			_, err := billingcli.UpdateTransaction(ctx, wait)
