@@ -165,6 +165,11 @@ func checkCollectingPayments(ctx context.Context) {
 			continue
 		}
 
+		if payment.AvailableAt >= uint32(time.Now().Unix()) {
+			unlock()
+			continue
+		}
+
 		if payment.UsedFor != billingconst.TransactionForCollecting {
 			unlock()
 			continue
