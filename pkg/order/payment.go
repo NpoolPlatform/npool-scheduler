@@ -136,6 +136,7 @@ func tryFinishPayment(ctx context.Context, payment *orderpb.Payment, newState st
 
 	goodPayment.Idle = true
 	goodPayment.OccupiedBy = billingconst.TransactionForNotUsed
+	goodPayment.UsedFor = billingconst.TransactionForNotUsed
 
 	_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
 	return err
