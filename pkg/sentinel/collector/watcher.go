@@ -29,14 +29,18 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		return
 	}
 
+	if payment.AvailableAt >= uint32(time.Now().Unix()) {
+		return
+	}
+
 	coin, err := coininfocli.GetCoinInfo(ctx, payment.PaymentCoinTypeID)
 	if err != nil || coin == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
 		return
 	}
 
 	if err := accountlock.Lock(payment.AccountID); err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
 		return
 	}
 	defer func() {
@@ -53,9 +57,13 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		return
 	}
 
+	if payment.AvailableAt >= uint32(time.Now().Unix()) {
+		return
+	}
+
 	account, err := billingcli.GetAccount(ctx, payment.AccountID)
 	if err != nil || account == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "account", account, "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "AccountID", payment.AccountID, "account", account, "error", err)
 		return
 	}
 
@@ -64,20 +72,27 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		Address: account.Address,
 	})
 	if err != nil || balance == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "balance", balance, "error", err)
+		logger.Sugar().Errorw(
+			"checkGoodPayment",
+			"balance", balance,
+			"payment", payment.ID,
+			"coin", coin.Name,
+			"address", account.Address,
+			"error", err,
+		)
 		return
 	}
 
 	setting, err := billingcli.GetCoinSetting(ctx, payment.PaymentCoinTypeID)
 	if err != nil || setting == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
 		return
 	}
 
 	limit := setting.PaymentAccountCoinAmount
 	logger.Sugar().Infow("checkGoodPayment", "limit", limit, "coin", coin.Name,
 		"balance", balance.BalanceStr, "reserved", coin.ReservedAmount,
-		"account", account.Address, "account", payment.AccountID)
+		"account", account.Address, "accountID", payment.AccountID)
 	bal, err := decimal.NewFromString(balance.BalanceStr)
 	if err != nil {
 		logger.Sugar().Errorw("checkGoodPayment", "error", err)
@@ -104,12 +119,13 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		CreatedFor:         billingconst.TransactionForCollecting,
 	})
 	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
 		return
 	}
 
 	payment.Idle = false
 	payment.OccupiedBy = billingconst.TransactionForCollecting
+	payment.UsedFor = billingconst.TransactionForCollecting
 	payment.CollectingTID = tx.ID
 	_, err = billingcli.UpdateGoodPayment(ctx, payment)
 	if err != nil {
@@ -120,7 +136,7 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 func checkGoodPayments(ctx context.Context) {
 	payments, err := billingcli.GetGoodPayments(ctx, cruder.NewFilterConds())
 	if err != nil {
-		logger.Sugar().Errorw("checkPaymentAmount", "error", err)
+		logger.Sugar().Errorw("checkGoodPayments", "error", err)
 		return
 	}
 
@@ -144,7 +160,7 @@ func checkCollectingPayments(ctx context.Context) {
 
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
-			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
+			logger.Sugar().Errorw("checkCollectingPayments", "AccountID", payment.AccountID, "error", err)
 			continue
 		}
 
@@ -165,12 +181,8 @@ func checkCollectingPayments(ctx context.Context) {
 			continue
 		}
 
-		if payment.AvailableAt >= uint32(time.Now().Unix()) {
-			unlock()
-			continue
-		}
-
-		if payment.UsedFor != billingconst.TransactionForCollecting {
+		if payment.UsedFor != billingconst.TransactionForCollecting ||
+			payment.OccupiedBy != billingconst.TransactionForCollecting {
 			unlock()
 			continue
 		}
@@ -181,10 +193,17 @@ func checkCollectingPayments(ctx context.Context) {
 			unlock()
 			continue
 		}
+		if tx == nil {
+			logger.Sugar().Errorw("checkCollectingPayments", "CollectingTID", payment.CollectingTID)
+			unlock()
+			continue
+		}
 
 		switch tx.State {
 		case billingconst.CoinTransactionStateCreated:
+			fallthrough //nolint
 		case billingconst.CoinTransactionStateWait:
+			fallthrough //nolint
 		case billingconst.CoinTransactionStatePaying:
 			unlock()
 			continue
@@ -192,9 +211,10 @@ func checkCollectingPayments(ctx context.Context) {
 
 		payment.Idle = true
 		payment.OccupiedBy = billingconst.TransactionForNotUsed
+		payment.UsedFor = billingconst.TransactionForNotUsed
 		_, err = billingcli.UpdateGoodPayment(ctx, payment)
 		if err != nil {
-			logger.Sugar().Errorw("checkGoodPayment", "error", err)
+			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 		}
 		unlock()
 	}

@@ -104,7 +104,7 @@ func processWithdraws(ctx context.Context) {
 
 		for _, withdraw := range withdraws {
 			if err := processWithdraw(ctx, withdraw); err != nil {
-				logger.Sugar().Infow("processWithdraws", "error", err)
+				logger.Sugar().Infow("processWithdraws", "Withdraw", withdraw.ID, "error", err)
 				return
 			}
 		}

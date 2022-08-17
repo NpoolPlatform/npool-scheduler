@@ -248,7 +248,7 @@ func processOrders(ctx context.Context, order *orderent.Client) error {
 	}
 }
 
-func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem) error {
+func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem) error { //nolint
 	tx, err := billingcli.GetTransaction(ctx, withdraw.PlatformTransactionID.String())
 	if err != nil {
 		return err
@@ -362,7 +362,7 @@ func processWithdraw(ctx context.Context, withdraw *billingent.UserWithdrawItem)
 	return err
 }
 
-func processWithdraws(ctx context.Context, billing *billingent.Client) error {
+func processWithdraws(ctx context.Context, billing *billingent.Client) error { //nolint
 	offset := 0
 	limit := 1000
 
@@ -397,7 +397,6 @@ func processWithdraws(ctx context.Context, billing *billingent.Client) error {
 }
 
 func _migrate(ctx context.Context, order *orderent.Client, billing *billingent.Client) error { //nolint
-	_ = processWithdraws(ctx, billing) //nolint
 	return nil
 }
 
