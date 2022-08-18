@@ -47,10 +47,14 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		_ = accountlock.Unlock(payment.AccountID) //nolint
 	}()
 
+	paymentID := payment.ID
 	payment, err = billingcli.GetGoodPayment(ctx, payment.ID)
 	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
+		logger.Sugar().Errorw("checkGoodPayment", "PaymentID", paymentID, "error", err)
 		return
+	}
+	if payment == nil {
+		logger.Sugar().Errorw("checkGoodPayment", "Payment", paymentID)
 	}
 
 	if !payment.Idle {
