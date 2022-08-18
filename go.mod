@@ -4,6 +4,8 @@ go 1.17
 
 require (
 	entgo.io/ent v0.11.1
+	github.com/NpoolPlatform/account-manager v0.0.0-20220818094925-a55d34be0758
+	github.com/NpoolPlatform/account-middleware v0.0.0-20220818064603-24ca4f7e014f
 	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8
 	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b
@@ -15,7 +17,7 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220809080712-e4586fdefec7
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220801075201-cab5db8b6290
-	github.com/NpoolPlatform/message v0.0.0-20220812100206-67b8140ad838
+	github.com/NpoolPlatform/message v0.0.0-20220818084144-038bbcfcb20e
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
