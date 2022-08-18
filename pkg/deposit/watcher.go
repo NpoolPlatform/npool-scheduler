@@ -225,6 +225,8 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 	amountS := amount.String()
 	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
 
+	// TODO: lock account here
+
 	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
 		ID:            &acc.ID,
 		AppID:         &acc.AppID,
@@ -245,6 +247,7 @@ func transfer(ctx context.Context) {
 	logger.Sugar().Infow("transfer", "Start", "...")
 
 	for {
+		// TODO: only get active / unlocked / unblocked accounts
 		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
@@ -273,6 +276,7 @@ func Watch(ctx context.Context) {
 		case <-ticker.C:
 			deposit(ctx)
 			transfer(ctx)
+			finish(ctx)
 		case <-ctx.Done():
 			return
 		}
