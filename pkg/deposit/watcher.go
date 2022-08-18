@@ -40,15 +40,8 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
-	incoming, err := decimal.NewFromString(acc.Incoming)
-	if err != nil {
-		return err
-	}
-
-	outcoming, err := decimal.NewFromString(acc.Outcoming)
-	if err != nil {
-		return err
-	}
+	incoming, _ := decimal.NewFromString(acc.Incoming)
+	outcoming, _ := decimal.NewFromString(acc.Outcoming)
 
 	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
 	if err != nil {
@@ -125,15 +118,21 @@ func deposit(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
+	logger.Sugar().Infow("deposit", "Start", "...")
+
 	for {
 		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			ScannableAt: &commonpb.Uint32Val{
-				Op:    cruder.GT,
+				Op:    cruder.LT,
 				Value: uint32(time.Now().Unix()),
 			},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
+			return
+		}
+		if len(accs) == 0 {
+			logger.Sugar().Infow("deposit", "Done", "...")
 			return
 		}
 
@@ -152,15 +151,8 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
-	incoming, err := decimal.NewFromString(acc.Incoming)
-	if err != nil {
-		return err
-	}
-
-	outcoming, err := decimal.NewFromString(acc.Outcoming)
-	if err != nil {
-		return err
-	}
+	incoming, _ := decimal.NewFromString(acc.Incoming)
+	outcoming, _ := decimal.NewFromString(acc.Outcoming)
 
 	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
 	if err != nil {
@@ -212,6 +204,8 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	// TODO: set locked state and recover when transaction done
 
+	amount := incoming.Sub(outcoming).Sub(decimal.NewFromFloat(coin.ReservedAmount))
+
 	tx, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
 		AppID:              acc.AppID,
 		UserID:             acc.UserID,
@@ -219,7 +213,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		FromAddressID:      acc.AccountID,
 		ToAddressID:        setting.GoodIncomingAccountID,
 		CoinTypeID:         acc.AccountID,
-		Amount:             incoming.Sub(outcoming).Sub(decimal.NewFromFloat(coin.ReservedAmount)).InexactFloat64(),
+		Amount:             amount.InexactFloat64(),
 		Message:            fmt.Sprintf("deposit collecting of %v at %v", acc.Address, time.Now()),
 		ChainTransactionID: uuid.New().String(),
 		CreatedFor:         billingconst.TransactionForCollecting,
@@ -228,7 +222,9 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
+	amountS := amount.String()
 	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
+
 	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
 		ID:            &acc.ID,
 		AppID:         &acc.AppID,
@@ -236,6 +232,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		CoinTypeID:    &acc.CoinTypeID,
 		AccountID:     &acc.AccountID,
 		ScannableAt:   &scannableAt,
+		Outcoming:     &amountS,
 		CollectingTID: &tx.ID,
 	})
 	return err
@@ -245,15 +242,16 @@ func transfer(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
+	logger.Sugar().Infow("transfer", "Start", "...")
+
 	for {
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
-			ScannableAt: &commonpb.Uint32Val{
-				Op:    cruder.GT,
-				Value: uint32(time.Now().Unix()),
-			},
-		}, offset, limit)
+		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
+			return
+		}
+		if len(accs) == 0 {
+			logger.Sugar().Infow("transfer", "Done", "...")
 			return
 		}
 
