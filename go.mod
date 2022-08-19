@@ -3,9 +3,8 @@ module github.com/NpoolPlatform/staker-manager
 go 1.17
 
 require (
-	entgo.io/ent v0.11.1
-	github.com/NpoolPlatform/account-manager v0.0.0-20220818094925-a55d34be0758
-	github.com/NpoolPlatform/account-middleware v0.0.0-20220818064603-24ca4f7e014f
+	github.com/NpoolPlatform/account-manager v0.0.0-20220818150458-134bb645c042
+	github.com/NpoolPlatform/account-middleware v0.0.0-20220819023858-e279d03408fc
 	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8
 	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b
@@ -13,20 +12,17 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-goods v0.0.0-20220725094415-a027a03521e7
 	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20220818095455-38e69f7b4e08
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20220818105452-9457611ae070
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220809080712-e4586fdefec7
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220801075201-cab5db8b6290
-	github.com/NpoolPlatform/message v0.0.0-20220818084144-038bbcfcb20e
+	github.com/NpoolPlatform/message v0.0.0-20220818102837-a1e6a52d38dc
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
-	github.com/NpoolPlatform/order-middleware v0.0.0-20220807111936-fc013baf80d3
-	github.com/NpoolPlatform/review-service v0.0.0-20220806150215-be6314965b82
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
-	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1
@@ -39,6 +35,7 @@ require (
 
 require (
 	ariga.io/atlas v0.5.0 // indirect
+	entgo.io/ent v0.11.1 // indirect
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
@@ -60,6 +57,7 @@ require (
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.4 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect

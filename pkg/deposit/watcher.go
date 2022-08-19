@@ -1,3 +1,4 @@
+//nolint:dupl
 package deposit
 
 import (
@@ -5,13 +6,16 @@ import (
 	"fmt"
 	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
+	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/time"
 
 	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
 	depositmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/deposit"
 	depositmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
+
+	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
@@ -40,8 +44,8 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
-	incoming, _ := decimal.NewFromString(acc.Incoming)
-	outcoming, _ := decimal.NewFromString(acc.Outcoming)
+	incoming, _ := decimal.NewFromString(acc.Incoming)   //nolint
+	outcoming, _ := decimal.NewFromString(acc.Outcoming) //nolint
 
 	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
 	if err != nil {
@@ -79,6 +83,8 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	}
 
 	amount := balance.Sub(incoming.Sub(outcoming)).String()
+
+	// TODO: move add and book keeping to TX
 
 	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
 		ID:         &acc.ID,
@@ -122,6 +128,10 @@ func deposit(ctx context.Context) {
 
 	for {
 		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+			Locked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: false,
+			},
 			ScannableAt: &commonpb.Uint32Val{
 				Op:    cruder.LT,
 				Value: uint32(time.Now().Unix()),
@@ -151,8 +161,8 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
-	incoming, _ := decimal.NewFromString(acc.Incoming)
-	outcoming, _ := decimal.NewFromString(acc.Outcoming)
+	incoming, _ := decimal.NewFromString(acc.Incoming)   //nolint
+	outcoming, _ := decimal.NewFromString(acc.Outcoming) //nolint
 
 	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
 	if err != nil {
@@ -202,8 +212,6 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		_ = accountlock.Unlock(acc.AccountID) //nolint
 	}()
 
-	// TODO: set locked state and recover when transaction done
-
 	amount := incoming.Sub(outcoming).Sub(decimal.NewFromFloat(coin.ReservedAmount))
 
 	tx, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
@@ -222,19 +230,17 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
-	amountS := amount.String()
-	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
+	locked := true
+	lockedBy := accountmgrpb.LockedBy_Collecting
 
-	// TODO: lock account here
-
-	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
+	_, err = depositmwcli.UpdateAccount(ctx, &depositmwpb.AccountReq{
 		ID:            &acc.ID,
 		AppID:         &acc.AppID,
 		UserID:        &acc.UserID,
 		CoinTypeID:    &acc.CoinTypeID,
 		AccountID:     &acc.AccountID,
-		ScannableAt:   &scannableAt,
-		Outcoming:     &amountS,
+		Locked:        &locked,
+		LockedBy:      &lockedBy,
 		CollectingTID: &tx.ID,
 	})
 	return err
@@ -248,7 +254,16 @@ func transfer(ctx context.Context) {
 
 	for {
 		// TODO: only get active / unlocked / unblocked accounts
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{}, offset, limit)
+		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+			Locked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: false,
+			},
+			ScannableAt: &commonpb.Uint32Val{
+				Op:    cruder.LT,
+				Value: uint32(time.Now().Unix()),
+			},
+		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
 			return
@@ -268,8 +283,94 @@ func transfer(ctx context.Context) {
 	}
 }
 
-func finish(ctx context.Context) {
+func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
+	tx, err := billingcli.GetTransaction(ctx, acc.CollectingTID)
+	if err != nil {
+		return err
+	}
 
+	outcoming := decimal.NewFromInt(0)
+
+	switch tx.State {
+	case billingconst.CoinTransactionStateSuccessful:
+		outcoming = outcoming.Add(decimal.NewFromFloat(tx.Amount))
+	case billingconst.CoinTransactionStateFail:
+	default:
+		return nil
+	}
+
+	if err := accountlock.Lock(acc.AccountID); err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(acc.AccountID) //nolint
+	}()
+
+	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
+
+	locked := false
+	lockedBy := accountmgrpb.LockedBy_DefaultLockedBy
+	collectingID := uuid1.InvalidUUIDStr
+	outcomingS := outcoming.String()
+
+	req := &depositmwpb.AccountReq{
+		ID:            &acc.ID,
+		AppID:         &acc.AppID,
+		UserID:        &acc.UserID,
+		CoinTypeID:    &acc.CoinTypeID,
+		AccountID:     &acc.AccountID,
+		Locked:        &locked,
+		LockedBy:      &lockedBy,
+		CollectingTID: &collectingID,
+		ScannableAt:   &scannableAt,
+	}
+	if outcoming.Cmp(decimal.NewFromInt(0)) > 0 {
+		req.Outcoming = &outcomingS
+	}
+
+	_, err = depositmwcli.UpdateAccount(ctx, req)
+	return err
+}
+
+func finish(ctx context.Context) {
+	offset := int32(0)
+	limit := int32(1000)
+
+	logger.Sugar().Infow("finish", "Start", "...")
+
+	for {
+		// TODO: only get active / unlocked / unblocked accounts
+		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+			Locked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: true,
+			},
+			LockedBy: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(accountmgrpb.LockedBy_Collecting),
+			},
+			ScannableAt: &commonpb.Uint32Val{
+				Op:    cruder.LT,
+				Value: uint32(time.Now().Unix()),
+			},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("deposit", "error", err)
+			return
+		}
+		if len(accs) == 0 {
+			logger.Sugar().Infow("finish", "Done", "...")
+			return
+		}
+
+		for _, acc := range accs {
+			if err := tryFinishOne(ctx, acc); err != nil {
+				logger.Sugar().Errorw("finish", "error", err)
+			}
+		}
+
+		offset += limit
+	}
 }
 
 func Watch(ctx context.Context) {
