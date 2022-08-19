@@ -268,6 +268,10 @@ func transfer(ctx context.Context) {
 	}
 }
 
+func finish(ctx context.Context) {
+
+}
+
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(60 * time.Second)
 
