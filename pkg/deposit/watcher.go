@@ -288,6 +288,9 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	if err != nil {
 		return err
 	}
+	if tx == nil {
+		return nil
+	}
 
 	outcoming := decimal.NewFromInt(0)
 
