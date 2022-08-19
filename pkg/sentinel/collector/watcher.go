@@ -39,12 +39,13 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 		return
 	}
 
+	accountID := payment.AccountID
 	if err := accountlock.Lock(payment.AccountID); err != nil {
 		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
 		return
 	}
 	defer func() {
-		_ = accountlock.Unlock(payment.AccountID) //nolint
+		_ = accountlock.Unlock(accountID) //nolint
 	}()
 
 	paymentID := payment.ID
@@ -55,6 +56,7 @@ func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //n
 	}
 	if payment == nil {
 		logger.Sugar().Errorw("checkGoodPayment", "Payment", paymentID)
+		return
 	}
 
 	if !payment.Idle {
@@ -162,6 +164,7 @@ func checkCollectingPayments(ctx context.Context) {
 			continue
 		}
 
+		accountID := payment.AccountID
 		err = accountlock.Lock(payment.AccountID)
 		if err != nil {
 			logger.Sugar().Errorw("checkCollectingPayments", "AccountID", payment.AccountID, "error", err)
@@ -169,13 +172,15 @@ func checkCollectingPayments(ctx context.Context) {
 		}
 
 		unlock := func() {
-			if err := accountlock.Unlock(payment.AccountID); err != nil {
-				logger.Sugar().Errorw("checkCollectingPayments", "error", err)
-			}
+			_ = accountlock.Unlock(accountID) //nolint
 		}
 
 		payment, err = billingcli.GetGoodPayment(ctx, payment.ID)
 		if err != nil {
+			unlock()
+			return
+		}
+		if payment == nil {
 			unlock()
 			return
 		}
