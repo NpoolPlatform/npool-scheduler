@@ -16,6 +16,8 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
+	accountmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/account"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -74,23 +76,36 @@ tryWaitOne:
 	}
 }
 
+func getAddress(ctx context.Context, id string) (string, error) {
+	oacc, err := billingcli.GetAccount(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	if oacc != nil {
+		return oacc.Address, nil
+	}
+
+	nacc, err := accountmgrcli.GetAccount(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	if nacc != nil {
+		return nacc.Address, nil
+	}
+
+	return "", fmt.Errorf("invalid account")
+}
+
 func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
 	logger.Sugar().Infow("transaction", "id", tx.ID, "amount", tx.Amount, "state", tx.State)
 
-	from, err := billingcli.GetAccount(ctx, tx.FromAddressID)
+	fromAddress, err := getAddress(ctx, tx.FromAddressID)
 	if err != nil {
-		return fmt.Errorf("fail get account: %v", err)
+		return err
 	}
-	if from == nil {
-		return fmt.Errorf("invalid from address")
-	}
-
-	to, err := billingcli.GetAccount(ctx, tx.ToAddressID)
+	toAddress, err := getAddress(ctx, tx.ToAddressID)
 	if err != nil {
-		return fmt.Errorf("fail get account: %v", err)
-	}
-	if to == nil {
-		return fmt.Errorf("invalid from address")
+		return err
 	}
 
 	coin, err := coininfocli.GetCoinInfo(ctx, tx.CoinTypeID)
@@ -102,15 +117,15 @@ func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
 	}
 
 	logger.Sugar().Infow("transaction", "id", tx.ID,
-		"coin", coin.Name, "from", from.Address, "to", to.Address,
+		"coin", coin.Name, "from", fromAddress, "to", toAddress,
 		"amount", tx.Amount, "fee", tx.TransactionFee)
 
 	err = sphinxproxycli.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: tx.ID,
 		Name:          coin.Name,
 		Amount:        tx.Amount - tx.TransactionFee,
-		From:          from.Address,
-		To:            to.Address,
+		From:          fromAddress,
+		To:            toAddress,
 	})
 	if err != nil {
 		return fmt.Errorf("fail transfer: %v", err)
