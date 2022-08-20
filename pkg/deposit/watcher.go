@@ -161,6 +161,19 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
+	tx, err := billingcli.GetTransaction(ctx, acc.CollectingTID)
+	if err != nil {
+		return err
+	}
+	if tx != nil {
+		switch tx.State {
+		case billingconst.CoinTransactionStateSuccessful:
+		case billingconst.CoinTransactionStateFail:
+		default:
+			return nil
+		}
+	}
+
 	incoming, _ := decimal.NewFromString(acc.Incoming)   //nolint
 	outcoming, _ := decimal.NewFromString(acc.Outcoming) //nolint
 
@@ -214,7 +227,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	amount := incoming.Sub(outcoming).Sub(decimal.NewFromFloat(coin.ReservedAmount))
 
-	tx, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
+	tx, err = billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
 		AppID:              acc.AppID,
 		UserID:             acc.UserID,
 		GoodID:             uuid.UUID{}.String(),
