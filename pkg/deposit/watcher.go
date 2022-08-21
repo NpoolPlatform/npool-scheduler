@@ -99,12 +99,13 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	}
 
 	ioExtra := fmt.Sprintf(
-		`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v"}`,
+		`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
 		acc.AppID,
 		acc.UserID,
 		acc.AccountID,
 		coin.Name,
 		acc.Address,
+		time.Now(),
 	)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Deposit
@@ -233,7 +234,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		GoodID:             uuid.UUID{}.String(),
 		FromAddressID:      acc.AccountID,
 		ToAddressID:        setting.GoodIncomingAccountID,
-		CoinTypeID:         acc.AccountID,
+		CoinTypeID:         acc.CoinTypeID,
 		Amount:             amount.InexactFloat64(),
 		Message:            fmt.Sprintf("deposit collecting of %v at %v", acc.Address, time.Now()),
 		ChainTransactionID: uuid.New().String(),
@@ -370,6 +371,7 @@ func finish(ctx context.Context) {
 				Value: uint32(time.Now().Unix()),
 			},
 		}, offset, limit)
+
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
 			return
