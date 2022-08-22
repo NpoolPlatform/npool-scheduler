@@ -371,7 +371,6 @@ func finish(ctx context.Context) {
 				Value: uint32(time.Now().Unix()),
 			},
 		}, offset, limit)
-
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
 			return
@@ -380,7 +379,6 @@ func finish(ctx context.Context) {
 			logger.Sugar().Infow("finish", "Done", "...")
 			return
 		}
-
 		for _, acc := range accs {
 			if err := tryFinishOne(ctx, acc); err != nil {
 				logger.Sugar().Errorw("finish", "error", err)
