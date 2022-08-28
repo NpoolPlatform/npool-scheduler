@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/NpoolPlatform/account-manager v0.0.0-20220818150458-134bb645c042
 	github.com/NpoolPlatform/account-middleware v0.0.0-20220819023858-e279d03408fc
-	github.com/NpoolPlatform/api-manager v0.0.0-20220421114434-bf0e069b0c83
+	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8
 	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220813100440-8f504162a259
@@ -16,7 +16,7 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220809080712-e4586fdefec7
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20220801075201-cab5db8b6290
-	github.com/NpoolPlatform/message v0.0.0-20220818102837-a1e6a52d38dc
+	github.com/NpoolPlatform/message v0.0.0-20220819134247-1dc75c85fe43
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/oracle-manager v0.0.0-20220615040511-dc235b31fa14
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
@@ -34,8 +34,8 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.5.0 // indirect
-	entgo.io/ent v0.11.1 // indirect
+	ariga.io/atlas v0.5.1-0.20220717122844-8593d7eb1a8e // indirect
+	entgo.io/ent v0.11.2 // indirect
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
@@ -106,9 +106,9 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/ratelimit v0.2.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220418201149-a630d4f3e7a2 // indirect
-	golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac // indirect
