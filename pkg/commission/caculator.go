@@ -114,6 +114,11 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 		if percent < subPercent {
 			break
 		}
+		if percent == subPercent {
+			subPercent = percent
+			subContributor = user
+			continue
+		}
 
 		amount := decimal.NewFromFloat(payment.Amount)
 		// Also calculate balance as amount
