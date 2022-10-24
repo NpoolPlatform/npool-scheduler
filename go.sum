@@ -70,10 +70,10 @@ github.com/NpoolPlatform/account-middleware v0.0.0-20220819023858-e279d03408fc h
 github.com/NpoolPlatform/account-middleware v0.0.0-20220819023858-e279d03408fc/go.mod h1:ms045SYGDpS7gG9WH4ajDlhI0YNhmGl3FvFdPA5jxYM=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0 h1:yIEwS7NTQhBBmfpf6yigvPCbxffMOrtBK/yUPM5ukbo=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0/go.mod h1:+Xj8fVgWZWGakBtqZbFn/zY0qd47AywCjLPOGdTqJDU=
-github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8 h1:qeuyQwPftTSvKgHcRGt51/v3WESefxfvmx7kFzKgdTI=
-github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8/go.mod h1:sVBfvSvtGUXevf+NuyjBKrRiE2UC67dQHnQFT/18TuY=
-github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b h1:rLlobGvmzNoBoHDGtDqPrLoTPXZyTqMJ8nUCSYrRQ48=
-github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b/go.mod h1:I7Lc5awCcBn8pkzYoDlNinr4CXutpfdK6SRAIOe+iLM=
+github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46 h1:f8h+HNWfbF9jOUMhanb/lI/UbQIXZBryJ44kURmq2Rk=
+github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46/go.mod h1:Lg3sHl5QRBMTd8DGao27BHeyfizzWcYZaqn9NCmQP28=
+github.com/NpoolPlatform/archivement-middleware v0.0.0-20220906111241-8ea73a1a10e3 h1:qVgLqLb9t0+oxQgoXyDErVUCoY8MvM9DdNhTwFL3qzE=
+github.com/NpoolPlatform/archivement-middleware v0.0.0-20220906111241-8ea73a1a10e3/go.mod h1:+tOsdkoKj9HgipTzpB09NHb6EPxQH9b7y3Ug4QxsrpU=
 github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220813100440-8f504162a259 h1:kvsDXtmqITpigvJhhdO9KuKmWen8HIFC5OfMb2PMvgE=
 github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220813100440-8f504162a259/go.mod h1:/nAiuTp/5o1jNOrpKPYlKuePAR3ARt+CtJqLHnRKkNI=
 github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b h1:guANkUH5JA/Yf4WXmW8JacCncM0YqMvUzdwZ8EJ7ZD4=

@@ -6,8 +6,8 @@ require (
 	github.com/NpoolPlatform/account-manager v0.0.0-20220818150458-134bb645c042
 	github.com/NpoolPlatform/account-middleware v0.0.0-20220819023858-e279d03408fc
 	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
-	github.com/NpoolPlatform/archivement-manager v0.0.0-20220812100336-b7a3648ba3a8
-	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220812100658-bb6a3f19635b
+	github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46
+	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220906111241-8ea73a1a10e3
 	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220813100440-8f504162a259
 	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b
 	github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429

@@ -62,7 +62,7 @@ func tryUpdateCommissionLedger(
 	}
 
 	ioExtra := fmt.Sprintf(
-		`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v",,"OrderUserID":"%v"}`,
+		`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 		paymentID, orderID, subContributor, orderUserID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
@@ -114,8 +114,9 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 		if percent < subPercent {
 			break
 		}
-
 		if percent == subPercent {
+			subPercent = percent
+			subContributor = user
 			continue
 		}
 
