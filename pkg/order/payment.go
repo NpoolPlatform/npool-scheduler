@@ -12,7 +12,7 @@ import (
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
-	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
@@ -294,7 +294,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 			return err
 		}
 
-		_, err = ledgermwpkg.TryCreateProfit(ctx, payment.AppID, payment.UserID, good.CoinInfoID)
+		_, err = ledgermwpkg.TryCreateProfit(ctx, payment.AppID, payment.UserID, good.CoinTypeID)
 		if err != nil {
 			return err
 		}

@@ -8,8 +8,8 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
-	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
 
@@ -82,12 +82,12 @@ func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool) 
 	return true, nil
 }
 
-func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Time) error { //nolint
+func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) error { //nolint
 	if good.StartAt > uint32(time.Now().Unix()) {
 		return nil
 	}
 
-	coin, err := coininfocli.GetCoinInfo(ctx, good.CoinInfoID)
+	coin, err := coininfocli.GetCoinInfo(ctx, good.CoinTypeID)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 		return nil
 	}
 
-	setting, err := billingcli.GetCoinSetting(ctx, good.CoinInfoID)
+	setting, err := billingcli.GetCoinSetting(ctx, good.CoinTypeID)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func processGood(ctx context.Context, good *goodspb.GoodInfo, timestamp time.Tim
 }
 
 func processGoods(ctx context.Context, timestamp time.Time) {
-	goods, err := goodscli.GetGoods(ctx)
+	goods, _, err := goodscli.GetGoods(ctx, nil, 0, 0)
 	if err != nil {
 		logger.Sugar().Errorw("processGoods", "error", err)
 		return
