@@ -343,7 +343,6 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order, payment *or
 	}
 
 	return nil
-
 }
 
 func _processFakeOrder(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment) error {

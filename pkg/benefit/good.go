@@ -3,8 +3,9 @@ package benefit
 import (
 	"context"
 	"fmt"
-	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	"time"
+
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
