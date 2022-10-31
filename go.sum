@@ -108,8 +108,6 @@ github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c/go.m
 github.com/NpoolPlatform/sphinx-plugin v0.0.0-20220615111041-1f66f3b8e0d0 h1:y0CX49H0fHXY0Zqg/QiJDVOo50l4SXL2uXlU1J9Pp9w=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95 h1:v5snXbJFtOMbRrZWiybc9Noev5PBt90aNlMK3c5ixVY=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95/go.mod h1:o2qhPFUDpQWDsU8KQGlzkWk19aFVNNozTyUDDT93O4E=
-github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647 h1:erFhrIDGmIbRlIG38/2zokITwCTzyN+N6zN++IKSDD4=
-github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647/go.mod h1:S1yJ9ElTOv0gJspG2IptpcEWzfuP+rrhBFnPlpWaDJ0=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shonminh/apollo-client v0.4.0 h1:AXGp4wOahrEKjheMXehgsG9B8dEfLQHttRLHeEefvus=

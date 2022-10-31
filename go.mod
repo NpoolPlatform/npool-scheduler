@@ -22,7 +22,6 @@ require (
 	github.com/NpoolPlatform/order-manager v0.0.0-20220729162421-63af737dd39d
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
-	github.com/NpoolPlatform/stock-manager v0.0.0-20220501144918-883eece82647
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1

@@ -3,40 +3,37 @@ package order
 import (
 	"context"
 	"fmt"
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	//
+	//"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	//
+	//stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
+	//stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
+	//
+	//cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	//"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-
-	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
-	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
-
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	"google.golang.org/protobuf/types/known/structpb"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 )
 
 func updateStock(ctx context.Context, goodID string, unlocked, inservice int32) error {
-	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
-		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(goodID)))
+	goodInfo, err := goodscli.GetGood(ctx, goodID)
 	if err != nil {
 		return err
 	}
-	if stock == nil {
-		return fmt.Errorf("invalid stock")
+
+	if goodInfo == nil {
+		return fmt.Errorf("invalid good")
 	}
 
-	fields := cruder.NewFilterFields()
-	if inservice > 0 {
-		fields = fields.WithField(stockconst.StockFieldInService, structpb.NewNumberValue(float64(inservice)))
+	unlocked = unlocked * -1
+	_, err = goodscli.UpdateGood(ctx, &goodmwpb.GoodReq{
+		ID:        &goodID,
+		Locked:    &inservice,
+		InService: &unlocked,
+	})
+	if err != nil {
+		return err
 	}
-	if unlocked > 0 {
-		fields = fields.WithField(stockconst.StockFieldLocked, structpb.NewNumberValue(float64(unlocked*-1)))
-	}
-
-	if len(fields) == 0 {
-		return nil
-	}
-
-	logger.Sugar().Infow("updateStock", "good", goodID, "inservice", inservice, "unlocked", unlocked)
-
-	_, err = stockcli.AddStockFields(ctx, stock.ID, fields)
 	return err
 }
