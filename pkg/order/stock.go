@@ -21,8 +21,8 @@ func updateStock(ctx context.Context, goodID string, unlocked, inservice int32) 
 	unlocked *= -1
 	_, err = goodscli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:        &goodID,
-		Locked:    &inservice,
-		InService: &unlocked,
+		Locked:    &unlocked,
+		InService: &inservice,
 	})
 	if err != nil {
 		return err
