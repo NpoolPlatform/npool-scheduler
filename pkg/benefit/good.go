@@ -332,6 +332,10 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		return nil
 	}
 
+	if g.totalUnits <= 0 {
+		return fmt.Errorf("invalid stock units")
+	}
+
 	userAmount := g.dailyProfit.
 		Mul(decimal.NewFromInt(int64(g.serviceUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
