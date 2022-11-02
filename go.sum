@@ -81,8 +81,8 @@ github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09
 github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429 h1:uIowTupxGa1Nyfant6kI1DFJWAAJat3OceRxUQ9qjZ4=
 github.com/NpoolPlatform/cloud-hashing-order v0.0.0-20220804035710-c0897d5e6429/go.mod h1:Tyx/tHnAHxgRhAxqOzlJs8PHzVLdbpqs57eRGgdj3cw=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20220818105452-9457611ae070/go.mod h1:QPI3Fu/AU5iUOUnf9EictZP1lqPQdPcVLqveIB2HovI=
-github.com/NpoolPlatform/go-service-framework v0.0.0-20221015040432-cd676d323379 h1:8oPw16FRdFSEjx75MiecAsg9OoGDvrl7vEPHKlU/W0k=
-github.com/NpoolPlatform/go-service-framework v0.0.0-20221015040432-cd676d323379/go.mod h1:/sor3E0i0XR8BaKInJwWC85aXLmbMFRNLdIuw+ed+ig=
+github.com/NpoolPlatform/go-service-framework v0.0.0-20221102072657-7fcc5e6f1012 h1:agWdYMDo1nBXR0w/PQz9Kze5IZsROOwSL8WcQFTMT4Q=
+github.com/NpoolPlatform/go-service-framework v0.0.0-20221102072657-7fcc5e6f1012/go.mod h1:/sor3E0i0XR8BaKInJwWC85aXLmbMFRNLdIuw+ed+ig=
 github.com/NpoolPlatform/good-manager v0.0.0-20221020034141-bda321f755c8 h1:UEzQWFXN6oQO9r6zNV0AwIjGNoWdbNpKiCZY1RPD8G0=
 github.com/NpoolPlatform/good-middleware v0.0.0-20221020081337-e2a047d5c1d7 h1:d3m6nJXX6g4Fihy0dkCl8zhDeBgWU2H7rCRPuuPySio=
 github.com/NpoolPlatform/good-middleware v0.0.0-20221020081337-e2a047d5c1d7/go.mod h1:fRQsyBp4+PsRRFoRc8cQqxCAzbNZjT7X8zM17XU3Vtc=
