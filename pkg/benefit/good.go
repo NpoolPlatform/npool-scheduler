@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
@@ -27,13 +29,8 @@ import (
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
-	stockcli "github.com/NpoolPlatform/stock-manager/pkg/client"
-	stockconst "github.com/NpoolPlatform/stock-manager/pkg/const"
-
-	commonpb "github.com/NpoolPlatform/message/npool"
-	"google.golang.org/protobuf/types/known/structpb"
-
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
 
 	"github.com/shopspring/decimal"
 
@@ -259,17 +256,17 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 }
 
 func (g *gp) stock(ctx context.Context) error {
-	stock, err := stockcli.GetStockOnly(ctx, cruder.NewFilterConds().
-		WithCond(stockconst.StockFieldGoodID, cruder.EQ, structpb.NewStringValue(g.goodID)))
+	goodInfo, err := goodscli.GetGood(ctx, g.goodID)
 	if err != nil {
 		return err
 	}
-	if stock == nil {
-		return fmt.Errorf("invalid good stock")
+
+	if goodInfo == nil {
+		return fmt.Errorf("invalid good")
 	}
 
-	g.totalUnits = stock.Total
-	g.inService = stock.InService
+	g.totalUnits = goodInfo.GetGoodTotal()
+	g.inService = goodInfo.GetGoodInService()
 
 	return nil
 }
@@ -333,6 +330,10 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 	if g.dailyProfit.Cmp(g.initialKept) <= 0 {
 		return nil
+	}
+
+	if g.totalUnits <= 0 {
+		return fmt.Errorf("invalid stock units")
 	}
 
 	userAmount := g.dailyProfit.

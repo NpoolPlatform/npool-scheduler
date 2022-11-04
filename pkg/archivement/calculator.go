@@ -11,8 +11,8 @@ import (
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
 
-	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
-	goodspb "github.com/NpoolPlatform/message/npool/cloud-hashing-goods"
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
 	archivementcli "github.com/NpoolPlatform/archivement-middleware/pkg/client/archivement"
 	detailpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/archivement/detail"
@@ -25,7 +25,7 @@ import (
 	scodes "go.opentelemetry.io/otel/codes"
 )
 
-func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, good *goodspb.GoodInfo) error { //nolint
+func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, good *goodspb.Good) error { //nolint
 	inviters, settings, err := referral.GetReferrals(ctx, order.AppID, order.UserID)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 			GoodID:                 &order.GoodID,
 			OrderID:                &order.ID,
 			PaymentID:              &payment.ID,
-			CoinTypeID:             &good.CoinInfoID,
+			CoinTypeID:             &good.CoinTypeID,
 			PaymentCoinTypeID:      &payment.CoinInfoID,
 			PaymentCoinUSDCurrency: &currency,
 			Units:                  &order.Units,

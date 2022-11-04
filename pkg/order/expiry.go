@@ -11,7 +11,7 @@ import (
 	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
 	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
 
-	goodscli "github.com/NpoolPlatform/cloud-hashing-goods/pkg/client"
+	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 
 	orderstatepb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
 	orderstatecli "github.com/NpoolPlatform/order-manager/pkg/client/state"
