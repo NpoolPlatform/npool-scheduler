@@ -208,13 +208,23 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 }
 
 func processGoods(ctx context.Context, timestamp time.Time) {
-	goods, _, err := goodscli.GetGoods(ctx, nil, 0, 0)
-	if err != nil {
-		logger.Sugar().Errorw("processGoods", "error", err)
-		return
+	offset := 0
+	limit := 1000
+	newGoods := []*goodspb.Good{}
+	for {
+		goods, _, err := goodscli.GetGoods(ctx, nil, int32(offset), int32(limit))
+		if err != nil {
+			logger.Sugar().Errorw("processGoods", "error", err)
+			return
+		}
+		if len(goods) == 0 {
+			break
+		}
+		newGoods = append(newGoods, goods...)
+		offset += limit
 	}
 
-	for _, good := range goods {
+	for _, good := range newGoods {
 		if err := processGood(ctx, good, timestamp); err != nil {
 			logger.Sugar().Errorw("processGoods", "goodID", good.ID, "goodName", good.Title, "error", err)
 		}
