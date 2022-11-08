@@ -47,6 +47,13 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        resources:
+          requests:
+            memory: "350Mi"
+            cpu: "350m"
+          limits:
+            memory: "200Mi"
+            cpu: "200m"
 
 ---
 apiVersion: v1
