@@ -87,12 +87,11 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	// TODO: move add and book keeping to TX
 
 	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
-		ID:         &acc.ID,
-		AppID:      &acc.AppID,
-		UserID:     &acc.UserID,
-		CoinTypeID: &acc.CoinTypeID,
-		AccountID:  &acc.AccountID,
-		Incoming:   &amount,
+		ID:        &acc.ID,
+		AppID:     &acc.AppID,
+		UserID:    &acc.UserID,
+		AccountID: &acc.AccountID,
+		Incoming:  &amount,
 	})
 	if err != nil {
 		return err
