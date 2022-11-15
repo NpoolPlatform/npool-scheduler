@@ -7,28 +7,20 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 
-	orderstatepb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/state"
-	orderstatecli "github.com/NpoolPlatform/order-manager/pkg/client/state"
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
 
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-
-	commonpb "github.com/NpoolPlatform/message/npool"
+	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 )
 
 const secondsPerDay = uint32(24 * 60 * 60)
 
 func orderExpired(ctx context.Context, order *orderpb.Order) (bool, error) {
-	payment, err := ordercli.GetOrderPayment(ctx, order.ID)
-	if err != nil {
-		return false, err
-	}
-
 	good, err := goodscli.GetGood(ctx, order.GoodID)
 	if err != nil {
 		return false, err
@@ -37,18 +29,14 @@ func orderExpired(ctx context.Context, order *orderpb.Order) (bool, error) {
 		return false, nil
 	}
 
-	if payment == nil {
-		return false, nil
-	}
-
-	switch payment.State {
-	case orderconst.PaymentStateWait:
+	switch order.PaymentState {
+	case paymentmgrpb.PaymentState_Wait:
 		fallthrough // nolint
-	case orderconst.PaymentStateCanceled:
+	case paymentmgrpb.PaymentState_Canceled:
 		fallthrough // nolint
-	case orderconst.PaymentStateTimeout:
+	case paymentmgrpb.PaymentState_TimeOut:
 		return false, nil
-	case orderconst.PaymentStateDone:
+	case paymentmgrpb.PaymentState_Done:
 	default:
 		return false, fmt.Errorf("invalid payment state")
 	}
@@ -70,25 +58,16 @@ func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
 		return nil
 	}
 
-	state, err := orderstatecli.GetStateOnly(ctx, &orderstatepb.Conds{
-		OrderID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.ID,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if state != nil && state.State == orderstatepb.EState_Expired {
+	if order.OrderState == ordermgrpb.OrderState_Expired {
 		return nil
 	}
 
-	ostate := orderstatepb.EState_Expired
-	_, err = orderstatecli.CreateState(ctx, &orderstatepb.StateReq{
-		OrderID: &order.ID,
-		State:   &ostate,
+	ostate := ordermgrpb.OrderState_Expired
+	_, err = ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
+		ID:    &order.ID,
+		State: &ostate,
 	})
+
 	if err != nil {
 		return err
 	}
@@ -106,7 +85,7 @@ func checkOrderExpiries(ctx context.Context) {
 	limit := int32(1000)
 
 	for {
-		orders, err := ordercli.GetOrders(ctx, offset, limit)
+		orders, _, err := ordercli.GetOrders(ctx, nil, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("processOrders", "offset", offset, "limit", limit, "error", err)
 			return

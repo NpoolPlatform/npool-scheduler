@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
+
 	"github.com/shopspring/decimal"
 
-	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
-	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
+	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
@@ -82,7 +85,7 @@ func tryUpdateCommissionLedger(
 
 // TODO: calculate commission according to different app commission strategy
 // nolint
-func calculateCommission(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, oldOrder bool) error {
+func calculateCommission(ctx context.Context, order *orderpb.Order, oldOrder bool) error {
 	inviters, settings, err := referral.GetReferrals(ctx, order.AppID, order.UserID)
 	if err != nil {
 		return err
@@ -99,11 +102,11 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 				continue
 			}
 
-			if set.Start > payment.CreateAt {
+			if set.Start > order.CreatedAt {
 				continue
 			}
 
-			if set.End > 0 && set.End < payment.CreateAt {
+			if set.End > 0 && set.End < order.CreatedAt {
 				continue
 			}
 
@@ -120,19 +123,21 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, payment *ord
 			continue
 		}
 
-		amount := decimal.NewFromFloat(payment.Amount)
+		amount, _ := decimal.NewFromString(order.PaymentAmount)
 		// Also calculate balance as amount
-		balanceAmount, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+		balanceAmount, _ := decimal.NewFromString(order.PayWithBalanceAmount) //nolint
 		amount = amount.Add(balanceAmount)
 
 		amount = amount.Mul(decimal.NewFromInt(int64(percent - subPercent)))
 		amount = amount.Div(decimal.NewFromInt(100)) //nolint
 
+		paymentCoinUSDCurrency, _ := decimal.NewFromString(order.PaymentCoinUSDCurrency)
+
 		if err := tryUpdateCommissionLedger(
-			ctx, payment.AppID, user, subContributor, payment.UserID,
-			order.ID, payment.ID, payment.CoinInfoID,
-			amount, decimal.NewFromFloat(payment.CoinUSDCurrency),
-			payment.CreateAt, oldOrder,
+			ctx, order.AppID, user, subContributor, order.UserID,
+			order.ID, order.PaymentID, order.PaymentCoinTypeID,
+			amount, paymentCoinUSDCurrency,
+			order.CreatedAt, oldOrder,
 		); err != nil {
 			return err
 		}
@@ -165,29 +170,25 @@ func CalculateCommission(ctx context.Context, orderID string, oldOrder bool) err
 	}
 
 	switch order.OrderType {
-	case orderconst.OrderTypeNormal:
-	case ordermgrpb.OrderType_Normal.String():
+	case ordermgrpb.OrderType_Normal:
 	default:
 		return nil
 	}
 
-	payment, err := ordercli.GetOrderPayment(ctx, orderID)
-	if err != nil {
-		return err
-	}
+	paymentAmount, _ := decimal.NewFromString(order.PaymentAmount) //nolint
 
-	ba, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
-	if ba.Add(decimal.NewFromFloat(payment.Amount)).Cmp(decimal.NewFromInt(0)) <= 0 {
+	ba, _ := decimal.NewFromString(order.PayWithBalanceAmount) //nolint
+	if ba.Add(paymentAmount).Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
 
-	switch payment.State {
-	case orderconst.PaymentStateDone:
+	switch order.PaymentState {
+	case paymentmgrpb.PaymentState_Done:
 	default:
 		return nil
 	}
 
-	if err := calculateCommission(ctx, order, payment, oldOrder); err != nil {
+	if err := calculateCommission(ctx, order, oldOrder); err != nil {
 		return err
 	}
 
