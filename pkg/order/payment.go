@@ -4,14 +4,18 @@ package order
 import (
 	"context"
 	"fmt"
+
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	"github.com/NpoolPlatform/message/npool"
+
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
-	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
@@ -39,43 +43,43 @@ import (
 
 const TimeoutSeconds = 6 * 60 * 60
 
-func processState(order *orderpb.Order, balance decimal.Decimal) paymentmgrpb.PaymentState {
+func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.PaymentState, ordermgrpb.OrderState) {
 	if order.UserCanceled {
-		return paymentmgrpb.PaymentState_Canceled
+		return paymentmgrpb.PaymentState_Canceled, ordermgrpb.OrderState_Canceled
 	}
 	// TODO: use payment string amount to avoid float accuracy problem
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	if amount.Add(startAmount).Cmp(decimal.NewFromFloat(balance.InexactFloat64()+10e-7)) <= 0 {
-		return paymentmgrpb.PaymentState_Done
+		return paymentmgrpb.PaymentState_Done, ordermgrpb.OrderState_Paid
 	}
 	if order.CreatedAt+TimeoutSeconds < uint32(time.Now().Unix()) {
-		return paymentmgrpb.PaymentState_TimeOut
+		return paymentmgrpb.PaymentState_TimeOut, ordermgrpb.OrderState_PaymentTimeout
 	}
-	return order.PaymentState
+	return order.PaymentState, order.OrderState
 }
 
-func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.Decimal {
+func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) (remain decimal.Decimal, finish string) {
 	// TODO: use payment string amount to avoid float accuracy problem
-	order.PaymentFinishAmount = balance.String()
+	balanceStr := balance.String()
 
 	finishAmount, _ := decimal.NewFromString(order.PaymentFinishAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	if order.UserCanceled {
-		return finishAmount.Sub(startAmount)
+		return finishAmount.Sub(startAmount), balanceStr
 	}
 	if amount.Add(startAmount).Cmp(decimal.NewFromFloat(balance.InexactFloat64()+10e-7)) <= 0 {
 		remain := finishAmount.Sub(startAmount).Sub(amount)
 		if remain.Cmp(decimal.NewFromInt(0)) <= 0 {
 			remain = decimal.NewFromInt(0)
 		}
-		return remain
+		return remain, balanceStr
 	}
 	if order.CreatedAt+TimeoutSeconds < uint32(time.Now().Unix()) {
-		return finishAmount.Sub(startAmount)
+		return finishAmount.Sub(startAmount), balanceStr
 	}
-	return decimal.NewFromInt(0)
+	return decimal.NewFromInt(0), balanceStr
 }
 
 func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inservice int32) {
@@ -111,13 +115,16 @@ func trySavePaymentBalance(ctx context.Context, order *orderpb.Order, balance de
 	return err
 }
 
-func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymentmgrpb.PaymentState, fakePayment bool) error {
+func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymentmgrpb.PaymentState, newOrderState ordermgrpb.OrderState, fakePayment bool, finishAmount string) error {
 	if newState != order.PaymentState {
-		logger.Sugar().Infow("tryFinishPayment", "payment", order.ID, "paymentState", order.PaymentState, "newState", newState)
+		logger.Sugar().Infow("tryFinishPayment", "payment", order.ID, "paymentState", order.PaymentState, "newState", newState, "paymentFinishAmount", finishAmount)
 		_, err := ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
-			ID:           &order.ID,
-			PaymentState: &newState,
-			FakePayment:  &fakePayment,
+			ID:                  &order.ID,
+			PaymentState:        &newState,
+			FakePayment:         &fakePayment,
+			State:               &newOrderState,
+			PaymentID:           &order.PaymentID,
+			PaymentFinishAmount: &finishAmount,
 		})
 		if err != nil {
 			return err
@@ -294,8 +301,8 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	state := processState(order, bal)
-	remain := processFinishAmount(order, bal)
+	state, newOrderState := processState(order, bal)
+	remain, finishAmount := processFinishAmount(order, bal)
 	unlocked, inservice := processStock(order, bal)
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
@@ -305,7 +312,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		order.ID, "coin", coin.Name, "startAmount", order.PaymentStartAmount,
 		"finishAmount", order.PaymentFinishAmount, "amount", order.PaymentAmount,
 		"dueAmount", dueAmount, "paymentState", order.PaymentState,
-		"newState", state, "remain", remain, "unlocked", unlocked,
+		"newState", state, "newOrderState", newOrderState, "remain", remain, "unlocked", unlocked,
 		"inservice", inservice, "balance", bal,
 		"coin", coin.Name, "address", account.Address, "balance", balance,
 	)
@@ -326,7 +333,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	if err := tryFinishPayment(ctx, order, state, false); err != nil {
+	if err := tryFinishPayment(ctx, order, state, newOrderState, false, finishAmount); err != nil {
 		return err
 	}
 
@@ -377,8 +384,8 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	state := paymentmgrpb.PaymentState_Done
+	orderState := ordermgrpb.OrderState_Paid
 	unlocked, inservice := int32(order.Units), int32(order.Units)
-	order.PaymentFinishAmount = order.PaymentStartAmount
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
@@ -387,9 +394,9 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		order.ID, "coin", coin.Name, "startAmount", order.PaymentStartAmount,
 		"finishAmount", order.PaymentFinishAmount, "amount", order.PaymentAmount,
 		"dueAmount", dueAmount, "state", order.PaymentState,
-		"newState", state, "unlocked", unlocked, "inservice", inservice)
+		"newState", state, "newOrderState", orderState, "unlocked", unlocked, "inservice", inservice)
 
-	if err := tryFinishPayment(ctx, order, state, true); err != nil {
+	if err := tryFinishPayment(ctx, order, state, orderState, true, order.PaymentStartAmount); err != nil {
 		return err
 	}
 
@@ -433,7 +440,12 @@ func checkOrderPayments(ctx context.Context) {
 	limit := int32(1000)
 
 	for {
-		orders, _, err := ordercli.GetOrders(ctx, nil, offset, limit)
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
+			State: &npool.Uint32Val{
+				Op:    cruder.EQ,
+				Value: uint32(ordermgrpb.OrderState_WaitPayment),
+			},
+		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
 			return

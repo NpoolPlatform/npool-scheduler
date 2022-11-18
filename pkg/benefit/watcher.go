@@ -19,8 +19,6 @@ import (
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
-	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
-
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
@@ -134,7 +132,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	}
 
 	for {
-		orders, _, err := ordercli.GetOrders(ctx, &ordermgrpb.Conds{
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
 			GoodID: &npool.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
@@ -165,7 +163,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	offset = 0
 
 	for {
-		orders, _, err := ordercli.GetOrders(ctx, &ordermgrpb.Conds{
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
 			GoodID: &npool.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
