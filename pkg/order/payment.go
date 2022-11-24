@@ -225,7 +225,7 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order) error {
 	})
 }
 
-func unlockBalance(ctx context.Context, order *orderpb.Order) error {
+func unlockBalance(ctx context.Context, order *orderpb.Order, paymentState paymentmgrpb.PaymentState) error {
 	if order.PayWithBalanceAmount == "" {
 		return nil
 	}
@@ -246,9 +246,9 @@ func unlockBalance(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v", "BalanceAmount": "%v"}`,
-		order.ID, order.ID, order.PayWithBalanceAmount)
+		order.PaymentID, order.ID, order.PayWithBalanceAmount)
 
-	switch order.PaymentState {
+	switch paymentState {
 	case paymentmgrpb.PaymentState_Canceled:
 	case paymentmgrpb.PaymentState_TimeOut:
 	case paymentmgrpb.PaymentState_Done:
@@ -346,7 +346,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	if err := unlockBalance(ctx, order); err != nil {
+	if err := unlockBalance(ctx, order, state); err != nil {
 		return err
 	}
 
