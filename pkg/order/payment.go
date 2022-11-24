@@ -427,7 +427,8 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 		}
 
 		if err := processOrderPayment(ctx, order); err != nil {
-			return err
+			logger.Sugar().Errorw("processOrderPayment", "error", err)
+			continue
 		}
 	}
 	return nil
