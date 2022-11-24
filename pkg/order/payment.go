@@ -420,7 +420,7 @@ func processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	return nil
 }
 
-func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
+func processOrderPayments(ctx context.Context, orders []*orderpb.Order) {
 	for _, order := range orders {
 		if order.PaymentState != paymentmgrpb.PaymentState_Wait {
 			continue
@@ -431,7 +431,6 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) error {
 			continue
 		}
 	}
-	return nil
 }
 
 // TODO: use order middlware api
@@ -454,11 +453,7 @@ func checkOrderPayments(ctx context.Context) {
 			return
 		}
 
-		err = processOrderPayments(ctx, orders)
-		if err != nil {
-			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
-			return
-		}
+		processOrderPayments(ctx, orders)
 
 		offset += limit
 	}
