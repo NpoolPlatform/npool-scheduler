@@ -43,7 +43,7 @@ import (
 const TimeoutSeconds = 6 * 60 * 60
 
 func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.PaymentState, ordermgrpb.OrderState) {
-	if order.OrderState == ordermgrpb.OrderState_Canceled {
+	if order.UserCanceled {
 		return paymentmgrpb.PaymentState_Canceled, ordermgrpb.OrderState_Canceled
 	}
 	// TODO: use payment string amount to avoid float accuracy problem
