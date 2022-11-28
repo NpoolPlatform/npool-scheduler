@@ -444,17 +444,11 @@ func checkOrderPayments(ctx context.Context) {
 				Op:    cruder.EQ,
 				Value: uint32(ordermgrpb.OrderState_WaitPayment),
 			},
-			ID: &npool.StringVal{
-				Op:    cruder.EQ,
-				Value: "2cffaffe-303a-4033-8798-87b4edaec873",
-			},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
 			return
 		}
-		fmt.Println("****************************************************************order")
-		fmt.Println(len(orders))
 		if len(orders) == 0 {
 			return
 		}
