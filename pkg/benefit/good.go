@@ -13,7 +13,7 @@ import (
 	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
 	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
 
-	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"

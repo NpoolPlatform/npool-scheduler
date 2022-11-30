@@ -6,6 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	"github.com/NpoolPlatform/message/npool"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
@@ -13,12 +16,12 @@ import (
 
 	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
 
-	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
 
+	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 	"github.com/shopspring/decimal"
 )
 
@@ -57,29 +60,22 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func validateGoodOrder(ctx context.Context, order *orderpb.Order, waiting bool) (bool, error) {
-	payment, err := ordercli.GetOrderPayment(ctx, order.ID)
-	if err != nil {
-		return false, err
-	}
-	if payment == nil {
-		return false, nil
-	}
-	if payment.State != orderconst.PaymentStateDone {
-		return false, nil
+func validateGoodOrder(order *orderpb.Order, waiting bool) bool {
+	if order.PaymentState != paymentmgrpb.PaymentState_Done {
+		return false
 	}
 
-	orderEnd := order.CreateAt + secondsPerDay
+	orderEnd := order.CreatedAt + secondsPerDay
 	if orderEnd < uint32(time.Now().Unix()) {
-		return false, nil
+		return false
 	}
 	if !waiting {
 		if order.Start > uint32(time.Now().Unix()) {
-			return false, nil
+			return false
 		}
 	}
 
-	return true, nil
+	return true
 }
 
 func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) error { //nolint
@@ -136,7 +132,12 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	}
 
 	for {
-		orders, err := ordercli.GetGoodOrders(ctx, good.ID, offset, limit)
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
+			GoodID: &npool.StringVal{
+				Op:    cruder.EQ,
+				Value: good.ID,
+			},
+		}, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -145,10 +146,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, true)
-			if err != nil {
-				return err
-			}
+			validate := validateGoodOrder(order, true)
 			if !validate {
 				continue
 			}
@@ -165,7 +163,12 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	offset = 0
 
 	for {
-		orders, err := ordercli.GetGoodOrders(ctx, good.ID, offset, limit)
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
+			GoodID: &npool.StringVal{
+				Op:    cruder.EQ,
+				Value: good.ID,
+			},
+		}, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -174,10 +177,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		}
 
 		for _, order := range orders {
-			validate, err := validateGoodOrder(ctx, order, false)
-			if err != nil {
-				return err
-			}
+			validate := validateGoodOrder(order, false)
 			if !validate {
 				continue
 			}

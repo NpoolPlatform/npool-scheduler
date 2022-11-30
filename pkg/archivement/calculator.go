@@ -6,10 +6,12 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/shopspring/decimal"
 
-	ordercli "github.com/NpoolPlatform/cloud-hashing-order/pkg/client"
-	orderconst "github.com/NpoolPlatform/cloud-hashing-order/pkg/const"
-	orderpb "github.com/NpoolPlatform/message/npool/cloud-hashing-order"
-	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order/order"
+	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
+	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
@@ -25,20 +27,32 @@ import (
 	scodes "go.opentelemetry.io/otel/codes"
 )
 
-func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *orderpb.Payment, good *goodspb.Good) error { //nolint
+func calculateArchivement(ctx context.Context, order *orderpb.Order, good *goodspb.Good) error { //nolint
 	inviters, settings, err := referral.GetReferrals(ctx, order.AppID, order.UserID)
 	if err != nil {
 		return err
 	}
 
-	amountD := decimal.NewFromFloat(payment.Amount)
-	balanceAmount, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
+	amountD, err := decimal.NewFromString(order.PaymentAmount)
+	if err != nil {
+		return err
+	}
+	balanceAmount, err := decimal.NewFromString(order.PayWithBalanceAmount) //nolint
+	if err != nil {
+		return err
+	}
 	amountD = amountD.Add(balanceAmount)
 
 	amount := amountD.String()
-	usdAmountD := amountD.Mul(decimal.NewFromFloat(payment.CoinUSDCurrency))
+
+	coinUSDCurrency, err := decimal.NewFromString(order.PaymentCoinUSDCurrency)
+	if err != nil {
+		return err
+	}
+
+	usdAmountD := amountD.Mul(coinUSDCurrency)
 	usdAmount := usdAmountD.String()
-	currency := decimal.NewFromFloat(payment.CoinUSDCurrency).String()
+	currency := coinUSDCurrency.String()
 
 	subPercent := uint32(0)
 	var subContributor *string
@@ -47,19 +61,18 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 		myInviter := inviter
 		commissionD := decimal.NewFromInt(0)
 
-		if order.OrderType == ordermgrpb.OrderType_Normal.String() ||
-			order.OrderType == orderconst.OrderTypeNormal {
+		if order.OrderType == ordermgrpb.OrderType_Normal {
 			sets := settings[inviter]
 			for _, set := range sets {
 				if set.GoodID != order.GoodID {
 					continue
 				}
 
-				if set.Start > payment.CreateAt {
+				if set.Start > order.CreatedAt {
 					continue
 				}
 
-				if set.End > 0 && set.End < payment.CreateAt {
+				if set.End > 0 && set.End < order.CreatedAt {
 					continue
 				}
 
@@ -75,17 +88,17 @@ func calculateArchivement(ctx context.Context, order *orderpb.Order, payment *or
 		}
 
 		commission := commissionD.String()
-		selfOrder := inviter == payment.UserID
+		selfOrder := inviter == order.UserID
 
 		detailReq := &detailpb.DetailReq{
-			AppID:                  &payment.AppID,
+			AppID:                  &order.AppID,
 			UserID:                 &myInviter,
 			DirectContributorID:    subContributor,
 			GoodID:                 &order.GoodID,
 			OrderID:                &order.ID,
-			PaymentID:              &payment.ID,
+			PaymentID:              &order.PaymentID,
 			CoinTypeID:             &good.CoinTypeID,
-			PaymentCoinTypeID:      &payment.CoinInfoID,
+			PaymentCoinTypeID:      &order.PaymentCoinTypeID,
 			PaymentCoinUSDCurrency: &currency,
 			Units:                  &order.Units,
 			Amount:                 &amount,
@@ -124,10 +137,8 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 	}
 
 	switch order.OrderType {
-	case orderconst.OrderTypeOffline:
-	case orderconst.OrderTypeNormal:
-	case ordermgrpb.OrderType_Normal.String():
-	case ordermgrpb.OrderType_Offline.String():
+	case ordermgrpb.OrderType_Offline:
+	case ordermgrpb.OrderType_Normal:
 	default:
 		return nil
 	}
@@ -137,24 +148,25 @@ func CalculateArchivement(ctx context.Context, orderID string) error {
 		return err
 	}
 
-	payment, err := ordercli.GetOrderPayment(ctx, orderID)
+	payment, err := ordercli.GetOrder(ctx, orderID)
 	if err != nil {
 		return err
 	}
 
 	ba, _ := decimal.NewFromString(payment.PayWithBalanceAmount) //nolint
-	if ba.Add(decimal.NewFromFloat(payment.Amount)).Cmp(decimal.NewFromInt(0)) <= 0 {
+	amount, _ := decimal.NewFromString(payment.PaymentAmount)    //nolint
+	if ba.Add(amount).Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
 
-	switch payment.State {
-	case orderconst.PaymentStateDone:
+	switch payment.PaymentState {
+	case paymentmgrpb.PaymentState_Done:
 	default:
-		logger.Sugar().Errorw("CalculateOrderArchivement", "payment", payment.ID, "state", payment.State)
+		logger.Sugar().Errorw("CalculateOrderArchivement", "payment", payment.ID, "state", payment.PaymentState)
 		return nil
 	}
 
-	if err := calculateArchivement(ctx, order, payment, good); err != nil {
+	if err := calculateArchivement(ctx, order, good); err != nil {
 		return err
 	}
 
