@@ -14,8 +14,8 @@ import (
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
 	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/message/const"
 
+	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 	miningconst "github.com/NpoolPlatform/mining-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
@@ -47,7 +47,7 @@ func main() {
 		miningconst.ServiceName,
 		archivementconst.ServiceName,
 		orderconst.ServiceName,
-		billingconst.ServiceName,
+		chainconst.ServiceName,
 	)
 	if err != nil {
 		logger.Sugar().Errorf("fail to create %v: %v", serviceName, err)
