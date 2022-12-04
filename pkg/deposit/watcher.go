@@ -127,7 +127,7 @@ func deposit(ctx context.Context) {
 	logger.Sugar().Infow("deposit", "Start", "...")
 
 	for {
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
@@ -266,8 +266,7 @@ func transfer(ctx context.Context) {
 	logger.Sugar().Infow("transfer", "Start", "...")
 
 	for {
-		// TODO: only get active / unlocked / unblocked accounts
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
@@ -355,8 +354,7 @@ func finish(ctx context.Context) {
 	logger.Sugar().Infow("finish", "Start", "...")
 
 	for {
-		// TODO: only get active / unlocked / unblocked accounts
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,

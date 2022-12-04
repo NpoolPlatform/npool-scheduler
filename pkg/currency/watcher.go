@@ -2,8 +2,9 @@ package currency
 
 import (
 	"context"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"time"
+
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	currency "github.com/NpoolPlatform/chain-middleware/pkg/client/coin/currency"
 )
