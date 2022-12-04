@@ -6,22 +6,24 @@ import (
 	"os"
 	"time"
 
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	"github.com/NpoolPlatform/message/npool"
-
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
+	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
-
+	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
+
+	commonpb "github.com/NpoolPlatform/message/npool"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -83,37 +85,59 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		return nil
 	}
 
-	coin, err := coininfocli.GetCoinInfo(ctx, good.CoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
 	if err != nil {
 		return err
 	}
 	if coin == nil {
 		return fmt.Errorf("invalid coin")
 	}
-
-	if coin.PreSale {
+	if coin.Presale {
 		return nil
 	}
 
-	setting, err := billingcli.GetCoinSetting(ctx, good.CoinTypeID)
+	userOnline, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: good.CoinTypeID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_UserBenefitHot),
+		},
+	})
 	if err != nil {
 		return err
 	}
-	if setting == nil {
-		return fmt.Errorf("invalid coin setting")
+	if userOnline == nil {
+		return fmt.Errorf("invalid hot account")
 	}
 
-	offset := int32(0)
-	limit := int32(1000)
+	pltfOffline, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: good.CoinTypeID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_PlatformBenefitCold),
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if userOnline == nil {
+		return fmt.Errorf("invalid cold account")
+	}
 
 	_gp := &gp{
 		goodID:                   good.ID,
 		goodName:                 good.Title,
 		coinTypeID:               coin.ID,
 		coinName:                 coin.Name,
-		coinReservedAmount:       decimal.NewFromFloat(coin.ReservedAmount),
-		userOnlineAccountID:      setting.UserOnlineAccountID,
-		platformOfflineAccountID: setting.PlatformOfflineAccountID,
+		coinReservedAmount:       decimal.RequireFromString(coin.ReservedAmount),
+		userOnlineAccountID:      userOnline.ID,
+		platformOfflineAccountID: pltfOffline.ID,
 	}
 
 	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
@@ -131,9 +155,12 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		return err
 	}
 
+	offset := int32(0)
+	limit := int32(1000)
+
 	for {
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			GoodID: &npool.StringVal{
+			GoodID: &commonpb.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
 			},
@@ -164,7 +191,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 
 	for {
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			GoodID: &npool.StringVal{
+			GoodID: &commonpb.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
 			},
