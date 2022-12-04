@@ -7,219 +7,295 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
-	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+
+	commonpb "github.com/NpoolPlatform/message/npool"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/account"
+	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/account"
+
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+
+	"github.com/shopspring/decimal"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func onCreatedChecker(ctx context.Context) {
-	createds, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateCreated)
-	if err != nil {
-		logger.Sugar().Error("transaction", "state", billingconst.CoinTransactionStateCreated, "error", err)
-		return
-	}
-	if len(createds) == 0 {
-		return
-	}
+func onCreatedChecker(ctx context.Context) { //nolint
+	offset := int32(0)
+	const limit = int32(1000)
 
-	waits, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateWait)
-	if err != nil {
-		logger.Sugar().Error("transaction", "state", billingconst.CoinTransactionStateWait, "error", err)
-		return
-	}
+	ignores := map[string]struct{}{}
 
-	payings, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStatePaying)
-	if err != nil {
-		logger.Sugar().Error("transaction", "state", billingconst.CoinTransactionStatePaying, "error", err)
-		return
-	}
-
-	waits = append(waits, payings...)
-	thisWait := map[string]struct{}{}
-
-tryWaitOne:
-	for _, created := range createds {
-		if _, ok := thisWait[created.FromAddressID]; ok {
-			continue
-		}
-
-		logger.Sugar().Infow("transaction", "id", created.ID, "amount", created.Amount, "state", created.State)
-
-		for _, waited := range waits {
-			if created.FromAddressID == waited.FromAddressID {
-				continue tryWaitOne
-			}
-		}
-
-		logger.Sugar().Infow("transaction", "id", created.ID, "amount", created.Amount,
-			"from", created.State, "to", billingconst.CoinTransactionStateWait)
-
-		created.State = billingconst.CoinTransactionStateWait
-		_, err := billingcli.UpdateTransaction(ctx, created)
+	for {
+		createds, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+			State: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(txmgrpb.TxState_StateCreated),
+			},
+		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Error("transaction", "id", created.ID, "amount", created.Amount,
-				"from", created.State, "to", billingconst.CoinTransactionStateWait, "error", err)
+			logger.Sugar().Errorw("onCreatedChecker", "error", err)
+			return
+		}
+		if len(createds) == 0 {
 			return
 		}
 
-		thisWait[created.FromAddressID] = struct{}{}
+		for _, created := range createds {
+			if _, ok := ignores[created.FromAccountID]; ok {
+				continue
+			}
+
+			waits, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+				CoinTypeID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: created.CoinTypeID,
+				},
+				State: &commonpb.Int32Val{
+					Op:    cruder.EQ,
+					Value: int32(txmgrpb.TxState_StateWait),
+				},
+			}, int32(0), int32(1)) //nolint
+			if err != nil {
+				logger.Sugar().Errorw("onCreatedChecker", "error", err)
+				return
+			}
+			if len(waits) == 0 {
+				continue
+			}
+
+			payings, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+				CoinTypeID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: created.CoinTypeID,
+				},
+				State: &commonpb.Int32Val{
+					Op:    cruder.EQ,
+					Value: int32(txmgrpb.TxState_StateTransferring),
+				},
+			}, int32(0), int32(1)) //nolint
+			if err != nil {
+				logger.Sugar().Errorw("onCreatedChecker", "error", err)
+				return
+			}
+			if len(payings) == 0 {
+				continue
+			}
+
+			state := txmgrpb.TxState_StateWait
+			_, err = txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+				ID:    &created.ID,
+				State: &state,
+			})
+			if err != nil {
+				logger.Sugar().Errorw("onCreatedChecker", "error", err)
+				return
+			}
+
+			logger.Sugar().Infow("transaction", "id", created.ID, "amount", created.Amount,
+				"from", created.State, "to", state)
+
+			ignores[created.FromAccountID] = struct{}{}
+		}
+
+		offset += limit
 	}
 }
 
 func getAddress(ctx context.Context, id string) (string, error) {
-	oacc, err := billingcli.GetAccount(ctx, id)
+	acc, err := accountmwcli.GetAccount(ctx, id)
 	if err != nil {
 		return "", err
 	}
-	if oacc != nil {
-		return oacc.Address, nil
+	if acc == nil {
+		return "", fmt.Errorf("invalid account")
 	}
 
-	nacc, err := accountmgrcli.GetAccount(ctx, id)
-	if err != nil {
-		return "", err
-	}
-	if nacc != nil {
-		return nacc.Address, nil
-	}
-
-	return "", fmt.Errorf("invalid account")
+	return acc.Address, nil
 }
 
-func transfer(ctx context.Context, tx *billingpb.CoinAccountTransaction) error {
+func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 	logger.Sugar().Infow("transaction", "id", tx.ID, "amount", tx.Amount, "state", tx.State)
 
-	fromAddress, err := getAddress(ctx, tx.FromAddressID)
+	fromAddress, err := getAddress(ctx, tx.FromAccountID)
 	if err != nil {
 		return err
 	}
-	toAddress, err := getAddress(ctx, tx.ToAddressID)
+	toAddress, err := getAddress(ctx, tx.ToAccountID)
 	if err != nil {
 		return err
 	}
 
-	coin, err := coininfocli.GetCoinInfo(ctx, tx.CoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, tx.CoinTypeID)
 	if err != nil {
-		return fmt.Errorf("fail get coininfo: %v", err)
+		return err
 	}
 	if coin == nil {
-		return fmt.Errorf("invalid coininfo")
+		return fmt.Errorf("invalid coin")
 	}
 
 	logger.Sugar().Infow("transaction", "id", tx.ID,
 		"coin", coin.Name, "from", fromAddress, "to", toAddress,
-		"amount", tx.Amount, "fee", tx.TransactionFee)
+		"amount", tx.Amount, "fee", tx.FeeAmount)
+
+	amount, err := decimal.NewFromString(tx.Amount)
+	if err != nil {
+		return err
+	}
+
+	feeAmount, err := decimal.NewFromString(tx.FeeAmount)
+	if err != nil {
+		return err
+	}
+
+	amount = amount.Sub(feeAmount)
+	transferAmount := amount.InexactFloat64()
 
 	err = sphinxproxycli.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 		TransactionID: tx.ID,
 		Name:          coin.Name,
-		Amount:        tx.Amount - tx.TransactionFee,
+		Amount:        transferAmount,
 		From:          fromAddress,
 		To:            toAddress,
 	})
 	if err != nil {
-		return fmt.Errorf("fail transfer: %v", err)
+		return err
 	}
 
 	return nil
 }
 
 func onWaitChecker(ctx context.Context) {
-	waits, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStateWait)
-	if err != nil {
-		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStateWait, "error", err)
-		return
-	}
+	offset := int32(0)
+	const limit = int32(1000)
 
-	for _, wait := range waits {
-		tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID) //nolint
-		if tx != nil {
-			wait.State = billingconst.CoinTransactionStatePaying
-			_, err := billingcli.UpdateTransaction(ctx, wait)
-			if err != nil {
-				logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
-			}
-			continue
-		}
-
-		if err := transfer(ctx, wait); err != nil {
-			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
-			continue
-		}
-
-		wait.State = billingconst.CoinTransactionStatePaying
-		_, err := billingcli.UpdateTransaction(ctx, wait)
+	for {
+		waits, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+			State: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(txmgrpb.TxState_StateWait),
+			},
+		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("transaction", "id", wait.ID, "error", err)
+			logger.Sugar().Errorw("onWaitChecker", "error", err)
+			return
 		}
+		if len(waits) == 0 {
+			return
+		}
+
+		for _, wait := range waits {
+			tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID) //nolint
+			if tx != nil {
+				state := txmgrpb.TxState_StateTransferring
+				_, err := txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+					ID:    &wait.ID,
+					State: &state,
+				})
+				if err != nil {
+					logger.Sugar().Errorw("onWaitChecker", "id", wait.ID, "error", err)
+					return
+				}
+				continue
+			}
+
+			if err := transfer(ctx, wait); err != nil {
+				logger.Sugar().Errorw("onWaitChecker", "id", wait.ID, "error", err)
+				continue
+			}
+
+			state := txmgrpb.TxState_StateTransferring
+			_, err := txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+				ID:    &wait.ID,
+				State: &state,
+			})
+			if err != nil {
+				logger.Sugar().Errorw("onWaitChecker", "id", wait.ID, "error", err)
+				return
+			}
+		}
+		offset += limit
 	}
 }
 
-func onPayingChecker(ctx context.Context) {
-	payings, err := billingcli.GetTransactions(ctx, billingconst.CoinTransactionStatePaying)
-	if err != nil {
-		logger.Sugar().Errorw("transaction", "state", billingconst.CoinTransactionStatePaying, "error", err)
-		return
-	}
+func onPayingChecker(ctx context.Context) { //nolint
+	offset := int32(0)
+	const limit = int32(1000)
 
-	for _, paying := range payings {
-		toState := billingconst.CoinTransactionStatePaying
-		cid := ""
-
-		tx, err := sphinxproxycli.GetTransaction(ctx, paying.ID)
+	for {
+		payings, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+			State: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(txmgrpb.TxState_StateTransferring),
+			},
+		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", err)
-			switch status.Code(err) {
-			case codes.InvalidArgument:
-				toState = billingconst.CoinTransactionStateFail
-			case codes.NotFound:
-				toState = billingconst.CoinTransactionStateFail
-			default:
-				continue
-			}
+			logger.Sugar().Errorw("onPayingChecker", "error", err)
+			return
+		}
+		if len(payings) == 0 {
+			return
 		}
 
-		if tx == nil {
-			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", "invalid transaction id")
-		}
+		for _, paying := range payings {
+			toState := txmgrpb.TxState_StateTransferring
+			cid := ""
 
-		if toState == billingconst.CoinTransactionStatePaying {
-			switch tx.TransactionState {
-			case sphinxproxypb.TransactionState_TransactionStateFail:
-				toState = billingconst.CoinTransactionStateFail
-				paying.FailHold = true
-			case sphinxproxypb.TransactionState_TransactionStateDone:
-				toState = billingconst.CoinTransactionStateSuccessful
-				if tx.CID == "" {
-					paying.Message = fmt.Sprintf("%v (successful without CID)", paying.Message)
-					toState = billingconst.CoinTransactionStateFail
-					paying.FailHold = true
+			tx, err := sphinxproxycli.GetTransaction(ctx, paying.ID)
+			if err != nil {
+				logger.Sugar().Errorw("onPayingChecker", "id", paying.ID, "error", err)
+				switch status.Code(err) {
+				case codes.InvalidArgument:
+					fallthrough //nolint
+				case codes.NotFound:
+					toState = txmgrpb.TxState_StateFail
+				default:
+					continue
 				}
-				cid = tx.CID
-			default:
+			} else if tx == nil {
+				logger.Sugar().Errorw("transaction", "id", paying.ID, "error", "invalid transaction id")
 				continue
+			}
+
+			extra := ""
+
+			if toState == txmgrpb.TxState_StateTransferring {
+				switch tx.TransactionState {
+				case sphinxproxypb.TransactionState_TransactionStateFail:
+					toState = txmgrpb.TxState_StateFail
+				case sphinxproxypb.TransactionState_TransactionStateDone:
+					toState = txmgrpb.TxState_StateSuccessful
+					if tx.CID == "" {
+						extra = "(successful without CID)"
+						toState = txmgrpb.TxState_StateFail
+					}
+					cid = tx.CID
+				default:
+					continue
+				}
+			}
+
+			_, err = txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+				ID:        &paying.ID,
+				ChainTxID: &cid,
+				State:     &toState,
+				Extra:     &extra,
+			})
+			if err != nil {
+				logger.Sugar().Errorw("onPayingChecker", "id", paying.ID, "error", err)
+				return
 			}
 		}
 
-		paying.State = toState
-		paying.ChainTransactionID = cid
-
-		logger.Sugar().Infow("transaction", "id", paying.ID, "amount", paying.Amount,
-			"state", paying.State, "toState", toState, "cid", cid)
-		_, err = billingcli.UpdateTransaction(ctx, paying)
-		if err != nil {
-			logger.Sugar().Errorw("transaction", "id", paying.ID, "error", err)
-		}
+		offset += limit
 	}
 }
 

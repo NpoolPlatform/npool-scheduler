@@ -66,8 +66,8 @@ github.com/Masterminds/sprig v2.15.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuN
 github.com/Masterminds/sprig v2.22.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
 github.com/NpoolPlatform/account-manager v0.0.0-20221204060616-9f16f522e25b h1:pvJ7f8nEckOjnFEPpoRk1/HjmcYA8Ugz7bmWxsK2axo=
 github.com/NpoolPlatform/account-manager v0.0.0-20221204060616-9f16f522e25b/go.mod h1:230Qhpv3stfwMS5I+WmnEhAe/YAKgbMfnfhN17i2Z+c=
-github.com/NpoolPlatform/account-middleware v0.0.0-20221203102447-d5ef04dd9b94 h1:WWK/xTUgd9QzMx4p8T+r9CC7g9HVORIcFV0dFkwYjVo=
-github.com/NpoolPlatform/account-middleware v0.0.0-20221203102447-d5ef04dd9b94/go.mod h1:twLVG2pwZxSQXcG2yrgLTyK6z9zlUpeXxwpvaKwFwoo=
+github.com/NpoolPlatform/account-middleware v0.0.0-20221204082312-4e976e7baa2f h1:bxFJV4XmUbyHNzsb2jFWtwzBGh9cjph1bZCCDUg8+oY=
+github.com/NpoolPlatform/account-middleware v0.0.0-20221204082312-4e976e7baa2f/go.mod h1:4Voz1TN1QAzd5LFyGrQOJZTR3uxJ3UgCenMI6zuCSvI=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0 h1:yIEwS7NTQhBBmfpf6yigvPCbxffMOrtBK/yUPM5ukbo=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0/go.mod h1:+Xj8fVgWZWGakBtqZbFn/zY0qd47AywCjLPOGdTqJDU=
 github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46 h1:f8h+HNWfbF9jOUMhanb/lI/UbQIXZBryJ44kURmq2Rk=
@@ -96,8 +96,8 @@ github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQ
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
 github.com/NpoolPlatform/message v0.0.0-20220501030927-34f296682c0c/go.mod h1:i/F/sQWjQk44RGvfgEB0zH0oAK/0qLvgJ1AsJDZQDkk=
 github.com/NpoolPlatform/message v0.0.0-20220819134247-1dc75c85fe43/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
-github.com/NpoolPlatform/message v0.0.0-20221204052349-12fe7e27c531 h1:kzNhS5j+/2gb4EW/Yil2kEtOKXfvXFE152KLYer9960=
-github.com/NpoolPlatform/message v0.0.0-20221204052349-12fe7e27c531/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
+github.com/NpoolPlatform/message v0.0.0-20221204081645-37c1f829a0bb h1:ygCNtvserJ8bmMTYUk+uiSVK2xnKhgskFW0+6VMXCeY=
+github.com/NpoolPlatform/message v0.0.0-20221204081645-37c1f829a0bb/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0 h1:y1zXV3qp7SfJ0pCNGty+qmUVKLespSFokgt/SF+G7aA=
 github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0/go.mod h1:5alA0KJVRHt4C4LUBeXS0bQIsGk4vdSWyfBzNOuqjuU=
 github.com/NpoolPlatform/order-manager v0.0.0-20221116014019-9d3c7ce9e122 h1:gr5VFPPoEBZerMAlnEboWKCoPUSBsfLAxXymBZxf+cA=
