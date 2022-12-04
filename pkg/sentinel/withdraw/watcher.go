@@ -14,8 +14,8 @@ import (
 
 	ledgerdetailmgrpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
 
@@ -25,7 +25,7 @@ import (
 )
 
 func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) error {
-	tx, err := billingcli.GetTransaction(ctx, withdraw.PlatformTransactionID)
+	tx, err := txmwcli.GetTx(ctx, withdraw.PlatformTransactionID)
 	if err != nil {
 		return err
 	}
@@ -40,16 +40,13 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 
 	// If tx done, unlock balance with outcoming, or unlock balance without outcoming
 	switch tx.State {
-	case billingconst.CoinTransactionStateFail:
+	case txmgrpb.TxState_StateFail:
 		state = withdrawmgrpb.WithdrawState_TransactionFail
-	case billingconst.CoinTransactionStateSuccessful:
+	case txmgrpb.TxState_StateSuccessful:
 		state = withdrawmgrpb.WithdrawState_Successful
+		outcoming = unlocked
 	default:
 		return nil
-	}
-
-	if tx.State == billingconst.CoinTransactionStateSuccessful {
-		outcoming = unlocked
 	}
 
 	// TODO: move to TX
@@ -63,8 +60,8 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 			`{"WithdrawID":"%v","TransactionID":"%v","CID":"%v","TransactionFee":"%v","AccountID":"%v"}`,
 			withdraw.ID,
 			withdraw.PlatformTransactionID,
-			tx.ChainTransactionID,
-			tx.TransactionFee,
+			tx.ChainTxID,
+			tx.FeeAmount,
 			withdraw.AccountID,
 		),
 	); err != nil {
@@ -75,9 +72,10 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 	u := &withdrawmgrpb.WithdrawReq{
 		ID:                 &withdraw.ID,
 		State:              &state,
-		ChainTransactionID: &tx.ChainTransactionID,
+		ChainTransactionID: &tx.ChainTxID,
 	}
 	_, err = withdrawmgrcli.UpdateWithdraw(ctx, u)
+
 	return err
 }
 
