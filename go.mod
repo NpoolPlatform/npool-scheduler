@@ -18,7 +18,6 @@ require (
 	github.com/NpoolPlatform/message v0.0.0-20221204101031-c52d5dbfa3e2
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/order-middleware v0.0.0-20221117090447-f989baeeee3c
-	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1
