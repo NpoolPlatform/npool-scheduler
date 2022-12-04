@@ -3,25 +3,23 @@ module github.com/NpoolPlatform/staker-manager
 go 1.17
 
 require (
-	github.com/NpoolPlatform/account-manager v0.0.0-20221204060616-9f16f522e25b
-	github.com/NpoolPlatform/account-middleware v0.0.0-20221204082312-4e976e7baa2f
+	github.com/NpoolPlatform/account-manager v0.0.0-20221204095210-758965bc3981
+	github.com/NpoolPlatform/account-middleware v0.0.0-20221204101552-f2ad9bfc3d5e
 	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46
 	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220906111241-8ea73a1a10e3
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20221204044315-11d110f44405
-	github.com/NpoolPlatform/cloud-hashing-billing v0.0.0-20220813100440-8f504162a259
 	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20221102072657-7fcc5e6f1012
 	github.com/NpoolPlatform/good-middleware v0.0.0-20221109024849-724709e2093e
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20220809080712-e4586fdefec7
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20221204081645-37c1f829a0bb
+	github.com/NpoolPlatform/message v0.0.0-20221204101031-c52d5dbfa3e2
 	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
 	github.com/NpoolPlatform/order-middleware v0.0.0-20221117090447-f989baeeee3c
 	github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95
-	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.5.0
@@ -57,6 +55,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hashicorp/consul/api v1.12.0 // indirect
