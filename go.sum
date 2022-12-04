@@ -101,8 +101,6 @@ github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0/go.mo
 github.com/NpoolPlatform/order-manager v0.0.0-20221116014019-9d3c7ce9e122 h1:gr5VFPPoEBZerMAlnEboWKCoPUSBsfLAxXymBZxf+cA=
 github.com/NpoolPlatform/order-middleware v0.0.0-20221117090447-f989baeeee3c h1:terUKKYCIE4k8taGJhv1s/aO6WLUdsEQQbn1f784MCM=
 github.com/NpoolPlatform/order-middleware v0.0.0-20221117090447-f989baeeee3c/go.mod h1:DMByH4nE/7c2+G6joU/DZyU0xU29Y8M1qJML2NlKJ0I=
-github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c h1:Gll6yDpSSfr6RPHdDRD7/XPGdfOOZu57D641JQAkx3I=
-github.com/NpoolPlatform/sphinx-coininfo v0.0.0-20220723055305-aa741e03817c/go.mod h1:6x2MevuQNEWnB/uJl8REgHUH2F+mBadmMtexHDO1/NA=
 github.com/NpoolPlatform/sphinx-plugin v0.0.0-20220615111041-1f66f3b8e0d0 h1:y0CX49H0fHXY0Zqg/QiJDVOo50l4SXL2uXlU1J9Pp9w=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95 h1:v5snXbJFtOMbRrZWiybc9Noev5PBt90aNlMK3c5ixVY=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20220723103111-817be6fb6f95/go.mod h1:o2qhPFUDpQWDsU8KQGlzkWk19aFVNNozTyUDDT93O4E=
