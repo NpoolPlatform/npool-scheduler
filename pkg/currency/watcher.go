@@ -10,14 +10,13 @@ import (
 )
 
 func Watch(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	ticker := time.NewTicker(1 * time.Minute)
 
-	defer cancel()
-
 	for range ticker.C {
+		ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 		if err := currency.RefreshCurrencies(ctx); err != nil {
 			logger.Sugar().Errorw("currency", "error", err)
 		}
+		cancel()
 	}
 }
