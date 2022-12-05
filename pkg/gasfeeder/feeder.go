@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
@@ -184,6 +185,9 @@ func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin
 	if err != nil {
 		return false, err
 	}
+	if acc == nil {
+		return false, fmt.Errorf("invalid hot account")
+	}
 
 	amount, err := decimal.NewFromString(coin.HotWalletFeeAmount)
 	if err != nil {
@@ -295,6 +299,9 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 	if err != nil {
 		return err
 	}
+	if acc == nil {
+		return fmt.Errorf("invalid gas provider account")
+	}
 
 	yes, err := feeding(ctx, acc.ID)
 	if err != nil {
@@ -344,23 +351,34 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 
-	offset := int32(0)
-	const limit = int32(100)
-
 	for range ticker.C {
-		coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
-		if err != nil {
-			continue
-		}
+		offset := int32(0)
+		const limit = int32(100)
 
-		for _, coin := range coins {
-			if coin.ID == coin.FeeCoinTypeID {
-				continue
+		for {
+			coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
+			if err != nil {
+				break
+			}
+			if len(coins) == 0 {
+				break
 			}
 
-			if err := feedCoin(ctx, coin); err != nil {
-				logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
+			for _, coin := range coins {
+				if coin.FeeCoinTypeID == uuid1.InvalidUUIDStr || coin.FeeCoinTypeID == "" {
+					continue
+				}
+
+				if coin.ID == coin.FeeCoinTypeID {
+					continue
+				}
+
+				if err := feedCoin(ctx, coin); err != nil {
+					logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
+				}
 			}
+
+			offset += limit
 		}
 	}
 }
