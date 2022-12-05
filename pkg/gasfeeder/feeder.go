@@ -93,7 +93,7 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 	}
 
 	const coolDown = uint32(10 * 60)
-	if txs[0].UpdatedAt+coolDown < uint32(time.Now().Unix()) {
+	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
 		return true, nil
 	}
 
