@@ -9,10 +9,6 @@ import (
 
 	"github.com/NpoolPlatform/staker-manager/pkg/servicename"
 
-	mysqlconst "github.com/NpoolPlatform/go-service-framework/pkg/mysql/const"
-	rabbitmqconst "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/const"
-	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
-
 	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
 
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
@@ -40,9 +36,6 @@ func main() {
 		"./",
 		nil,
 		commands,
-		mysqlconst.MysqlServiceName,
-		rabbitmqconst.RabbitMQServiceName,
-		redisconst.RedisServiceName,
 		ledgerconst.ServiceName,
 		miningconst.ServiceName,
 		archivementconst.ServiceName,
