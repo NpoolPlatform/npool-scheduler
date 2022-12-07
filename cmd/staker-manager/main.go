@@ -9,6 +9,8 @@ import (
 
 	"github.com/NpoolPlatform/staker-manager/pkg/servicename"
 
+	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
+
 	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
 
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
@@ -36,6 +38,7 @@ func main() {
 		"./",
 		nil,
 		commands,
+		redisconst.RedisServiceName,
 		ledgerconst.ServiceName,
 		miningconst.ServiceName,
 		archivementconst.ServiceName,
