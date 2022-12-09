@@ -59,6 +59,10 @@ func onCreatedChecker(ctx context.Context) { //nolint
 					Op:    cruder.EQ,
 					Value: created.CoinTypeID,
 				},
+				AccountID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: created.FromAccountID,
+				},
 				State: &commonpb.Int32Val{
 					Op:    cruder.EQ,
 					Value: int32(txmgrpb.TxState_StateWait),
@@ -68,7 +72,7 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				logger.Sugar().Errorw("onCreatedChecker", "error", err)
 				return
 			}
-			if len(waits) == 0 {
+			if len(waits) > 0 {
 				continue
 			}
 
@@ -76,6 +80,10 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				CoinTypeID: &commonpb.StringVal{
 					Op:    cruder.EQ,
 					Value: created.CoinTypeID,
+				},
+				AccountID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: created.FromAccountID,
 				},
 				State: &commonpb.Int32Val{
 					Op:    cruder.EQ,
@@ -86,7 +94,7 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				logger.Sugar().Errorw("onCreatedChecker", "error", err)
 				return
 			}
-			if len(payings) == 0 {
+			if len(payings) > 0 {
 				continue
 			}
 

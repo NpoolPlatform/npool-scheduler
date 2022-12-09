@@ -196,7 +196,7 @@ func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin
 	return feedOne(ctx, coin, feeCoin, gasProvider, acc.ID, acc.Address, amount)
 }
 
-func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) {
+func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) { //nolint
 	offset := int32(0)
 	const limit = int32(100)
 
@@ -243,7 +243,7 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 	}
 }
 
-func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) {
+func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) { //nolint
 	offset := int32(0)
 	const limit = int32(100)
 
@@ -348,7 +348,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 	return nil
 }
 
-func Watch(ctx context.Context) {
+func Watch(ctx context.Context) { //nolint
 	ticker := time.NewTicker(time.Minute)
 
 	for range ticker.C {
