@@ -363,7 +363,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 
 	// TODO: move to TX end
 
-	if order.PaymentState == paymentmgrpb.PaymentState_Done {
+	if state == paymentmgrpb.PaymentState_Done {
 		if err := commission.CalculateCommission(ctx, order.ID, false); err != nil {
 			return err
 		}
