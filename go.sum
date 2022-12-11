@@ -64,10 +64,10 @@ github.com/Masterminds/semver v1.4.2/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF0
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Masterminds/sprig v2.15.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
 github.com/Masterminds/sprig v2.22.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
-github.com/NpoolPlatform/account-manager v0.0.0-20221204095210-758965bc3981 h1:TjL3qQ1iHfPjYM8U0gj6KT0ME3PYZLQldqJRwGcG7hA=
-github.com/NpoolPlatform/account-manager v0.0.0-20221204095210-758965bc3981/go.mod h1:daNlJQtr3AKARG6I7GBhh/pSLFZUIofRTO1vEr8S5SQ=
-github.com/NpoolPlatform/account-middleware v0.0.0-20221204101552-f2ad9bfc3d5e h1:A4jsawHFvt5CzeK7M1mMxo0ZAq7f+l2UwuPtMne6WWc=
-github.com/NpoolPlatform/account-middleware v0.0.0-20221204101552-f2ad9bfc3d5e/go.mod h1:5ZP3Ebp+AsbDUCBlU+m1Ze0Cr1abavHFRoLYtIm7MZE=
+github.com/NpoolPlatform/account-manager v0.0.0-20221209014539-84ce18043d03 h1:TwvtjFlDZEMuhP+OzejPs13U9HbMsEF5m06C0wMb0rs=
+github.com/NpoolPlatform/account-manager v0.0.0-20221209014539-84ce18043d03/go.mod h1:daNlJQtr3AKARG6I7GBhh/pSLFZUIofRTO1vEr8S5SQ=
+github.com/NpoolPlatform/account-middleware v0.0.0-20221209034336-190bcf4d8eae h1:PnGmL2+5w+y+CVUQ8WQphGgi/4UwaRIaUHHjUw6bi9I=
+github.com/NpoolPlatform/account-middleware v0.0.0-20221209034336-190bcf4d8eae/go.mod h1:HQOtNOV0C9VKbBNaybsqdnbjv9gLIpr2FDt9B9IJayY=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0 h1:yIEwS7NTQhBBmfpf6yigvPCbxffMOrtBK/yUPM5ukbo=
 github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0/go.mod h1:+Xj8fVgWZWGakBtqZbFn/zY0qd47AywCjLPOGdTqJDU=
 github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46 h1:f8h+HNWfbF9jOUMhanb/lI/UbQIXZBryJ44kURmq2Rk=
