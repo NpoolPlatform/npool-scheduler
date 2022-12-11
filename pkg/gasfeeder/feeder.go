@@ -150,6 +150,31 @@ func feedOne(
 		return true, nil
 	}
 
+	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    coin.Name,
+		Address: address,
+	})
+	if err != nil {
+		return false, err
+	}
+	if balance == nil {
+		return false, fmt.Errorf("invalid balance")
+	}
+
+	bal, err := decimal.NewFromString(balance.BalanceStr)
+	if err != nil {
+		return false, err
+	}
+
+	reserved, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return false, err
+	}
+
+	if bal.Cmp(reserved) <= 0 {
+		return false, nil
+	}
+
 	ok, err = enough(ctx, feeCoin.Name, gasProvider.Address, amount)
 	if err != nil {
 		return false, err
