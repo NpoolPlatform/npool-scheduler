@@ -35,7 +35,7 @@ import (
 )
 
 func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.AccountUsedFor) (*pltfaccmwpb.Account, error) {
-	return pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+	acc, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
 		CoinTypeID: &commonpb.StringVal{
 			Op:    cruder.EQ,
 			Value: coinTypeID,
@@ -61,6 +61,16 @@ func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.Accoun
 			Value: false,
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
+	if acc == nil {
+		return nil, fmt.Errorf("invalid account")
+	}
+	if acc.Address == "" {
+		return nil, fmt.Errorf("%v invlid %v account", coinTypeID, usedFor)
+	}
+	return acc, nil
 }
 
 func feeding(ctx context.Context, accountID string) (bool, error) {
@@ -107,7 +117,7 @@ func enough(ctx context.Context, coinName, address string, amount decimal.Decima
 		Address: address,
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%v [%v] balance error: %v", coinName, address, err)
 	}
 	if balance == nil {
 		return false, fmt.Errorf("invalid balance")
@@ -130,13 +140,23 @@ func feedOne(
 	coin, feeCoin *coinmwpb.Coin,
 	gasProvider *pltfaccmwpb.Account,
 	accountID, address string,
+	usedFor accountmgrpb.AccountUsedFor,
 	amount decimal.Decimal,
 ) (
 	bool, error,
 ) {
-	ok, err := enough(ctx, feeCoin.Name, address, amount)
+	if address == "" || accountID == "" {
+		return false, fmt.Errorf("coin %v account %v address %v usedFor %v", coin.Name, accountID, address, usedFor)
+	}
+
+	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
 	if err != nil {
 		return false, err
+	}
+
+	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("target account %v error: %v", accountID, err)
 	}
 	if ok {
 		return false, nil
@@ -155,7 +175,7 @@ func feedOne(
 		Address: address,
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%v [%v:%v] balance error: %v", coin.Name, accountID, address, err)
 	}
 	if balance == nil {
 		return false, fmt.Errorf("invalid balance")
@@ -177,7 +197,7 @@ func feedOne(
 
 	ok, err = enough(ctx, feeCoin.Name, gasProvider.Address, amount)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("provider account %v error: %v", gasProvider.AccountID, err)
 	}
 	if !ok {
 		return false, fmt.Errorf("insufficient funds")
@@ -187,7 +207,7 @@ func feedOne(
 	feeAmountS := "0"
 	txType := txmgrpb.TxType_TxFeedGas
 	txExtra := fmt.Sprintf(`{"Coin":"%v","AccountType":"%v","FeeCoinTypeID":"%v"}`,
-		coin.Name, accountmgrpb.AccountUsedFor_UserBenefitHot, coin.FeeCoinTypeID)
+		coin.Name, usedFor, coin.FeeCoinTypeID)
 
 	_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
 		CoinTypeID:    &coin.FeeCoinTypeID,
@@ -208,7 +228,7 @@ func feedOne(
 func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) {
 	acc, err := account(ctx, coin.ID, accountmgrpb.AccountUsedFor_UserBenefitHot)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%v benefit hot error: %v", coin.Name, err)
 	}
 	if acc == nil {
 		return false, fmt.Errorf("invalid hot account")
@@ -218,7 +238,7 @@ func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin
 	if err != nil {
 		return false, err
 	}
-	return feedOne(ctx, coin, feeCoin, gasProvider, acc.ID, acc.Address, amount)
+	return feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, acc.UsedFor, amount)
 }
 
 func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) { //nolint
@@ -257,9 +277,9 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 		}
 
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.ID, acc.Address, amount)
+			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_GoodPayment, amount)
 			if err != nil {
-				return false, err
+				continue
 			}
 			if feeded {
 				return true, nil
@@ -304,9 +324,9 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 		}
 
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.ID, acc.Address, amount)
+			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
 			if err != nil {
-				return false, err
+				continue
 			}
 			if feeded {
 				return true, nil
@@ -322,13 +342,13 @@ func feedGoodBenefitAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, g
 func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 	acc, err := account(ctx, coin.FeeCoinTypeID, accountmgrpb.AccountUsedFor_GasProvider)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v [%v] gas provider error: %v", coin.Name, coin.FeeCoinName, err)
 	}
 	if acc == nil {
 		return fmt.Errorf("invalid gas provider account")
 	}
 
-	yes, err := feeding(ctx, acc.ID)
+	yes, err := feeding(ctx, acc.AccountID)
 	if err != nil {
 		return err
 	}
@@ -349,7 +369,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return nil
 	}
 
-	feeded, err = feedPaymentAccount(ctx, coin, feeCoin, acc)
+	feeded, err = feedDepositAccount(ctx, coin, feeCoin, acc)
 	if err != nil {
 		return err
 	}
@@ -357,7 +377,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return nil
 	}
 
-	feeded, err = feedDepositAccount(ctx, coin, feeCoin, acc)
+	feeded, err = feedPaymentAccount(ctx, coin, feeCoin, acc)
 	if err != nil {
 		return err
 	}
@@ -398,6 +418,7 @@ func Watch(ctx context.Context) { //nolint
 					continue
 				}
 
+				logger.Sugar().Warnw("gasfeeder", "Coin", coin.Name, "FeeCoin", coin.FeeCoinName)
 				if err := feedCoin(ctx, coin); err != nil {
 					logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
 				}

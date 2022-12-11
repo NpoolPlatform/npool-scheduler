@@ -135,10 +135,12 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 
 	fromAddress, err := getAddress(ctx, tx.FromAccountID)
 	if err != nil {
+		logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
 		return err
 	}
 	toAddress, err := getAddress(ctx, tx.ToAccountID)
 	if err != nil {
+		logger.Sugar().Errorw("transaction", "Account", tx.ToAccountID, "error", err)
 		return err
 	}
 

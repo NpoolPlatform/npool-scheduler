@@ -3,8 +3,8 @@ module github.com/NpoolPlatform/staker-manager
 go 1.17
 
 require (
-	github.com/NpoolPlatform/account-manager v0.0.0-20221204095210-758965bc3981
-	github.com/NpoolPlatform/account-middleware v0.0.0-20221204101552-f2ad9bfc3d5e
+	github.com/NpoolPlatform/account-manager v0.0.0-20221209014539-84ce18043d03
+	github.com/NpoolPlatform/account-middleware v0.0.0-20221209034336-190bcf4d8eae
 	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
 	github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46
 	github.com/NpoolPlatform/archivement-middleware v0.0.0-20220906111241-8ea73a1a10e3
