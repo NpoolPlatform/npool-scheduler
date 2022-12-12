@@ -68,7 +68,7 @@ func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.Accoun
 		return nil, fmt.Errorf("invalid account")
 	}
 	if acc.Address == "" {
-		return nil, fmt.Errorf("%v invlid %v account", coinTypeID, usedFor)
+		return nil, fmt.Errorf("%v invalid %v account", coinTypeID, usedFor)
 	}
 	return acc, nil
 }
