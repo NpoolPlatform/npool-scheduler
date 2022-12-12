@@ -193,6 +193,22 @@ func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
 			Op:    cruder.EQ,
 			Value: g.goodID,
 		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
 	})
 	if err != nil {
 		return decimal.NewFromInt(0), err
@@ -219,7 +235,7 @@ func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
 func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error {
 	exist, err := g.profitExist(ctx, timestamp)
 	if err != nil {
-		return err
+		return fmt.Errorf("profit exist error: %v", err)
 	}
 	if exist {
 		return fmt.Errorf("daily profit exist")
@@ -227,12 +243,12 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 
 	remain, err := g.profitBalance(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("profit balance error: %v", err)
 	}
 
 	balance, err := g.benefitBalance(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("benefit balance error: %v", err)
 	}
 
 	logger.Sugar().Infow("processDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "benefitAddress",
@@ -345,7 +361,7 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 	userAmountS := userAmount.String()
 	platformAmountS := platformAmount.String()
 	feeAmontS := "0"
-	txExtra := fmt.Sprintf("{\"GoodID\":\"%v\",\"DailyProfit\":\"%v\",\"UserUnits\":%v,\"TotalUnits\":%v,\"InitialKept\":\"%v\"}",
+	txExtra := fmt.Sprintf(`{"GoodID":"%v","DailyProfit":"%v","UserUnits":%v,"TotalUnits":%v,"InitialKept":"%v"}`,
 		g.goodID, g.dailyProfit, g.serviceUnits, g.totalUnits, g.initialKept)
 	txType := txmgrpb.TxType_TxBenefit
 
@@ -369,12 +385,12 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		return nil
 	}
 
-	txExtra = fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp)
+	txExtra = fmt.Sprintf(`{"GoodID":"%v","Amount":"%v","BenefitDate":"%v"}`, g.goodID, platformAmount, timestamp)
 
 	_, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
 		CoinTypeID:    &g.coinTypeID,
 		FromAccountID: &g.benefitAccountID,
-		ToAccountID:   &g.userOnlineAccountID,
+		ToAccountID:   &g.platformOfflineAccountID,
 		Amount:        &platformAmountS,
 		FeeAmount:     &feeAmontS,
 		Extra:         &txExtra,

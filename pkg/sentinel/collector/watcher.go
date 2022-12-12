@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
@@ -37,20 +38,20 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 
 	coin, err := coinmwcli.GetCoin(ctx, account.CoinTypeID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid coin %v: %v", account.CoinTypeID, err)
 	}
 
 	if err := accountlock.Lock(account.AccountID); err != nil {
 		logger.Sugar().Errorw("checkGoodPayment", "account", account.AccountID, "error", err)
-		return nil
+		return err
 	}
 	defer func() {
 		_ = accountlock.Unlock(account.AccountID) //nolint
 	}()
 
-	_acc, err := pltfaccmwcli.GetAccount(ctx, account.ID)
+	_acc, err := payaccmwcli.GetAccount(ctx, account.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid platform account %v: %v", account.ID, err)
 	}
 	if _acc.Locked || _acc.Blocked || !_acc.Active {
 		return nil
@@ -154,7 +155,7 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 		},
 	})
 	if err != nil {
-		return nil
+		return err
 	}
 	if collect == nil {
 		return fmt.Errorf("invalid collect account")
@@ -218,7 +219,7 @@ func checkGoodPayments(ctx context.Context) {
 
 		for _, acc := range accs {
 			if err := checkGoodPayment(ctx, acc); err != nil {
-				logger.Sugar().Errorw("checkGoodPayment", "error", err)
+				logger.Sugar().Errorw("checkGoodPayment", "Account", acc, "error", err)
 			}
 		}
 
@@ -227,6 +228,14 @@ func checkGoodPayments(ctx context.Context) {
 }
 
 func checkCollectingPayment(ctx context.Context, account *payaccmwpb.Account) error {
+	if !account.Locked {
+		return nil
+	}
+
+	if account.CollectingTID == uuid1.InvalidUUIDStr || account.CollectingTID == "" {
+		return nil
+	}
+
 	tx, err := txmwcli.GetTx(ctx, account.CollectingTID)
 	if err != nil {
 		return err
@@ -275,7 +284,7 @@ func checkCollectingPayments(ctx context.Context) {
 
 		for _, acc := range accs {
 			if err := checkCollectingPayment(ctx, acc); err != nil {
-				logger.Sugar().Errorw("checkCollectingPayments", "error", err)
+				logger.Sugar().Errorw("checkCollectingPayments", "Account", acc, "error", err)
 			}
 		}
 
