@@ -53,7 +53,6 @@ type gp struct {
 	benefitAccountID     string
 	benefitIntervalHours uint32
 	dailyProfit          decimal.Decimal
-	initialKept          decimal.Decimal
 
 	userOnlineAccountID      string
 	platformOfflineAccountID string
@@ -154,9 +153,16 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 	transferredToPlatform := g.transferredToPlatform.String()
 	transferredToUser := g.transferredToUser.String()
 
-	logger.Sugar().Infow("addDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
-		"userAmount", toUser, "platformAmount", toPlatform, "transferredToUser",
-		transferredToUser, "transferredToPlatform", transferredToPlatform, "initialKept", g.initialKept)
+	logger.Sugar().Infow(
+		"addDailyProfit",
+		"goodID", g.goodID,
+		"goodName", g.goodName,
+		"dailyProfit", g.dailyProfit,
+		"userAmount", toUser,
+		"platformAmount", toPlatform,
+		"transferredToUser", transferredToUser,
+		"transferredToPlatform", transferredToPlatform,
+	)
 
 	if toUserD.Cmp(decimal.NewFromInt(0)) > 0 {
 		_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
@@ -258,11 +264,9 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 		return nil
 	}
 
-	g.dailyProfit = balance.Sub(remain)
-
-	if remain.Cmp(g.coinReservedAmount) < 0 {
-		g.initialKept = g.coinReservedAmount
-	}
+	g.dailyProfit = balance.
+		Sub(remain).
+		Sub(g.coinReservedAmount)
 
 	return nil
 }
@@ -284,6 +288,10 @@ func (g *gp) stock(ctx context.Context) error {
 }
 
 func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
+	}
+
 	amount := g.dailyProfit.
 		Mul(decimal.NewFromInt(int64(order.Units))).
 		Div(decimal.NewFromInt(int64(g.totalUnits))).
@@ -306,6 +314,10 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 }
 
 func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
+	}
+
 	unsold, err := profitunsoldcli.GetUnsoldOnly(ctx, &profitunsoldpb.Conds{
 		GoodID: &commonpb.StringVal{
 			Op:    cruder.EQ,
@@ -340,8 +352,8 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 }
 
 func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
-	if g.dailyProfit.Cmp(g.initialKept) <= 0 {
-		return nil
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
 	}
 
 	if g.totalUnits <= 0 {
@@ -352,17 +364,22 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		Mul(decimal.NewFromInt(int64(g.serviceUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
 	platformAmount := g.dailyProfit.
-		Sub(g.initialKept).
 		Sub(userAmount)
 
-	logger.Sugar().Infow("transfer", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
-		"userAmount", userAmount, "platformAmount", platformAmount, "initialKept", g.initialKept)
+	logger.Sugar().Infow(
+		"transfer",
+		"goodID", g.goodID,
+		"goodName", g.goodName,
+		"dailyProfit", g.dailyProfit,
+		"userAmount", userAmount,
+		"platformAmount", platformAmount,
+	)
 
 	userAmountS := userAmount.String()
 	platformAmountS := platformAmount.String()
 	feeAmontS := "0"
-	txExtra := fmt.Sprintf(`{"GoodID":"%v","DailyProfit":"%v","UserUnits":%v,"TotalUnits":%v,"InitialKept":"%v"}`,
-		g.goodID, g.dailyProfit, g.serviceUnits, g.totalUnits, g.initialKept)
+	txExtra := fmt.Sprintf(`{"GoodID":"%v","DailyProfit":"%v","UserUnits":%v,"TotalUnits":%v}`,
+		g.goodID, g.dailyProfit, g.serviceUnits, g.totalUnits)
 	txType := txmgrpb.TxType_TxBenefit
 
 	if userAmount.Cmp(decimal.NewFromInt(0)) > 0 {
