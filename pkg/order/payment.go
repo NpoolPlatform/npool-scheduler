@@ -96,7 +96,13 @@ func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inse
 
 func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymentmgrpb.PaymentState, newOrderState ordermgrpb.OrderState, fakePayment bool, finishAmount string) error {
 	if newState != order.PaymentState {
-		logger.Sugar().Infow("tryFinishPayment", "payment", order.ID, "paymentState", order.PaymentState, "newState", newState, "paymentFinishAmount", finishAmount)
+		logger.Sugar().Infow(
+			"tryFinishPayment",
+			"payment", order.ID,
+			"paymentState", order.PaymentState,
+			"newState", newState,
+			"paymentFinishAmount", finishAmount,
+		)
 		_, err := ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
 			ID:                  &order.ID,
 			PaymentState:        &newState,
@@ -148,6 +154,7 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 		return err
 	}
 	if account == nil {
+		logger.Sugar().Errorw("tryFinishPayment", "AccountID", order.PaymentAccountID, "error", err)
 		return fmt.Errorf("invalid account")
 	}
 
@@ -296,6 +303,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 	if account == nil {
+		logger.Sugar().Errorw("_processOrderPayment", "AccountID", order.PaymentAccountID, "error", err)
 		return fmt.Errorf("invalid account")
 	}
 
@@ -438,7 +446,13 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) {
 		}
 
 		if err := processOrderPayment(ctx, order); err != nil {
-			logger.Sugar().Errorw("processOrderPayment", "error", err)
+			logger.Sugar().Errorw(
+				"processOrderPayment",
+				"Order", order.ID,
+				"PaymentAccountID", order.PaymentAccountID,
+				"PaymentState", order.PaymentState,
+				"error", err,
+			)
 			continue
 		}
 	}

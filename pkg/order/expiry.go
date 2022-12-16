@@ -85,7 +85,7 @@ func checkOrderExpiries(ctx context.Context) {
 	limit := int32(1000)
 
 	for {
-		orders, _, err := ordercli.GetOrders(ctx, nil, offset, limit)
+		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("processOrders", "offset", offset, "limit", limit, "error", err)
 			return
