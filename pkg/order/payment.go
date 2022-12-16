@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	"github.com/NpoolPlatform/message/npool"
-
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
@@ -19,11 +17,11 @@ import (
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
-	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	commonpb "github.com/NpoolPlatform/message/npool"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -96,27 +94,15 @@ func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inse
 	return 0, 0
 }
 
-func trySavePaymentBalance(ctx context.Context, order *orderpb.Order, balance decimal.Decimal) error {
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
-	}
-
-	paymentCoinUSDCurrency, _ := decimal.NewFromString(order.PaymentCoinUSDCurrency)
-	paymentCoinUSDCurrencyF, _ := paymentCoinUSDCurrency.Float64()
-	_, err := billingcli.CreatePaymentBalance(ctx, &billingpb.UserPaymentBalance{
-		AppID:           order.AppID,
-		UserID:          order.UserID,
-		PaymentID:       order.ID,
-		CoinTypeID:      order.PaymentCoinTypeID,
-		Amount:          balance.InexactFloat64(),
-		CoinUSDCurrency: paymentCoinUSDCurrencyF,
-	})
-	return err
-}
-
 func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymentmgrpb.PaymentState, newOrderState ordermgrpb.OrderState, fakePayment bool, finishAmount string) error {
 	if newState != order.PaymentState {
-		logger.Sugar().Infow("tryFinishPayment", "payment", order.ID, "paymentState", order.PaymentState, "newState", newState, "paymentFinishAmount", finishAmount)
+		logger.Sugar().Infow(
+			"tryFinishPayment",
+			"payment", order.ID,
+			"paymentState", order.PaymentState,
+			"newState", newState,
+			"paymentFinishAmount", finishAmount,
+		)
 		_, err := ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
 			ID:                  &order.ID,
 			PaymentState:        &newState,
@@ -146,19 +132,38 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 		accountlock.Unlock(order.PaymentAccountID)
 	}()
 
-	goodPayment, err := billingcli.GetAccountGoodPayment(ctx, order.PaymentAccountID)
+	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
+		AccountID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.PaymentAccountID,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
 	if err != nil {
 		return err
 	}
-	if goodPayment == nil {
-		return fmt.Errorf("invalid account good payment")
+	if account == nil {
+		logger.Sugar().Errorw("tryFinishPayment", "AccountID", order.PaymentAccountID, "error", err)
+		return fmt.Errorf("invalid account")
 	}
 
-	goodPayment.Idle = true
-	goodPayment.OccupiedBy = billingconst.TransactionForNotUsed
-	goodPayment.UsedFor = billingconst.TransactionForNotUsed
+	locked := false
 
-	_, err = billingcli.UpdateGoodPayment(ctx, goodPayment)
+	_, err = payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
+		ID:     &account.ID,
+		Locked: &locked,
+	})
 	return err
 }
 
@@ -268,19 +273,37 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, paymentState payme
 
 // nolint
 func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
-	coin, err := coininfocli.GetCoinInfo(ctx, order.PaymentCoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, order.PaymentCoinTypeID)
 	if err != nil {
 		return err
 	}
 	if coin == nil {
-		return fmt.Errorf("invalid coininfo")
+		return fmt.Errorf("invalid coin")
 	}
 
-	account, err := billingcli.GetAccount(ctx, order.PaymentAccountID)
+	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
+		AccountID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.PaymentAccountID,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
 	if err != nil {
 		return err
 	}
 	if account == nil {
+		logger.Sugar().Errorw("_processOrderPayment", "AccountID", order.PaymentAccountID, "error", err)
 		return fmt.Errorf("invalid account")
 	}
 
@@ -328,10 +351,6 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		}
 	}
 
-	if err := trySavePaymentBalance(ctx, order, remain); err != nil {
-		return err
-	}
-
 	if err := tryFinishPayment(ctx, order, state, newOrderState, false, finishAmount); err != nil {
 		return err
 	}
@@ -374,12 +393,12 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 }
 
 func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
-	coin, err := coininfocli.GetCoinInfo(ctx, order.PaymentCoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, order.PaymentCoinTypeID)
 	if err != nil {
 		return err
 	}
 	if coin == nil {
-		return fmt.Errorf("invalid coininfo")
+		return fmt.Errorf("invalid coin")
 	}
 
 	state := paymentmgrpb.PaymentState_Done
@@ -427,7 +446,13 @@ func processOrderPayments(ctx context.Context, orders []*orderpb.Order) {
 		}
 
 		if err := processOrderPayment(ctx, order); err != nil {
-			logger.Sugar().Errorw("processOrderPayment", "error", err)
+			logger.Sugar().Errorw(
+				"processOrderPayment",
+				"Order", order.ID,
+				"PaymentAccountID", order.PaymentAccountID,
+				"PaymentState", order.PaymentState,
+				"error", err,
+			)
 			continue
 		}
 	}
@@ -440,7 +465,7 @@ func checkOrderPayments(ctx context.Context) {
 
 	for {
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			State: &npool.Uint32Val{
+			State: &commonpb.Uint32Val{
 				Op:    cruder.EQ,
 				Value: uint32(ordermgrpb.OrderState_WaitPayment),
 			},

@@ -2,18 +2,19 @@ package main
 
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
-
-	benefit "github.com/NpoolPlatform/staker-manager/pkg/benefit"
-	deposit "github.com/NpoolPlatform/staker-manager/pkg/deposit"
-	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
-	order "github.com/NpoolPlatform/staker-manager/pkg/order"
-	collector "github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
-	limitation "github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
-	withdraw "github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
-	transaction "github.com/NpoolPlatform/staker-manager/pkg/transaction"
+	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
+	"github.com/NpoolPlatform/staker-manager/pkg/deposit"
+	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
+	"github.com/NpoolPlatform/staker-manager/pkg/order"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
+	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	currency "github.com/NpoolPlatform/staker-manager/pkg/currency"
+	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
 
 	apimgrcli "github.com/NpoolPlatform/api-manager/pkg/client"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -45,6 +46,8 @@ var runCmd = &cli.Command{
 		go limitation.Watch(c.Context)
 		go withdraw.Watch(c.Context)
 		go benefit.Watch(c.Context)
+		go currency.Watch(c.Context)
+		go gasfeeder.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},

@@ -17,12 +17,8 @@ import (
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
-
 	constant "github.com/NpoolPlatform/staker-manager/pkg/message/const"
 	"github.com/NpoolPlatform/staker-manager/pkg/referral"
-
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -32,36 +28,13 @@ import (
 func tryUpdateCommissionLedger(
 	ctx context.Context,
 	appID, userID, subContributor, orderUserID, orderID, paymentID, coinTypeID string,
-	amount, currency decimal.Decimal,
-	createdAt uint32, oldOrder bool,
+	amount decimal.Decimal,
+	oldOrder bool,
 ) error {
 	commissionCoinID := coinTypeID
 
 	if oldOrder {
-		// For old order, always transfer to USDT TRC20
-		coins, err := coininfocli.GetCoinInfos(ctx, cruder.NewFilterConds())
-		if err != nil {
-			return err
-		}
-
-		trc20CoinID := ""
-		for _, coin := range coins {
-			if coin.Name == "usdttrc20" {
-				trc20CoinID = coin.ID
-				break
-			}
-		}
-
-		if trc20CoinID == "" {
-			return fmt.Errorf("invalid trc20 coin")
-		}
-
-		const upgradeAt = uint32(1660492800) // 2022-8-15
-
-		if createdAt < upgradeAt && coinTypeID != trc20CoinID {
-			commissionCoinID = trc20CoinID
-			amount = amount.Mul(currency)
-		}
+		return fmt.Errorf("invalid old order")
 	}
 
 	ioExtra := fmt.Sprintf(
@@ -131,13 +104,10 @@ func calculateCommission(ctx context.Context, order *orderpb.Order, oldOrder boo
 		amount = amount.Mul(decimal.NewFromInt(int64(percent - subPercent)))
 		amount = amount.Div(decimal.NewFromInt(100)) //nolint
 
-		paymentCoinUSDCurrency, _ := decimal.NewFromString(order.PaymentCoinUSDCurrency)
-
 		if err := tryUpdateCommissionLedger(
 			ctx, order.AppID, user, subContributor, order.UserID,
 			order.ID, order.PaymentID, order.PaymentCoinTypeID,
-			amount, paymentCoinUSDCurrency,
-			order.CreatedAt, oldOrder,
+			amount, oldOrder,
 		); err != nil {
 			return err
 		}

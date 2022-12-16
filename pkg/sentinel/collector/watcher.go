@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
-	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
+	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
+	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
+	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
+
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -19,213 +26,269 @@ import (
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
 
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
-func checkGoodPayment(ctx context.Context, payment *billingpb.GoodPayment) { //nolint
-	if !payment.Idle {
-		return
+func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { //nolint
+	if account.AvailableAt >= uint32(time.Now().Unix()) {
+		return nil
 	}
 
-	if payment.AvailableAt >= uint32(time.Now().Unix()) {
-		return
+	coin, err := coinmwcli.GetCoin(ctx, account.CoinTypeID)
+	if err != nil {
+		return fmt.Errorf("invalid coin %v: %v", account.CoinTypeID, err)
 	}
 
-	coin, err := coininfocli.GetCoinInfo(ctx, payment.PaymentCoinTypeID)
-	if err != nil || coin == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
-		return
-	}
-
-	accountID := payment.AccountID
-	if err := accountlock.Lock(payment.AccountID); err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
-		return
+	if err := accountlock.Lock(account.AccountID); err != nil {
+		logger.Sugar().Errorw("checkGoodPayment", "account", account.AccountID, "error", err)
+		return err
 	}
 	defer func() {
-		_ = accountlock.Unlock(accountID) //nolint
+		_ = accountlock.Unlock(account.AccountID) //nolint
 	}()
 
-	paymentID := payment.ID
-	payment, err = billingcli.GetGoodPayment(ctx, payment.ID)
+	_acc, err := payaccmwcli.GetAccount(ctx, account.ID)
 	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "PaymentID", paymentID, "error", err)
-		return
+		return fmt.Errorf("invalid platform account %v: %v", account.ID, err)
 	}
-	if payment == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "Payment", paymentID)
-		return
+	if _acc.Locked || _acc.Blocked || !_acc.Active {
+		return nil
 	}
-
-	if !payment.Idle {
-		return
-	}
-
-	if payment.AvailableAt >= uint32(time.Now().Unix()) {
-		return
-	}
-
-	account, err := billingcli.GetAccount(ctx, payment.AccountID)
-	if err != nil || account == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "AccountID", payment.AccountID, "account", account, "error", err)
-		return
+	if account.AvailableAt >= uint32(time.Now().Unix()) {
+		return nil
 	}
 
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    coin.Name,
 		Address: account.Address,
 	})
-	if err != nil || balance == nil {
-		logger.Sugar().Errorw(
-			"checkGoodPayment",
-			"balance", balance,
-			"payment", payment.ID,
-			"coin", coin.Name,
-			"address", account.Address,
-			"error", err,
-		)
-		return
+	if err != nil {
+		return err
+	}
+	if balance == nil {
+		return fmt.Errorf("invalid balance")
 	}
 
-	setting, err := billingcli.GetCoinSetting(ctx, payment.PaymentCoinTypeID)
-	if err != nil || setting == nil {
-		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
-		return
+	limit, err := decimal.NewFromString(coin.PaymentAccountCollectAmount)
+	if err != nil {
+		return err
 	}
 
-	limit := setting.PaymentAccountCoinAmount
+	reserved, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return err
+	}
+
+	feeAmount, err := decimal.NewFromString(coin.CollectFeeAmount)
+	if err != nil {
+		return err
+	}
+
 	logger.Sugar().Infow("checkGoodPayment", "limit", limit, "coin", coin.Name,
 		"balance", balance.BalanceStr, "reserved", coin.ReservedAmount,
-		"account", account.Address, "accountID", payment.AccountID)
+		"account", account.Address, "accountID", account.ID)
+
 	bal, err := decimal.NewFromString(balance.BalanceStr)
 	if err != nil {
 		logger.Sugar().Errorw("checkGoodPayment", "error", err)
-		return
+		return err
 	}
 
-	if bal.Cmp(decimal.NewFromFloat(limit)) <= 0 {
-		return
+	if bal.Cmp(limit) <= 0 {
+		return fmt.Errorf("insufficient funds")
 	}
-	if bal.Cmp(decimal.NewFromFloat(coin.ReservedAmount)) <= 0 {
-		return
+	if bal.Cmp(reserved) <= 0 {
+		return fmt.Errorf("insufficient funds")
+	}
+	if bal.Cmp(feeAmount) < 0 {
+		return fmt.Errorf("insufficient gas")
 	}
 
-	tx, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
-		AppID:              uuid.UUID{}.String(),
-		UserID:             uuid.UUID{}.String(),
-		GoodID:             uuid.UUID{}.String(),
-		FromAddressID:      payment.AccountID,
-		ToAddressID:        setting.GoodIncomingAccountID,
-		CoinTypeID:         coin.ID,
-		Amount:             bal.Sub(decimal.NewFromFloat(coin.ReservedAmount)).InexactFloat64(),
-		Message:            fmt.Sprintf("payment collecting transfer of %v at %v", payment.GoodID, time.Now()),
-		ChainTransactionID: uuid.New().String(),
-		CreatedFor:         billingconst.TransactionForCollecting,
+	if coin.ID != coin.FeeCoinTypeID {
+		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+			Name:    coin.FeeCoinName,
+			Address: account.Address,
+		})
+		if err != nil {
+			return err
+		}
+		if balance == nil {
+			return fmt.Errorf("invalid balance")
+		}
+
+		bal, err := decimal.NewFromString(balance.BalanceStr)
+		if err != nil {
+			return err
+		}
+
+		if bal.Cmp(feeAmount) < 0 {
+			return fmt.Errorf("insufficient gas")
+		}
+	}
+
+	collect, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: coin.ID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector),
+		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
 	})
 	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "payment", payment.ID, "error", err)
-		return
+		return err
+	}
+	if collect == nil {
+		return fmt.Errorf("invalid collect account")
 	}
 
-	payment.Idle = false
-	payment.OccupiedBy = billingconst.TransactionForCollecting
-	payment.UsedFor = billingconst.TransactionForCollecting
-	payment.CollectingTID = tx.ID
-	_, err = billingcli.UpdateGoodPayment(ctx, payment)
+	amountS := bal.Sub(reserved).String()
+	feeAmountS := "0"
+	txType := txmgrpb.TxType_TxPaymentCollect
+
+	tx, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+		CoinTypeID:    &coin.ID,
+		FromAccountID: &account.AccountID,
+		ToAccountID:   &collect.AccountID,
+		Amount:        &amountS,
+		FeeAmount:     &feeAmountS,
+		Type:          &txType,
+	})
 	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayment", "error", err)
+		return err
 	}
+
+	locked := true
+	lockedBy := accountmgrpb.LockedBy_Collecting
+
+	_, err = payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
+		ID:            &account.ID,
+		CoinTypeID:    &account.CoinTypeID,
+		Locked:        &locked,
+		LockedBy:      &lockedBy,
+		CollectingTID: &tx.ID,
+	})
+	return err
 }
 
 func checkGoodPayments(ctx context.Context) {
-	payments, err := billingcli.GetGoodPayments(ctx, cruder.NewFilterConds())
-	if err != nil {
-		logger.Sugar().Errorw("checkGoodPayments", "error", err)
-		return
+	offset := int32(0)
+	const limit = int32(1000)
+
+	for {
+		accs, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
+			Active: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: true,
+			},
+			Locked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: false,
+			},
+			Blocked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: false,
+			},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("checkGoodPayments", "error", err)
+			return
+		}
+		if len(accs) == 0 {
+			return
+		}
+
+		for _, acc := range accs {
+			if err := checkGoodPayment(ctx, acc); err != nil {
+				logger.Sugar().Errorw("checkGoodPayment", "Account", acc, "error", err)
+			}
+		}
+
+		offset += limit
+	}
+}
+
+func checkCollectingPayment(ctx context.Context, account *payaccmwpb.Account) error {
+	if !account.Locked {
+		return nil
 	}
 
-	for _, payment := range payments {
-		checkGoodPayment(ctx, payment)
+	if account.CollectingTID == uuid1.InvalidUUIDStr || account.CollectingTID == "" {
+		return nil
 	}
+
+	tx, err := txmwcli.GetTx(ctx, account.CollectingTID)
+	if err != nil {
+		return err
+	}
+
+	switch tx.State {
+	case txmgrpb.TxState_StateSuccessful:
+	case txmgrpb.TxState_StateFail:
+	default:
+		return nil
+	}
+
+	locked := false
+
+	_, err = payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
+		ID:         &account.ID,
+		CoinTypeID: &account.CoinTypeID,
+		Locked:     &locked,
+	})
+	return err
 }
 
 // nolint
 func checkCollectingPayments(ctx context.Context) {
-	payments, err := billingcli.GetGoodPayments(ctx, cruder.NewFilterConds())
-	if err != nil {
-		logger.Sugar().Errorw("checkCollectingPayments", "error", err)
-		return
-	}
+	offset := int32(0)
+	const limit = int32(1000)
 
-	for _, payment := range payments {
-		if payment.Idle {
-			continue
-		}
-
-		accountID := payment.AccountID
-		err = accountlock.Lock(payment.AccountID)
+	for {
+		accs, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
+			Locked: &commonpb.BoolVal{
+				Op:    cruder.EQ,
+				Value: true,
+			},
+			LockedBy: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(accountmgrpb.LockedBy_Collecting),
+			},
+		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("checkCollectingPayments", "AccountID", payment.AccountID, "error", err)
-			continue
-		}
-
-		unlock := func() {
-			_ = accountlock.Unlock(accountID) //nolint
-		}
-
-		payment, err = billingcli.GetGoodPayment(ctx, payment.ID)
-		if err != nil {
-			unlock()
+			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
 			return
 		}
-		if payment == nil {
-			unlock()
+		if len(accs) == 0 {
 			return
 		}
 
-		if payment.Idle {
-			unlock()
-			continue
+		for _, acc := range accs {
+			if err := checkCollectingPayment(ctx, acc); err != nil {
+				logger.Sugar().Errorw("checkCollectingPayments", "Account", acc, "error", err)
+			}
 		}
 
-		if payment.UsedFor != billingconst.TransactionForCollecting ||
-			payment.OccupiedBy != billingconst.TransactionForCollecting {
-			unlock()
-			continue
-		}
-
-		tx, err := billingcli.GetTransaction(ctx, payment.CollectingTID)
-		if err != nil {
-			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
-			unlock()
-			continue
-		}
-		if tx == nil {
-			logger.Sugar().Errorw("checkCollectingPayments", "CollectingTID", payment.CollectingTID)
-			unlock()
-			continue
-		}
-
-		switch tx.State {
-		case billingconst.CoinTransactionStateCreated:
-			fallthrough //nolint
-		case billingconst.CoinTransactionStateWait:
-			fallthrough //nolint
-		case billingconst.CoinTransactionStatePaying:
-			unlock()
-			continue
-		}
-
-		payment.Idle = true
-		payment.OccupiedBy = billingconst.TransactionForNotUsed
-		payment.UsedFor = billingconst.TransactionForNotUsed
-		_, err = billingcli.UpdateGoodPayment(ctx, payment)
-		if err != nil {
-			logger.Sugar().Errorw("checkCollectingPayments", "error", err)
-		}
-		unlock()
+		offset += limit
 	}
 }
 

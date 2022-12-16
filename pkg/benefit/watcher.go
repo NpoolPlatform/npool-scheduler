@@ -6,28 +6,31 @@ import (
 	"os"
 	"time"
 
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	"github.com/NpoolPlatform/message/npool"
-
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
 	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
+	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
-
+	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
+
+	commonpb "github.com/NpoolPlatform/message/npool"
+
 	"github.com/shopspring/decimal"
 )
 
-var benefitInterval = 24 * time.Hour
+var benefitInterval = 2 * time.Minute
 
-const secondsPerDay = 24 * 60 * 60
+const secondsPerDay = timedef.SecondsPerDay
 
 func interval() time.Duration {
 	if duration, err := time.ParseDuration(
@@ -60,12 +63,12 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func validateGoodOrder(order *orderpb.Order, waiting bool) bool {
+func validateGoodOrder(good *goodspb.Good, order *orderpb.Order, waiting bool) bool {
 	if order.PaymentState != paymentmgrpb.PaymentState_Done {
 		return false
 	}
 
-	orderEnd := order.CreatedAt + secondsPerDay
+	orderEnd := order.CreatedAt + uint32(good.DurationDays*secondsPerDay)
 	if orderEnd < uint32(time.Now().Unix()) {
 		return false
 	}
@@ -83,41 +86,95 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		return nil
 	}
 
-	coin, err := coininfocli.GetCoinInfo(ctx, good.CoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
 	if err != nil {
-		return err
+		return fmt.Errorf("good coin error: %v", err)
 	}
 	if coin == nil {
 		return fmt.Errorf("invalid coin")
 	}
-
-	if coin.PreSale {
+	if coin.Presale {
 		return nil
 	}
 
-	setting, err := billingcli.GetCoinSetting(ctx, good.CoinTypeID)
+	userOnline, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: good.CoinTypeID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_UserBenefitHot),
+		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("user online account error: %v", err)
 	}
-	if setting == nil {
-		return fmt.Errorf("invalid coin setting")
+	if userOnline == nil {
+		return fmt.Errorf("invalid hot account")
 	}
 
-	offset := int32(0)
-	limit := int32(1000)
+	pltfOffline, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: good.CoinTypeID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_PlatformBenefitCold),
+		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("platform offline account error: %v", err)
+	}
+	if pltfOffline == nil {
+		return fmt.Errorf("invalid cold account")
+	}
 
 	_gp := &gp{
 		goodID:                   good.ID,
 		goodName:                 good.Title,
 		coinTypeID:               coin.ID,
 		coinName:                 coin.Name,
-		coinReservedAmount:       decimal.NewFromFloat(coin.ReservedAmount),
-		userOnlineAccountID:      setting.UserOnlineAccountID,
-		platformOfflineAccountID: setting.PlatformOfflineAccountID,
+		coinReservedAmount:       decimal.RequireFromString(coin.ReservedAmount),
+		userOnlineAccountID:      userOnline.AccountID,
+		platformOfflineAccountID: pltfOffline.AccountID,
 	}
 
 	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
-		return err
+		return fmt.Errorf("process daily profit error: %v", err)
 	}
 
 	logger.Sugar().Infow("benefit", "timestamp", timestamp, "goodID", good.ID, "goodName", good.Title, "profit", _gp.dailyProfit)
@@ -128,12 +185,16 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	}
 
 	if err := _gp.stock(ctx); err != nil {
-		return err
+		return fmt.Errorf("process good stock error: %v", err)
 	}
 
+	offset := int32(0)
+	limit := int32(1000)
+
 	for {
+		// TODO: GetOrders with state
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			GoodID: &npool.StringVal{
+			GoodID: &commonpb.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
 			},
@@ -146,7 +207,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		}
 
 		for _, order := range orders {
-			validate := validateGoodOrder(order, true)
+			validate := validateGoodOrder(good, order, true)
 			if !validate {
 				continue
 			}
@@ -163,8 +224,9 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	offset = 0
 
 	for {
+		// TODO: GetOrders with state
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			GoodID: &npool.StringVal{
+			GoodID: &commonpb.StringVal{
 				Op:    cruder.EQ,
 				Value: good.ID,
 			},
@@ -177,7 +239,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		}
 
 		for _, order := range orders {
-			validate := validateGoodOrder(order, false)
+			validate := validateGoodOrder(good, order, false)
 			if !validate {
 				continue
 			}
@@ -185,7 +247,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 			_gp.serviceUnits++
 
 			if err := _gp.processOrder(ctx, order, timestamp); err != nil {
-				return err
+				return fmt.Errorf("process order error: %v", err)
 			}
 		}
 
@@ -193,15 +255,15 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	}
 
 	if err := _gp.transfer(ctx, timestamp); err != nil {
-		return err
+		return fmt.Errorf("transfer error: %v", err)
 	}
 
 	if err := _gp.addDailyProfit(ctx, timestamp); err != nil {
-		return err
+		return fmt.Errorf("add daily profit error: %v", err)
 	}
 
 	if err := _gp.processUnsold(ctx, timestamp); err != nil {
-		return err
+		return fmt.Errorf("process unsold error: %v", err)
 	}
 
 	return nil

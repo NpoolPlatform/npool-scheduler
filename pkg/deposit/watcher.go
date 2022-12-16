@@ -17,14 +17,15 @@ import (
 
 	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 
-	coininfocli "github.com/NpoolPlatform/sphinx-coininfo/pkg/client"
-
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
-	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+
+	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
@@ -35,7 +36,6 @@ import (
 
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -47,7 +47,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	incoming, _ := decimal.NewFromString(acc.Incoming)   //nolint
 	outcoming, _ := decimal.NewFromString(acc.Outcoming) //nolint
 
-	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, acc.CoinTypeID)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func deposit(ctx context.Context) {
 	logger.Sugar().Infow("deposit", "Start", "...")
 
 	for {
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
@@ -161,14 +161,14 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
-	tx, err := billingcli.GetTransaction(ctx, acc.CollectingTID)
+	tx, err := txmwcli.GetTx(ctx, acc.CollectingTID)
 	if err != nil {
 		return err
 	}
 	if tx != nil {
 		switch tx.State {
-		case billingconst.CoinTransactionStateSuccessful:
-		case billingconst.CoinTransactionStateFail:
+		case txmgrpb.TxState_StateSuccessful:
+		case txmgrpb.TxState_StateFail:
 		default:
 			return nil
 		}
@@ -177,7 +177,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 	incoming, _ := decimal.NewFromString(acc.Incoming)   //nolint
 	outcoming, _ := decimal.NewFromString(acc.Outcoming) //nolint
 
-	coin, err := coininfocli.GetCoinInfo(ctx, acc.CoinTypeID)
+	coin, err := coinmwcli.GetCoin(ctx, acc.CoinTypeID)
 	if err != nil {
 		return err
 	}
@@ -185,13 +185,12 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return fmt.Errorf("invalid coin")
 	}
 
-	setting, err := billingcli.GetCoinSetting(ctx, acc.CoinTypeID)
-	if err != nil || setting == nil {
-		return nil
+	limit, err := decimal.NewFromString(coin.PaymentAccountCollectAmount)
+	if err != nil {
+		return err
 	}
 
-	limit := setting.PaymentAccountCoinAmount
-	if incoming.Sub(outcoming).Cmp(decimal.NewFromFloat(limit)) < 0 {
+	if incoming.Sub(outcoming).Cmp(limit) < 0 {
 		return nil
 	}
 
@@ -211,11 +210,49 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
+	reserved, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return err
+	}
+
 	if balance.Cmp(incoming.Sub(outcoming)) < 0 {
 		return fmt.Errorf("insufficient funds")
 	}
-	if incoming.Sub(outcoming).Cmp(decimal.NewFromFloat(coin.ReservedAmount)) <= 0 {
+	if incoming.Sub(outcoming).Cmp(reserved) <= 0 {
 		return nil
+	}
+
+	collect, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
+		CoinTypeID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: coin.ID,
+		},
+		UsedFor: &commonpb.Int32Val{
+			Op:    cruder.EQ,
+			Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector),
+		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
+	if err != nil {
+		return nil
+	}
+	if collect == nil {
+		return fmt.Errorf("invalid collect account")
 	}
 
 	if err := accountlock.Lock(acc.AccountID); err != nil {
@@ -225,19 +262,19 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		_ = accountlock.Unlock(acc.AccountID) //nolint
 	}()
 
-	amount := incoming.Sub(outcoming).Sub(decimal.NewFromFloat(coin.ReservedAmount))
+	amountS := incoming.Sub(outcoming).Sub(reserved).String()
+	feeAmountS := "0"
+	txType := txmgrpb.TxType_TxPaymentCollect
 
-	tx, err = billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
-		AppID:              acc.AppID,
-		UserID:             acc.UserID,
-		GoodID:             uuid.UUID{}.String(),
-		FromAddressID:      acc.AccountID,
-		ToAddressID:        setting.GoodIncomingAccountID,
-		CoinTypeID:         acc.CoinTypeID,
-		Amount:             amount.InexactFloat64(),
-		Message:            fmt.Sprintf("deposit collecting of %v at %v", acc.Address, time.Now()),
-		ChainTransactionID: uuid.New().String(),
-		CreatedFor:         billingconst.TransactionForCollecting,
+	// TODO: reliable record collecting TID
+
+	tx, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+		CoinTypeID:    &coin.ID,
+		FromAccountID: &acc.AccountID,
+		ToAccountID:   &collect.AccountID,
+		Amount:        &amountS,
+		FeeAmount:     &feeAmountS,
+		Type:          &txType,
 	})
 	if err != nil {
 		return err
@@ -266,8 +303,7 @@ func transfer(ctx context.Context) {
 	logger.Sugar().Infow("transfer", "Start", "...")
 
 	for {
-		// TODO: only get active / unlocked / unblocked accounts
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
@@ -297,7 +333,7 @@ func transfer(ctx context.Context) {
 }
 
 func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
-	tx, err := billingcli.GetTransaction(ctx, acc.CollectingTID)
+	tx, err := txmwcli.GetTx(ctx, acc.CollectingTID)
 	if err != nil {
 		return err
 	}
@@ -308,9 +344,9 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	outcoming := decimal.NewFromInt(0)
 
 	switch tx.State {
-	case billingconst.CoinTransactionStateSuccessful:
-		outcoming = outcoming.Add(decimal.NewFromFloat(tx.Amount))
-	case billingconst.CoinTransactionStateFail:
+	case txmgrpb.TxState_StateSuccessful:
+		outcoming = outcoming.Add(decimal.RequireFromString(tx.Amount))
+	case txmgrpb.TxState_StateFail:
 	default:
 		return nil
 	}
@@ -355,8 +391,7 @@ func finish(ctx context.Context) {
 	logger.Sugar().Infow("finish", "Start", "...")
 
 	for {
-		// TODO: only get active / unlocked / unblocked accounts
-		accs, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
+		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
 			Locked: &commonpb.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,

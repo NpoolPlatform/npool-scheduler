@@ -9,9 +9,11 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	billingcli "github.com/NpoolPlatform/cloud-hashing-billing/pkg/client"
-	billingconst "github.com/NpoolPlatform/cloud-hashing-billing/pkg/const"
-	billingpb "github.com/NpoolPlatform/message/npool/cloud-hashing-billing"
+	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
+	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
+
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 
@@ -33,8 +35,6 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 
 	"github.com/shopspring/decimal"
-
-	"github.com/google/uuid"
 )
 
 // TODO: support multiple coin type profit of one good
@@ -53,7 +53,6 @@ type gp struct {
 	benefitAccountID     string
 	benefitIntervalHours uint32
 	dailyProfit          decimal.Decimal
-	initialKept          decimal.Decimal
 
 	userOnlineAccountID      string
 	platformOfflineAccountID string
@@ -154,9 +153,16 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 	transferredToPlatform := g.transferredToPlatform.String()
 	transferredToUser := g.transferredToUser.String()
 
-	logger.Sugar().Infow("addDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
-		"userAmount", toUser, "platformAmount", toPlatform, "transferredToUser",
-		transferredToUser, "transferredToPlatform", transferredToPlatform, "initialKept", g.initialKept)
+	logger.Sugar().Infow(
+		"addDailyProfit",
+		"goodID", g.goodID,
+		"goodName", g.goodName,
+		"dailyProfit", g.dailyProfit,
+		"userAmount", toUser,
+		"platformAmount", toPlatform,
+		"transferredToUser", transferredToUser,
+		"transferredToPlatform", transferredToPlatform,
+	)
 
 	if toUserD.Cmp(decimal.NewFromInt(0)) > 0 {
 		_, err := profitdetailcli.CreateDetail(ctx, &profitdetailpb.DetailReq{
@@ -188,26 +194,38 @@ func (g *gp) addDailyProfit(ctx context.Context, timestamp time.Time) error {
 }
 
 func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
-	benefit, err := billingcli.GetGoodBenefit(ctx, g.goodID)
+	benefit, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
+		GoodID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: g.goodID,
+		},
+		Backup: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+		Locked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Blocked: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+	})
 	if err != nil {
 		return decimal.NewFromInt(0), err
 	}
 	if benefit == nil {
-		return decimal.NewFromInt(0), fmt.Errorf("invalid good benefit setting")
+		return decimal.NewFromInt(0), fmt.Errorf("invalid good benefit")
 	}
 
-	g.benefitAccountID = benefit.BenefitAccountID
-	g.benefitIntervalHours = benefit.BenefitIntervalHours
-
-	account, err := billingcli.GetAccount(ctx, g.benefitAccountID)
-	if err != nil {
-		return decimal.NewFromInt(0), err
-	}
-	if account == nil {
-		return decimal.NewFromInt(0), fmt.Errorf("invalid benefit account")
-	}
-
-	g.benefitAddress = account.Address
+	g.benefitAccountID = benefit.AccountID
+	g.benefitIntervalHours = benefit.IntervalHours
+	g.benefitAddress = benefit.Address
 
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    g.coinName,
@@ -223,7 +241,7 @@ func (g *gp) benefitBalance(ctx context.Context) (decimal.Decimal, error) {
 func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error {
 	exist, err := g.profitExist(ctx, timestamp)
 	if err != nil {
-		return err
+		return fmt.Errorf("profit exist error: %v", err)
 	}
 	if exist {
 		return fmt.Errorf("daily profit exist")
@@ -231,12 +249,12 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 
 	remain, err := g.profitBalance(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("profit balance error: %v", err)
 	}
 
 	balance, err := g.benefitBalance(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("benefit balance error: %v", err)
 	}
 
 	logger.Sugar().Infow("processDailyProfit", "goodID", g.goodID, "goodName", g.goodName, "benefitAddress",
@@ -246,11 +264,9 @@ func (g *gp) processDailyProfit(ctx context.Context, timestamp time.Time) error 
 		return nil
 	}
 
-	g.dailyProfit = balance.Sub(remain)
-
-	if remain.Cmp(g.coinReservedAmount) < 0 {
-		g.initialKept = g.coinReservedAmount
-	}
+	g.dailyProfit = balance.
+		Sub(remain).
+		Sub(g.coinReservedAmount)
 
 	return nil
 }
@@ -272,6 +288,10 @@ func (g *gp) stock(ctx context.Context) error {
 }
 
 func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
+	}
+
 	amount := g.dailyProfit.
 		Mul(decimal.NewFromInt(int64(order.Units))).
 		Div(decimal.NewFromInt(int64(g.totalUnits))).
@@ -294,6 +314,10 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order, timestamp t
 }
 
 func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
+	}
+
 	unsold, err := profitunsoldcli.GetUnsoldOnly(ctx, &profitunsoldpb.Conds{
 		GoodID: &commonpb.StringVal{
 			Op:    cruder.EQ,
@@ -328,8 +352,8 @@ func (g *gp) processUnsold(ctx context.Context, timestamp time.Time) error {
 }
 
 func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
-	if g.dailyProfit.Cmp(g.initialKept) <= 0 {
-		return nil
+	if g.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid profit amount")
 	}
 
 	if g.totalUnits <= 0 {
@@ -340,23 +364,33 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		Mul(decimal.NewFromInt(int64(g.serviceUnits))).
 		Div(decimal.NewFromInt(int64(g.totalUnits)))
 	platformAmount := g.dailyProfit.
-		Sub(g.initialKept).
 		Sub(userAmount)
 
-	logger.Sugar().Infow("transfer", "goodID", g.goodID, "goodName", g.goodName, "dailyProfit", g.dailyProfit,
-		"userAmount", userAmount, "platformAmount", platformAmount, "initialKept", g.initialKept)
+	logger.Sugar().Infow(
+		"transfer",
+		"goodID", g.goodID,
+		"goodName", g.goodName,
+		"dailyProfit", g.dailyProfit,
+		"userAmount", userAmount,
+		"platformAmount", platformAmount,
+	)
+
+	userAmountS := userAmount.String()
+	platformAmountS := platformAmount.String()
+	feeAmontS := "0"
+	txExtra := fmt.Sprintf(`{"GoodID":"%v","DailyProfit":"%v","UserUnits":%v,"TotalUnits":%v}`,
+		g.goodID, g.dailyProfit, g.serviceUnits, g.totalUnits)
+	txType := txmgrpb.TxType_TxBenefit
 
 	if userAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
-			AppID:         uuid.UUID{}.String(),
-			UserID:        uuid.UUID{}.String(),
-			GoodID:        g.goodID,
-			CoinTypeID:    g.coinTypeID,
-			FromAddressID: g.benefitAccountID,
-			ToAddressID:   g.userOnlineAccountID,
-			Amount:        userAmount.InexactFloat64(),
-			Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
-			CreatedFor:    billingconst.TransactionForUserBenefit,
+		_, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+			CoinTypeID:    &g.coinTypeID,
+			FromAccountID: &g.benefitAccountID,
+			ToAccountID:   &g.userOnlineAccountID,
+			Amount:        &userAmountS,
+			FeeAmount:     &feeAmontS,
+			Extra:         &txExtra,
+			Type:          &txType,
 		})
 		if err != nil {
 			return err
@@ -368,21 +402,20 @@ func (g *gp) transfer(ctx context.Context, timestamp time.Time) error {
 		return nil
 	}
 
-	_, err := billingcli.CreateTransaction(ctx, &billingpb.CoinAccountTransaction{
-		AppID:         uuid.UUID{}.String(),
-		UserID:        uuid.UUID{}.String(),
-		GoodID:        g.goodID,
-		CoinTypeID:    g.coinTypeID,
-		FromAddressID: g.benefitAccountID,
-		ToAddressID:   g.platformOfflineAccountID,
-		Amount:        platformAmount.InexactFloat64(),
-		Message:       fmt.Sprintf(`{"GoodID": "%v", "Amount": "%v", "BenefitDate": "%v"}`, g.goodID, userAmount, timestamp),
-		CreatedFor:    billingconst.TransactionForPlatformBenefit,
+	txExtra = fmt.Sprintf(`{"GoodID":"%v","Amount":"%v","BenefitDate":"%v"}`, g.goodID, platformAmount, timestamp)
+
+	_, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+		CoinTypeID:    &g.coinTypeID,
+		FromAccountID: &g.benefitAccountID,
+		ToAccountID:   &g.platformOfflineAccountID,
+		Amount:        &platformAmountS,
+		FeeAmount:     &feeAmontS,
+		Extra:         &txExtra,
+		Type:          &txType,
 	})
 	if err != nil {
 		return err
 	}
-
 	g.transferredToPlatform = platformAmount
 
 	return nil
