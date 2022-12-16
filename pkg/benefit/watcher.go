@@ -159,7 +159,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	if err != nil {
 		return fmt.Errorf("platform offline account error: %v", err)
 	}
-	if userOnline == nil {
+	if pltfOffline == nil {
 		return fmt.Errorf("invalid cold account")
 	}
 
