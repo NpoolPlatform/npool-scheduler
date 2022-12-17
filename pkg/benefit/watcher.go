@@ -40,12 +40,6 @@ func interval() time.Duration {
 	return benefitInterval
 }
 
-func todayStart() time.Time {
-	now := time.Now()
-	y, m, d := now.Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, now.Location())
-}
-
 func tomorrowStart() time.Time {
 	now := time.Now()
 	y, m, d := now.Date()
@@ -81,7 +75,7 @@ func validateGoodOrder(good *goodspb.Good, order *orderpb.Order, waiting bool) b
 	return true
 }
 
-func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) error { //nolint
+func processGood(ctx context.Context, good *goodspb.Good) error { //nolint
 	if good.StartAt > uint32(time.Now().Unix()) {
 		return nil
 	}
@@ -166,6 +160,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 	_gp := &gp{
 		goodID:                   good.ID,
 		goodName:                 good.Title,
+		benefitIntervalHours:     good.BenefitIntervalHours,
 		coinTypeID:               coin.ID,
 		coinName:                 coin.Name,
 		coinReservedAmount:       decimal.RequireFromString(coin.ReservedAmount),
@@ -173,11 +168,11 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		platformOfflineAccountID: pltfOffline.AccountID,
 	}
 
-	if err := _gp.processDailyProfit(ctx, timestamp); err != nil {
+	if err := _gp.processDailyProfit(ctx); err != nil {
 		return fmt.Errorf("process daily profit error: %v", err)
 	}
 
-	logger.Sugar().Infow("benefit", "timestamp", timestamp, "goodID", good.ID, "goodName", good.Title, "profit", _gp.dailyProfit)
+	logger.Sugar().Infow("benefit", "goodID", good.ID, "goodName", good.Title, "profit", _gp.dailyProfit)
 
 	if _gp.dailyProfit.Cmp(decimal.NewFromInt(0)) <= 0 {
 		logger.Sugar().Infow("benefit", "goodID", good.ID, "goodName", good.Title, "dailyProfit", _gp.dailyProfit)
@@ -246,7 +241,7 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 
 			_gp.serviceUnits++
 
-			if err := _gp.processOrder(ctx, order, timestamp); err != nil {
+			if err := _gp.processOrder(ctx, order); err != nil {
 				return fmt.Errorf("process order error: %v", err)
 			}
 		}
@@ -254,22 +249,22 @@ func processGood(ctx context.Context, good *goodspb.Good, timestamp time.Time) e
 		offset += limit
 	}
 
-	if err := _gp.transfer(ctx, timestamp); err != nil {
+	if err := _gp.transfer(ctx); err != nil {
 		return fmt.Errorf("transfer error: %v", err)
 	}
 
-	if err := _gp.addDailyProfit(ctx, timestamp); err != nil {
+	if err := _gp.addDailyProfit(ctx); err != nil {
 		return fmt.Errorf("add daily profit error: %v", err)
 	}
 
-	if err := _gp.processUnsold(ctx, timestamp); err != nil {
+	if err := _gp.processUnsold(ctx); err != nil {
 		return fmt.Errorf("process unsold error: %v", err)
 	}
 
 	return nil
 }
 
-func processGoods(ctx context.Context, timestamp time.Time) {
+func processGoods(ctx context.Context) {
 	offset := 0
 	limit := 1000
 	newGoods := []*goodspb.Good{}
@@ -287,7 +282,7 @@ func processGoods(ctx context.Context, timestamp time.Time) {
 	}
 
 	for _, good := range newGoods {
-		if err := processGood(ctx, good, timestamp); err != nil {
+		if err := processGood(ctx, good); err != nil {
 			logger.Sugar().Errorw("processGoods", "goodID", good.ID, "goodName", good.Title, "error", err)
 		}
 	}
@@ -301,9 +296,7 @@ func Watch(ctx context.Context) {
 
 	ticker := time.NewTicker(benefitInterval)
 	for {
-		timestamp := todayStart()
-		logger.Sugar().Infow("benefit", "timestamp", timestamp)
-		processGoods(ctx, timestamp)
+		processGoods(ctx)
 		<-ticker.C
 	}
 }

@@ -12,11 +12,10 @@ require (
 	github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20221102072657-7fcc5e6f1012
 	github.com/NpoolPlatform/good-middleware v0.0.0-20221216031911-f2715afb4b66
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20220809080712-e4586fdefec7
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20220805144824-993d6ac7ae8b
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20221217102113-f42fa42197e8
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20221217110153-99dfbb2b1e80
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20221216024225-e7572ae5c761
-	github.com/NpoolPlatform/mining-manager v0.0.0-20220729161903-01ac55d5dcb0
+	github.com/NpoolPlatform/message v0.0.0-20221217102510-12f81f39f22a
 	github.com/NpoolPlatform/order-middleware v0.0.0-20221215041035-9804ca4d3515
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216033352-21a0a47434fe
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0

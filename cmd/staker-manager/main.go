@@ -15,7 +15,6 @@ import (
 
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
-	miningconst "github.com/NpoolPlatform/mining-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
 
 	cli "github.com/urfave/cli/v2"
@@ -40,7 +39,6 @@ func main() {
 		commands,
 		redisconst.RedisServiceName,
 		ledgerconst.ServiceName,
-		miningconst.ServiceName,
 		archivementconst.ServiceName,
 		orderconst.ServiceName,
 		chainconst.ServiceName,
