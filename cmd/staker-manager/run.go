@@ -14,6 +14,7 @@ import (
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	currency "github.com/NpoolPlatform/staker-manager/pkg/currency"
+	fiatcurrency "github.com/NpoolPlatform/staker-manager/pkg/fiatcurrency"
 	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
 
 	apimgrcli "github.com/NpoolPlatform/api-manager/pkg/client"
@@ -48,6 +49,7 @@ var runCmd = &cli.Command{
 		go benefit.Watch(c.Context)
 		go currency.Watch(c.Context)
 		go gasfeeder.Watch(c.Context)
+		go fiatcurrency.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
