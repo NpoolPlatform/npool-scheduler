@@ -14,8 +14,6 @@ import (
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	currency "github.com/NpoolPlatform/staker-manager/pkg/currency"
-	fiatcurrency "github.com/NpoolPlatform/staker-manager/pkg/fiatcurrency"
-	migrate "github.com/NpoolPlatform/staker-manager/pkg/migrate"
 
 	apimgrcli "github.com/NpoolPlatform/api-manager/pkg/client"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -30,10 +28,6 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		if err := migrate.Migrate(c.Context); err != nil {
-			return err
-		}
-
 		go func() {
 			if err := grpc2.RunGRPC(rpcRegister); err != nil {
 				logger.Sugar().Errorf("fail to run grpc server: %v", err)
@@ -49,7 +43,6 @@ var runCmd = &cli.Command{
 		go benefit.Watch(c.Context)
 		go currency.Watch(c.Context)
 		go gasfeeder.Watch(c.Context)
-		go fiatcurrency.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
