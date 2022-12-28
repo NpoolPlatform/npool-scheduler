@@ -44,10 +44,9 @@ func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.P
 	if order.UserCanceled {
 		return paymentmgrpb.PaymentState_Canceled, ordermgrpb.OrderState_Canceled
 	}
-	// TODO: use payment string amount to avoid float accuracy problem
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
-	if amount.Add(startAmount).Cmp(decimal.NewFromFloat(balance.InexactFloat64()+10e-7)) <= 0 {
+	if amount.Add(startAmount).Cmp(balance) <= 0 {
 		return paymentmgrpb.PaymentState_Done, ordermgrpb.OrderState_Paid
 	}
 	if order.CreatedAt+TimeoutSeconds < uint32(time.Now().Unix()) {
@@ -57,16 +56,15 @@ func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.P
 }
 
 func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) (remain decimal.Decimal, finish string) {
-	// TODO: use payment string amount to avoid float accuracy problem
 	balanceStr := balance.String()
 
-	finishAmount, _ := decimal.NewFromString(order.PaymentFinishAmount)
+	finishAmount := balance
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	if order.UserCanceled {
 		return finishAmount.Sub(startAmount), balanceStr
 	}
-	if amount.Add(startAmount).Cmp(decimal.NewFromFloat(balance.InexactFloat64()+10e-7)) <= 0 {
+	if amount.Add(startAmount).Cmp(balance) <= 0 {
 		remain := finishAmount.Sub(startAmount).Sub(amount)
 		if remain.Cmp(decimal.NewFromInt(0)) <= 0 {
 			remain = decimal.NewFromInt(0)
@@ -114,6 +112,10 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 		if err != nil {
 			return err
 		}
+
+		order.PaymentState = newState
+		order.OrderState = newOrderState
+		order.PaymentFinishAmount = finishAmount
 	}
 
 	switch newState {
@@ -170,6 +172,13 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order) error {
 	finishAmount, _ := decimal.NewFromString(order.PaymentFinishAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
+	logger.Sugar().Infow(
+		"tryUpdatePaymentLedger",
+		"OrderID", order.ID,
+		"startAmount", startAmount,
+		"finishAmount", finishAmount,
+		"PaymentState", order.PaymentState,
+	)
 	if finishAmount.Cmp(startAmount) <= 0 {
 		return nil
 	}
@@ -182,7 +191,8 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order) error {
 		return nil
 	}
 
-	ioExtra := fmt.Sprintf(`{"PaymentID": "%v", "OrderID": "%v"}`, order.ID, order.ID)
+	ioExtra := fmt.Sprintf(`{"PaymentID": "%v","OrderID": "%v","PaymentState":"%v","GoodID":"%v"}`,
+		order.ID, order.ID, order.PaymentState, order.GoodID)
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Payment
 
