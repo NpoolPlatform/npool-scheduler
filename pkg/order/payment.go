@@ -91,7 +91,8 @@ func tryFinishPayment(
 	newState paymentmgrpb.PaymentState,
 	newOrderState ordermgrpb.OrderState,
 	fakePayment bool,
-	finishAmount decimal.Decimal) error {
+	finishAmount decimal.Decimal,
+) error {
 	if newState != order.PaymentState {
 		finishAmountS := finishAmount.String()
 
