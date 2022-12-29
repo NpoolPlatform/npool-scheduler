@@ -55,26 +55,19 @@ func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.P
 	return order.PaymentState, order.OrderState
 }
 
-func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) (remain decimal.Decimal, finish string) {
-	balanceStr := balance.String()
-
-	finishAmount := balance
+func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.Decimal {
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	if order.UserCanceled {
-		return finishAmount.Sub(startAmount), balanceStr
+		return balance.Sub(startAmount)
 	}
 	if amount.Add(startAmount).Cmp(balance) <= 0 {
-		remain := finishAmount.Sub(startAmount).Sub(amount)
-		if remain.Cmp(decimal.NewFromInt(0)) <= 0 {
-			remain = decimal.NewFromInt(0)
-		}
-		return remain, balanceStr
+		return balance.Sub(startAmount).Sub(amount)
 	}
 	if order.CreatedAt+TimeoutSeconds < uint32(time.Now().Unix()) {
-		return finishAmount.Sub(startAmount), balanceStr
+		return balance.Sub(startAmount)
 	}
-	return decimal.NewFromInt(0), balanceStr
+	return decimal.NewFromInt(0)
 }
 
 func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inservice int32) {
@@ -92,8 +85,16 @@ func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inse
 	return 0, 0
 }
 
-func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymentmgrpb.PaymentState, newOrderState ordermgrpb.OrderState, fakePayment bool, finishAmount string) error {
+func tryFinishPayment(
+	ctx context.Context,
+	order *orderpb.Order,
+	newState paymentmgrpb.PaymentState,
+	newOrderState ordermgrpb.OrderState,
+	fakePayment bool,
+	finishAmount decimal.Decimal) error {
 	if newState != order.PaymentState {
+		finishAmountS := finishAmount.String()
+
 		logger.Sugar().Infow(
 			"tryFinishPayment",
 			"payment", order.ID,
@@ -107,7 +108,7 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 			FakePayment:         &fakePayment,
 			State:               &newOrderState,
 			PaymentID:           &order.PaymentID,
-			PaymentFinishAmount: &finishAmount,
+			PaymentFinishAmount: &finishAmountS,
 		})
 		if err != nil {
 			return err
@@ -115,7 +116,7 @@ func tryFinishPayment(ctx context.Context, order *orderpb.Order, newState paymen
 
 		order.PaymentState = newState
 		order.OrderState = newOrderState
-		order.PaymentFinishAmount = finishAmount
+		order.PaymentFinishAmount = finishAmountS
 	}
 
 	switch newState {
@@ -334,7 +335,8 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	state, newOrderState := processState(order, bal)
-	remain, finishAmount := processFinishAmount(order, bal)
+	remain := processFinishAmount(order, bal)
+	finishAmount := bal
 	unlocked, inservice := processStock(order, bal)
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
@@ -424,7 +426,9 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		"dueAmount", dueAmount, "state", order.PaymentState,
 		"newState", state, "newOrderState", orderState, "unlocked", unlocked, "inservice", inservice)
 
-	if err := tryFinishPayment(ctx, order, state, orderState, true, order.PaymentStartAmount); err != nil {
+	finishAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
+
+	if err := tryFinishPayment(ctx, order, state, orderState, true, finishAmount); err != nil {
 		return err
 	}
 
