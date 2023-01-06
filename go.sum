@@ -75,8 +75,6 @@ github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46/
 github.com/NpoolPlatform/chain-manager v0.0.0-20221219101823-a067ff5a52d4 h1:EI1aqA2vCOoy62HkG4Nqy+w0jqd5bCj4Xxc7PThGejA=
 github.com/NpoolPlatform/chain-middleware v0.0.0-20221219135441-4f4d2c60fcc4 h1:54TGr7yKO/xMa2X9R2ldiM2u5MHl4mQYNBuOJX9J7PE=
 github.com/NpoolPlatform/chain-middleware v0.0.0-20221219135441-4f4d2c60fcc4/go.mod h1:mZwfCDu1GMJO4wun9svs7GcSJhWvmGM3lho2HtMg4aQ=
-github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b h1:guANkUH5JA/Yf4WXmW8JacCncM0YqMvUzdwZ8EJ7ZD4=
-github.com/NpoolPlatform/cloud-hashing-inspire v0.0.0-20220731100543-621262acb09b/go.mod h1:4519S5ig7MPIZC+UBoSjgxeeyBn60eBlkRDJYXZIKxo=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20220818105452-9457611ae070/go.mod h1:QPI3Fu/AU5iUOUnf9EictZP1lqPQdPcVLqveIB2HovI=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd h1:2np830i/Exb0mhFVC7i6BN5dW1Hfr4WRNNsKkYFJY3g=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd/go.mod h1:/sor3E0i0XR8BaKInJwWC85aXLmbMFRNLdIuw+ed+ig=
