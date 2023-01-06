@@ -9,12 +9,16 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
+	accountingmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/accounting"
+	accountingmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/accounting"
+
 	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
 
-	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
+	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
@@ -29,11 +33,9 @@ import (
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
+	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
 	ledgermwpkg "github.com/NpoolPlatform/ledger-middleware/pkg/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
-
-	archivement "github.com/NpoolPlatform/staker-manager/pkg/archivement"
-	commission "github.com/NpoolPlatform/staker-manager/pkg/commission"
 
 	"github.com/shopspring/decimal"
 )
@@ -285,12 +287,32 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, paymentState payme
 
 // nolint
 func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
+	good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.AppID,
+		},
+		GoodID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.GoodID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if good == nil {
+		return fmt.Errorf("invalid good")
+	}
+
 	coin, err := coinmwcli.GetCoin(ctx, order.PaymentCoinTypeID)
 	if err != nil {
 		return err
 	}
 	if coin == nil {
 		return fmt.Errorf("invalid coin")
+	}
+	if !coin.ForPay {
+		return fmt.Errorf("invalid payment coin")
 	}
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
@@ -353,9 +375,21 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	)
 
 	if state == paymentmgrpb.PaymentState_Done {
-		good, err := goodscli.GetGood(ctx, order.GoodID)
+		good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
+			AppID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: order.AppID,
+			},
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: order.GoodID,
+			},
+		})
 		if err != nil {
 			return err
+		}
+		if good == nil {
+			return fmt.Errorf("invalid good")
 		}
 
 		_, err = ledgermwpkg.TryCreateProfit(ctx, order.AppID, order.UserID, good.CoinTypeID)
@@ -385,10 +419,75 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	// TODO: move to TX end
 
 	if state == paymentmgrpb.PaymentState_Done {
-		if err := commission.CalculateCommission(ctx, order.ID, false); err != nil {
+		good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
+			AppID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: order.AppID,
+			},
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: order.GoodID,
+			},
+		})
+		if err != nil {
 			return err
 		}
-		if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
+		if good == nil {
+			return fmt.Errorf("invalid good")
+		}
+
+		paymentAmount := decimal.RequireFromString(order.PaymentAmount)
+		paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
+		paymentAmountS := paymentAmount.String()
+
+		goodValue := decimal.RequireFromString(good.Price).
+			Mul(decimal.NewFromInt(int64(order.Units))).
+			String()
+
+		comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+			AppID:                  order.AppID,
+			UserID:                 order.UserID,
+			GoodID:                 order.GoodID,
+			OrderID:                order.ID,
+			PaymentID:              order.PaymentID,
+			CoinTypeID:             good.CoinTypeID,
+			PaymentCoinTypeID:      order.PaymentCoinTypeID,
+			PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
+			Units:                  order.Units,
+			PaymentAmount:          paymentAmountS,
+			GoodValue:              goodValue,
+			SettleType:             good.CommissionSettleType,
+		})
+		if err != nil {
+			return err
+		}
+
+		details := []*ledgerdetailpb.DetailReq{}
+		ioType := ledgerdetailpb.IOType_Incoming
+		ioSubType := ledgerdetailpb.IOSubType_Commission
+
+		for _, comm := range comms {
+			ioExtra := fmt.Sprintf(
+				`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
+				order.PaymentID,
+				order.ID,
+				comm.GetDirectContributorUserID(),
+				order.UserID,
+			)
+
+			details = append(details, &ledgerdetailpb.DetailReq{
+				AppID:      &order.AppID,
+				UserID:     &comm.UserID,
+				CoinTypeID: &good.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  &ioSubType,
+				Amount:     &comm.Amount,
+				IOExtra:    &ioExtra,
+			})
+		}
+
+		err = ledgerv2mwcli.BookKeeping(ctx, details)
+		if err != nil {
 			return err
 		}
 	}
@@ -433,7 +532,46 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	if err := archivement.CalculateArchivement(ctx, order.ID); err != nil {
+	good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.AppID,
+		},
+		GoodID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: order.GoodID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if good == nil {
+		return fmt.Errorf("invalid good")
+	}
+
+	paymentAmount := decimal.RequireFromString(order.PaymentAmount)
+	paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
+	paymentAmountS := paymentAmount.String()
+
+	goodValue := decimal.RequireFromString(good.Price).
+		Mul(decimal.NewFromInt(int64(order.Units))).
+		String()
+
+	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+		AppID:                  order.AppID,
+		UserID:                 order.UserID,
+		GoodID:                 order.GoodID,
+		OrderID:                order.ID,
+		PaymentID:              order.PaymentID,
+		CoinTypeID:             good.CoinTypeID,
+		PaymentCoinTypeID:      order.PaymentCoinTypeID,
+		PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
+		Units:                  order.Units,
+		PaymentAmount:          paymentAmountS,
+		GoodValue:              goodValue,
+		SettleType:             good.CommissionSettleType,
+	})
+	if err != nil {
 		return err
 	}
 
