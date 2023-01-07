@@ -3,11 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
@@ -18,17 +16,7 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 )
 
-const secondsPerDay = uint32(24 * 60 * 60)
-
-func orderExpired(ctx context.Context, order *orderpb.Order) (bool, error) {
-	good, err := goodmwcli.GetGood(ctx, order.GoodID)
-	if err != nil {
-		return false, err
-	}
-	if good == nil {
-		return false, nil
-	}
-
+func validateOrder(ctx context.Context, order *orderpb.Order) (bool, error) {
 	switch order.PaymentState {
 	case paymentmgrpb.PaymentState_Wait:
 		fallthrough // nolint
@@ -41,28 +29,19 @@ func orderExpired(ctx context.Context, order *orderpb.Order) (bool, error) {
 		return false, fmt.Errorf("invalid payment state")
 	}
 
-	if order.Start+uint32(good.DurationDays)*secondsPerDay >= uint32(time.Now().Unix()) {
-		return false, nil
-	}
-
 	return true, nil
 }
 
-func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
-	// TODO: will be remove when formal refactor order
-	expired, err := orderExpired(ctx, order)
+func processOrderStart(ctx context.Context, order *orderpb.Order) error {
+	valid, err := validateOrder(ctx, order)
 	if err != nil {
 		return err
 	}
-	if !expired {
+	if !valid {
 		return nil
 	}
 
-	if order.OrderState == ordermgrpb.OrderState_Expired {
-		return nil
-	}
-
-	ostate := ordermgrpb.OrderState_Expired
+	ostate := ordermgrpb.OrderState_InService
 	_, err = ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
 		ID:    &order.ID,
 		State: &ostate,
@@ -72,7 +51,7 @@ func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	err = updateStock(ctx, order.GoodID, 0, int32(order.Units)*-1, 0)
+	err = updateStock(ctx, order.GoodID, 0, int32(order.Units), int32(order.Units)*-1)
 	if err != nil {
 		return err
 	}
@@ -80,7 +59,7 @@ func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
 	return nil
 }
 
-func checkOrderExpiries(ctx context.Context) {
+func checkOrderStart(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(1000)
 
@@ -88,7 +67,7 @@ func checkOrderExpiries(ctx context.Context) {
 		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
 			State: &commonpb.Uint32Val{
 				Op:    cruder.EQ,
-				Value: uint32(ordermgrpb.OrderState_InService),
+				Value: uint32(ordermgrpb.OrderState_Paid),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -100,7 +79,7 @@ func checkOrderExpiries(ctx context.Context) {
 		}
 
 		for index, order := range orders {
-			if err := processOrderExpiry(ctx, order); err != nil {
+			if err := processOrderStart(ctx, order); err != nil {
 				logger.Sugar().Errorw("processOrders", "offset", offset, "index", index, "error", err)
 				return
 			}
