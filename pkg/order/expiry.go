@@ -72,7 +72,7 @@ func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	err = updateStock(ctx, order.GoodID, 0, int32(order.Units)*-1)
+	err = updateStock(ctx, order.GoodID, 0, int32(order.Units)*-1, 0)
 	if err != nil {
 		return err
 	}

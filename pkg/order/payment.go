@@ -72,7 +72,7 @@ func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.
 	return decimal.NewFromInt(0)
 }
 
-func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, inservice int32) {
+func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, waitstart int32) {
 	if order.UserCanceled {
 		return int32(order.Units), 0
 	}
@@ -360,7 +360,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	state, newOrderState := processState(order, bal)
 	remain := processFinishAmount(order, bal)
 	finishAmount := bal
-	unlocked, inservice := processStock(order, bal)
+	unlocked, waitstart := processStock(order, bal)
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
@@ -370,7 +370,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		"finishAmount", order.PaymentFinishAmount, "amount", order.PaymentAmount,
 		"dueAmount", dueAmount, "paymentState", order.PaymentState,
 		"newState", state, "newOrderState", newOrderState, "remain", remain, "unlocked", unlocked,
-		"inservice", inservice, "balance", bal,
+		"waitstart", waitstart, "balance", bal,
 		"coin", coin.Name, "address", account.Address, "balance", balance,
 	)
 
@@ -498,7 +498,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	case paymentmgrpb.PaymentState_Canceled:
 		fallthrough //nolint
 	case paymentmgrpb.PaymentState_TimeOut:
-		return updateStock(ctx, order.GoodID, unlocked, inservice)
+		return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
 	}
 
 	return nil
@@ -515,7 +515,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 
 	state := paymentmgrpb.PaymentState_Done
 	orderState := ordermgrpb.OrderState_Paid
-	unlocked, inservice := int32(order.Units), int32(order.Units)
+	unlocked, waitstart := int32(order.Units), int32(order.Units)
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
@@ -524,7 +524,8 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		order.ID, "coin", coin.Name, "startAmount", order.PaymentStartAmount,
 		"finishAmount", order.PaymentFinishAmount, "amount", order.PaymentAmount,
 		"dueAmount", dueAmount, "state", order.PaymentState,
-		"newState", state, "newOrderState", orderState, "unlocked", unlocked, "inservice", inservice)
+		"newState", state, "newOrderState", orderState,
+		"unlocked", unlocked, "waitstart", waitstart)
 
 	finishAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 
@@ -575,7 +576,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	return updateStock(ctx, order.GoodID, unlocked, inservice)
+	return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
 }
 
 func processOrderPayment(ctx context.Context, order *orderpb.Order) error {

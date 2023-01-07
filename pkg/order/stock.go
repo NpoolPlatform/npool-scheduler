@@ -8,7 +8,7 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 )
 
-func updateStock(ctx context.Context, goodID string, unlocked, inservice int32) error {
+func updateStock(ctx context.Context, goodID string, unlocked, inservice, waitstart int32) error {
 	goodInfo, err := goodscli.GetGood(ctx, goodID)
 	if err != nil {
 		return err
@@ -23,6 +23,7 @@ func updateStock(ctx context.Context, goodID string, unlocked, inservice int32) 
 		ID:        &goodID,
 		Locked:    &unlocked,
 		InService: &inservice,
+		WaitStart: &waitstart,
 	})
 	if err != nil {
 		return err
