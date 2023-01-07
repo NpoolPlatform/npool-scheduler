@@ -208,6 +208,9 @@ func (g *gp) processOrder(ctx context.Context, order *orderpb.Order) error {
 	ioExtra := fmt.Sprintf(`{"GoodID": "%v", "OrderID": "%v"}`,
 		g.goodID, order.ID)
 
+	// TODO: deduct technique service fee
+	// TODO: calculate technique service fee commission
+
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_MiningBenefit
 
