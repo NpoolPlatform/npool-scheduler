@@ -82,9 +82,26 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 }
 
 func (st *State) CalculateReward(ctx context.Context, good *Good) error {
-	_, err := st.balance(ctx, good)
+	bal, err := st.balance(ctx, good)
 	if err != nil {
 		return err
 	}
+
+	if bal.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
+
+	coin, err := st.coin(ctx, good.CoinTypeID)
+	if err != nil {
+		return err
+	}
+
+	reservedAmount, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return err
+	}
+
+	good.TodayRewardAmount = bal.Sub(reservedAmount)
+
 	return nil
 }
