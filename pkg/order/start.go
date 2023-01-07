@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -16,7 +17,7 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 )
 
-func validateOrder(ctx context.Context, order *orderpb.Order) (bool, error) {
+func orderStart(ctx context.Context, order *orderpb.Order) (bool, error) {
 	switch order.PaymentState {
 	case paymentmgrpb.PaymentState_Wait:
 		fallthrough // nolint
@@ -29,15 +30,19 @@ func validateOrder(ctx context.Context, order *orderpb.Order) (bool, error) {
 		return false, fmt.Errorf("invalid payment state")
 	}
 
+	if uint32(time.Now().Unix()) < order.Start {
+		return false, nil
+	}
+
 	return true, nil
 }
 
 func processOrderStart(ctx context.Context, order *orderpb.Order) error {
-	valid, err := validateOrder(ctx, order)
+	start, err := orderStart(ctx, order)
 	if err != nil {
 		return err
 	}
-	if !valid {
+	if !start {
 		return nil
 	}
 
