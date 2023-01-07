@@ -10,8 +10,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
-	goodscli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
-	goodspb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
@@ -57,7 +58,7 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func validateGoodOrder(good *goodspb.Good, order *orderpb.Order, waiting bool) bool {
+func validateGoodOrder(good *goodmwpb.Good, order *orderpb.Order, waiting bool) bool {
 	if order.PaymentState != paymentmgrpb.PaymentState_Done {
 		return false
 	}
@@ -75,7 +76,7 @@ func validateGoodOrder(good *goodspb.Good, order *orderpb.Order, waiting bool) b
 	return true
 }
 
-func processGood(ctx context.Context, good *goodspb.Good) error { //nolint
+func processGood(ctx context.Context, good *goodmwpb.Good) error { //nolint
 	if good.StartAt > uint32(time.Now().Unix()) {
 		return nil
 	}
@@ -264,28 +265,52 @@ func processGood(ctx context.Context, good *goodspb.Good) error { //nolint
 	return nil
 }
 
-func processGoods(ctx context.Context) {
-	offset := 0
-	limit := 1000
-	newGoods := []*goodspb.Good{}
+func processWaitGoods(ctx context.Context) {
+	offset := int32(0)
+	limit := int32(100)
+	state := &State{}
+
 	for {
-		goods, _, err := goodscli.GetGoods(ctx, nil, int32(offset), int32(limit))
+		goods, _, err := goodmwcli.GetGoods(ctx, &goodmgrpb.Conds{
+			BenefitState: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(goodmgrpb.BenefitState_BenefitWait),
+			},
+		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("processGoods", "error", err)
+			logger.Sugar().Errorw("processGoods", "Offset", offset, "Limit", limit, "Error", err)
 			return
 		}
 		if len(goods) == 0 {
-			break
+			return
 		}
-		newGoods = append(newGoods, goods...)
+
+		for _, good := range goods {
+			g := &Good{
+				good,
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+			}
+
+			if err := state.CalculateReward(ctx, g); err != nil {
+				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+				continue
+			}
+			if err := state.TransferReward(ctx, g); err != nil {
+				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+			}
+		}
+
 		offset += limit
 	}
+}
 
-	for _, good := range newGoods {
-		if err := processGood(ctx, good); err != nil {
-			logger.Sugar().Errorw("processGoods", "goodID", good.ID, "goodName", good.Title, "error", err)
-		}
-	}
+func processTransferringGoods(ctx context.Context) {
+}
+
+func processBookKeepingGoods(ctx context.Context) {
 }
 
 func Watch(ctx context.Context) {
@@ -296,12 +321,9 @@ func Watch(ctx context.Context) {
 
 	ticker := time.NewTicker(benefitInterval)
 	for {
-		processGoods(ctx)
-
-		// TODO: transfer set wait to transferring
-		// TODO: check tids, set transferring to bookkeeping
-		// TODO: process bookkeeping
-
+		processWaitGoods(ctx)
+		processTransferringGoods(ctx)
+		processBookKeepingGoods(ctx)
 		<-ticker.C
 	}
 }
