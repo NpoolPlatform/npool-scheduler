@@ -297,6 +297,11 @@ func Watch(ctx context.Context) {
 	ticker := time.NewTicker(benefitInterval)
 	for {
 		processGoods(ctx)
+
+		// TODO: transfer set wait to transferring
+		// TODO: check tids, set transferring to bookkeeping
+		// TODO: process bookkeeping
+
 		<-ticker.C
 	}
 }
