@@ -298,6 +298,10 @@ func processWaitGoods(ctx context.Context) {
 				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
 				continue
 			}
+			if err := state.CalculateTechniqueServiceFee(ctx, g); err != nil {
+				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+				continue
+			}
 			if err := state.TransferReward(ctx, g); err != nil {
 				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
 			}

@@ -13,6 +13,14 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
+	appgoodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
+	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/appgood"
+
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 
@@ -102,6 +110,94 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	}
 
 	good.TodayRewardAmount = bal.Sub(reservedAmount)
+	good.UserRewardAmount = good.TodayRewardAmount.
+		Mul(decimal.NewFromInt(int64(good.GoodInService))).
+		Div(decimal.NewFromInt(int64(good.GoodTotal)))
+	good.PlatformRewardAmount = good.TodayRewardAmount.
+		Sub(good.UserRewardAmount)
+
+	return nil
+}
+
+func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) error {
+	appUnits := map[string]uint32{}
+	offset := int32(0)
+	limit := int32(100)
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: good.ID,
+			},
+			State: &commonpb.Uint32Val{
+				Op:    cruder.EQ,
+				Value: uint32(ordermgrpb.OrderState_InService),
+			},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(orders) == 0 {
+			break
+		}
+
+		for _, ord := range orders {
+			appUnits[ord.AppID] += ord.Units
+		}
+
+		offset += limit
+	}
+
+	appIDs := []string{}
+	totalInService := uint32(0)
+
+	for appID, units := range appUnits {
+		appIDs = append(appIDs, appID)
+		totalInService += units
+	}
+
+	if good.GoodInService != totalInService {
+		return fmt.Errorf("inconsistent in service")
+	}
+
+	goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmgrpb.Conds{
+		AppIDs: &commonpb.StringSliceVal{
+			Op:    cruder.IN,
+			Value: appIDs,
+		},
+		GoodID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: good.ID,
+		},
+	}, int32(0), int32(len(appIDs)))
+	if err != nil {
+		return err
+	}
+
+	goodMap := map[string]*appgoodmwpb.Good{}
+	for _, g := range goods {
+		goodMap[g.AppID] = g
+	}
+
+	techniqueServiceFee := decimal.NewFromInt(0)
+
+	for appID, units := range appUnits {
+		ag, ok := goodMap[appID]
+		if !ok {
+			return fmt.Errorf("unauthorized appgood")
+		}
+
+		_fee := good.UserRewardAmount.
+			Mul(decimal.NewFromInt(int64(units))).
+			Div(decimal.NewFromInt(int64(totalInService))).
+			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
+			Div(decimal.NewFromInt(100))
+
+		techniqueServiceFee = techniqueServiceFee.Add(_fee)
+	}
+
+	good.UserRewardAmount.Sub(techniqueServiceFee)
 
 	return nil
 }
