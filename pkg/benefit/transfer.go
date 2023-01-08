@@ -74,7 +74,7 @@ func (st *State) platformAccount(
 		return nil, fmt.Errorf("invalid account")
 	}
 
-	accs, ok = st.PlatformAccounts[coinTypeID]
+	_, ok = st.PlatformAccounts[coinTypeID]
 	if !ok {
 		st.PlatformAccounts[coinTypeID] = map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account{}
 	}

@@ -17,7 +17,7 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 )
 
-func orderStart(ctx context.Context, order *orderpb.Order) (bool, error) {
+func orderStart(order *orderpb.Order) (bool, error) {
 	switch order.PaymentState {
 	case paymentmgrpb.PaymentState_Wait:
 		fallthrough // nolint
@@ -38,7 +38,7 @@ func orderStart(ctx context.Context, order *orderpb.Order) (bool, error) {
 }
 
 func processOrderStart(ctx context.Context, order *orderpb.Order) error {
-	start, err := orderStart(ctx, order)
+	start, err := orderStart(order)
 	if err != nil {
 		return err
 	}

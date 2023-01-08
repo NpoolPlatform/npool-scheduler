@@ -14,13 +14,19 @@ import (
 	appgoodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/appgood"
 
+	miningbookkeepingmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/mining/bookkeeping"
+	miningbookkeepingmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/mining/bookkeeping"
+
+	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
+	ledgerdetailmgrpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
+
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 
 	"github.com/shopspring/decimal"
 )
 
-func (st *State) BookKeeping(ctx context.Context, good *Good) error {
+func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	if len(good.BenefitTIDs) == 0 {
 		return fmt.Errorf("invalid benefit txs")
 	}
@@ -117,6 +123,9 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error {
 	}
 
 	appUnitRewards := map[string]decimal.Decimal{}
+	totalUserReward := decimal.NewFromInt(0)
+	totalFeeAmount := decimal.NewFromInt(0)
+
 	for appID, units := range appUnits {
 		ag, ok := goodMap[appID]
 		if !ok {
@@ -132,11 +141,64 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error {
 			Div(decimal.NewFromInt(100))
 
 		userReward := reward.Sub(fee)
+		totalUserReward = totalUserReward.Add(userReward)
+		totalFeeAmount = totalFeeAmount.Add(fee)
+
 		appUnitRewards[appID] = userReward.Div(decimal.NewFromInt(int64(units)))
 	}
 
-	// TODO: bookkeeping good profit
-	// TODO: bookkeeping user profit
+	totalUnsoldReward := totalReward.Sub(totalFeeAmount).Sub(totalUserReward)
+
+	err = miningbookkeepingmwcli.BookKeeping(
+		ctx,
+		&miningbookkeepingmwpb.BookKeepingRequest{
+			GoodID:                    good.ID,
+			CoinTypeID:                good.CoinTypeID,
+			TotalAmount:               totalReward.String(),
+			UnsoldAmount:              totalUnsoldReward.String(),
+			TechniqueServiceFeeAmount: totalFeeAmount.String(),
+			BenefitDate:               good.LastBenefitAt,
+		})
+	if err != nil {
+		return err
+	}
+
+	details := []*ledgerdetailmgrpb.DetailReq{}
+
+	ioType := ledgerdetailmgrpb.IOType_Incoming
+	ioSubType := ledgerdetailmgrpb.IOSubType_MiningBenefit
+
+	for _, ord := range ords {
+		unitReward, ok := appUnitRewards[ord.AppID]
+		if !ok {
+			continue
+		}
+		if unitReward.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
+
+		ioExtra := fmt.Sprintf(`{"GoodID": "%v", "OrderID": "%v"}`,
+			good.ID, ord.ID)
+		amountS := unitReward.
+			Mul(decimal.NewFromInt(int64(ord.Units))).
+			String()
+
+		details = append(details, &ledgerdetailmgrpb.DetailReq{
+			AppID:      &ord.AppID,
+			UserID:     &ord.UserID,
+			CoinTypeID: &good.CoinTypeID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &amountS,
+			IOExtra:    &ioExtra,
+		})
+	}
+	if len(details) > 0 {
+		err = ledgerv2mwcli.BookKeeping(ctx, details)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

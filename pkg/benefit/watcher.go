@@ -42,7 +42,7 @@ func delay() {
 	<-time.After(time.Until(start))
 }
 
-func processWaitGoods(ctx context.Context) {
+func processWaitGoods(ctx context.Context) { //nolint
 	offset := int32(0)
 	limit := int32(100)
 	state := newState()
