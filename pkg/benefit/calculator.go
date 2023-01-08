@@ -3,6 +3,7 @@ package benefit
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -11,6 +12,9 @@ import (
 
 	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
 	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
+
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
@@ -45,8 +49,13 @@ func (st *State) coin(ctx context.Context, coinTypeID string) (*coinmwpb.Coin, e
 	return coin, nil
 }
 
-func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, error) {
-	benefit, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
+func (st *State) goodBenefit(ctx context.Context, good *Good) (*gbmwpb.Account, error) {
+	acc, ok := st.GoodBenefits[good.ID]
+	if ok {
+		return acc, nil
+	}
+
+	acc, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
 		GoodID: &commonpb.StringVal{
 			Op:    cruder.EQ,
 			Value: good.ID,
@@ -69,10 +78,21 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 		},
 	})
 	if err != nil {
-		return decimal.NewFromInt(0), err
+		return nil, err
 	}
-	if benefit == nil {
-		return decimal.NewFromInt(0), fmt.Errorf("invalid good benefit")
+	if acc == nil {
+		return nil, fmt.Errorf("invalid good benefit")
+	}
+
+	st.GoodBenefits[good.ID] = acc
+
+	return acc, nil
+}
+
+func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, error) {
+	benefit, err := st.goodBenefit(ctx, good)
+	if err != nil {
+		return decimal.NewFromInt(0), err
 	}
 
 	coin, err := st.coin(ctx, good.CoinTypeID)
@@ -92,6 +112,10 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 }
 
 func (st *State) CalculateReward(ctx context.Context, good *Good) error {
+	if good.GetGoodTotal() == 0 {
+		return fmt.Errorf("invalid stock")
+	}
+
 	bal, err := st.balance(ctx, good)
 	if err != nil {
 		return err
@@ -121,6 +145,22 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	return nil
 }
 
+func validateOrder(good *goodmwpb.Good, order *ordermwpb.Order) bool {
+	if order.PaymentState != paymentmgrpb.PaymentState_Done {
+		return false
+	}
+
+	orderEnd := order.CreatedAt + uint32(good.DurationDays*secondsPerDay)
+	if orderEnd < uint32(time.Now().Unix()) {
+		return false
+	}
+	if order.Start > uint32(time.Now().Unix()) {
+		return false
+	}
+
+	return true
+}
+
 func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) error {
 	appUnits := map[string]uint32{}
 	offset := int32(0)
@@ -145,6 +185,9 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		}
 
 		for _, ord := range orders {
+			if !validateOrder(good.Good, ord) {
+				continue
+			}
 			appUnits[ord.AppID] += ord.Units
 		}
 
