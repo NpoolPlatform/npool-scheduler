@@ -184,3 +184,51 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 
 	return nil
 }
+
+func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
+	if len(good.BenefitTIDs) == 0 {
+		return fmt.Errorf("invalid benefit txs")
+	}
+
+	txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
+		IDs: &commonpb.StringSliceVal{
+			Op:    cruder.IN,
+			Value: good.BenefitTIDs,
+		},
+	}, int32(0), int32(len(good.BenefitTIDs)))
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range txs {
+		switch tx.Type {
+		case txmgrpb.TxType_TxPlatformBenefit:
+		case txmgrpb.TxType_TxUserBenefit:
+		default:
+			return fmt.Errorf("invalid tx type")
+		}
+
+		switch tx.State {
+		case txmgrpb.TxState_StateCreated:
+			fallthrough //nolint
+		case txmgrpb.TxState_StateWait:
+			fallthrough //nolint
+		case txmgrpb.TxState_StateTransferring:
+			return nil
+		case txmgrpb.TxState_StateSuccessful:
+		case txmgrpb.TxState_StateFail:
+		}
+	}
+
+	state := goodmgrpb.BenefitState_BenefitBookKeeping
+	req := &goodmwpb.GoodReq{
+		ID:           &good.ID,
+		BenefitState: &state,
+	}
+	_, err = goodmwcli.UpdateGood(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

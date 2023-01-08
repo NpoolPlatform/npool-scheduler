@@ -60,7 +60,7 @@ func processWaitGoods(ctx context.Context) {
 			},
 		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("processGoods", "Offset", offset, "Limit", limit, "Error", err)
+			logger.Sugar().Errorw("processWaitGoods", "Offset", offset, "Limit", limit, "Error", err)
 			return
 		}
 		if len(goods) == 0 {
@@ -81,15 +81,15 @@ func processWaitGoods(ctx context.Context) {
 			}
 
 			if err := state.CalculateReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
 				continue
 			}
 			if err := state.CalculateTechniqueServiceFee(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
 				continue
 			}
 
-			logger.Sugar().Infow("processGoods",
+			logger.Sugar().Infow("processWaitGoods",
 				"GoodID", g.ID,
 				"GoodName", g.Title,
 				"TodayRewardAmount", g.TodayRewardAmount,
@@ -99,7 +99,7 @@ func processWaitGoods(ctx context.Context) {
 			)
 
 			if err := state.TransferReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
 			}
 		}
 
@@ -108,6 +108,41 @@ func processWaitGoods(ctx context.Context) {
 }
 
 func processTransferringGoods(ctx context.Context) {
+	offset := int32(0)
+	limit := int32(100)
+	state := newState()
+
+	for {
+		goods, _, err := goodmwcli.GetGoods(ctx, &goodmgrpb.Conds{
+			BenefitState: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(goodmgrpb.BenefitState_BenefitTransferring),
+			},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("processTransferringGoods", "Offset", offset, "Limit", limit, "Error", err)
+			return
+		}
+		if len(goods) == 0 {
+			return
+		}
+
+		for _, good := range goods {
+			g := &Good{
+				good,
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+				decimal.NewFromInt(0),
+			}
+
+			if err := state.CheckTransfer(ctx, g); err != nil {
+				logger.Sugar().Errorw("processTransferringGoods", "GoodID", g.ID, "Error", err)
+			}
+		}
+
+		offset += limit
+	}
 }
 
 func processBookKeepingGoods(ctx context.Context) {
@@ -119,11 +154,16 @@ func Watch(ctx context.Context) {
 
 	delay()
 
-	ticker := time.NewTicker(benefitInterval)
+	tickerWait := time.NewTicker(benefitInterval)
+	tickerTransferring := time.NewTicker(10 * time.Minute)
+
 	for {
-		processWaitGoods(ctx)
-		processTransferringGoods(ctx)
-		processBookKeepingGoods(ctx)
-		<-ticker.C
+		select {
+		case <-tickerWait.C:
+			processWaitGoods(ctx)
+		case <-tickerTransferring.C:
+			processTransferringGoods(ctx)
+			processBookKeepingGoods(ctx)
+		}
 	}
 }
