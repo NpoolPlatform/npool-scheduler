@@ -10,6 +10,10 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
 	appgoodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/appgood"
@@ -193,6 +197,17 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 			IOExtra:    &ioExtra,
 		})
 	}
+
+	state := goodmgrpb.BenefitState_BenefitWait
+	req := &goodmwpb.GoodReq{
+		ID:           &good.ID,
+		BenefitState: &state,
+	}
+	_, err = goodmwcli.UpdateGood(ctx, req)
+	if err != nil {
+		return err
+	}
+
 	if len(details) > 0 {
 		err = ledgerv2mwcli.BookKeeping(ctx, details)
 		if err != nil {
