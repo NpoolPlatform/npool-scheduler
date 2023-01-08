@@ -13,6 +13,9 @@ import (
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
@@ -164,9 +167,23 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 		ID:           &good.ID,
 		BenefitState: &state,
 	}
-	_, err = goodmwcli.UpdateGood(ctx, req)
+	g, err := goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
+	}
+
+	ords := []*ordermwpb.OrderReq{}
+	for _, id := range good.BenefitOrderIDs {
+		ords = append(ords, &ordermwpb.OrderReq{
+			ID:            &id,
+			LastBenefitAt: &g.LastBenefitAt,
+		})
+	}
+	if len(ords) > 0 {
+		_, err := ordermwcli.UpdateOrders(ctx, ords)
+		if err != nil {
+			return err
+		}
 	}
 
 	infos, err := txmwcli.CreateTxs(ctx, txs)
@@ -174,6 +191,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 		return err
 	}
 
+	req.BenefitState = nil
 	for _, tx := range infos {
 		req.BenefitTIDs = append(req.BenefitTIDs, tx.ID)
 	}

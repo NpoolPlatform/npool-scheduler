@@ -30,4 +30,16 @@ type Good struct {
 	PlatformRewardAmount      decimal.Decimal
 	UserRewardAmount          decimal.Decimal
 	TechniqueServiceFeeAmount decimal.Decimal
+	BenefitOrderIDs           []string
+}
+
+func newGood(good *goodmwpb.Good) *Good {
+	return &Good{
+		good,
+		decimal.NewFromInt(0),
+		decimal.NewFromInt(0),
+		decimal.NewFromInt(0),
+		decimal.NewFromInt(0),
+		[]string{},
+	}
 }

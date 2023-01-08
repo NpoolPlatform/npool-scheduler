@@ -157,11 +157,14 @@ func validateOrder(good *goodmwpb.Good, order *ordermwpb.Order) bool {
 		return false
 	}
 
-	orderEnd := order.CreatedAt + uint32(good.DurationDays*timedef.SecondsPerDay)
+	orderEnd := order.Start + uint32(good.DurationDays*timedef.SecondsPerDay)
 	if orderEnd < uint32(time.Now().Unix()) {
 		return false
 	}
 	if order.Start > uint32(time.Now().Unix()) {
+		return false
+	}
+	if uint32(time.Now().Unix()) < order.Start+uint32(benefitInterval.Seconds()) {
 		return false
 	}
 
@@ -196,6 +199,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 				continue
 			}
 			appUnits[ord.AppID] += ord.Units
+			good.BenefitOrderIDs = append(good.BenefitOrderIDs, ord.ID)
 		}
 
 		offset += limit

@@ -13,8 +13,6 @@ import (
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
-
-	"github.com/shopspring/decimal"
 )
 
 var benefitInterval = 2 * time.Minute
@@ -75,13 +73,7 @@ func processWaitGoods(ctx context.Context) {
 				continue
 			}
 
-			g := &Good{
-				good,
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-			}
+			g := newGood(good)
 
 			if err := state.CalculateReward(ctx, g); err != nil {
 				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
@@ -131,13 +123,7 @@ func processTransferringGoods(ctx context.Context) {
 		}
 
 		for _, good := range goods {
-			g := &Good{
-				good,
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-				decimal.NewFromInt(0),
-			}
+			g := newGood(good)
 
 			if err := state.CheckTransfer(ctx, g); err != nil {
 				logger.Sugar().Errorw("processTransferringGoods", "GoodID", g.ID, "Error", err)
@@ -149,6 +135,35 @@ func processTransferringGoods(ctx context.Context) {
 }
 
 func processBookKeepingGoods(ctx context.Context) {
+	offset := int32(0)
+	limit := int32(100)
+	state := newState()
+
+	for {
+		goods, _, err := goodmwcli.GetGoods(ctx, &goodmgrpb.Conds{
+			BenefitState: &commonpb.Int32Val{
+				Op:    cruder.EQ,
+				Value: int32(goodmgrpb.BenefitState_BenefitBookKeeping),
+			},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("processBookKeepingGoods", "Offset", offset, "Limit", limit, "Error", err)
+			return
+		}
+		if len(goods) == 0 {
+			return
+		}
+
+		for _, good := range goods {
+			g := newGood(good)
+
+			if err := state.BookKeeping(ctx, g); err != nil {
+				logger.Sugar().Errorw("processBookKeepingGoods", "GoodID", g.ID, "Error", err)
+			}
+		}
+
+		offset += limit
+	}
 }
 
 func Watch(ctx context.Context) {
