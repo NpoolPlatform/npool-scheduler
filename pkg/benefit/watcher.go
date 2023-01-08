@@ -268,7 +268,7 @@ func processGood(ctx context.Context, good *goodmwpb.Good) error { //nolint
 func processWaitGoods(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(100)
-	state := &State{}
+	state := newState()
 
 	for {
 		goods, _, err := goodmwcli.GetGoods(ctx, &goodmgrpb.Conds{
