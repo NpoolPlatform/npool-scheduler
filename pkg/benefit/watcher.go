@@ -295,15 +295,25 @@ func processWaitGoods(ctx context.Context) {
 			}
 
 			if err := state.CalculateReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
 				continue
 			}
 			if err := state.CalculateTechniqueServiceFee(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
 				continue
 			}
+
+			logger.Sugar().Infow("processGoods",
+				"GoodID", g.ID,
+				"GoodName", g.Title,
+				"TodayRewardAmount", g.TodayRewardAmount,
+				"PlatformRewardAmount", g.PlatformRewardAmount,
+				"UserRewardAmount", g.UserRewardAmount,
+				"TechniqueServiceFeeAmount", g.TechniqueServiceFeeAmount,
+			)
+
 			if err := state.TransferReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processGoods", "GoodID", good.ID, "Error", err)
+				logger.Sugar().Errorw("processGoods", "GoodID", g.ID, "Error", err)
 			}
 		}
 

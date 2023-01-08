@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -194,9 +196,20 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
 			Div(decimal.NewFromInt(100))
 
+		logger.Sugar().Infow("CalculateTechniqueServiceFee",
+			"GoodID", good.ID,
+			"GoodName", good.Title,
+			"TotalInService", totalInService,
+			"AppID", appID,
+			"Units", units,
+			"TechnicalFeeRatio", ag.TechnicalFeeRatio,
+			"FeeAmount", _fee,
+		)
+
 		techniqueServiceFee = techniqueServiceFee.Add(_fee)
 	}
 
+	good.TechniqueServiceFeeAmount = techniqueServiceFee
 	good.UserRewardAmount.Sub(techniqueServiceFee)
 
 	return nil
