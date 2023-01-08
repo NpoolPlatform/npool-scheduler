@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -32,6 +33,12 @@ import (
 
 	"github.com/shopspring/decimal"
 )
+
+func benefitTimestamp(timestamp uint32, interval time.Duration) uint32 {
+	intervalFloat := interval.Seconds()
+	intervalUint := uint32(intervalFloat)
+	return timestamp / intervalUint * intervalUint
+}
 
 func (st *State) coin(ctx context.Context, coinTypeID string) (*coinmwpb.Coin, error) {
 	coin, ok := st.Coins[coinTypeID]
@@ -150,7 +157,7 @@ func validateOrder(good *goodmwpb.Good, order *ordermwpb.Order) bool {
 		return false
 	}
 
-	orderEnd := order.CreatedAt + uint32(good.DurationDays*secondsPerDay)
+	orderEnd := order.CreatedAt + uint32(good.DurationDays*timedef.SecondsPerDay)
 	if orderEnd < uint32(time.Now().Unix()) {
 		return false
 	}

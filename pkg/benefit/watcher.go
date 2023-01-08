@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
@@ -19,8 +18,6 @@ import (
 )
 
 var benefitInterval = 2 * time.Minute
-
-const secondsPerDay = timedef.SecondsPerDay
 
 func interval() time.Duration {
 	if duration, err := time.ParseDuration(
@@ -69,6 +66,12 @@ func processWaitGoods(ctx context.Context) {
 
 		for _, good := range goods {
 			if good.StartAt > uint32(time.Now().Unix()) {
+				continue
+			}
+
+			timestamp1 := benefitTimestamp(uint32(time.Now().Unix()), benefitInterval)
+			timestamp2 := benefitTimestamp(good.LastBenefitAt, benefitInterval)
+			if timestamp1 == timestamp2 {
 				continue
 			}
 
