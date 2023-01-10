@@ -48,8 +48,9 @@ func processOrderStart(ctx context.Context, order *orderpb.Order) error {
 
 	ostate := ordermgrpb.OrderState_InService
 	_, err = ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
-		ID:    &order.ID,
-		State: &ostate,
+		ID:        &order.ID,
+		PaymentID: &order.PaymentID,
+		State:     &ostate,
 	})
 
 	if err != nil {
