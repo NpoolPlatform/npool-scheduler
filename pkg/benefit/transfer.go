@@ -189,13 +189,6 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	}
 
 	nextStartAmount := good.BenefitAccountAmount.Sub(reservedAmount)
-	if toUser.Add(toPlatform).Cmp(decimal.NewFromInt(0)) > 0 {
-		nextStartAmount = nextStartAmount.Sub(toPlatform).Sub(toUser)
-	}
-	if nextStartAmount.Cmp(decimal.NewFromInt(0)) < 0 {
-		return fmt.Errorf("invalid start amount")
-	}
-
 	state := goodmgrpb.BenefitState_BenefitTransferring
 	nextStartAmountS := nextStartAmount.String()
 	lastBenefitAmountS := good.TodayRewardAmount.String()
@@ -250,6 +243,8 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 }
 
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
+	transfered := decimal.NewFromInt(0)
+
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
 			IDs: &commonpb.StringSliceVal{
@@ -277,17 +272,35 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			case txmgrpb.TxState_StateTransferring:
 				return nil
 			case txmgrpb.TxState_StateSuccessful:
+				amount, err := decimal.NewFromString(tx.Amount)
+				if err != nil {
+					return err
+				}
+				transfered = transfered.Add(amount)
 			case txmgrpb.TxState_StateFail:
 			}
 		}
 	}
 
-	state := goodmgrpb.BenefitState_BenefitBookKeeping
-	req := &goodmwpb.GoodReq{
-		ID:           &good.ID,
-		BenefitState: &state,
+	nextStart, err := decimal.NewFromString(good.NextBenefitStartAmount)
+	if err != nil {
+		return err
 	}
-	_, err := goodmwcli.UpdateGood(ctx, req)
+
+	nextStart = nextStart.Sub(transfered)
+	if nextStart.Cmp(decimal.NewFromInt(0)) < 0 {
+		return fmt.Errorf("invalid start amount")
+	}
+
+	state := goodmgrpb.BenefitState_BenefitBookKeeping
+	nextStartS := nextStart.String()
+
+	req := &goodmwpb.GoodReq{
+		ID:                     &good.ID,
+		BenefitState:           &state,
+		NextBenefitStartAmount: &nextStartS,
+	}
+	_, err = goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
 	}
