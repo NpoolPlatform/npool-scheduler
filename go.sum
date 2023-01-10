@@ -76,9 +76,9 @@ github.com/NpoolPlatform/chain-middleware v0.0.0-20230110142842-97bb24be209b/go.
 github.com/NpoolPlatform/go-service-framework v0.0.0-20220818105452-9457611ae070/go.mod h1:QPI3Fu/AU5iUOUnf9EictZP1lqPQdPcVLqveIB2HovI=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd h1:2np830i/Exb0mhFVC7i6BN5dW1Hfr4WRNNsKkYFJY3g=
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd/go.mod h1:/sor3E0i0XR8BaKInJwWC85aXLmbMFRNLdIuw+ed+ig=
-github.com/NpoolPlatform/good-manager v0.0.0-20230110140338-6d23181ff373 h1:AXRWhNTqwUnH/dnGIhPIqPmglG+5/Pl8uchjVxQWOqU=
-github.com/NpoolPlatform/good-middleware v0.0.0-20230110143200-908a81481229 h1:a4/Rm3cr/SXs+QSLCYjrkepxtSgMjcU5gASbh4rfiQ8=
-github.com/NpoolPlatform/good-middleware v0.0.0-20230110143200-908a81481229/go.mod h1:JMmlCwBW+jkXEZfgw2/K3V5zoxKW/fwkwIjIF2hWI5Y=
+github.com/NpoolPlatform/good-manager v0.0.0-20230110153453-4598392c35a9 h1:v+Doc8m0k5KeokZKtOz13R9YHJ5/s8zBID78uqmSS1Y=
+github.com/NpoolPlatform/good-middleware v0.0.0-20230110153827-7fe33cba4bd8 h1:f5z4GFeu0JTgkFtoklq01+zFV3r0PGqsefEmUivx6bQ=
+github.com/NpoolPlatform/good-middleware v0.0.0-20230110153827-7fe33cba4bd8/go.mod h1:qh14p5PMoxWOXke/s8aEw35Wx4VUN+72ut6nmLyNDCE=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20230110080914-66e9710fc271 h1:SM7xx1qI/LhddT2sW4/XGSJ6SovBQJURtjAySrPJsdA=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20230110080914-66e9710fc271/go.mod h1:1mw727Cnv5BS2l2pHnFIEiqN5EX2zhVyDfqLaZipFKI=
 github.com/NpoolPlatform/ledger-manager v0.0.0-20230108090029-0c8375eab566 h1:qUGA2acf0cxQYo+eJL702mfngF3QqTGu2HmR/QaRDls=
@@ -90,8 +90,8 @@ github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQ
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
 github.com/NpoolPlatform/message v0.0.0-20220501030927-34f296682c0c/go.mod h1:i/F/sQWjQk44RGvfgEB0zH0oAK/0qLvgJ1AsJDZQDkk=
 github.com/NpoolPlatform/message v0.0.0-20220819134247-1dc75c85fe43/go.mod h1:8YXp4MghMHLZ9bBdQQyfjcRtLI2RbEHAQoNCejT2nZU=
-github.com/NpoolPlatform/message v0.0.0-20230110135328-fe07dd0e1cd8 h1:A/6/+kNzM+sP3CAPhqvrhEfX8RDtXAZ4RCjvi+st+Xc=
-github.com/NpoolPlatform/message v0.0.0-20230110135328-fe07dd0e1cd8/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
+github.com/NpoolPlatform/message v0.0.0-20230110152801-0e428a266acd h1:MSujn1xxaiO5sG1vK4yaG1EWZwqU8InCjV55+gSCPnc=
+github.com/NpoolPlatform/message v0.0.0-20230110152801-0e428a266acd/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
 github.com/NpoolPlatform/order-manager v0.0.0-20230108060834-7a8344055927 h1:ib0s4/+4gaSG2aLPWujuzAdwwaJEkaU9CvF/6TKbrQs=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230108061420-b8f698aceae2 h1:uhwxEke+/FPdRhWGs/IpxYeCg5P7NWD7A+fWZlbxpCQ=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230108061420-b8f698aceae2/go.mod h1:sCrN69kUHtoHUxyWmQNI+m26YG/65QKE2ZpSqjPYq5o=

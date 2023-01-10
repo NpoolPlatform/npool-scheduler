@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
-
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
@@ -31,35 +28,12 @@ import (
 )
 
 func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
-	if len(good.BenefitTIDs) == 0 {
-		return fmt.Errorf("invalid benefit txs")
-	}
-
-	txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-		IDs: &commonpb.StringSliceVal{
-			Op:    cruder.IN,
-			Value: good.BenefitTIDs,
-		},
-	}, int32(0), int32(len(good.BenefitTIDs)))
+	totalReward, err := decimal.NewFromString(good.LastBenefitAmount)
 	if err != nil {
 		return err
 	}
-
-	totalReward := decimal.NewFromInt(0)
-
-	for _, tx := range txs {
-		switch tx.Type {
-		case txmgrpb.TxType_TxPlatformBenefit:
-		case txmgrpb.TxType_TxUserBenefit:
-		default:
-			return fmt.Errorf("invalid tx type")
-		}
-
-		amount, err := decimal.NewFromString(tx.Amount)
-		if err != nil {
-			return err
-		}
-		totalReward = totalReward.Add(amount)
+	if totalReward.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid reward")
 	}
 
 	ords := []*ordermwpb.Order{}
