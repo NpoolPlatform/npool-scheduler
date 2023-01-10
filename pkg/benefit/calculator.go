@@ -235,7 +235,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 				continue
 			}
 			appUnits[ord.AppID] += ord.Units
-			good.BenefitOrderIDs = append(good.BenefitOrderIDs, ord.ID)
+			good.BenefitOrderIDs[ord.ID] = ord.PaymentID
 		}
 
 		offset += limit

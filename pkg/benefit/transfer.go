@@ -173,9 +173,10 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 	}
 
 	ords := []*ordermwpb.OrderReq{}
-	for _, id := range good.BenefitOrderIDs {
+	for oid, pid := range good.BenefitOrderIDs {
 		ords = append(ords, &ordermwpb.OrderReq{
-			ID:            &id,
+			ID:            &oid,
+			PaymentID:     &pid,
 			LastBenefitAt: &g.LastBenefitAt,
 		})
 	}
