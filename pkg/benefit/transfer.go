@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	// coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
@@ -109,10 +109,36 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 		return err
 	}
 
+	coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid coin")
+	}
+
+	leastTransferAmount, err := decimal.NewFromString(coin.LeastTransferAmount)
+	if err != nil {
+		return err
+	}
+	if leastTransferAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid least transfer amount")
+	}
+
 	txs := []*txmgrpb.TxReq{}
 
-	if good.UserRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := good.UserRewardAmount.String()
+	toUser := decimal.NewFromInt(0)
+	toPlatform := decimal.NewFromInt(0)
+
+	if good.UserRewardAmount.Cmp(leastTransferAmount) > 0 {
+		toUser = good.UserRewardAmount
+	}
+	if good.TodayRewardAmount.Sub(good.UserRewardAmount).Cmp(leastTransferAmount) > 0 {
+		toPlatform = good.TodayRewardAmount.Sub(good.UserRewardAmount)
+	}
+
+	if toUser.Cmp(decimal.NewFromInt(0)) > 0 {
+		amount := toUser.String()
 		feeAmount := decimal.NewFromInt(0).String()
 		txExtra := fmt.Sprintf(
 			`{"GoodID":"%v","Reward":"%v","UserReward":"%v","PlatformReward":"%v","TechniqueServiceFee":"%v"}`,
@@ -133,8 +159,6 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 			Type:          &txType,
 		})
 	}
-
-	toPlatform := good.PlatformRewardAmount.Add(good.TechniqueServiceFeeAmount)
 
 	if toPlatform.Cmp(decimal.NewFromInt(0)) > 0 {
 		amount := toPlatform.String()
@@ -158,33 +182,52 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error {
 			Type:          &txType,
 		})
 	}
-	if len(txs) == 0 {
-		return nil
+
+	reservedAmount, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return err
+	}
+
+	nextStartAmount := good.BenefitAccountAmount.Sub(reservedAmount)
+	if toUser.Add(toPlatform).Cmp(decimal.NewFromInt(0)) > 0 {
+		nextStartAmount = nextStartAmount.Sub(toPlatform).Sub(toUser)
+	}
+	if nextStartAmount.Cmp(decimal.NewFromInt(0)) < 0 {
+		return fmt.Errorf("invalid start amount")
 	}
 
 	state := goodmgrpb.BenefitState_BenefitTransferring
+	nextStartAmountS := nextStartAmount.String()
+
 	req := &goodmwpb.GoodReq{
-		ID:           &good.ID,
-		BenefitState: &state,
+		ID:                     &good.ID,
+		BenefitState:           &state,
+		NextBenefitStartAmount: &nextStartAmountS,
 	}
 	g, err := goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	ords := []*ordermwpb.OrderReq{}
-	for oid, pid := range good.BenefitOrderIDs {
-		ords = append(ords, &ordermwpb.OrderReq{
-			ID:            &oid,
-			PaymentID:     &pid,
-			LastBenefitAt: &g.LastBenefitAt,
-		})
-	}
-	if len(ords) > 0 {
-		_, err := ordermwcli.UpdateOrders(ctx, ords)
-		if err != nil {
-			return err
+	if good.UserRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+		ords := []*ordermwpb.OrderReq{}
+		for oid, pid := range good.BenefitOrderIDs {
+			ords = append(ords, &ordermwpb.OrderReq{
+				ID:            &oid,
+				PaymentID:     &pid,
+				LastBenefitAt: &g.LastBenefitAt,
+			})
 		}
+		if len(ords) > 0 {
+			_, err := ordermwcli.UpdateOrders(ctx, ords)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(txs) == 0 {
+		return nil
 	}
 
 	infos, err := txmwcli.CreateTxs(ctx, txs)

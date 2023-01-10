@@ -32,6 +32,7 @@ type Good struct {
 	TechniqueServiceFeeAmount decimal.Decimal
 	BenefitOrderIDs           map[string]string
 	BenefitOrders             uint32
+	BenefitAccountAmount      decimal.Decimal
 }
 
 func newGood(good *goodmwpb.Good) *Good {
@@ -43,5 +44,6 @@ func newGood(good *goodmwpb.Good) *Good {
 		decimal.NewFromInt(0),
 		map[string]string{},
 		0,
+		decimal.NewFromInt(0),
 	}
 }

@@ -11,8 +11,6 @@ import (
 
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
-	archivementconst "github.com/NpoolPlatform/archivement-manager/pkg/message/const"
-
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
@@ -39,7 +37,6 @@ func main() {
 		commands,
 		redisconst.RedisServiceName,
 		ledgerconst.ServiceName,
-		archivementconst.ServiceName,
 		orderconst.ServiceName,
 		chainconst.ServiceName,
 	)

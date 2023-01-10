@@ -132,6 +132,8 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return nil
 	}
 
+	good.BenefitAccountAmount = bal
+
 	coin, err := st.coin(ctx, good.CoinTypeID)
 	if err != nil {
 		return err
@@ -178,7 +180,18 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("inconsistent in service")
 	}
 
-	good.TodayRewardAmount = bal.Sub(reservedAmount)
+	startAmount, err := decimal.NewFromString(good.NextBenefitStartAmount)
+	if err != nil {
+		return err
+	}
+
+	good.TodayRewardAmount = bal.
+		Sub(reservedAmount).
+		Sub(startAmount)
+	if good.TodayRewardAmount.Cmp(decimal.NewFromInt(0)) < 0 {
+		return fmt.Errorf("invalid reward amount")
+	}
+
 	good.UserRewardAmount = good.TodayRewardAmount.
 		Mul(decimal.NewFromInt(int64(good.BenefitOrders))).
 		Div(decimal.NewFromInt(int64(good.GoodTotal)))

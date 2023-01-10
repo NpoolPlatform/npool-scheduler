@@ -6,14 +6,13 @@ require (
 	github.com/NpoolPlatform/account-manager v0.0.0-20221216032354-d0503e803f5d
 	github.com/NpoolPlatform/account-middleware v0.0.0-20221216032556-c0953cebb9a4
 	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
-	github.com/NpoolPlatform/archivement-manager v0.0.0-20220907024948-5cd4bd739c46
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20230108041734-559bf03124aa
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20230110142842-97bb24be209b
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
-	github.com/NpoolPlatform/good-middleware v0.0.0-20230108071609-169b53628797
+	github.com/NpoolPlatform/good-middleware v0.0.0-20230110143200-908a81481229
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230108090029-0c8375eab566
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230108091140-753a1b3fc70f
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230109051251-1ef3c594b490
+	github.com/NpoolPlatform/message v0.0.0-20230110135328-fe07dd0e1cd8
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230108061420-b8f698aceae2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216033352-21a0a47434fe
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
