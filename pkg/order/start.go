@@ -47,6 +47,12 @@ func processOrderStart(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	ostate := ordermgrpb.OrderState_InService
+	logger.Sugar().Infow("processOrderStart",
+		"OrderID", order.ID,
+		"Start", order.Start,
+		"State", order.OrderState,
+		"NewState", ostate,
+	)
 	_, err = ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
 		ID:        &order.ID,
 		PaymentID: &order.PaymentID,
