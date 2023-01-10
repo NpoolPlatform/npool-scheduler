@@ -144,6 +144,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 
 	offset := int32(0)
 	limit := int32(100)
+	totalInService := uint32(0)
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
@@ -164,12 +165,17 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		}
 
 		for _, ord := range orders {
+			totalInService += ord.Units
 			if benefitable(good.Good, ord) {
 				good.BenefitOrders += ord.Units
 			}
 		}
 
 		offset += limit
+	}
+
+	if good.GoodInService != totalInService {
+		return fmt.Errorf("inconsistent in service")
 	}
 
 	good.TodayRewardAmount = bal.Sub(reservedAmount)
