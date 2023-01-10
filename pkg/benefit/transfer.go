@@ -83,7 +83,7 @@ func (st *State) platformAccount(
 	return acc, nil
 }
 
-func (st *State) TransferReward(ctx context.Context, good *Good) error {
+func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolint
 	if good.TodayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}

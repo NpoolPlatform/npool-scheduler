@@ -255,7 +255,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 	}
 
 	appIDs := []string{}
-	for appID, _ := range appUnits {
+	for appID := range appUnits {
 		appIDs = append(appIDs, appID)
 	}
 
