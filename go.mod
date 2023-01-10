@@ -13,7 +13,7 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230108090029-0c8375eab566
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230108091140-753a1b3fc70f
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230108084039-44f7944d6c9a
+	github.com/NpoolPlatform/message v0.0.0-20230109051251-1ef3c594b490
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230108061420-b8f698aceae2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216033352-21a0a47434fe
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
@@ -28,7 +28,7 @@ require go.opentelemetry.io/otel v1.8.0 // indirect
 require (
 	ariga.io/atlas v0.7.2-0.20220927111110-867ee0cca56a // indirect
 	entgo.io/ent v0.11.3 // indirect
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230106040901-737c67a4a79d
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230110080914-66e9710fc271
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
