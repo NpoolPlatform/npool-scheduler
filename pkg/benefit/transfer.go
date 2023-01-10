@@ -287,7 +287,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		return err
 	}
 
-	nextStart = nextStart.Sub(transfered)
+	nextStart = nextStart.Sub(transferred)
 	if nextStart.Cmp(decimal.NewFromInt(0)) < 0 {
 		return fmt.Errorf("invalid start amount")
 	}
