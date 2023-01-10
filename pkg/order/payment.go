@@ -478,7 +478,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 			details = append(details, &ledgerdetailpb.DetailReq{
 				AppID:      &order.AppID,
 				UserID:     &comm.UserID,
-				CoinTypeID: &good.CoinTypeID,
+				CoinTypeID: &order.PaymentCoinTypeID,
 				IOType:     &ioType,
 				IOSubType:  &ioSubType,
 				Amount:     &comm.Amount,
