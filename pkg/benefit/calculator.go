@@ -142,9 +142,39 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return err
 	}
 
+	offset := int32(0)
+	limit := int32(100)
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: good.ID,
+			},
+			State: &commonpb.Uint32Val{
+				Op:    cruder.EQ,
+				Value: uint32(ordermgrpb.OrderState_InService),
+			},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(orders) == 0 {
+			break
+		}
+
+		for _, ord := range orders {
+			if benefitable(good.Good, ord) {
+				good.BenefitOrders += ord.Units
+			}
+		}
+
+		offset += limit
+	}
+
 	good.TodayRewardAmount = bal.Sub(reservedAmount)
 	good.UserRewardAmount = good.TodayRewardAmount.
-		Mul(decimal.NewFromInt(int64(good.GoodInService))).
+		Mul(decimal.NewFromInt(int64(good.BenefitOrders))).
 		Div(decimal.NewFromInt(int64(good.GoodTotal)))
 	good.PlatformRewardAmount = good.TodayRewardAmount.
 		Sub(good.UserRewardAmount)
@@ -152,7 +182,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	return nil
 }
 
-func validateOrder(good *goodmwpb.Good, order *ordermwpb.Order) bool {
+func benefitable(good *goodmwpb.Good, order *ordermwpb.Order) bool {
 	if order.PaymentState != paymentmgrpb.PaymentState_Done {
 		return false
 	}
@@ -195,7 +225,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		}
 
 		for _, ord := range orders {
-			if !validateOrder(good.Good, ord) {
+			if !benefitable(good.Good, ord) {
 				continue
 			}
 			appUnits[ord.AppID] += ord.Units
@@ -206,14 +236,11 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 	}
 
 	appIDs := []string{}
-	totalInService := uint32(0)
-
-	for appID, units := range appUnits {
+	for appID, _ := range appUnits {
 		appIDs = append(appIDs, appID)
-		totalInService += units
 	}
 
-	if good.GoodInService != totalInService {
+	if good.BenefitOrders > good.GoodInService {
 		return fmt.Errorf("inconsistent in service")
 	}
 
@@ -246,14 +273,14 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 
 		_fee := good.UserRewardAmount.
 			Mul(decimal.NewFromInt(int64(units))).
-			Div(decimal.NewFromInt(int64(totalInService))).
+			Div(decimal.NewFromInt(int64(good.BenefitOrders))).
 			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
 			Div(decimal.NewFromInt(100))
 
 		logger.Sugar().Infow("CalculateTechniqueServiceFee",
 			"GoodID", good.ID,
 			"GoodName", good.Title,
-			"TotalInService", totalInService,
+			"TotalInService", good.BenefitOrders,
 			"AppID", appID,
 			"Units", units,
 			"TechnicalFeeRatio", ag.TechnicalFeeRatio,
