@@ -243,7 +243,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 }
 
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
-	transfered := decimal.NewFromInt(0)
+	transferred := decimal.NewFromInt(0)
 
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
@@ -276,7 +276,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				if err != nil {
 					return err
 				}
-				transfered = transfered.Add(amount)
+				transferred = transferred.Add(amount)
 			case txmgrpb.TxState_StateFail:
 			}
 		}
