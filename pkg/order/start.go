@@ -52,6 +52,7 @@ func processOrderStart(ctx context.Context, order *orderpb.Order) error {
 		"Start", order.Start,
 		"State", order.OrderState,
 		"NewState", ostate,
+		"Units", order.Units,
 	)
 	_, err = ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
 		ID:        &order.ID,
