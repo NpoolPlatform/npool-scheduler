@@ -177,6 +177,11 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	}
 
 	if good.GoodInService != totalInService {
+		logger.Sugar().Errorw("CalculateReward",
+			"GoodID", good.ID,
+			"GooInService", good.GoodInService,
+			"TotalInService", totalInService,
+		)
 		return fmt.Errorf("inconsistent in service")
 	}
 
