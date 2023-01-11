@@ -221,6 +221,8 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 				"UserRewardAmount", good.UserRewardAmount,
 				"Units", good.BenefitOrderUnits,
 				"Orders", len(good.BenefitOrderIDs),
+				"Updateorders", len(ords),
+				"LastBenefitAt", g.LastBenefitAt,
 			)
 			_, err := ordermwcli.UpdateOrders(ctx, ords)
 			if err != nil {
