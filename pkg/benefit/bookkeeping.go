@@ -133,6 +133,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		"LastBenefitAt", good.LastBenefitAt,
 		"LastBenefitAmount", good.LastBenefitAmount,
 		"TotalOrderUnits", totalOrderUnits,
+		"TotalOrders", len(ords),
 		"TechniqueServiceFee", totalFeeAmount,
 		"Unsold", totalUnsoldReward,
 		"UserReward", totalUserReward,
