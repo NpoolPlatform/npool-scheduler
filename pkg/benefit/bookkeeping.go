@@ -171,8 +171,8 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 			continue
 		}
 
-		ioExtra := fmt.Sprintf(`{"GoodID": "%v", "OrderID": "%v"}`,
-			good.ID, ord.ID)
+		ioExtra := fmt.Sprintf(`{"GoodID":"%v","OrderID":"%v","BenefitDate":"%v"}`,
+			good.ID, ord.ID, good.LastBenefitAt)
 		amountS := unitReward.
 			Mul(decimal.NewFromInt(int64(ord.Units))).
 			String()
