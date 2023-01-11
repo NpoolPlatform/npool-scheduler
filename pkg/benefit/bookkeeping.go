@@ -105,13 +105,19 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	totalUserReward := decimal.NewFromInt(0)
 	totalFeeAmount := decimal.NewFromInt(0)
 
+	userRewardAmount := totalReward.
+		Mul(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
+		Div(decimal.NewFromInt(int64(good.GoodTotal)))
+	totalUnsoldReward := totalReward.
+		Sub(userRewardAmount)
+
 	for appID, units := range appUnits {
 		ag, ok := goodMap[appID]
 		if !ok {
 			continue
 		}
 
-		reward := totalReward.
+		reward := userRewardAmount.
 			Mul(decimal.NewFromInt(int64(units))).
 			Div(decimal.NewFromInt(int64(totalOrderUnits)))
 
@@ -125,8 +131,6 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 
 		appUnitRewards[appID] = userReward.Div(decimal.NewFromInt(int64(units)))
 	}
-
-	totalUnsoldReward := totalReward.Sub(totalFeeAmount).Sub(totalUserReward)
 
 	logger.Sugar().Infow("BookKeeping",
 		"GoodID", good.ID,
