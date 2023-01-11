@@ -3,18 +3,18 @@ module github.com/NpoolPlatform/staker-manager
 go 1.17
 
 require (
-	github.com/NpoolPlatform/account-manager v0.0.0-20221216032354-d0503e803f5d
-	github.com/NpoolPlatform/account-middleware v0.0.0-20221216032556-c0953cebb9a4
+	github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b
+	github.com/NpoolPlatform/account-middleware v0.0.0-20221220111928-0c1abbca2829
 	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20230110142842-97bb24be209b
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20230111062408-7bc4b269c1d4
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
-	github.com/NpoolPlatform/good-middleware v0.0.0-20230110153827-7fe33cba4bd8
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20230108090029-0c8375eab566
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230108091140-753a1b3fc70f
+	github.com/NpoolPlatform/good-middleware v0.0.0-20230111062156-9d26cfe25c94
+	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111062738-1054218618aa
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230110152801-0e428a266acd
-	github.com/NpoolPlatform/order-middleware v0.0.0-20230108061420-b8f698aceae2
-	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216033352-21a0a47434fe
+	github.com/NpoolPlatform/message v0.0.0-20230110162534-83df43757858
+	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
+	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.11.1
@@ -27,7 +27,7 @@ require go.opentelemetry.io/otel v1.8.0 // indirect
 require (
 	ariga.io/atlas v0.7.2-0.20220927111110-867ee0cca56a // indirect
 	entgo.io/ent v0.11.3 // indirect
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230110080914-66e9710fc271
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230111061613-a6bccb1a45ba
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
