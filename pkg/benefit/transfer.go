@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
@@ -214,6 +216,12 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 			})
 		}
 		if len(ords) > 0 {
+			logger.Sugar().Infow("TransferReward",
+				"GoodID", good.ID,
+				"UserRewardAmount", good.UserRewardAmount,
+				"Units", good.BenefitOrderUnits,
+				"Orders", len(good.BenefitOrderIDs),
+			)
 			_, err := ordermwcli.UpdateOrders(ctx, ords)
 			if err != nil {
 				return err
