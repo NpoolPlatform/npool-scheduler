@@ -332,7 +332,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 	}
 
 	good.TechniqueServiceFeeAmount = techniqueServiceFee
-	good.UserRewardAmount.Sub(techniqueServiceFee)
+	good.UserRewardAmount = good.UserRewardAmount.Sub(techniqueServiceFee)
 
 	return nil
 }
