@@ -106,7 +106,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	totalFeeAmount := decimal.NewFromInt(0)
 
 	userRewardAmount := totalReward.
-		Mul(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
+		Mul(decimal.NewFromInt(int64(totalOrderUnits))).
 		Div(decimal.NewFromInt(int64(good.GoodTotal)))
 	totalUnsoldReward := totalReward.
 		Sub(userRewardAmount)

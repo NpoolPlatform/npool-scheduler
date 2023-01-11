@@ -185,15 +185,18 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("inconsistent in service")
 	}
 
-	startAmount, err := decimal.NewFromString(good.NextBenefitStartAmount)
-	if err != nil {
-		return err
-	}
-
+	startAmount, _ := decimal.NewFromString(good.NextBenefitStartAmount)
 	good.TodayRewardAmount = bal.
 		Sub(reservedAmount).
 		Sub(startAmount)
 	if good.TodayRewardAmount.Cmp(decimal.NewFromInt(0)) < 0 {
+		logger.Sugar().Errorw("CalculateReward",
+			"GoodID", good.ID,
+			"TodayReward", good.TodayRewardAmount,
+			"Balance", bal,
+			"StartAmount", startAmount,
+			"ReservedAmount", reservedAmount,
+		)
 		return fmt.Errorf("invalid reward amount")
 	}
 
@@ -320,6 +323,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 			"BenefitOrderUnits", good.BenefitOrderUnits,
 			"AppID", appID,
 			"Units", units,
+			"Orders", len(good.BenefitOrderIDs),
 			"TechnicalFeeRatio", ag.TechnicalFeeRatio,
 			"FeeAmount", _fee,
 		)
