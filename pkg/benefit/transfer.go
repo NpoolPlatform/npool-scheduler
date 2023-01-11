@@ -208,7 +208,9 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 
 	if good.UserRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		ords := []*ordermwpb.OrderReq{}
-		for oid, pid := range good.BenefitOrderIDs {
+		for _oid, _pid := range good.BenefitOrderIDs {
+			oid := _oid
+			pid := _pid
 			ords = append(ords, &ordermwpb.OrderReq{
 				ID:            &oid,
 				PaymentID:     &pid,
@@ -221,7 +223,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 				"UserRewardAmount", good.UserRewardAmount,
 				"Units", good.BenefitOrderUnits,
 				"Orders", len(good.BenefitOrderIDs),
-				"Updateorders", len(ords),
+				"UpdateOrders", len(ords),
 				"LastBenefitAt", g.LastBenefitAt,
 			)
 			_, err := ordermwcli.UpdateOrders(ctx, ords)
