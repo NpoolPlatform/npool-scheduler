@@ -21,6 +21,7 @@ import (
 	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
 	ledgerdetailmgrpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 
@@ -126,6 +127,16 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	}
 
 	totalUnsoldReward := totalReward.Sub(totalFeeAmount).Sub(totalUserReward)
+
+	logger.Sugar().Infow("BookKeeping",
+		"GoodID", good.ID,
+		"LastBenefitAt", good.LastBenefitAt,
+		"LastBenefitAmount", good.LastBenefitAmount,
+		"TotalOrderUnits", totalOrderUnits,
+		"TechniqueServiceFee", totalFeeAmount,
+		"Unsold", totalUnsoldReward,
+		"UserReward", totalUserReward,
+	)
 
 	err = miningbookkeepingmwcli.BookKeeping(
 		ctx,

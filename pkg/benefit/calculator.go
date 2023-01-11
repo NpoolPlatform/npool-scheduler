@@ -169,7 +169,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		for _, ord := range orders {
 			totalInService += ord.Units
 			if benefitable(good.Good, ord) {
-				good.BenefitOrders += ord.Units
+				good.BenefitOrderUnits += ord.Units
 			}
 		}
 
@@ -193,10 +193,22 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	}
 
 	good.UserRewardAmount = good.TodayRewardAmount.
-		Mul(decimal.NewFromInt(int64(good.BenefitOrders))).
+		Mul(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
 		Div(decimal.NewFromInt(int64(good.GoodTotal)))
 	good.PlatformRewardAmount = good.TodayRewardAmount.
 		Sub(good.UserRewardAmount)
+
+	logger.Sugar().Infow("CalculateReward",
+		"GoodID", good.ID,
+		"TodayReward", good.TodayRewardAmount,
+		"UserReward", good.UserRewardAmount,
+		"PlatformReward", good.PlatformRewardAmount,
+		"TotalInService", totalInService,
+		"BenefitOrderUnits", good.BenefitOrderUnits,
+		"StartAmount", startAmount,
+		"ReservedAmount", reservedAmount,
+		"Balance", bal,
+	)
 
 	return nil
 }
@@ -259,7 +271,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		appIDs = append(appIDs, appID)
 	}
 
-	if good.BenefitOrders > good.GoodInService {
+	if good.BenefitOrderUnits > good.GoodInService {
 		return fmt.Errorf("inconsistent in service")
 	}
 
@@ -292,14 +304,15 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 
 		_fee := good.UserRewardAmount.
 			Mul(decimal.NewFromInt(int64(units))).
-			Div(decimal.NewFromInt(int64(good.BenefitOrders))).
+			Div(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
 			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
 			Div(decimal.NewFromInt(100))
 
 		logger.Sugar().Infow("CalculateTechniqueServiceFee",
 			"GoodID", good.ID,
 			"GoodName", good.Title,
-			"TotalInService", good.BenefitOrders,
+			"TotalInService", good.GoodInService,
+			"BenefitOrderUnits", good.BenefitOrderUnits,
 			"AppID", appID,
 			"Units", units,
 			"TechnicalFeeRatio", ag.TechnicalFeeRatio,

@@ -31,7 +31,7 @@ type Good struct {
 	UserRewardAmount          decimal.Decimal
 	TechniqueServiceFeeAmount decimal.Decimal
 	BenefitOrderIDs           map[string]string
-	BenefitOrders             uint32
+	BenefitOrderUnits         uint32
 	BenefitAccountAmount      decimal.Decimal
 }
 
