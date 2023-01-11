@@ -185,7 +185,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("inconsistent in service")
 	}
 
-	startAmount, _ := decimal.NewFromString(good.NextBenefitStartAmount)
+	startAmount, _ := decimal.NewFromString(good.NextBenefitStartAmount) //nolint
 	good.TodayRewardAmount = bal.
 		Sub(reservedAmount).
 		Sub(startAmount)
