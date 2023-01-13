@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b
 	github.com/NpoolPlatform/account-middleware v0.0.0-20221220111928-0c1abbca2829
-	github.com/NpoolPlatform/api-manager v0.0.0-20220826022307-d72866fe3ec0
+	github.com/NpoolPlatform/basal-middleware v0.0.0-20221228013048-951da3e0461c
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230111062408-7bc4b269c1d4
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230111062156-9d26cfe25c94
@@ -22,7 +22,12 @@ require (
 	google.golang.org/protobuf v1.28.1
 )
 
-require go.opentelemetry.io/otel v1.8.0 // indirect
+require (
+	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/sergi/go-diff v1.1.0 // indirect
+	github.com/ugorji/go/codec v1.2.8 // indirect
+	go.opentelemetry.io/otel v1.8.0 // indirect
+)
 
 require (
 	ariga.io/atlas v0.7.2-0.20220927111110-867ee0cca56a // indirect
@@ -114,3 +119,5 @@ replace google.golang.org/grpc => github.com/grpc/grpc-go v1.41.0
 replace entgo.io/ent => entgo.io/ent v0.11.2
 
 replace ariga.io/atlas => ariga.io/atlas v0.5.1-0.20220717122844-8593d7eb1a8e
+
+replace github.com/ugorji/go => github.com/ugorji/go v0.0.0-20190204201341-e444a5086c43
