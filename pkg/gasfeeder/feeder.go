@@ -151,7 +151,7 @@ func feedOne(
 
 	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
@@ -343,6 +343,7 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 			return false, nil
 		}
 
+		logger.Sugar().Infow("feedDespositAccount", "Accounts", len(accs))
 		for _, acc := range accs {
 			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
 			if err != nil {
@@ -352,6 +353,8 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				return true, nil
 			}
 		}
+
+		offset += limit
 	}
 }
 
@@ -423,6 +426,7 @@ func Watch(ctx context.Context) { //nolint
 		for {
 			coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
 			if err != nil {
+				logger.Sugar().Errorw("gasfeeder", "Offset", offset, "Limit", limit)
 				break
 			}
 			if len(coins) == 0 {
@@ -431,14 +435,33 @@ func Watch(ctx context.Context) { //nolint
 
 			for _, coin := range coins {
 				if coin.FeeCoinTypeID == uuid1.InvalidUUIDStr || coin.FeeCoinTypeID == "" {
+					logger.Sugar().Warnw(
+						"gasfeeder",
+						"Coin", coin.Name,
+						"CoinTypeID", coin.ID,
+						"FeeCoinType", coin.FeeCoinTypeID,
+						"State", "Empty",
+					)
 					continue
 				}
 
 				if coin.ID == coin.FeeCoinTypeID {
+					logger.Sugar().Warnw(
+						"gasfeeder",
+						"Coin", coin.Name,
+						"CoinTypeID", coin.ID,
+						"FeeCoinType", coin.FeeCoinTypeID,
+						"State", "Equal",
+					)
 					continue
 				}
 
-				logger.Sugar().Warnw("gasfeeder", "Coin", coin.Name, "FeeCoin", coin.FeeCoinName)
+				logger.Sugar().Warnw(
+					"gasfeeder",
+					"Coin", coin.Name,
+					"CoinTypeID", coin.ID,
+					"FeeCoin", coin.FeeCoinName,
+				)
 				if err := feedCoin(ctx, coin); err != nil {
 					logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
 				}
