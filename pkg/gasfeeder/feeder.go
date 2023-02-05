@@ -159,6 +159,13 @@ func feedOne(
 		return false, fmt.Errorf("target account %v error: %v", accountID, err)
 	}
 	if ok {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"Address", address,
+			"LowFeeAmount", lowFeeAmount,
+			"Enough", ok,
+		)
 		return false, nil
 	}
 
@@ -167,6 +174,12 @@ func feedOne(
 		return false, err
 	}
 	if yes {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"AccountID", accountID,
+			"Feeding", true,
+		)
 		return true, nil
 	}
 
@@ -192,6 +205,13 @@ func feedOne(
 	}
 
 	if bal.Cmp(reserved) <= 0 {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"Address", address,
+			"Balance", bal,
+			"ReservedAmount", reserved,
+		)
 		return false, nil
 	}
 
