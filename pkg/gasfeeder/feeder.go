@@ -305,6 +305,8 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				return true, nil
 			}
 		}
+
+		offset += limit
 	}
 }
 
@@ -343,7 +345,14 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 			return false, nil
 		}
 
-		logger.Sugar().Infow("feedDespositAccount", "Accounts", len(accs))
+		logger.Sugar().Infow(
+			"feedDespositAccount",
+			"Accounts", len(accs),
+			"Coin", coin.Name,
+			"CoinTypeID", coin.ID,
+			"FeeCoin", feeCoin.Name,
+			"FeeCoinTypeID", feeCoin.ID,
+		)
 		for _, acc := range accs {
 			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
 			if err != nil {
@@ -423,6 +432,7 @@ func Watch(ctx context.Context) { //nolint
 		offset := int32(0)
 		const limit = int32(100)
 
+		logger.Sugar().Infow("gasfeeder", "FeedGas", "Start...")
 		for {
 			coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
 			if err != nil {
@@ -469,5 +479,7 @@ func Watch(ctx context.Context) { //nolint
 
 			offset += limit
 		}
+
+		logger.Sugar().Infow("gasfeeder", "FeedGas", "End...")
 	}
 }
