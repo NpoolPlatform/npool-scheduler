@@ -157,7 +157,7 @@ func deposit(ctx context.Context) {
 	}
 }
 
-func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
+func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nolint
 	if acc.Locked {
 		return nil
 	}
