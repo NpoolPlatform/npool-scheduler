@@ -72,8 +72,8 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9 h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9/go.mod h1:nmVvmSGYuOBGZ4RWeTZ8ny5Kw6Nx8uwQPblmJ/x1wYs=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQOJ0xQWdJS1BnimNdM6GZMLgTL/FnIa8C8K4xffUA=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
-github.com/NpoolPlatform/message v0.0.0-20230208051051-ba03a9b7c42b h1:UwiL32oAn59QojwvYNnmvP3/xbGVvHOrI9zkaaj1+hg=
-github.com/NpoolPlatform/message v0.0.0-20230208051051-ba03a9b7c42b/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
+github.com/NpoolPlatform/message v0.0.0-20230208082240-d860e643050c h1:pIRYnjTIb/Tt/EBs7+d/pIxNM7FsKBBsYyGfuyY0b9s=
+github.com/NpoolPlatform/message v0.0.0-20230208082240-d860e643050c/go.mod h1:G4b3QmQYYHn2okxu8KfD6INUALqno3369SLciqevhtQ=
 github.com/NpoolPlatform/notif-manager v0.0.0-20230207095135-f63d1504a415 h1:EvhIpcILqFX4wTIhMTJnFM0f0Q/2parKCX5Buv4BDeE=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230208052003-a3a311f354ce h1:nJ9SFpjxdUIMSTfpM6otlQ0UerDd3v3GsHkk0ot3ilg=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230208052003-a3a311f354ce/go.mod h1:R4AEa7NbefRETbpofYWFCC9pBsJVhYm+k7KYcy3MXO0=
@@ -84,8 +84,8 @@ github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326 h1:jBS9
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326/go.mod h1:ZltsgW0uwtbeudRQtwXTjASMuVt/E76yKiQVnvxW2mQ=
 github.com/NpoolPlatform/third-manager v0.0.0-20230203080533-a64bd993a6d0 h1:w8mYxkeb4EsMFPdT1n1X+o+Vwf9BgGwhXwZcIfrkXwo=
 github.com/NpoolPlatform/third-manager v0.0.0-20230203080533-a64bd993a6d0/go.mod h1:jS2wXJoRH9gk1cy5BXi4MBy6nUv0l4eWrYgO7JNPo/k=
-github.com/NpoolPlatform/third-middleware v0.0.0-20230206071401-5b26a4e66314 h1:huQZZXfWzdPdHNdat6GbyWm8nakbza55U+ZyYNdckVY=
-github.com/NpoolPlatform/third-middleware v0.0.0-20230206071401-5b26a4e66314/go.mod h1:GJW5Gzk61TfcPmmP0P0TltMvS3npIpyAXzJ1fwlyO6s=
+github.com/NpoolPlatform/third-middleware v0.0.0-20230208084110-884a582f40d6 h1:c30rE24O3pU0kh2a2QnEiYhMD7VB0WeUJDGcpSX9zSA=
+github.com/NpoolPlatform/third-middleware v0.0.0-20230208084110-884a582f40d6/go.mod h1:yEUkOR+mC2EZpeSz6fzbfQI7BLL4Nlv1OY5u9wYqSvc=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shonminh/apollo-client v0.4.0 h1:AXGp4wOahrEKjheMXehgsG9B8dEfLQHttRLHeEefvus=

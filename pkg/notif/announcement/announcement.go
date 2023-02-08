@@ -23,9 +23,8 @@ import (
 	sendstatecli "github.com/NpoolPlatform/notif-middleware/pkg/client/announcement/sendstate"
 
 	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
-	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
-
-	verifyemail "github.com/NpoolPlatform/third-middleware/pkg/verify/email"
+	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
+	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
 )
 
 //nolint:gocognit
@@ -73,7 +72,7 @@ func sendAnnouncement(ctx context.Context) {
 					userMap[user.ID] = user
 				}
 
-				templateInfo, err := thirdcli.GetNotifTemplateOnly(ctx, &thirdpb.Conds{
+				templateInfo, err := thirdtempcli.GetNotifTemplateOnly(ctx, &thirdpb.Conds{
 					AppID: &commonpb.StringVal{
 						Op:    cruder.EQ,
 						Value: val.AppID,
@@ -130,7 +129,7 @@ func sendAnnouncement(ctx context.Context) {
 					// check not send user
 					_, ok := sendAnnouMap[user.ID]
 					if !ok {
-						err = verifyemail.SendEmailByAWS(val.Title, val.Content, templateInfo.Sender, user.EmailAddress)
+						err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, templateInfo.Sender, user.EmailAddress)
 						if err != nil {
 							logger.Sugar().Errorw("sendNotif", "error", err.Error())
 							continue

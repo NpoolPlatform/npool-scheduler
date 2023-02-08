@@ -13,11 +13,11 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230208051051-ba03a9b7c42b
+	github.com/NpoolPlatform/message v0.0.0-20230208082240-d860e643050c
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20230208052003-a3a311f354ce
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326
-	github.com/NpoolPlatform/third-middleware v0.0.0-20230206071401-5b26a4e66314
+	github.com/NpoolPlatform/third-middleware v0.0.0-20230208084110-884a582f40d6
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3

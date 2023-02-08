@@ -13,8 +13,8 @@ import (
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
 	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
-	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
-	verifyemail "github.com/NpoolPlatform/third-middleware/pkg/verify/email"
+	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
+	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
 )
 
 //nolint:gocognit
@@ -50,7 +50,7 @@ func sendNotif(ctx context.Context) {
 			langIDs = append(langIDs, val.LangID)
 			usedFors = append(usedFors, val.EventType.String())
 		}
-		templateInfos, _, err := thirdcli.GetNotifTemplates(ctx, &thirdpb.Conds{
+		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdpb.Conds{
 			AppIDs: &commonpb.StringSliceVal{
 				Op:    cruder.IN,
 				Value: appIDs,
@@ -123,7 +123,7 @@ func sendNotif(ctx context.Context) {
 				"EmailAddress",
 				user.EmailAddress,
 			)
-			err = verifyemail.SendEmailByAWS(val.Title, val.Content, template.Sender, user.EmailAddress)
+			err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, template.Sender, user.EmailAddress)
 			if err != nil {
 				logger.Sugar().Errorw("sendNotif", "error", err.Error())
 				continue
