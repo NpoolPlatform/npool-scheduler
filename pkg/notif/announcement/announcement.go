@@ -42,12 +42,13 @@ func sendAnnouncement(ctx context.Context) {
 			},
 		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
+			logger.Sugar().Errorw("sendAnnouncement", "offset", offset, "limit", limit, "error", err)
 			return
 		}
 
 		offset += limit
 		if len(aInfos) == 0 {
+			logger.Sugar().Info("There are no announcements to send within the announcement end at")
 			return
 		}
 
@@ -57,7 +58,7 @@ func sendAnnouncement(ctx context.Context) {
 			for {
 				userInfos, _, err := usercli.GetUsers(ctx, nil, uOffset, uLimit)
 				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "offset", uOffset, "limit", uLimit, "error", err)
+					logger.Sugar().Errorw("sendAnnouncement", "offset", uOffset, "limit", uLimit, "error", err)
 					return
 				}
 				uOffset += uLimit
@@ -83,12 +84,12 @@ func sendAnnouncement(ctx context.Context) {
 					},
 				})
 				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "error", err)
+					logger.Sugar().Errorw("sendAnnouncement", "error", err)
 					return
 				}
 
 				if templateInfo == nil {
-					logger.Sugar().Errorw("sendNotif", "error", "template is empty")
+					logger.Sugar().Errorw("sendAnnouncement", "error", "template is empty")
 					return
 				}
 
@@ -111,13 +112,10 @@ func sendAnnouncement(ctx context.Context) {
 					},
 				}, 0, int32(len(userIDs)))
 				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
+					logger.Sugar().Errorw("sendAnnouncement", "error", err)
 					return
 				}
 
-				if len(sendAnnou) == 0 {
-					continue
-				}
 				sendAnnouMap := map[string]*announcementpb.Announcement{}
 				for _, send := range sendAnnou {
 					sendAnnouMap[send.UserID] = val
@@ -131,7 +129,7 @@ func sendAnnouncement(ctx context.Context) {
 					if !ok {
 						err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, templateInfo.Sender, user.EmailAddress)
 						if err != nil {
-							logger.Sugar().Errorw("sendNotif", "error", err.Error())
+							logger.Sugar().Errorw("sendAnnouncement", "error", err.Error())
 							continue
 						}
 						sendInfos = append(sendInfos, &sendstatemgrpb.SendStateReq{
@@ -148,7 +146,7 @@ func sendAnnouncement(ctx context.Context) {
 				}
 				err = sendstatecli.CreateSendStates(ctx, sendInfos)
 				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "error", err.Error())
+					logger.Sugar().Errorw("sendAnnouncement", "error", err.Error())
 					return
 				}
 			}
