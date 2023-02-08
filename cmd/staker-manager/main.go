@@ -14,6 +14,7 @@ import (
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
+	thirdconst "github.com/NpoolPlatform/third-middleware/pkg/message/const"
 
 	cli "github.com/urfave/cli/v2"
 )
@@ -21,6 +22,7 @@ import (
 const serviceName = servicename.ServiceName
 
 func main() {
+
 	commands := cli.Commands{
 		runCmd,
 	}
@@ -39,6 +41,7 @@ func main() {
 		ledgerconst.ServiceName,
 		orderconst.ServiceName,
 		chainconst.ServiceName,
+		thirdconst.ServiceName,
 	)
 	if err != nil {
 		logger.Sugar().Errorf("fail to create %v: %v", serviceName, err)
