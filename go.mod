@@ -13,9 +13,8 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230207100852-6c184ce34674
-	github.com/NpoolPlatform/notif-manager v0.0.0-20230201084215-c8c4fa48042a
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20230207095634-57e4d086aa77
+	github.com/NpoolPlatform/message v0.0.0-20230208051051-ba03a9b7c42b
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20230208052003-a3a311f354ce
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230206071401-5b26a4e66314
@@ -27,6 +26,9 @@ require (
 )
 
 require (
+	github.com/NpoolPlatform/third-manager v0.0.0-20230203080533-a64bd993a6d0 // indirect
+	github.com/aws/aws-sdk-go v1.42.4 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/ugorji/go/codec v1.2.8 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
 )

@@ -22,7 +22,6 @@ import (
 const serviceName = servicename.ServiceName
 
 func main() {
-
 	commands := cli.Commands{
 		runCmd,
 	}

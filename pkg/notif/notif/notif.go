@@ -3,6 +3,7 @@ package notif
 import (
 	"context"
 	"fmt"
+
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -11,15 +12,16 @@ import (
 	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
-	notifcli "github.com/NpoolPlatform/notif-manager/pkg/client/notif"
+	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
+	verifyemail "github.com/NpoolPlatform/third-middleware/pkg/verify/email"
 )
 
+//nolint:gocognit
 func sendNotif(ctx context.Context) {
 	offset := int32(0)
 	limit := int32(5)
 	for {
-
 		notifs, _, err := notifcli.GetNotifs(ctx, &notifmgrpb.Conds{
 			Channels: &commonpb.StringSliceVal{
 				Op:    cruder.EQ,
@@ -38,8 +40,6 @@ func sendNotif(ctx context.Context) {
 		if len(notifs) == 0 {
 			return
 		}
-		fmt.Println("*****************len(notifs)")
-		fmt.Println(len(notifs))
 
 		appIDs := []string{}
 		langIDs := []string{}
@@ -106,8 +106,6 @@ func sendNotif(ctx context.Context) {
 				logger.Sugar().Errorw("sendNotif", "userID", val.UserID, "error", "user EmailAddress is empty")
 				continue
 			}
-			fmt.Println(fmt.Sprintf("%v_%v_%v", val.AppID, val.LangID, val.EventType))
-			fmt.Println(templateMap)
 			template, ok := templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, val.LangID, val.EventType)]
 			if !ok {
 				logger.Sugar().Errorw("sendNotif", "error", "template is invalid")
@@ -125,22 +123,19 @@ func sendNotif(ctx context.Context) {
 				"EmailAddress",
 				user.EmailAddress,
 			)
-			//err = verifyemail.SendEmailByAWS(val.Title, val.Content, template.Sender, user.EmailAddress)
-			//if err != nil {
-			//	logger.Sugar().Errorw("sendNotif", "error", err.Error())
-			//	continue
-			//}
+			err = verifyemail.SendEmailByAWS(val.Title, val.Content, template.Sender, user.EmailAddress)
+			if err != nil {
+				logger.Sugar().Errorw("sendNotif", "error", err.Error())
+				continue
+			}
 			ids = append(ids, val.ID)
 		}
 
-		fmt.Println("********************userIDs")
-		fmt.Println(userIDs)
-		//send := true
-		//_, err = notifcli.UpdateNotifs(ctx, ids, &send, nil)
-		//if err != nil {
-		//	logger.Sugar().Errorw("sendNotif", "error", err.Error())
-		//	return
-		//}
+		send := true
+		_, err = notifcli.UpdateNotifs(ctx, ids, &send, nil)
+		if err != nil {
+			logger.Sugar().Errorw("sendNotif", "error", err.Error())
+			return
+		}
 	}
-
 }

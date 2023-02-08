@@ -2,7 +2,17 @@ package main
 
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
-	"github.com/NpoolPlatform/staker-manager/pkg/notif"
+	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
+	"github.com/NpoolPlatform/staker-manager/pkg/currency"
+	"github.com/NpoolPlatform/staker-manager/pkg/deposit"
+	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/announcement"
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/notif"
+	"github.com/NpoolPlatform/staker-manager/pkg/order"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
+	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
+	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
@@ -25,16 +35,17 @@ var runCmd = &cli.Command{
 			}
 		}()
 
-		//go transaction.Watch(c.Context)
-		//go deposit.Watch(c.Context)
-		//go order.Watch(c.Context)
-		//go collector.Watch(c.Context)
-		//go limitation.Watch(c.Context)
-		//go withdraw.Watch(c.Context)
-		//go benefit.Watch(c.Context)
-		//go currency.Watch(c.Context)
-		//go gasfeeder.Watch(c.Context)
+		go transaction.Watch(c.Context)
+		go deposit.Watch(c.Context)
+		go order.Watch(c.Context)
+		go collector.Watch(c.Context)
+		go limitation.Watch(c.Context)
+		go withdraw.Watch(c.Context)
+		go benefit.Watch(c.Context)
+		go currency.Watch(c.Context)
+		go gasfeeder.Watch(c.Context)
 		go notif.Watch(c.Context)
+		go announcement.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},
