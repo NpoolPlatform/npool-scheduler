@@ -6,7 +6,7 @@ import (
 )
 
 func Watch(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(30 * time.Second)
 	for range ticker.C {
 		sendAnnouncement(ctx)
 	}
