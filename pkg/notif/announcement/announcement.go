@@ -2,6 +2,7 @@ package announcement
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -85,11 +86,11 @@ func sendAnnouncement(ctx context.Context) {
 				})
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err)
-					continue
+					return
 				}
 
 				if templateInfo == nil {
-					logger.Sugar().Errorw("sendAnnouncement", "error", "template is empty")
+					logger.Sugar().Errorw("sendAnnouncement", "AppID", val.AppID, "error", "template is empty")
 					continue
 				}
 
@@ -113,7 +114,7 @@ func sendAnnouncement(ctx context.Context) {
 				}, 0, int32(len(userIDs)))
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err)
-					continue
+					return
 				}
 
 				sendAnnouMap := map[string]*announcementpb.Announcement{}
@@ -124,21 +125,33 @@ func sendAnnouncement(ctx context.Context) {
 				sendInfos := []*sendstatemgrpb.SendStateReq{}
 
 				for _, user := range userInfos {
-					// check not send user
-					_, ok := sendAnnouMap[user.ID]
-					if !ok {
-						err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, templateInfo.Sender, user.EmailAddress)
-						if err != nil {
-							logger.Sugar().Errorw("sendAnnouncement", "error", err.Error())
-							continue
-						}
-						sendInfos = append(sendInfos, &sendstatemgrpb.SendStateReq{
-							AppID:          &val.AppID,
-							UserID:         &user.ID,
-							AnnouncementID: &val.AnnouncementID,
-							Channel:        &channel,
-						})
+					if !strings.Contains(user.EmailAddress, "@") {
+						continue
 					}
+
+					if _, ok := sendAnnouMap[user.ID]; ok {
+						logger.Sugar().Infow(
+							"sendAnnouncement",
+							"AppID", user.AppID,
+							"UserID", user.ID,
+							"EmailAddress", user.EmailAddress,
+							"AnnouncementID", val.AnnouncementID,
+							"State", "Sent")
+						continue
+					}
+
+					logger.Sugar().Infow("sendAnnouncement", "EmailAddress", user.EmailAddress, "AnnouncementID", val.AnnouncementID, "State", "Sending")
+					err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, templateInfo.Sender, user.EmailAddress)
+					if err != nil {
+						logger.Sugar().Errorw("sendAnnouncement", "error", err.Error(), "Sender", templateInfo.Sender, "To", user.EmailAddress)
+						return
+					}
+					sendInfos = append(sendInfos, &sendstatemgrpb.SendStateReq{
+						AppID:          &val.AppID,
+						UserID:         &user.ID,
+						AnnouncementID: &val.AnnouncementID,
+						Channel:        &channel,
+					})
 				}
 
 				if len(sendInfos) == 0 {
@@ -147,7 +160,7 @@ func sendAnnouncement(ctx context.Context) {
 				err = sendstatecli.CreateSendStates(ctx, sendInfos)
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err.Error())
-					continue
+					return
 				}
 			}
 		}
