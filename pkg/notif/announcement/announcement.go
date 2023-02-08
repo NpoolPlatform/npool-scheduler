@@ -12,6 +12,7 @@ import (
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
+	appusermgrpb "github.com/NpoolPlatform/message/npool/appuser/mgr/v2/appuser"
 	userpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 
@@ -57,7 +58,12 @@ func sendAnnouncement(ctx context.Context) {
 			uOffset := int32(0)
 			uLimit := int32(50)
 			for {
-				userInfos, _, err := usercli.GetUsers(ctx, nil, uOffset, uLimit)
+				userInfos, _, err := usercli.GetUsers(ctx, &appusermgrpb.Conds{
+					AppID: &commonpb.StringVal{
+						Op:    cruder.EQ,
+						Value: val.AppID,
+					},
+				}, uOffset, uLimit)
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "offset", uOffset, "limit", uLimit, "error", err)
 					return
