@@ -85,12 +85,12 @@ func sendAnnouncement(ctx context.Context) {
 				})
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err)
-					return
+					continue
 				}
 
 				if templateInfo == nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", "template is empty")
-					return
+					continue
 				}
 
 				sendAnnou, _, err := sendstatecli.GetSendStates(ctx, &sendstatepb.Conds{
@@ -113,7 +113,7 @@ func sendAnnouncement(ctx context.Context) {
 				}, 0, int32(len(userIDs)))
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err)
-					return
+					continue
 				}
 
 				sendAnnouMap := map[string]*announcementpb.Announcement{}
@@ -147,7 +147,7 @@ func sendAnnouncement(ctx context.Context) {
 				err = sendstatecli.CreateSendStates(ctx, sendInfos)
 				if err != nil {
 					logger.Sugar().Errorw("sendAnnouncement", "error", err.Error())
-					return
+					continue
 				}
 			}
 		}

@@ -66,12 +66,12 @@ func sendNotif(ctx context.Context) {
 		}, 0, uint32(len(appIDs)))
 		if err != nil {
 			logger.Sugar().Errorw("sendNotif", "error", err)
-			return
+			continue
 		}
 
 		if len(templateInfos) == 0 {
 			logger.Sugar().Errorw("sendNotif", "error", "Template not exist")
-			return
+			continue
 		}
 
 		templateMap := map[string]*thirdpb.NotifTemplate{}
@@ -87,7 +87,7 @@ func sendNotif(ctx context.Context) {
 		userInfos, _, err := usercli.GetManyUsers(ctx, userIDs)
 		if err != nil {
 			logger.Sugar().Errorw("sendNotif", "error", err)
-			return
+			continue
 		}
 
 		userMap := map[string]*userpb.User{}
@@ -135,7 +135,7 @@ func sendNotif(ctx context.Context) {
 		_, err = notifcli.UpdateNotifs(ctx, ids, &send, nil)
 		if err != nil {
 			logger.Sugar().Errorw("sendNotif", "error", err.Error())
-			return
+			continue
 		}
 	}
 }
