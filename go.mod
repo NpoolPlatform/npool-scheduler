@@ -26,9 +26,6 @@ require (
 )
 
 require (
-	github.com/NpoolPlatform/third-manager v0.0.0-20230203080533-a64bd993a6d0 // indirect
-	github.com/aws/aws-sdk-go v1.42.4 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/ugorji/go/codec v1.2.8 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
 )
