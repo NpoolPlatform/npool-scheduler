@@ -381,8 +381,57 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	}
 
 	_, err = depositmwcli.UpdateAccount(ctx, req)
+
 	return err
 }
+
+//
+// func createNotif(
+//	ctx context.Context,
+//	appID, userID, langID, message string,
+// ) {
+//	eventType := notifmgrpb.EventType_WithdrawalCompleted
+//	templateInfo, err := thirdtempcli.GetNotifTemplateOnly(ctx, &thirdtempmgrpb.Conds{
+//		AppID: &commonpb.StringVal{
+//			Op:    cruder.EQ,
+//			Value: appID,
+//		},
+//		LangID: &commonpb.StringVal{
+//			Op:    cruder.EQ,
+//			Value: langID,
+//		},
+//		UsedFor: &commonpb.Uint32Val{
+//			Op:    cruder.EQ,
+//			Value: uint32(eventType.Number()),
+//		},
+//	})
+//	if err != nil {
+//		logger.Sugar().Errorw("sendNotif", "error", err.Error())
+//		return
+//	}
+//	if templateInfo == nil {
+//		logger.Sugar().Errorw("sendNotif", "error", "template not exist")
+//		return
+//	}
+//
+//	content := thirdpkg.ReplaceVariable(templateInfo.Content, nil, &message)
+//	useTemplate := true
+//
+//	_, err = notifcli.CreateNotif(ctx, &notifmgrpb.NotifReq{
+//		AppID:       &appID,
+//		UserID:      &userID,
+//		LangID:      &langID,
+//		EventType:   &eventType,
+//		UseTemplate: &useTemplate,
+//		Title:       &templateInfo.Title,
+//		Content:     &content,
+//		Channels:    []channelpb.NotifChannel{channelpb.NotifChannel_ChannelEmail},
+//	})
+//	if err != nil {
+//		logger.Sugar().Errorw("sendNotif", "error", err.Error())
+//		return
+//	}
+//}
 
 func finish(ctx context.Context) {
 	offset := int32(0)

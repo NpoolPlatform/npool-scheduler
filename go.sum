@@ -74,11 +74,11 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9 h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9/go.mod h1:nmVvmSGYuOBGZ4RWeTZ8ny5Kw6Nx8uwQPblmJ/x1wYs=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQOJ0xQWdJS1BnimNdM6GZMLgTL/FnIa8C8K4xffUA=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
-github.com/NpoolPlatform/message v0.0.0-20230208142316-c87f65e74c2b h1:87VW3Pb1PSB+SHADfTHOMDASNrLeemx7sKWSmNDBOqo=
-github.com/NpoolPlatform/message v0.0.0-20230208142316-c87f65e74c2b/go.mod h1:rjcy4JIYNxopG3TRl9C9hf1iJjAIit+iUKASn48UWks=
-github.com/NpoolPlatform/notif-manager v0.0.0-20230208142527-65ce83e06159 h1:ZvPR3VqN8fcvApbq2nKJUyFICbS1GhsOZkpEdgT/0LU=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20230208143257-6c3368b64221 h1:BI2o3PYdhRSBRT59DlSnVko7DpHMiQE3jitBKqPwjWo=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20230208143257-6c3368b64221/go.mod h1:M/245rkANvFsegU20chmxr0KUVFG4UnnZxUyp77IItw=
+github.com/NpoolPlatform/message v0.0.0-20230209122422-bb951138eee7 h1:eEiW4/umz7sieA1V+nKt4yO3eZIrUhrQooRnNCeQvK8=
+github.com/NpoolPlatform/message v0.0.0-20230209122422-bb951138eee7/go.mod h1:rjcy4JIYNxopG3TRl9C9hf1iJjAIit+iUKASn48UWks=
+github.com/NpoolPlatform/notif-manager v0.0.0-20230209103829-57a2ea77c743 h1:5/hoqInSQZ/Pb/uD17XfIzUgoxRiFP/9oJTMv+aGqwQ=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20230209115639-4a5ae9732d4f h1:KWrusHjVhMu0wRjYTFDZMUoftr1CCuJj9TFIRyTrjrs=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20230209115639-4a5ae9732d4f/go.mod h1:8loLrQ3DiH3bs9ijGsqaIjhhU0asIsqaXpEGBL7e8dc=
 github.com/NpoolPlatform/order-manager v0.0.0-20230111061107-a2737f006192 h1:J5IQVT9N//7R2DUvmwlkDOfi/YPgNSJCxVw8sqCj6uc=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282 h1:hDUJNRdE1uAsPHPgfXF9XIExijrEqGu7ZniwnzILJZE=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282/go.mod h1:qDWHtPeyRpc+RLr2ACuf/fX1r/qhJ2pWVRReHu8yEKw=
