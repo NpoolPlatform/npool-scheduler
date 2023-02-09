@@ -59,6 +59,8 @@ func sendAnnouncement(ctx context.Context) {
 		}
 
 		for _, val := range aInfos {
+			logger.Sugar().Infow("sendAnnouncement", "ID", val.AnnouncementID, "EndAt", val.EndAt, "EndAt", endAt)
+
 			uOffset := int32(0)
 			uLimit := int32(50)
 			for {

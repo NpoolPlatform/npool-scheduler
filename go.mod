@@ -13,11 +13,11 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230208142316-c87f65e74c2b
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20230208143257-6c3368b64221
+	github.com/NpoolPlatform/message v0.0.0-20230209074436-e3b9e6795a0d
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20230209090715-6d6f6c8f5489
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326
-	github.com/NpoolPlatform/third-middleware v0.0.0-20230208140927-98e3a1ab5ac5
+	github.com/NpoolPlatform/third-middleware v0.0.0-20230209085526-ed17969c16ba
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3
@@ -26,9 +26,10 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute v1.14.0 // indirect
 	github.com/ugorji/go/codec v1.2.8 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 )
 
 require (
@@ -42,7 +43,7 @@ require (
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/coocood/freecache v1.0.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
