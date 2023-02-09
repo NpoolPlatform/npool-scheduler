@@ -42,6 +42,10 @@ func sendAnnouncement(ctx context.Context) {
 				Op:    cruder.GT,
 				Value: endAt,
 			},
+			Channels: &commonpb.StringSliceVal{
+				Op:    cruder.IN,
+				Value: []string{channel.String()},
+			},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("sendAnnouncement", "offset", offset, "limit", limit, "error", err)
