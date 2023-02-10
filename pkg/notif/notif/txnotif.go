@@ -37,7 +37,9 @@ func sendTxNotif(ctx context.Context) {
 			return
 		}
 		offset += limit
-
+		if len(txNotifs) == 0 {
+			return
+		}
 		txNotifMap := map[string]*txnotifmgrpb.TxNotifState{}
 		txIDs := []string{}
 		for _, val := range txNotifs {
@@ -62,7 +64,9 @@ func sendTxNotif(ctx context.Context) {
 					logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
 					return
 				}
-
+				if accountInfo == nil {
+					continue
+				}
 				extra := fmt.Sprintf(`{"TxID":"%v","AccountId":"%v"}`, val.ID, accountInfo.ID)
 
 				CreateNotif(
