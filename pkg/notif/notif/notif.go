@@ -132,7 +132,10 @@ func sendNotif(ctx context.Context) {
 				continue
 			}
 			if mainLang == nil {
-				logger.Sugar().Errorw("sendNotif", "error", "MainLang is invalid")
+				logger.Sugar().Errorw(
+					"sendNotif",
+					"AppID", val.AppID,
+					"error", "MainLang is invalid")
 				continue
 			}
 

@@ -14,7 +14,8 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
-	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
+	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
+	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
 )
 
 //nolint:gocognit
@@ -58,41 +59,47 @@ func sendTxNotif(ctx context.Context) {
 			return
 		}
 		for _, val := range txInfos {
-			if val.State == txmgrpb.TxState_StateSuccessful {
-				accountInfo, err := accountmwcli.GetAccount(ctx, val.ToAccountID)
-				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
-					return
-				}
-				if accountInfo == nil {
-					continue
-				}
-				extra := fmt.Sprintf(`{"TxID":"%v","AccountId":"%v"}`, val.ID, accountInfo.ID)
+			if val.State != txmgrpb.TxState_StateSuccessful {
+				continue
+			}
 
-				CreateNotif(
-					ctx,
-					accountInfo.AppID,
-					accountInfo.UserID,
-					&val.Amount,
-					&val.CoinUnit,
-					&accountInfo.Address,
-					notifmgrpb.EventType_WithdrawalCompleted,
-					extra,
-				)
-				txNotif, ok := txNotifMap[val.ID]
-				if !ok {
-					logger.Sugar().Errorw("sendNotif", "error", "txNotifMap not exist", "TxID", val.ID)
-					continue
-				}
-				state := txnotifmgrpb.TxState_AlreadySend
-				_, err = txnotifcli.UpdateTxNotifState(ctx, &txnotifmgrpb.TxNotifStateReq{
-					ID:         &txNotif.ID,
-					NotifState: &state,
-				})
-				if err != nil {
-					logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
-					return
-				}
+			accountInfo, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
+				AccountID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: val.ToAccountID,
+				},
+			})
+			if err != nil {
+				continue
+			}
+			if accountInfo == nil {
+				continue
+			}
+			extra := fmt.Sprintf(`{"TxID":"%v","AccountId":"%v"}`, val.ID, accountInfo.ID)
+
+			CreateNotif(
+				ctx,
+				accountInfo.AppID,
+				accountInfo.UserID,
+				&val.Amount,
+				&val.CoinUnit,
+				&accountInfo.Address,
+				notifmgrpb.EventType_WithdrawalCompleted,
+				extra,
+			)
+			txNotif, ok := txNotifMap[val.ID]
+			if !ok {
+				logger.Sugar().Errorw("sendNotif", "error", "txNotifMap not exist", "TxID", val.ID)
+				continue
+			}
+			state := txnotifmgrpb.TxState_AlreadySend
+			_, err = txnotifcli.UpdateTxNotifState(ctx, &txnotifmgrpb.TxNotifStateReq{
+				ID:         &txNotif.ID,
+				NotifState: &state,
+			})
+			if err != nil {
+				logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
+				return
 			}
 		}
 	}
