@@ -4,8 +4,9 @@ package deposit
 import (
 	"context"
 	"fmt"
-	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	"time"
+
+	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
 	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"

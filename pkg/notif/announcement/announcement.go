@@ -141,7 +141,7 @@ func sendEmail(
 		},
 	})
 	if err != nil {
-		logger.Sugar().Errorw("sendAnnouncement", "error", err)
+		logger.Sugar().Errorw("sendAnnouncement", "AppID", info.AppID, "error", err)
 		return
 	}
 

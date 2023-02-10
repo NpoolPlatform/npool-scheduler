@@ -8,7 +8,7 @@ require (
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230206080604-a06853e52ec1
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20221228013048-951da3e0461c
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230112023546-afc372a2351e
-	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230112023858-4ed161248e8f
+	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230210022028-e26b6f3a83dc
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230111062156-9d26cfe25c94
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
@@ -27,9 +27,10 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute v1.14.0 // indirect
 	github.com/ugorji/go/codec v1.2.8 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 )
 
 require (
@@ -43,7 +44,7 @@ require (
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/coocood/freecache v1.0.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
