@@ -94,22 +94,22 @@ func appointUsersType(ctx context.Context, info *announcementpb.Announcement) {
 			logger.Sugar().Errorw("sendAnnouncement", "offset", uOffset, "limit", uLimit, "error", err)
 			return
 		}
-
+		uOffset += uLimit
 		if len(uAInfos) == 0 {
 			break
 		}
 
-		userID := []string{}
+		userIDs := []string{}
 		for _, val := range uAInfos {
-			userID = append(userID, val.UserID)
+			userIDs = append(userIDs, val.UserID)
 		}
 
-		userInfos, _, err := usercli.GetManyUsers(ctx, userID)
+		userInfos, _, err := usercli.GetManyUsers(ctx, userIDs)
 		if err != nil {
 			logger.Sugar().Errorw("sendAnnouncement", "offset", uOffset, "limit", uLimit, "error", err)
 			return
 		}
-		uOffset += uLimit
+
 		if len(userInfos) == 0 {
 			continue
 		}
