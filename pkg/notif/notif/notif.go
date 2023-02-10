@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
+	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
+
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -106,9 +109,35 @@ func sendNotif(ctx context.Context) {
 				logger.Sugar().Errorw("sendNotif", "userID", val.UserID, "error", "user EmailAddress is empty")
 				continue
 			}
-			template, ok := templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, val.LangID, val.EventType)]
+
+			mainLangID, err := g11ncli.GetLangOnly(ctx, &g11npb.Conds{
+				AppID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: val.AppID,
+				},
+				Main: &commonpb.BoolVal{
+					Op:    cruder.EQ,
+					Value: true,
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorw("sendNotif", "error", "mainLangID is invalid")
+				continue
+			}
+
+			template, ok := templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, mainLangID.LangID, val.EventType)]
 			if !ok {
-				logger.Sugar().Errorw("sendNotif", "error", "template is invalid")
+				logger.Sugar().Errorw(
+					"sendNotif",
+					"error",
+					"AppID",
+					val.AppID,
+					"Main LangID",
+					mainLangID.LangID,
+					"EventType",
+					val.EventType,
+					"template is invalid",
+				)
 				continue
 			}
 
