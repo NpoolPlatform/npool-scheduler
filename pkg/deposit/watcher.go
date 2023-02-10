@@ -117,7 +117,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Deposit
 
-	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+	err = ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &acc.AppID,
 		UserID:     &acc.UserID,
 		CoinTypeID: &acc.CoinTypeID,
@@ -126,6 +126,13 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	})
+	if err != nil {
+		return err
+	}
+
+	createNotif(ctx, acc.AppID, acc.UserID, &amount, &coin.FeeCoinUnit)
+
+	return nil
 }
 
 func deposit(ctx context.Context) {
@@ -305,8 +312,6 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
-	createNotif(ctx, acc.AppID, acc.UserID, &amountS, &coin.FeeCoinUnit)
-
 	return nil
 }
 
@@ -415,7 +420,7 @@ func createNotif(
 	offset := uint32(0)
 	limit := uint32(1000)
 	for {
-		eventType := notifmgrpb.EventType_WithdrawalCompleted
+		eventType := notifmgrpb.EventType_DepositReceived
 		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdtempmgrpb.Conds{
 			AppID: &commonpb.StringVal{
 				Op:    cruder.EQ,
