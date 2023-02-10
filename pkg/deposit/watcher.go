@@ -430,6 +430,7 @@ func createNotif(
 			logger.Sugar().Errorw("sendNotif", "error", err.Error())
 			return
 		}
+		offset += limit
 		if len(templateInfos) == 0 {
 			logger.Sugar().Errorw("sendNotif", "error", "template not exist")
 			return
