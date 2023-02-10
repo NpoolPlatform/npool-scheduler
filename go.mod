@@ -18,7 +18,7 @@ require (
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20230210073458-ac185a708ade
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20221216051435-3c588d703326
-	github.com/NpoolPlatform/third-middleware v0.0.0-20230210074609-7c04b865c4eb
+	github.com/NpoolPlatform/third-middleware v0.0.0-20230210114815-382a52464e27
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3

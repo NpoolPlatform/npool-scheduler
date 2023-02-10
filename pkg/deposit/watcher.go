@@ -398,14 +398,14 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	_, err = depositmwcli.UpdateAccount(ctx, req)
 
-	message := fmt.Sprintf("%v %v", outcoming.String(), coin.FeeCoinUnit)
-	createNotif(ctx, acc.AppID, acc.UserID, message)
+	createNotif(ctx, acc.AppID, acc.UserID, req.Outcoming, &coin.FeeCoinUnit)
 	return err
 }
 
 func createNotif(
 	ctx context.Context,
-	appID, userID, message string,
+	appID, userID string,
+	amount, coinUnit *string,
 ) {
 	offset := uint32(0)
 	limit := uint32(1000)
@@ -431,11 +431,12 @@ func createNotif(
 		}
 
 		notifReq := []*notifmgrpb.NotifReq{}
-		content := ""
 		useTemplate := true
+		date := time.Now().Format("2006-01-02")
+		time1 := time.Now().Format("15:04:05")
 
 		for _, val := range templateInfos {
-			content = thirdpkg.ReplaceVariable(val.Content, nil, &message)
+			content := thirdpkg.ReplaceVariable(val.Content, nil, nil, amount, coinUnit, &date, &time1, nil)
 			notifReq = append(notifReq, &notifmgrpb.NotifReq{
 				AppID:       &appID,
 				UserID:      &userID,
