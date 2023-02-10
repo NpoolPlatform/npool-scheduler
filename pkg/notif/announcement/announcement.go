@@ -61,7 +61,6 @@ func sendAnnouncement(ctx context.Context) {
 
 		offset += limit
 		if len(aInfos) == 0 {
-			logger.Sugar().Info("There are no announcements to send within the announcement end at")
 			return
 		}
 
@@ -95,6 +94,7 @@ func appointUsersType(ctx context.Context, info *announcementpb.Announcement) {
 			return
 		}
 		uOffset += uLimit
+
 		if len(uAInfos) == 0 {
 			break
 		}
@@ -206,6 +206,11 @@ func sendEmail(
 
 	for _, user := range userInfos {
 		if !strings.Contains(user.EmailAddress, "@") {
+			logger.Sugar().Errorw("sendAnnouncement",
+				"AppID", user.AppID,
+				"UserID", user.ID,
+				"PhoneNO", user.PhoneNO,
+				"EmailAddress", user.EmailAddress)
 			continue
 		}
 
@@ -216,11 +221,19 @@ func sendEmail(
 				"UserID", user.ID,
 				"EmailAddress", user.EmailAddress,
 				"AnnouncementID", info.AnnouncementID,
+				"AnnoucementType", info.AnnouncementType,
 				"State", "Sent")
 			continue
 		}
 
-		logger.Sugar().Infow("sendAnnouncement", "EmailAddress", user.EmailAddress, "AnnouncementID", info.AnnouncementID, "State", "Sending")
+		logger.Sugar().Infow(
+			"sendAnnouncement",
+			"AppID", user.AppID,
+			"UserID", user.ID,
+			"EmailAddress", user.EmailAddress,
+			"AnnouncementID", info.AnnouncementID,
+			"AnnoucementType", info.AnnouncementType,
+			"State", "Sending")
 		err = thirdcli.SendNotifEmail(ctx, info.Title, info.Content, templateInfo.Sender, user.EmailAddress)
 		if err != nil {
 			logger.Sugar().Errorw("sendAnnouncement", "error", err.Error(), "Sender", templateInfo.Sender, "To", user.EmailAddress)
@@ -232,6 +245,8 @@ func sendEmail(
 			AnnouncementID: &info.AnnouncementID,
 			Channel:        &channel,
 		})
+
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	if len(sendInfos) == 0 {
