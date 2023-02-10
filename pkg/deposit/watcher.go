@@ -6,17 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
-
-	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
-	thirdtempmgrpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
-	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
-	thirdpkg "github.com/NpoolPlatform/third-middleware/pkg/template/notif"
-
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 
 	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
@@ -412,61 +405,6 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	_, err = depositmwcli.UpdateAccount(ctx, req)
 
 	return err
-}
-
-func createNotif(
-	ctx context.Context,
-	appID, userID string,
-	amount, coinUnit *string,
-) {
-	offset := uint32(0)
-	limit := uint32(1000)
-	for {
-		eventType := notifmgrpb.EventType_DepositReceived
-		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdtempmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: appID,
-			},
-			UsedFor: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(eventType.Number()),
-			},
-		}, offset, limit)
-		if err != nil {
-			logger.Sugar().Errorw("sendNotif", "error", err.Error())
-			return
-		}
-		offset += limit
-		if len(templateInfos) == 0 {
-			return
-		}
-
-		notifReq := []*notifmgrpb.NotifReq{}
-		useTemplate := true
-		date := time.Now().Format("2006-01-02")
-		time1 := time.Now().Format("15:04:05")
-
-		for _, val := range templateInfos {
-			content := thirdpkg.ReplaceVariable(val.Content, nil, nil, amount, coinUnit, &date, &time1, nil)
-			notifReq = append(notifReq, &notifmgrpb.NotifReq{
-				AppID:       &appID,
-				UserID:      &userID,
-				LangID:      &val.LangID,
-				EventType:   &eventType,
-				UseTemplate: &useTemplate,
-				Title:       &val.Title,
-				Content:     &content,
-				Channels:    []channelpb.NotifChannel{channelpb.NotifChannel_ChannelEmail},
-			})
-		}
-
-		_, err = notifcli.CreateNotifs(ctx, notifReq)
-		if err != nil {
-			logger.Sugar().Errorw("sendNotif", "error", err.Error())
-			return
-		}
-	}
 }
 
 func finish(ctx context.Context) {

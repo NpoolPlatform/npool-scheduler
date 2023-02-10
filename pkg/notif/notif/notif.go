@@ -17,7 +17,6 @@ import (
 	userpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
-	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
 	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
 
@@ -140,10 +139,10 @@ func sendNotif(ctx context.Context) {
 			}
 
 			appIDs = append(appIDs, val.AppID)
-			langIDs = append(appIDs, mainLang.LangID)
+			langIDs = append(appIDs, mainLang.LangID) //nolint
 			usedFors = append(usedFors, val.EventType.String())
 		}
-		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdpb.Conds{
+		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdtempmgrpb.Conds{
 			AppIDs: &commonpb.StringSliceVal{
 				Op:    cruder.IN,
 				Value: appIDs,
@@ -167,7 +166,7 @@ func sendNotif(ctx context.Context) {
 			continue
 		}
 
-		templateMap := map[string]*thirdpb.NotifTemplate{}
+		templateMap := map[string]*thirdtempmgrpb.NotifTemplate{}
 
 		for _, val := range templateInfos {
 			templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, val.LangID, val.UsedFor)] = val

@@ -3,6 +3,7 @@ package notif
 import (
 	"context"
 	"fmt"
+
 	txnotifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/txnotifstate"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
