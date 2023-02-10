@@ -2,7 +2,6 @@ package announcement
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -31,6 +30,9 @@ import (
 	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
 	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
+
+	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
+	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
 )
 
 var channel = channelpb.NotifChannel_ChannelEmail
@@ -56,9 +58,6 @@ func sendAnnouncement(ctx context.Context) {
 			logger.Sugar().Errorw("sendAnnouncement", "offset", offset, "limit", limit, "error", err)
 			return
 		}
-
-		fmt.Println("***********aInfos")
-		fmt.Println(aInfos)
 
 		offset += limit
 		if len(aInfos) == 0 {
@@ -129,6 +128,26 @@ func sendEmail(
 	for _, user := range userInfos {
 		userIDs = append(userIDs, user.ID)
 		userMap[user.ID] = user
+	}
+
+	mainLangID, err := g11ncli.GetLangOnly(ctx, &g11npb.Conds{
+		AppID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: info.AppID,
+		},
+		Main: &commonpb.BoolVal{
+			Op:    cruder.EQ,
+			Value: true,
+		},
+	})
+	if err != nil {
+		logger.Sugar().Errorw("sendAnnouncement", "error", err)
+		return
+	}
+
+	if mainLangID == nil {
+		logger.Sugar().Errorw("sendAnnouncement", "AppID", info.AppID, "error", "main langID is empty")
+		return
 	}
 
 	templateInfo, err := thirdtempcli.GetNotifTemplateOnly(ctx, &thirdpb.Conds{
