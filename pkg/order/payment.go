@@ -521,7 +521,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	dueAmount := amount.Add(startAmount).String()
 	logger.Sugar().Infow("processFakeOrder", "order", order.ID, "payment",
-		order.ID, "coin", coin.Name, "startAmount", order.PaymentStartAmount,
+		order.PaymentID, "coin", coin.Name, "startAmount", order.PaymentStartAmount,
 		"finishAmount", order.PaymentFinishAmount, "amount", order.PaymentAmount,
 		"dueAmount", dueAmount, "state", order.PaymentState,
 		"newState", state, "newOrderState", orderState,
