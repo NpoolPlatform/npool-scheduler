@@ -3,11 +3,12 @@ package notif
 import (
 	"context"
 	"fmt"
-	thirdpkg "github.com/NpoolPlatform/third-middleware/pkg/template/notif"
+	"strings"
 	"time"
 
 	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
 	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
+	thirdpkg "github.com/NpoolPlatform/third-middleware/pkg/template/notif"
 
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -103,6 +104,9 @@ func sendNotif(ctx context.Context) {
 			logger.Sugar().Errorw("sendNotif", "offset", offset, "limit", limit, "error", err)
 			return
 		}
+
+		logger.Sugar().Infow("sendNotif", "Notifs", len(notifs), "Offset", offset, "Limit", limit)
+
 		offset += limit
 		if len(notifs) == 0 {
 			return
@@ -113,8 +117,27 @@ func sendNotif(ctx context.Context) {
 		usedFors := []string{}
 
 		for _, val := range notifs {
+			mainLang, err := g11ncli.GetLangOnly(ctx, &g11npb.Conds{
+				AppID: &commonpb.StringVal{
+					Op:    cruder.EQ,
+					Value: val.AppID,
+				},
+				Main: &commonpb.BoolVal{
+					Op:    cruder.EQ,
+					Value: true,
+				},
+			})
+			if err != nil {
+				logger.Sugar().Errorw("sendNotif", "error", err)
+				continue
+			}
+			if mainLang == nil {
+				logger.Sugar().Errorw("sendNotif", "error", "MainLang is invalid")
+				continue
+			}
+
 			appIDs = append(appIDs, val.AppID)
-			langIDs = append(langIDs, val.LangID)
+			langIDs = append(appIDs, mainLang.LangID)
 			usedFors = append(usedFors, val.EventType.String())
 		}
 		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdpb.Conds{
@@ -137,7 +160,7 @@ func sendNotif(ctx context.Context) {
 		}
 
 		if len(templateInfos) == 0 {
-			logger.Sugar().Errorw("sendNotif", "error", "Template not exist")
+			logger.Sugar().Errorw("sendNotif", "error", "template not exist")
 			continue
 		}
 
@@ -169,52 +192,29 @@ func sendNotif(ctx context.Context) {
 				logger.Sugar().Errorw("sendNotif", "error", "user is invalid")
 				continue
 			}
-			if user.EmailAddress == "" {
-				logger.Sugar().Errorw("sendNotif", "userID", val.UserID, "error", "user EmailAddress is empty")
+			if !strings.Contains(user.EmailAddress, "@") {
+				logger.Sugar().Errorw("sendNotif", "userID", val.UserID)
 				continue
 			}
 
-			mainLangID, err := g11ncli.GetLangOnly(ctx, &g11npb.Conds{
-				AppID: &commonpb.StringVal{
-					Op:    cruder.EQ,
-					Value: val.AppID,
-				},
-				Main: &commonpb.BoolVal{
-					Op:    cruder.EQ,
-					Value: true,
-				},
-			})
-			if err != nil {
-				logger.Sugar().Errorw("sendNotif", "error", "mainLangID is invalid")
-				continue
-			}
-
-			template, ok := templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, mainLangID.LangID, val.EventType)]
+			template, ok := templateMap[fmt.Sprintf("%v_%v_%v", val.AppID, val.LangID, val.EventType)]
 			if !ok {
 				logger.Sugar().Errorw(
 					"sendNotif",
-					"error",
-					"AppID",
-					val.AppID,
-					"Main LangID",
-					mainLangID.LangID,
-					"EventType",
-					val.EventType,
-					"template is invalid",
+					"AppID", val.AppID,
+					"MainLangID", val.LangID,
+					"EventType", val.EventType,
+					"Error", "template is invalid or not main lang",
 				)
 				continue
 			}
 
 			logger.Sugar().Infow(
 				"sendNotif",
-				"Title",
-				val.Title,
-				"Content",
-				val.Content,
-				"Sender",
-				template.Sender,
-				"EmailAddress",
-				user.EmailAddress,
+				"Title", val.Title,
+				"Content", val.Content,
+				"Sender", template.Sender,
+				"EmailAddress", user.EmailAddress,
 			)
 			err = thirdcli.SendNotifEmail(ctx, val.Title, val.Content, template.Sender, user.EmailAddress)
 			if err != nil {
@@ -222,6 +222,10 @@ func sendNotif(ctx context.Context) {
 				continue
 			}
 			ids = append(ids, val.ID)
+		}
+
+		if len(ids) == 0 {
+			continue
 		}
 
 		send := true
