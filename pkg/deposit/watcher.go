@@ -45,6 +45,8 @@ import (
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	"github.com/shopspring/decimal"
+
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/notif"
 )
 
 func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
@@ -130,7 +132,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
-	createNotif(ctx, acc.AppID, acc.UserID, &amount, &coin.FeeCoinUnit)
+	notif.CreateNotif(ctx, acc.AppID, acc.UserID, &amount, &coin.Unit, &acc.Address, notifmgrpb.EventType_DepositReceived, "")
 
 	return nil
 }

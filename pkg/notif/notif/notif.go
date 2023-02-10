@@ -3,6 +3,8 @@ package notif
 import (
 	"context"
 	"fmt"
+	thirdpkg "github.com/NpoolPlatform/third-middleware/pkg/template/notif"
+	"time"
 
 	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
 	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
@@ -17,8 +19,70 @@ import (
 	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
 	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
+
+	thirdtempmgrpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
 	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
 )
+
+func CreateNotif(
+	ctx context.Context,
+	appID, userID string,
+	amount, coinUnit, address *string,
+	eventType notifmgrpb.EventType,
+	extra string,
+) {
+	offset := uint32(0)
+	limit := uint32(1000)
+	for {
+		templateInfos, _, err := thirdtempcli.GetNotifTemplates(ctx, &thirdtempmgrpb.Conds{
+			AppID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: appID,
+			},
+			UsedFor: &commonpb.Uint32Val{
+				Op:    cruder.EQ,
+				Value: uint32(eventType.Number()),
+			},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("sendNotif", "error", err.Error())
+			return
+		}
+		offset += limit
+		if len(templateInfos) == 0 {
+			logger.Sugar().Errorw("sendNotif", "error", "template not exist")
+			return
+		}
+
+		notifReq := []*notifmgrpb.NotifReq{}
+		useTemplate := true
+		date := time.Now().Format("2006-01-02")
+		time1 := time.Now().Format("15:04:05")
+
+		for _, val := range templateInfos {
+			content := thirdpkg.ReplaceVariable(val.Content, nil, nil, amount, coinUnit, &date, &time1, address)
+			notifReq = append(notifReq, &notifmgrpb.NotifReq{
+				AppID:       &appID,
+				UserID:      &userID,
+				AlreadyRead: nil,
+				LangID:      &val.LangID,
+				EventType:   &eventType,
+				UseTemplate: &useTemplate,
+				Title:       &val.Title,
+				Content:     &content,
+				Channels:    []channelpb.NotifChannel{channelpb.NotifChannel_ChannelEmail},
+				EmailSend:   nil,
+				Extra:       &extra,
+			})
+		}
+
+		_, err = notifcli.CreateNotifs(ctx, notifReq)
+		if err != nil {
+			logger.Sugar().Errorw("sendNotif", "error", err.Error())
+			return
+		}
+	}
+}
 
 //nolint:gocognit
 func sendNotif(ctx context.Context) {
