@@ -155,6 +155,10 @@ func sendEmail(
 			Op:    cruder.EQ,
 			Value: info.AppID,
 		},
+		LangID: &commonpb.StringVal{
+			Op:    cruder.EQ,
+			Value: mainLangID.LangID,
+		},
 		UsedFor: &commonpb.Uint32Val{
 			Op:    cruder.EQ,
 			Value: uint32(notifmgrpb.EventType_Announcement),
