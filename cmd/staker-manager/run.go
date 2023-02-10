@@ -3,19 +3,20 @@ package main
 import (
 	"github.com/NpoolPlatform/staker-manager/api"
 	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
+	"github.com/NpoolPlatform/staker-manager/pkg/currency"
 	"github.com/NpoolPlatform/staker-manager/pkg/deposit"
 	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/announcement"
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/notif"
 	"github.com/NpoolPlatform/staker-manager/pkg/order"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
 	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
+	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	currency "github.com/NpoolPlatform/staker-manager/pkg/currency"
-
-	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	cli "github.com/urfave/cli/v2"
@@ -43,6 +44,8 @@ var runCmd = &cli.Command{
 		go benefit.Watch(c.Context)
 		go currency.Watch(c.Context)
 		go gasfeeder.Watch(c.Context)
+		go notif.Watch(c.Context)
+		go announcement.Watch(c.Context)
 
 		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
 	},

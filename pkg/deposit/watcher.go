@@ -10,6 +10,7 @@ import (
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 
 	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
@@ -38,6 +39,8 @@ import (
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
 	"github.com/shopspring/decimal"
+
+	"github.com/NpoolPlatform/staker-manager/pkg/notif/notif"
 )
 
 func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
@@ -110,7 +113,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Deposit
 
-	return ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
+	err = ledgermwcli.BookKeeping(ctx, &ledgerdetailpb.DetailReq{
 		AppID:      &acc.AppID,
 		UserID:     &acc.UserID,
 		CoinTypeID: &acc.CoinTypeID,
@@ -119,6 +122,13 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		Amount:     &amount,
 		IOExtra:    &ioExtra,
 	})
+	if err != nil {
+		return err
+	}
+
+	notif.CreateNotif(ctx, acc.AppID, acc.UserID, &amount, &coin.Unit, &acc.Address, notifmgrpb.EventType_DepositReceived, "")
+
+	return nil
 }
 
 func deposit(ctx context.Context) {
@@ -314,7 +324,11 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 		LockedBy:      &lockedBy,
 		CollectingTID: &tx.ID,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func transfer(ctx context.Context) {
@@ -362,6 +376,14 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return nil
 	}
 
+	coin, err := coinmwcli.GetCoin(ctx, tx.CoinTypeID)
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return nil
+	}
+
 	outcoming := decimal.NewFromInt(0)
 
 	switch tx.State {
@@ -402,6 +424,7 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	}
 
 	_, err = depositmwcli.UpdateAccount(ctx, req)
+
 	return err
 }
 
