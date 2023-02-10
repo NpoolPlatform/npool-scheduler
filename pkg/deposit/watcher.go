@@ -301,7 +301,13 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		LockedBy:      &lockedBy,
 		CollectingTID: &tx.ID,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	createNotif(ctx, acc.AppID, acc.UserID, &amountS, &coin.FeeCoinUnit)
+
+	return nil
 }
 
 func transfer(ctx context.Context) {
@@ -398,7 +404,6 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	_, err = depositmwcli.UpdateAccount(ctx, req)
 
-	createNotif(ctx, acc.AppID, acc.UserID, req.Outcoming, &coin.FeeCoinUnit)
 	return err
 }
 
