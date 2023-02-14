@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
-
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	appusermgrpb "github.com/NpoolPlatform/message/npool/appuser/mgr/v2/appuser"
@@ -27,9 +27,9 @@ import (
 	sendstatepb "github.com/NpoolPlatform/message/npool/notif/mw/v1/announcement/sendstate"
 	sendstatecli "github.com/NpoolPlatform/notif-middleware/pkg/client/announcement/sendstate"
 
-	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/notif"
+	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/email"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
-	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/notif"
+	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/email"
 
 	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
 	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
@@ -150,7 +150,7 @@ func sendEmail(
 		return
 	}
 
-	templateInfo, err := thirdtempcli.GetNotifTemplateOnly(ctx, &thirdpb.Conds{
+	templateInfo, err := thirdtempcli.GetEmailTemplateOnly(ctx, &thirdpb.Conds{
 		AppID: &commonpb.StringVal{
 			Op:    cruder.EQ,
 			Value: info.AppID,
@@ -159,9 +159,9 @@ func sendEmail(
 			Op:    cruder.EQ,
 			Value: mainLangID.LangID,
 		},
-		UsedFor: &commonpb.Uint32Val{
+		UsedFor: &commonpb.Int32Val{
 			Op:    cruder.EQ,
-			Value: uint32(notifmgrpb.EventType_Announcement),
+			Value: int32(usedfor.UsedFor_Announcement),
 		},
 	})
 	if err != nil {
