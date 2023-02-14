@@ -34,11 +34,6 @@ import (
 	smscli "github.com/NpoolPlatform/third-middleware/pkg/client/template/sms"
 )
 
-var (
-	date  = time.Now().Format("2006-01-02")
-	time1 = time.Now().Format("15:04:05")
-)
-
 func CreateNotif(
 	ctx context.Context,
 	appID, userID, extra string,
@@ -120,7 +115,10 @@ func createFrontendNotif(
 		if len(templateInfos) == 0 {
 			break
 		}
+
 		useTemplate := true
+		date := time.Now().Format("2006-01-02")
+		time1 := time.Now().Format("15:04:05")
 
 		for _, val := range templateInfos {
 			content := thirdpkg.ReplaceVariable(
@@ -209,6 +207,9 @@ func createEmailNotif(
 	}
 
 	useTemplate := true
+	date := time.Now().Format("2006-01-02")
+	time1 := time.Now().Format("15:04:05")
+
 	content := thirdpkg.ReplaceVariable(
 		templateInfo.Body,
 		nil,
@@ -291,6 +292,9 @@ func createSMSNotif(
 	}
 
 	useTemplate := true
+	date := time.Now().Format("2006-01-02")
+	time1 := time.Now().Format("15:04:05")
+
 	content := thirdpkg.ReplaceVariable(
 		templateInfo.Message,
 		nil,
