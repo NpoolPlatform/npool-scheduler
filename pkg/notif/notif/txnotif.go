@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
+
 	txnotifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/txnotifstate"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/txnotifstate"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
@@ -82,11 +83,11 @@ func sendTxNotif(ctx context.Context) {
 				ctx,
 				accountInfo.AppID,
 				accountInfo.UserID,
+				extra,
 				&val.Amount,
 				&val.CoinUnit,
 				&accountInfo.Address,
-				notifmgrpb.EventType_WithdrawalCompleted,
-				extra,
+				usedfor.UsedFor_WithdrawalCompleted,
 			)
 			txNotif, ok := txNotifMap[val.ID]
 			if !ok {

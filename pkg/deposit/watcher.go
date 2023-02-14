@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
-	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
+	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
 
 	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
+	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	depositmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/deposit"
 	depositmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 
@@ -126,7 +126,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
-	notif.CreateNotif(ctx, acc.AppID, acc.UserID, &amount, &coin.Unit, &acc.Address, notifmgrpb.EventType_DepositReceived, "")
+	notif.CreateNotif(ctx, acc.AppID, acc.UserID, "", &amount, &coin.Unit, &acc.Address, usedfor.UsedFor_DepositReceived)
 
 	return nil
 }
