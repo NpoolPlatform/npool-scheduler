@@ -121,15 +121,15 @@ func createFrontendNotif(
 		time1 := time.Now().Format("15:04:05")
 
 		for _, val := range templateInfos {
-			content := thirdpkg.ReplaceVariable(
+			content := thirdpkg.FillTemplate(
 				val.Content,
-				nil,
-				nil,
-				amount,
-				coinUnit,
-				&date,
-				&time1,
-				address,
+				&thirdpkg.TemplateVars{
+					Amount:   amount,
+					CoinUnit: coinUnit,
+					Date:     &date,
+					Time:     &time1,
+					Address:  address,
+				},
 			)
 
 			notifReq = append(notifReq, &notifmgrpb.NotifReq{
@@ -210,15 +210,15 @@ func createEmailNotif(
 	date := time.Now().Format("2006-01-02")
 	time1 := time.Now().Format("15:04:05")
 
-	content := thirdpkg.ReplaceVariable(
+	content := thirdpkg.FillTemplate(
 		templateInfo.Body,
-		nil,
-		nil,
-		amount,
-		coinUnit,
-		&date,
-		&time1,
-		address,
+		&thirdpkg.TemplateVars{
+			Amount:   amount,
+			CoinUnit: coinUnit,
+			Date:     &date,
+			Time:     &time1,
+			Address:  address,
+		},
 	)
 
 	return &notifmgrpb.NotifReq{
@@ -295,15 +295,15 @@ func createSMSNotif(
 	date := time.Now().Format("2006-01-02")
 	time1 := time.Now().Format("15:04:05")
 
-	content := thirdpkg.ReplaceVariable(
+	content := thirdpkg.FillTemplate(
 		templateInfo.Message,
-		nil,
-		nil,
-		amount,
-		coinUnit,
-		&date,
-		&time1,
-		address,
+		&thirdpkg.TemplateVars{
+			Amount:   amount,
+			CoinUnit: coinUnit,
+			Date:     &date,
+			Time:     &time1,
+			Address:  address,
+		},
 	)
 
 	return &notifmgrpb.NotifReq{
