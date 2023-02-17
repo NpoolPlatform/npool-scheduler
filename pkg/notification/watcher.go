@@ -8,7 +8,7 @@ import (
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	for range ticker.C {
-		sendNotifEmail(ctx)
-		sendTxNotif(ctx)
+		// sendNotifEmail(ctx)
+		// sendTxNotif(ctx)
 	}
 }

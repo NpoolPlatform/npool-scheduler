@@ -1,44 +1,48 @@
 //nolint:dupl
 package notif
 
+/*
 import (
 	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
+
 	usercli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 	userpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
 	channelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
-	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
 	notifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
 	thirdpkg "github.com/NpoolPlatform/third-middleware/pkg/template"
 
-	notifchannelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/notifchannel"
-	notifchannelcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/notifchannel"
+	notifchannelpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/channel"
+	notifchannelcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/channel"
 
-	frontendmgrpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/frontend"
-	frontendcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/frontend"
+	frontendmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/frontend"
+	frontendmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/frontend"
 
-	emailmgrpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/email"
-	emailcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/email"
+	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/email"
+	emailtmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/email"
 
-	smsmgrpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/sms"
-	smscli "github.com/NpoolPlatform/third-middleware/pkg/client/template/sms"
+	smsmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/sms"
+	smsmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/sms"
 )
 
 func CreateNotif(
 	ctx context.Context,
 	appID, userID, extra string,
 	amount, coinUnit, address *string,
-	eventType usedfor.UsedFor,
+	eventType basetypes.UsedFor,
 ) {
 	channelInfos, _, err := notifchannelcli.GetNotifChannels(ctx, &notifchannelpb.Conds{
 		AppID: &commonpb.StringVal{
@@ -90,7 +94,7 @@ func createFrontendNotif(
 	ctx context.Context,
 	appID, userID string,
 	amount, coinUnit, address *string,
-	eventType usedfor.UsedFor,
+	eventType basetypes.UsedFor,
 ) []*notifmgrpb.NotifReq {
 	offset := uint32(0)
 	limit := uint32(1000)
@@ -151,7 +155,7 @@ func createEmailNotif(
 	ctx context.Context,
 	appID, userID string,
 	amount, coinUnit, address *string,
-	eventType usedfor.UsedFor,
+	eventType basetypes.UsedFor,
 ) *notifmgrpb.NotifReq {
 	notifChannel := channelpb.NotifChannel_ChannelEmail
 
@@ -237,7 +241,7 @@ func createSMSNotif(
 	ctx context.Context,
 	appID, userID string,
 	amount, coinUnit, address *string,
-	eventType usedfor.UsedFor,
+	eventType basetypes.UsedFor,
 ) *notifmgrpb.NotifReq {
 	notifChannel := channelpb.NotifChannel_ChannelSMS
 	mainLang, err := g11ncli.GetLangOnly(ctx, &g11npb.Conds{
@@ -471,3 +475,4 @@ func sendNotifEmail(ctx context.Context) {
 		}
 	}
 }
+*/

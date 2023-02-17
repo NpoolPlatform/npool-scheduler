@@ -15,6 +15,7 @@ import (
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
@@ -95,7 +96,7 @@ func transaction(ctx context.Context, account *pltfaccmwpb.Account, state txmgrp
 		},
 		Type: &commonpb.Int32Val{
 			Op:    cruder.EQ,
-			Value: int32(txmgrpb.TxType_TxLimitation),
+			Value: int32(basetypes.TxType_TxLimitation),
 		},
 	}, int32(0), int32(1)) //nolint
 	if err != nil {
@@ -195,7 +196,7 @@ func checkCoinLimit(ctx context.Context, coin *coinmwpb.Coin) error {
 
 	amountS := bal.Sub(limit).String()
 	feeAmountS := "0"
-	txType := txmgrpb.TxType_TxLimitation
+	txType := basetypes.TxType_TxLimitation
 
 	_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
 		CoinTypeID:    &coin.ID,

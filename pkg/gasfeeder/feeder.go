@@ -27,9 +27,9 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	commonpb "github.com/NpoolPlatform/message/npool"
-
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/shopspring/decimal"
 )
@@ -81,7 +81,7 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 		},
 		Type: &commonpb.Int32Val{
 			Op:    cruder.EQ,
-			Value: int32(txmgrpb.TxType_TxFeedGas),
+			Value: int32(basetypes.TxType_TxFeedGas),
 		},
 	}, int32(0), int32(1)) //nolint
 	if err != nil {
@@ -225,7 +225,7 @@ func feedOne(
 
 	amountS := amount.String()
 	feeAmountS := "0"
-	txType := txmgrpb.TxType_TxFeedGas
+	txType := basetypes.TxType_TxFeedGas
 	txExtra := fmt.Sprintf(`{"Coin":"%v","AccountType":"%v","FeeCoinTypeID":"%v"}`,
 		coin.Name, usedFor, coin.FeeCoinTypeID)
 

@@ -1,17 +1,19 @@
 package notif
 
+/*
 import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
-
-	txnotifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/txnotifstate"
-
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+
+	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/tx"
+	txnotifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/tx"
+
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
-	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/txnotifstate"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
@@ -87,7 +89,7 @@ func sendTxNotif(ctx context.Context) {
 				&val.Amount,
 				&val.CoinUnit,
 				&accountInfo.Address,
-				usedfor.UsedFor_WithdrawalCompleted,
+				basetypes.UsedFor_WithdrawalCompleted,
 			)
 			txNotif, ok := txNotifMap[val.ID]
 			if !ok {
@@ -106,3 +108,4 @@ func sendTxNotif(ctx context.Context) {
 		}
 	}
 }
+*/

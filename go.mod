@@ -5,20 +5,19 @@ go 1.17
 require (
 	github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b
 	github.com/NpoolPlatform/account-middleware v0.0.0-20221220111928-0c1abbca2829
-	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230210194000-019f2641c2be
+	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230216023722-ef86d576f6ab
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20221228013048-951da3e0461c
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230112023546-afc372a2351e
-	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230210193058-7c376766d884
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230111062156-9d26cfe25c94
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111075810-4275366a66b9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230216045739-9fa2dbecebdd
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20230214080020-639535cc2438
+	github.com/NpoolPlatform/message v0.0.0-20230217043051-e12e854e3d60
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20230217044945-e4a922b545a5
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230111062552-aa2af7d0c282
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230216075025-a90a86bfd19b
-	github.com/NpoolPlatform/third-middleware v0.0.0-20230214141526-6915910bb5f0
+	github.com/NpoolPlatform/third-middleware v0.0.0-20230216032514-6489c04c67dc
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3
@@ -28,7 +27,6 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.14.0 // indirect
-	github.com/ugorji/go/codec v1.2.8 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 )

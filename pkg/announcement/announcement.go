@@ -1,11 +1,12 @@
 package announcement
 
+/*
 import (
 	"context"
 	"strings"
 	"time"
 
-	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -27,9 +28,9 @@ import (
 	sendstatepb "github.com/NpoolPlatform/message/npool/notif/mw/v1/announcement/sendstate"
 	sendstatecli "github.com/NpoolPlatform/notif-middleware/pkg/client/announcement/sendstate"
 
-	thirdpb "github.com/NpoolPlatform/message/npool/third/mgr/v1/template/email"
-	thirdcli "github.com/NpoolPlatform/third-middleware/pkg/client/notif"
-	thirdtempcli "github.com/NpoolPlatform/third-middleware/pkg/client/template/email"
+	emailtmplmwpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/email"
+	emailtmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/email"
+	sendmwcli "github.com/NpoolPlatform/third-middleware/pkg/client/send"
 
 	g11ncli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
 	g11npb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
@@ -150,7 +151,7 @@ func sendEmail(
 		return
 	}
 
-	templateInfo, err := thirdtempcli.GetEmailTemplateOnly(ctx, &thirdpb.Conds{
+	templateInfo, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmwpb.Conds{
 		AppID: &commonpb.StringVal{
 			Op:    cruder.EQ,
 			Value: info.AppID,
@@ -161,7 +162,7 @@ func sendEmail(
 		},
 		UsedFor: &commonpb.Int32Val{
 			Op:    cruder.EQ,
-			Value: int32(usedfor.UsedFor_Announcement),
+			Value: int32(basetypes.UsedFor_Announcement),
 		},
 	})
 	if err != nil {
@@ -280,3 +281,4 @@ func allUserUsersType(ctx context.Context, info *announcementpb.Announcement) {
 		sendEmail(ctx, info, userInfos)
 	}
 }
+*/

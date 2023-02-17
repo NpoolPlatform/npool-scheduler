@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
@@ -32,15 +32,17 @@ import (
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
-	commonpb "github.com/NpoolPlatform/message/npool"
-
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
 
 	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
 
-	"github.com/shopspring/decimal"
+	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
+	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
+	tmplmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
+	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/notif/notif"
+	"github.com/shopspring/decimal"
 )
 
 func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
@@ -126,7 +128,27 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 
-	notif.CreateNotif(ctx, acc.AppID, acc.UserID, "", &amount, &coin.Unit, &acc.Address, usedfor.UsedFor_DepositReceived)
+	username := ""
+
+	user, err := usermwcli.GetUser(ctx, acc.AppID, acc.UserID)
+	if err == nil && user != nil {
+		username = user.Username
+	}
+
+	_, err = notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
+		AppID:     acc.AppID,
+		UserID:    acc.UserID,
+		EventType: basetypes.UsedFor_DepositReceived,
+		Vars: &tmplmwpb.TemplateVars{
+			Username: &username,
+			Amount:   &amount,
+			CoinUnit: &coin.Unit,
+			Address:  &acc.Address,
+		},
+	})
+	if err != nil {
+		logger.Sugar().Errorw("depositOne", "Error", err)
+	}
 
 	return nil
 }
@@ -295,7 +317,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 
 	amountS := incoming.Sub(outcoming).Sub(reserved).String()
 	feeAmountS := "0"
-	txType := txmgrpb.TxType_TxPaymentCollect
+	txType := basetypes.TxType_TxPaymentCollect
 
 	// TODO: reliable record collecting TID
 
