@@ -12,6 +12,7 @@ import (
 	usermwpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	applangmgrpb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
 	ancmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement"
+	ancsendmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement/sendstate"
 	ancusermgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement/user"
 	chanmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/email"
@@ -154,6 +155,8 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 		statMap[stat.UserID] = stat
 	}
 
+	statReqs := []*ancsendmgrpb.SendStateReq{}
+
 	for _, user := range users {
 		if _, ok := statMap[user.ID]; ok {
 			logger.Sugar().Infow(
@@ -192,7 +195,7 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 			continue
 		}
 
-		_, err := unicast(ctx, anc, user)
+		sent, err := unicast(ctx, anc, user)
 		if err != nil {
 			logger.Sugar().Errorw(
 				"multicastUsers",
@@ -204,7 +207,24 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 			return err
 		}
 
-		// TODO: record send state
+		if !sent {
+			continue
+		}
+
+		statReqs = append(statReqs, &ancsendmgrpb.SendStateReq{
+			AppID:          &anc.AppID,
+			UserID:         &user.ID,
+			AnnouncementID: &anc.AnnouncementID,
+			Channel:        &anc.Channel,
+		})
+	}
+
+	if len(statReqs) == 0 {
+		return nil
+	}
+
+	if err := ancsendmwcli.CreateSendStates(ctx, statReqs); err != nil {
+		return err
 	}
 
 	return nil
