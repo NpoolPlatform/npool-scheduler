@@ -1,14 +1,23 @@
-package notif
+package notification
 
 import (
 	"context"
 	"time"
 )
 
+func send(ctx context.Context) {
+
+}
+
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
-	for range ticker.C {
-		// sendNotifEmail(ctx)
-		// sendTxNotif(ctx)
+	for {
+		select {
+		case <-ticker.C:
+			processTx(ctx)
+			send(ctx)
+		case <-ctx.Done():
+			return
+		}
 	}
 }
