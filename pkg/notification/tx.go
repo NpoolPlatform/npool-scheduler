@@ -2,11 +2,11 @@ package notification
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
-	usermgrpb "github.com/NpoolPlatform/message/npool/appuser/mgr/v2/appuser"
 	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/tx"
@@ -19,10 +19,12 @@ import (
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	txnotifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/tx"
 
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 )
 
-func waitSuccess(ctx context.Context) error {
+func waitSuccess(ctx context.Context) error { //nolint
 	offset := int32(0)
 	limit := int32(1000)
 
@@ -36,7 +38,7 @@ func waitSuccess(ctx context.Context) error {
 				Op:    cruder.EQ,
 				Value: uint32(basetypes.TxType_TxWithdraw.Number()),
 			},
-		})
+		}, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -70,7 +72,7 @@ func waitSuccess(ctx context.Context) error {
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
 				AccountID: &commonpb.StringVal{
 					Op:    cruder.EQ,
-					Value: val.ToAccountID,
+					Value: tx.ToAccountID,
 				},
 			})
 			if err != nil {
@@ -90,7 +92,7 @@ func waitSuccess(ctx context.Context) error {
 
 			extra := fmt.Sprintf(`{"TxID":"%v"}`, tx.ID)
 
-			if err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
+			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     acc.AppID,
 				UserID:    acc.UserID,
 				EventType: basetypes.UsedFor_WithdrawalCompleted,
@@ -140,7 +142,7 @@ func waitNotified(ctx context.Context) error {
 				Op:    cruder.EQ,
 				Value: uint32(basetypes.TxType_TxWithdraw.Number()),
 			},
-		})
+		}, offset, limit)
 		if err != nil {
 			return err
 		}
