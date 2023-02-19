@@ -65,11 +65,15 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	}
 
 	appIDs := []string{}
-	totalOrderUnits := uint32(0)
+	totalOrderUnits := decimal.NewFromInt(0)
 
 	for _, ord := range ords {
 		appIDs = append(appIDs, ord.AppID)
-		totalOrderUnits += ord.Units
+		units, err := decimal.NewFromString(ord.Units)
+		if err != nil {
+			return err
+		}
+		totalOrderUnits = totalOrderUnits.Add(units)
 	}
 
 	ags, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmgrpb.Conds{
@@ -91,7 +95,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		goodMap[ag.AppID] = ag
 	}
 
-	appUnits := map[string]uint32{}
+	appUnits := map[string]string{}
 	for _, ord := range ords {
 		_, ok := goodMap[ord.AppID]
 		if !ok {
@@ -104,22 +108,29 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	appUnitRewards := map[string]decimal.Decimal{}
 	totalUserReward := decimal.NewFromInt(0)
 	totalFeeAmount := decimal.NewFromInt(0)
+	goodTotal, err := decimal.NewFromString(good.GoodTotal)
+	if err != nil {
+		return err
+	}
 
 	userRewardAmount := totalReward.
-		Mul(decimal.NewFromInt(int64(totalOrderUnits))).
-		Div(decimal.NewFromInt(int64(good.GoodTotal)))
+		Mul(totalOrderUnits).
+		Div(goodTotal)
 	totalUnsoldReward := totalReward.
 		Sub(userRewardAmount)
 
-	for appID, units := range appUnits {
+	for appID, unitsStr := range appUnits {
 		ag, ok := goodMap[appID]
 		if !ok {
 			continue
 		}
-
+		units, err := decimal.NewFromString(unitsStr)
+		if err != nil {
+			return err
+		}
 		reward := userRewardAmount.
-			Mul(decimal.NewFromInt(int64(units))).
-			Div(decimal.NewFromInt(int64(totalOrderUnits)))
+			Mul(units).
+			Div(totalOrderUnits)
 
 		fee := reward.
 			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
@@ -129,7 +140,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		totalUserReward = totalUserReward.Add(userReward)
 		totalFeeAmount = totalFeeAmount.Add(fee)
 
-		appUnitRewards[appID] = userReward.Div(decimal.NewFromInt(int64(units)))
+		appUnitRewards[appID] = userReward.Div(units)
 	}
 
 	logger.Sugar().Infow("BookKeeping",
@@ -173,8 +184,12 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 
 		ioExtra := fmt.Sprintf(`{"GoodID":"%v","OrderID":"%v","BenefitDate":"%v"}`,
 			good.ID, ord.ID, good.LastBenefitAt)
+		units, err := decimal.NewFromString(ord.Units)
+		if err != nil {
+			return err
+		}
 		amountS := unitReward.
-			Mul(decimal.NewFromInt(int64(ord.Units))).
+			Mul(units).
 			String()
 
 		details = append(details, &ledgerdetailmgrpb.DetailReq{

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
@@ -72,7 +74,12 @@ func processOrderExpiry(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	err = updateStock(ctx, order.GoodID, 0, int32(order.Units)*-1, 0)
+	units, err := decimal.NewFromString(order.Units)
+	if err != nil {
+		return err
+	}
+	units = units.Neg()
+	err = updateStock(ctx, order.GoodID, decimal.NewFromInt(0), units, decimal.NewFromInt(0))
 	if err != nil {
 		return err
 	}
