@@ -4,6 +4,7 @@ package deposit
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/NpoolPlatform/message/npool/third/mgr/v1/usedfor"
@@ -70,10 +71,10 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		Address: acc.Address,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("fail get balance coin %v address %v error %v", coin.Name, acc.Address, err)
 	}
 	if bal == nil {
-		return fmt.Errorf("fail get balance")
+		return fmt.Errorf("fail get balance coin %v address %v", coin.Name, acc.Address)
 	}
 
 	balance, err := decimal.NewFromString(bal.BalanceStr)
@@ -166,13 +167,27 @@ func deposit(ctx context.Context) {
 	}
 }
 
-func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
+func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nolint
 	if acc.Locked {
 		return nil
 	}
 
+	logger.Sugar().Errorw(
+		"tryTransferOne",
+		"Account", acc.Address,
+		"CoinTypeID", acc.CoinTypeID,
+		"CollectingTID", acc.CollectingTID,
+	)
+
 	tx, err := txmwcli.GetTx(ctx, acc.CollectingTID)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "no record") {
+		logger.Sugar().Errorw(
+			"tryTransferOne",
+			"Account", acc.Address,
+			"CoinTypeID", acc.CoinTypeID,
+			"CollectingTID", acc.CollectingTID,
+			"error", err,
+		)
 		return err
 	}
 	if tx != nil {
@@ -197,6 +212,12 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	limit, err := decimal.NewFromString(coin.PaymentAccountCollectAmount)
 	if err != nil {
+		logger.Sugar().Errorw(
+			"tryTransferOne",
+			"Coin", coin.Name,
+			"Threshold", coin.PaymentAccountCollectAmount,
+			"error", err,
+		)
 		return err
 	}
 
@@ -209,10 +230,10 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error {
 		Address: acc.Address,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("fail get balance coin %v address %v error %v", coin.Name, acc.Address, err)
 	}
 	if bal == nil {
-		return fmt.Errorf("fail get balance")
+		return fmt.Errorf("fail get balance coin %v address %v", coin.Name, acc.Address)
 	}
 
 	balance, err := decimal.NewFromString(bal.BalanceStr)
@@ -328,7 +349,7 @@ func transfer(ctx context.Context) {
 			},
 		}, offset, limit)
 		if err != nil {
-			logger.Sugar().Errorw("deposit", "error", err)
+			logger.Sugar().Errorw("transfer", "error", err)
 			return
 		}
 		if len(accs) == 0 {

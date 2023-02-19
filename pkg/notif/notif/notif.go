@@ -34,11 +34,6 @@ import (
 	smscli "github.com/NpoolPlatform/third-middleware/pkg/client/template/sms"
 )
 
-var (
-	date  = time.Now().Format("2006-01-02")
-	time1 = time.Now().Format("15:04:05")
-)
-
 func CreateNotif(
 	ctx context.Context,
 	appID, userID, extra string,
@@ -120,18 +115,21 @@ func createFrontendNotif(
 		if len(templateInfos) == 0 {
 			break
 		}
+
 		useTemplate := true
+		date := time.Now().Format("2006-01-02")
+		time1 := time.Now().Format("15:04:05")
 
 		for _, val := range templateInfos {
-			content := thirdpkg.ReplaceVariable(
+			content := thirdpkg.FillTemplate(
 				val.Content,
-				nil,
-				nil,
-				amount,
-				coinUnit,
-				&date,
-				&time1,
-				address,
+				&thirdpkg.TemplateVars{
+					Amount:   amount,
+					CoinUnit: coinUnit,
+					Date:     &date,
+					Time:     &time1,
+					Address:  address,
+				},
 			)
 
 			notifReq = append(notifReq, &notifmgrpb.NotifReq{
@@ -199,29 +197,28 @@ func createEmailNotif(
 
 	if templateInfo == nil {
 		logger.Sugar().Errorw(
-			"CreateNotif",
-			"AppID",
-			appID,
-			"UsedFor",
-			eventType.String(),
-			"LangID",
-			mainLang.LangID,
-			"error",
-			"template not exists",
+			"sendNotif",
+			"AppID", appID,
+			"UsedFor", eventType.String(),
+			"LangID", mainLang.LangID,
+			"error", "template not exists",
 		)
 		return nil
 	}
 
 	useTemplate := true
-	content := thirdpkg.ReplaceVariable(
+	date := time.Now().Format("2006-01-02")
+	time1 := time.Now().Format("15:04:05")
+
+	content := thirdpkg.FillTemplate(
 		templateInfo.Body,
-		nil,
-		nil,
-		amount,
-		coinUnit,
-		&date,
-		&time1,
-		address,
+		&thirdpkg.TemplateVars{
+			Amount:   amount,
+			CoinUnit: coinUnit,
+			Date:     &date,
+			Time:     &time1,
+			Address:  address,
+		},
 	)
 
 	return &notifmgrpb.NotifReq{
@@ -286,28 +283,27 @@ func createSMSNotif(
 	if templateInfo == nil {
 		logger.Sugar().Errorw(
 			"CreateNotif",
-			"AppID",
-			appID,
-			"UsedFor",
-			eventType.String(),
-			"LangID",
-			mainLang.LangID,
-			"error",
-			"template not exists",
+			"AppID", appID,
+			"UsedFor", eventType.String(),
+			"LangID", mainLang.LangID,
+			"error", "template not exists",
 		)
 		return nil
 	}
 
 	useTemplate := true
-	content := thirdpkg.ReplaceVariable(
+	date := time.Now().Format("2006-01-02")
+	time1 := time.Now().Format("15:04:05")
+
+	content := thirdpkg.FillTemplate(
 		templateInfo.Message,
-		nil,
-		nil,
-		amount,
-		coinUnit,
-		&date,
-		&time1,
-		address,
+		&thirdpkg.TemplateVars{
+			Amount:   amount,
+			CoinUnit: coinUnit,
+			Date:     &date,
+			Time:     &time1,
+			Address:  address,
+		},
 	)
 
 	return &notifmgrpb.NotifReq{

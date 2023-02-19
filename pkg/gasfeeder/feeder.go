@@ -151,7 +151,7 @@ func feedOne(
 
 	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
@@ -159,6 +159,13 @@ func feedOne(
 		return false, fmt.Errorf("target account %v error: %v", accountID, err)
 	}
 	if ok {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"Address", address,
+			"LowFeeAmount", lowFeeAmount,
+			"Enough", ok,
+		)
 		return false, nil
 	}
 
@@ -167,6 +174,12 @@ func feedOne(
 		return false, err
 	}
 	if yes {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"AccountID", accountID,
+			"Feeding", true,
+		)
 		return true, nil
 	}
 
@@ -192,6 +205,13 @@ func feedOne(
 	}
 
 	if bal.Cmp(reserved) <= 0 {
+		logger.Sugar().Infow("feedOne",
+			"Coin", coin.Name,
+			"feeCoin", feeCoin.Name,
+			"Address", address,
+			"Balance", bal,
+			"ReservedAmount", reserved,
+		)
 		return false, nil
 	}
 
@@ -285,6 +305,8 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				return true, nil
 			}
 		}
+
+		offset += limit
 	}
 }
 
@@ -323,6 +345,14 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 			return false, nil
 		}
 
+		logger.Sugar().Infow(
+			"feedDespositAccount",
+			"Accounts", len(accs),
+			"Coin", coin.Name,
+			"CoinTypeID", coin.ID,
+			"FeeCoin", feeCoin.Name,
+			"FeeCoinTypeID", feeCoin.ID,
+		)
 		for _, acc := range accs {
 			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
 			if err != nil {
@@ -332,6 +362,8 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				return true, nil
 			}
 		}
+
+		offset += limit
 	}
 }
 
@@ -400,9 +432,11 @@ func Watch(ctx context.Context) { //nolint
 		offset := int32(0)
 		const limit = int32(100)
 
+		logger.Sugar().Infow("gasfeeder", "FeedGas", "Start...")
 		for {
 			coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
 			if err != nil {
+				logger.Sugar().Errorw("gasfeeder", "Offset", offset, "Limit", limit)
 				break
 			}
 			if len(coins) == 0 {
@@ -411,14 +445,33 @@ func Watch(ctx context.Context) { //nolint
 
 			for _, coin := range coins {
 				if coin.FeeCoinTypeID == uuid1.InvalidUUIDStr || coin.FeeCoinTypeID == "" {
+					logger.Sugar().Warnw(
+						"gasfeeder",
+						"Coin", coin.Name,
+						"CoinTypeID", coin.ID,
+						"FeeCoinType", coin.FeeCoinTypeID,
+						"State", "Empty",
+					)
 					continue
 				}
 
 				if coin.ID == coin.FeeCoinTypeID {
+					logger.Sugar().Warnw(
+						"gasfeeder",
+						"Coin", coin.Name,
+						"CoinTypeID", coin.ID,
+						"FeeCoinType", coin.FeeCoinTypeID,
+						"State", "Equal",
+					)
 					continue
 				}
 
-				logger.Sugar().Warnw("gasfeeder", "Coin", coin.Name, "FeeCoin", coin.FeeCoinName)
+				logger.Sugar().Warnw(
+					"gasfeeder",
+					"Coin", coin.Name,
+					"CoinTypeID", coin.ID,
+					"FeeCoin", coin.FeeCoinName,
+				)
 				if err := feedCoin(ctx, coin); err != nil {
 					logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
 				}
@@ -426,5 +479,7 @@ func Watch(ctx context.Context) { //nolint
 
 			offset += limit
 		}
+
+		logger.Sugar().Infow("gasfeeder", "FeedGas", "End...")
 	}
 }
