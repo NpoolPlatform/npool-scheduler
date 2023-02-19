@@ -72,19 +72,23 @@ func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.
 	return decimal.NewFromInt(0)
 }
 
-func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, waitstart int32) {
+func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, waitstart decimal.Decimal, err error) {
+	units, err := decimal.NewFromString(order.Units)
+	if err != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, err
+	}
 	if order.UserCanceled {
-		return int32(order.Units), 0
+		return units, decimal.NewFromInt(0), nil
 	}
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	if amount.Add(startAmount).Cmp(decimal.NewFromFloat(balance.InexactFloat64()+10e-7)) <= 0 {
-		return int32(order.Units), int32(order.Units)
+		return units, units, nil
 	}
 	if order.CreatedAt+TimeoutSeconds < uint32(time.Now().Unix()) {
-		return int32(order.Units), 0
+		return units, decimal.NewFromInt(0), nil
 	}
-	return 0, 0
+	return decimal.NewFromInt(0), decimal.NewFromInt(0), nil
 }
 
 func tryFinishPayment(
@@ -135,7 +139,7 @@ func tryFinishPayment(
 		return err
 	}
 	defer func() {
-		accountlock.Unlock(order.PaymentAccountID)
+		_ = accountlock.Unlock(order.PaymentAccountID)
 	}()
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
@@ -360,8 +364,10 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	state, newOrderState := processState(order, bal)
 	remain := processFinishAmount(order, bal)
 	finishAmount := bal
-	unlocked, waitstart := processStock(order, bal)
-
+	unlocked, waitstart, err := processStock(order, bal)
+	if err != nil {
+		return err
+	}
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	dueAmount := amount.Add(startAmount).String()
@@ -440,8 +446,12 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
 		paymentAmountS := paymentAmount.String()
 
+		units, err := decimal.NewFromString(order.Units)
+		if err != nil {
+			return err
+		}
 		goodValue := decimal.RequireFromString(good.Price).
-			Mul(decimal.NewFromInt(int64(order.Units))).
+			Mul(units).
 			String()
 
 		comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
@@ -498,7 +508,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	case paymentmgrpb.PaymentState_Canceled:
 		fallthrough //nolint
 	case paymentmgrpb.PaymentState_TimeOut:
-		return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
+		return updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
 	}
 
 	return nil
@@ -515,7 +525,11 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 
 	state := paymentmgrpb.PaymentState_Done
 	orderState := ordermgrpb.OrderState_Paid
-	unlocked, waitstart := int32(order.Units), int32(order.Units)
+	units, err := decimal.NewFromString(order.Units)
+	if err != nil {
+		return err
+	}
+	unlocked, waitstart := units, units
 
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
@@ -555,7 +569,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 	paymentAmountS := paymentAmount.String()
 
 	goodValue := decimal.RequireFromString(good.Price).
-		Mul(decimal.NewFromInt(int64(order.Units))).
+		Mul(units).
 		String()
 
 	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
@@ -576,7 +590,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
+	return updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
 }
 
 func processOrderPayment(ctx context.Context, order *orderpb.Order) error {
