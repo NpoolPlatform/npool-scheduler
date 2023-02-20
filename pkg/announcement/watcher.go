@@ -307,7 +307,7 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 }
 
 func Watch(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
 		select {
 		case <-ticker.C:

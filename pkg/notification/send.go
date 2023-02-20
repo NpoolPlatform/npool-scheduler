@@ -51,6 +51,14 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return fmt.Errorf("user invalid")
 	}
 
+	logger.Sugar().Infow(
+		"multicastUsers",
+		"AppID", user.AppID,
+		"UserID", user.ID,
+		"EmailAddress", user.EmailAddress,
+		"ID", notif.ID,
+		"EventType", notif.EventType,
+		"State", "Sending")
 	req := &sendmwpb.SendMessageRequest{
 		Subject: notif.Title,
 		Content: notif.Content,
@@ -59,9 +67,9 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	switch notif.Channel {
 	case chanmgrpb.NotifChannel_ChannelEmail:
 		tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmgrpb.Conds{
-			AppID:   &commonpb.StringVal{Op: cruder.IN, Value: notif.AppID},
-			LangID:  &commonpb.StringVal{Op: cruder.IN, Value: notif.LangID},
-			UsedFor: &commonpb.Int32Val{Op: cruder.IN, Value: int32(notif.EventType)},
+			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: notif.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
@@ -77,9 +85,9 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		req.AccountType = basetypes.SignMethod_Email
 	case chanmgrpb.NotifChannel_ChannelSMS:
 		tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmgrpb.Conds{
-			AppID:   &commonpb.StringVal{Op: cruder.IN, Value: notif.AppID},
-			LangID:  &commonpb.StringVal{Op: cruder.IN, Value: notif.LangID},
-			UsedFor: &commonpb.Int32Val{Op: cruder.IN, Value: int32(notif.EventType)},
+			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: notif.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
