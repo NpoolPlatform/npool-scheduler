@@ -42,20 +42,14 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 	}
 
 	lang, err := applangmwcli.GetLangOnly(ctx, &applangmgrpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: anc.AppID,
-		},
-		Main: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
+		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+		Main:  &commonpb.BoolVal{Op: cruder.EQ, Value: true},
 	})
 	if err != nil {
 		return false, err
 	}
 	if lang == nil {
-		return false, fmt.Errorf("applang main invalid")
+		return false, fmt.Errorf("app %v main lang invalid", anc.AppID)
 	}
 
 	if lang.LangID != anc.LangID {
@@ -65,24 +59,15 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 	switch anc.Channel {
 	case chanmgrpb.NotifChannel_ChannelEmail:
 		tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.AppID,
-			},
-			LangID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.LangID,
-			},
-			UsedFor: &commonpb.Int32Val{
-				Op:    cruder.EQ,
-				Value: int32(basetypes.UsedFor_Announcement),
-			},
+			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: anc.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Announcement)},
 		})
 		if err != nil {
 			return false, err
 		}
 		if tmpl == nil {
-			return false, fmt.Errorf("email template invalid")
+			return false, fmt.Errorf("app %v lang %v email template invalid", anc.AppID, anc.LangID)
 		}
 
 		req.From = tmpl.Sender
@@ -92,30 +77,29 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 		req.AccountType = basetypes.SignMethod_Email
 	case chanmgrpb.NotifChannel_ChannelSMS:
 		tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.AppID,
-			},
-			LangID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.LangID,
-			},
-			UsedFor: &commonpb.Int32Val{
-				Op:    cruder.EQ,
-				Value: int32(basetypes.UsedFor_Announcement),
-			},
+			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: anc.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Announcement)},
 		})
 		if err != nil {
 			return false, err
 		}
 		if tmpl == nil {
-			return false, fmt.Errorf("sms template invalid")
+			return false, fmt.Errorf("app %v lang %v sms template invalid", anc.AppID, anc.LangID)
 		}
 
 		req.To = user.PhoneNO
 		req.AccountType = basetypes.SignMethod_Mobile
 	}
 
+	logger.Sugar().Infow(
+		"multicastUsers",
+		"AppID", user.AppID,
+		"UserID", user.ID,
+		"EmailAddress", user.EmailAddress,
+		"AnnouncementID", anc.AnnouncementID,
+		"AnnoucementType", anc.AnnouncementType,
+		"State", "Sending")
 	if err := sendmwcli.SendMessage(ctx, req); err != nil {
 		return false, err
 	}
@@ -129,22 +113,10 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 	}
 
 	stats, _, err := ancsendmwcli.GetSendStates(ctx, &ancsendmwpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: anc.AppID,
-		},
-		AnnouncementID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: anc.AnnouncementID,
-		},
-		Channel: &commonpb.Uint32Val{
-			Op:    cruder.EQ,
-			Value: uint32(anc.Channel.Number()),
-		},
-		UserIDs: &commonpb.StringSliceVal{
-			Op:    cruder.IN,
-			Value: uids,
-		},
+		AppID:          &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+		AnnouncementID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AnnouncementID},
+		Channel:        &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(anc.Channel.Number())},
+		UserIDs:        &commonpb.StringSliceVal{Op: cruder.IN, Value: uids},
 	}, 0, int32(len(uids)))
 	if err != nil {
 		return err
@@ -236,10 +208,7 @@ func broadcast(ctx context.Context, anc *ancmwpb.Announcement) error {
 
 	for {
 		users, _, err := usermwcli.GetUsers(ctx, &usermgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.AppID,
-			},
+			AppID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -264,14 +233,8 @@ func multicast(ctx context.Context, anc *ancmwpb.Announcement) error {
 
 	for {
 		ancUsers, _, err := ancusermwcli.GetUsers(ctx, &ancusermgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.AppID,
-			},
-			AnnouncementID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: anc.AnnouncementID,
-			},
+			AppID:          &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+			AnnouncementID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AnnouncementID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -320,14 +283,8 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 
 	for {
 		ancs, _, err := ancmwcli.GetAnnouncements(ctx, &ancmwpb.Conds{
-			EndAt: &commonpb.Uint32Val{
-				Op:    cruder.GT,
-				Value: now,
-			},
-			Channel: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(channel),
-			},
+			EndAt:   &commonpb.Uint32Val{Op: cruder.GT, Value: now},
+			Channel: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("send", "error", err)
