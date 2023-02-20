@@ -28,20 +28,14 @@ import (
 
 func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	lang, err := applangmwcli.GetLangOnly(ctx, &applangmgrpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: notif.AppID,
-		},
-		Main: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
+		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
+		Main:  &commonpb.BoolVal{Op: cruder.EQ, Value: true},
 	})
 	if err != nil {
 		return err
 	}
 	if lang == nil {
-		return fmt.Errorf("applang main invalid")
+		return fmt.Errorf("app %v main lang invalid", notif.AppID)
 	}
 
 	if notif.LangID != lang.LangID {
@@ -64,24 +58,15 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	switch notif.Channel {
 	case chanmgrpb.NotifChannel_ChannelEmail:
 		tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.IN,
-				Value: notif.AppID,
-			},
-			LangID: &commonpb.StringVal{
-				Op:    cruder.IN,
-				Value: notif.LangID,
-			},
-			UsedFor: &commonpb.Int32Val{
-				Op:    cruder.IN,
-				Value: int32(notif.EventType),
-			},
+			AppID:   &commonpb.StringVal{Op: cruder.IN, Value: notif.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.IN, Value: notif.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.IN, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
 		}
 		if tmpl == nil {
-			return fmt.Errorf("email template not exist")
+			return fmt.Errorf("app %v lang %v email template %v not exist", notif.AppID, notif.LangID, notif.EventType)
 		}
 
 		req.From = tmpl.Sender
@@ -91,24 +76,15 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		req.AccountType = basetypes.SignMethod_Email
 	case chanmgrpb.NotifChannel_ChannelSMS:
 		tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.IN,
-				Value: notif.AppID,
-			},
-			LangID: &commonpb.StringVal{
-				Op:    cruder.IN,
-				Value: notif.LangID,
-			},
-			UsedFor: &commonpb.Int32Val{
-				Op:    cruder.IN,
-				Value: int32(notif.EventType),
-			},
+			AppID:   &commonpb.StringVal{Op: cruder.IN, Value: notif.AppID},
+			LangID:  &commonpb.StringVal{Op: cruder.IN, Value: notif.LangID},
+			UsedFor: &commonpb.Int32Val{Op: cruder.IN, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
 		}
 		if tmpl == nil {
-			return fmt.Errorf("sms template not exist")
+			return fmt.Errorf("app %v lang %v sms template %v not exist", notif.AppID, notif.LangID, notif.EventType)
 		}
 
 		req.To = user.PhoneNO
@@ -140,14 +116,8 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 
 	for {
 		notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
-			Notified: &commonpb.BoolVal{
-				Op:    cruder.EQ,
-				Value: false,
-			},
-			Channel: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(channel),
-			},
+			Notified: &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+			Channel:  &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
 		}, offset, limit)
 		if err != nil {
 			return
