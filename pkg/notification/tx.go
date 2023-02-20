@@ -30,14 +30,8 @@ func waitSuccess(ctx context.Context) error { //nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number()),
-			},
-			TxType: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(basetypes.TxType_TxWithdraw.Number()),
-			},
+			NotifState: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
+			TxType:     &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -55,10 +49,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 		}
 
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			IDs: &commonpb.StringSliceVal{
-				Op:    cruder.IN,
-				Value: tids,
-			},
+			IDs: &commonpb.StringSliceVal{Op: cruder.IN, Value: tids},
 		}, 0, int32(len(tids)))
 		if err != nil {
 			return err
@@ -70,10 +61,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 			}
 
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
-				AccountID: &commonpb.StringVal{
-					Op:    cruder.EQ,
-					Value: tx.ToAccountID,
-				},
+				AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
 			})
 			if err != nil {
 				return err
@@ -134,14 +122,8 @@ func waitNotified(ctx context.Context) error {
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number()),
-			},
-			TxType: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(basetypes.TxType_TxWithdraw.Number()),
-			},
+			NotifState: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number())},
+			TxType:     &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -152,10 +134,7 @@ func waitNotified(ctx context.Context) error {
 
 		for _, notif := range notifs {
 			_notif, err := notifmwcli.GetNotifOnly(ctx, &notifmgrpb.Conds{
-				Extra: &commonpb.StringVal{
-					Op:    cruder.LIKE,
-					Value: notif.TxID,
-				},
+				Extra: &commonpb.StringVal{Op: cruder.LIKE, Value: notif.TxID},
 			})
 			if err != nil {
 				return err
