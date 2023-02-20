@@ -153,7 +153,7 @@ func waitNotified(ctx context.Context) error {
 		for _, notif := range notifs {
 			_notif, err := notifmwcli.GetNotifOnly(ctx, &notifmgrpb.Conds{
 				Extra: &commonpb.StringVal{
-					Op:    cruder.EQ,
+					Op:    cruder.LIKE,
 					Value: notif.TxID,
 				},
 			})
