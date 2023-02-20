@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -129,8 +130,9 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 		for _, notif := range notifs {
 			if err := sendOne(ctx, notif); err != nil {
 				logger.Sugar().Errorw("send", "error", err)
-				return
+				continue
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
 
 		offset += limit

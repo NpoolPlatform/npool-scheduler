@@ -297,7 +297,9 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 		for _, anc := range ancs {
 			if err := sendOne(ctx, anc); err != nil {
 				logger.Sugar().Errorw("send", "error", err)
+				continue
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
 
 		offset += limit
