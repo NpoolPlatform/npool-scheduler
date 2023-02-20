@@ -243,6 +243,8 @@ func multicast(ctx context.Context, anc *ancmwpb.Announcement) error {
 			break
 		}
 
+		offset += limit
+
 		uids := []string{}
 		for _, user := range ancUsers {
 			uids = append(uids, user.UserID)
@@ -259,8 +261,6 @@ func multicast(ctx context.Context, anc *ancmwpb.Announcement) error {
 		if err := multicastUsers(ctx, anc, users); err != nil {
 			return err
 		}
-
-		offset += limit
 	}
 
 	return nil
