@@ -295,6 +295,7 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 		}
 
 		for _, anc := range ancs {
+			logger.Sugar().Infow("send", "Announcement", anc, "Announcements", len(ancs))
 			if err := sendOne(ctx, anc); err != nil {
 				logger.Sugar().Errorw("send", "error", err)
 				continue
@@ -307,7 +308,7 @@ func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
 }
 
 func Watch(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
