@@ -135,15 +135,18 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		username = user.Username
 	}
 
+	now := uint32(time.Now().Unix())
+
 	_, err = notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 		AppID:     acc.AppID,
 		UserID:    acc.UserID,
 		EventType: basetypes.UsedFor_DepositReceived,
 		Vars: &tmplmwpb.TemplateVars{
-			Username: &username,
-			Amount:   &amount,
-			CoinUnit: &coin.Unit,
-			Address:  &acc.Address,
+			Username:  &username,
+			Amount:    &amount,
+			CoinUnit:  &coin.Unit,
+			Address:   &acc.Address,
+			Timestamp: &now,
 		},
 	})
 	if err != nil {
