@@ -79,6 +79,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 			}
 
 			extra := fmt.Sprintf(`{"TxID":"%v"}`, tx.ID)
+			now := uint32(time.Now().Unix())
 
 			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     acc.AppID,
@@ -86,10 +87,11 @@ func waitSuccess(ctx context.Context) error { //nolint
 				EventType: basetypes.UsedFor_WithdrawalCompleted,
 				Extra:     &extra,
 				Vars: &tmplmwpb.TemplateVars{
-					Username: &user.Username,
-					Amount:   &tx.Amount,
-					CoinUnit: &tx.CoinUnit,
-					Address:  &acc.Address,
+					Username:  &user.Username,
+					Amount:    &tx.Amount,
+					CoinUnit:  &tx.CoinUnit,
+					Address:   &acc.Address,
+					Timestamp: &now,
 				},
 			}); err != nil {
 				return err
