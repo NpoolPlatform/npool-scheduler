@@ -27,6 +27,7 @@ import (
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/shopspring/decimal"
 )
@@ -163,7 +164,7 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 
 	amountS := bal.Sub(reserved).String()
 	feeAmountS := "0"
-	txType := txmgrpb.TxType_TxPaymentCollect
+	txType := basetypes.TxType_TxPaymentCollect
 
 	tx, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
 		CoinTypeID:    &coin.ID,

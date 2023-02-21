@@ -23,6 +23,7 @@ import (
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/shopspring/decimal"
 )
@@ -150,7 +151,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 			good.PlatformRewardAmount,
 			good.TechniqueServiceFeeAmount,
 		)
-		txType := txmgrpb.TxType_TxUserBenefit
+		txType := basetypes.TxType_TxUserBenefit
 		txs = append(txs, &txmgrpb.TxReq{
 			CoinTypeID:    &good.CoinTypeID,
 			FromAccountID: &goodBenefitAcc.AccountID,
@@ -173,7 +174,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 			good.PlatformRewardAmount,
 			good.TechniqueServiceFeeAmount,
 		)
-		txType := txmgrpb.TxType_TxPlatformBenefit
+		txType := basetypes.TxType_TxPlatformBenefit
 		txs = append(txs, &txmgrpb.TxReq{
 			CoinTypeID:    &good.CoinTypeID,
 			FromAccountID: &goodBenefitAcc.AccountID,
@@ -270,8 +271,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 
 		for _, tx := range txs {
 			switch tx.Type {
-			case txmgrpb.TxType_TxPlatformBenefit:
-			case txmgrpb.TxType_TxUserBenefit:
+			case basetypes.TxType_TxPlatformBenefit:
+			case basetypes.TxType_TxUserBenefit:
 			default:
 				return fmt.Errorf("invalid tx type")
 			}
