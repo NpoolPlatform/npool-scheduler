@@ -26,6 +26,7 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -36,6 +37,10 @@ import (
 	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
 	ledgermwpkg "github.com/NpoolPlatform/ledger-middleware/pkg/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
+
+	eventmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/event"
+	eventmgrpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/event"
+	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 
 	"github.com/shopspring/decimal"
 )
@@ -489,6 +494,30 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		err = ledgerv2mwcli.BookKeeping(ctx, details)
 		if err != nil {
 			return err
+		}
+
+		event, err := eventmwcli.GetEventOnly(ctx, &eventmgrpb.Conds{
+			AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
+		})
+		if err != nil {
+			return err
+		}
+		if event != nil {
+			// TODO: get consecutive orders
+			// TODO: get order good value
+			_, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
+				AppID:       order.AppID,
+				UserID:      order.UserID,
+				EventType:   event.EventType,
+				GoodID:      &order.GoodID,
+				Consecutive: 1,
+				Amount:      "0",
+			})
+			if err != nil {
+				logger.Sugar().Errorw("_processOrderPayment", "Error", err)
+			}
+			// TODO: add action credits to user
 		}
 	}
 
