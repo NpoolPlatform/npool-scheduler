@@ -450,8 +450,9 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	}
 
 	event, err := eventmwcli.GetEventOnly(ctx, &eventmgrpb.Conds{
-		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
+		AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
+		GoodID:    &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
+		EventType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.UsedFor_Purchase)},
 	})
 	if err != nil {
 		logger.Sugar().Errorw(
