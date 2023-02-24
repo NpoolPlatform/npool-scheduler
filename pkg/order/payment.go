@@ -467,6 +467,7 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 			PaymentAmount:          paymentAmountS,
 			GoodValue:              goodValue,
 			SettleType:             good.CommissionSettleType,
+			HasCommission:          true,
 		})
 		if err != nil {
 			return err
@@ -585,6 +586,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 		PaymentAmount:          paymentAmountS,
 		GoodValue:              goodValue,
 		SettleType:             good.CommissionSettleType,
+		HasCommission:          false,
 	})
 	if err != nil {
 		return err
