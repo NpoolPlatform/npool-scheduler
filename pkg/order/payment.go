@@ -12,11 +12,6 @@ import (
 	accountingmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/accounting"
 	accountingmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/accounting"
 
-	orderpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	ordercli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
-
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
 	paymentmgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/payment"
@@ -42,12 +37,19 @@ import (
 	eventmgrpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/event"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 
+	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
+	usermwpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
+
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
 	"github.com/shopspring/decimal"
 )
 
 const TimeoutSeconds = 6 * 60 * 60
 
-func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.PaymentState, ordermgrpb.OrderState) {
+func processState(order *ordermwpb.Order, balance decimal.Decimal) (paymentmgrpb.PaymentState, ordermgrpb.OrderState) {
 	if order.UserCanceled {
 		return paymentmgrpb.PaymentState_Canceled, ordermgrpb.OrderState_Canceled
 	}
@@ -62,7 +64,7 @@ func processState(order *orderpb.Order, balance decimal.Decimal) (paymentmgrpb.P
 	return order.PaymentState, order.OrderState
 }
 
-func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.Decimal {
+func processFinishAmount(order *ordermwpb.Order, balance decimal.Decimal) decimal.Decimal {
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 	if order.UserCanceled {
@@ -77,7 +79,7 @@ func processFinishAmount(order *orderpb.Order, balance decimal.Decimal) decimal.
 	return decimal.NewFromInt(0)
 }
 
-func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, waitstart int32) {
+func processStock(order *ordermwpb.Order, balance decimal.Decimal) (unlocked, waitstart int32) {
 	if order.UserCanceled {
 		return int32(order.Units), 0
 	}
@@ -94,7 +96,7 @@ func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, wait
 
 func tryFinishPayment(
 	ctx context.Context,
-	order *orderpb.Order,
+	order *ordermwpb.Order,
 	newState paymentmgrpb.PaymentState,
 	newOrderState ordermgrpb.OrderState,
 	fakePayment bool,
@@ -110,7 +112,7 @@ func tryFinishPayment(
 			"newState", newState,
 			"paymentFinishAmount", finishAmount,
 		)
-		_, err := ordercli.UpdateOrder(ctx, &orderpb.OrderReq{
+		_, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 			ID:                  &order.ID,
 			PaymentState:        &newState,
 			FakePayment:         &fakePayment,
@@ -144,22 +146,10 @@ func tryFinishPayment(
 	}()
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.PaymentAccountID,
-		},
-		Active: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
-		Locked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
-		Blocked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
+		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
+		Active:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:   &commonpb.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return err
@@ -178,7 +168,7 @@ func tryFinishPayment(
 	return err
 }
 
-func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order) error {
+func tryUpdatePaymentLedger(ctx context.Context, order *ordermwpb.Order) error {
 	finishAmount, _ := decimal.NewFromString(order.PaymentFinishAmount)
 	startAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 	logger.Sugar().Infow(
@@ -220,7 +210,7 @@ func tryUpdatePaymentLedger(ctx context.Context, order *orderpb.Order) error {
 	})
 }
 
-func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order) error {
+func tryUpdateOrderLedger(ctx context.Context, order *ordermwpb.Order) error {
 	amount, _ := decimal.NewFromString(order.PaymentAmount)
 
 	if amount.Cmp(decimal.NewFromInt(0)) <= 0 {
@@ -249,7 +239,7 @@ func tryUpdateOrderLedger(ctx context.Context, order *orderpb.Order) error {
 	})
 }
 
-func unlockBalance(ctx context.Context, order *orderpb.Order, paymentState paymentmgrpb.PaymentState) error {
+func unlockBalance(ctx context.Context, order *ordermwpb.Order, paymentState paymentmgrpb.PaymentState) error {
 	if order.PayWithBalanceAmount == "" {
 		return nil
 	}
@@ -291,16 +281,10 @@ func unlockBalance(ctx context.Context, order *orderpb.Order, paymentState payme
 }
 
 // nolint
-func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
+func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		GoodID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.GoodID,
-		},
+		AppID:  &commonpb.StringVal{Op: cruder.EQ, Value: order.AppID},
+		GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: order.GoodID},
 	})
 	if err != nil {
 		return err
@@ -321,22 +305,10 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.PaymentAccountID,
-		},
-		Active: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
-		Locked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
-		Blocked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
+		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
+		Active:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:   &commonpb.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return err
@@ -380,23 +352,6 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	)
 
 	if state == paymentmgrpb.PaymentState_Done {
-		good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: order.AppID,
-			},
-			GoodID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: order.GoodID,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if good == nil {
-			return fmt.Errorf("invalid good")
-		}
-
 		_, err = ledgermwpkg.TryCreateProfit(ctx, order.AppID, order.UserID, good.CoinTypeID)
 		if err != nil {
 			return err
@@ -421,106 +376,6 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return err
 	}
 
-	// TODO: move to TX end
-
-	if state == paymentmgrpb.PaymentState_Done {
-		good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
-			AppID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: order.AppID,
-			},
-			GoodID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: order.GoodID,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if good == nil {
-			return fmt.Errorf("invalid good")
-		}
-
-		paymentAmount := decimal.RequireFromString(order.PaymentAmount)
-		paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
-		paymentAmountS := paymentAmount.String()
-
-		goodValue := decimal.RequireFromString(good.Price).
-			Mul(decimal.NewFromInt(int64(order.Units))).
-			String()
-
-		comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
-			AppID:                  order.AppID,
-			UserID:                 order.UserID,
-			GoodID:                 order.GoodID,
-			OrderID:                order.ID,
-			PaymentID:              order.PaymentID,
-			CoinTypeID:             good.CoinTypeID,
-			PaymentCoinTypeID:      order.PaymentCoinTypeID,
-			PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
-			Units:                  order.Units,
-			PaymentAmount:          paymentAmountS,
-			GoodValue:              goodValue,
-			SettleType:             good.CommissionSettleType,
-		})
-		if err != nil {
-			return err
-		}
-
-		details := []*ledgerdetailpb.DetailReq{}
-		ioType := ledgerdetailpb.IOType_Incoming
-		ioSubType := ledgerdetailpb.IOSubType_Commission
-
-		for _, comm := range comms {
-			ioExtra := fmt.Sprintf(
-				`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
-				order.PaymentID,
-				order.ID,
-				comm.GetDirectContributorUserID(),
-				order.UserID,
-			)
-
-			details = append(details, &ledgerdetailpb.DetailReq{
-				AppID:      &order.AppID,
-				UserID:     &comm.UserID,
-				CoinTypeID: &order.PaymentCoinTypeID,
-				IOType:     &ioType,
-				IOSubType:  &ioSubType,
-				Amount:     &comm.Amount,
-				IOExtra:    &ioExtra,
-			})
-		}
-
-		err = ledgerv2mwcli.BookKeeping(ctx, details)
-		if err != nil {
-			return err
-		}
-
-		event, err := eventmwcli.GetEventOnly(ctx, &eventmgrpb.Conds{
-			AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
-			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
-		})
-		if err != nil {
-			return err
-		}
-		if event != nil {
-			// TODO: get consecutive orders
-			// TODO: get order good value
-			_, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
-				AppID:       order.AppID,
-				UserID:      order.UserID,
-				EventType:   event.EventType,
-				GoodID:      &order.GoodID,
-				Consecutive: 1,
-				Amount:      "0",
-			})
-			if err != nil {
-				logger.Sugar().Errorw("_processOrderPayment", "Error", err)
-			}
-			// TODO: add action credits to user
-		}
-	}
-
 	switch state {
 	case paymentmgrpb.PaymentState_Done:
 		fallthrough //nolint
@@ -530,10 +385,153 @@ func _processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 		return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
 	}
 
+	if state != paymentmgrpb.PaymentState_Done {
+		return nil
+	}
+
+	paymentAmount := decimal.RequireFromString(order.PaymentAmount)
+	paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
+	paymentAmountS := paymentAmount.String()
+
+	goodValue := decimal.RequireFromString(good.Price).
+		Mul(decimal.NewFromInt(int64(order.Units))).
+		String()
+
+	comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+		AppID:                  order.AppID,
+		UserID:                 order.UserID,
+		GoodID:                 order.GoodID,
+		OrderID:                order.ID,
+		PaymentID:              order.PaymentID,
+		CoinTypeID:             good.CoinTypeID,
+		PaymentCoinTypeID:      order.PaymentCoinTypeID,
+		PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
+		Units:                  order.Units,
+		PaymentAmount:          paymentAmountS,
+		GoodValue:              goodValue,
+		SettleType:             good.CommissionSettleType,
+	})
+	if err != nil {
+		return err
+	}
+
+	details := []*ledgerdetailpb.DetailReq{}
+	ioType := ledgerdetailpb.IOType_Incoming
+	ioSubType := ledgerdetailpb.IOSubType_Commission
+
+	for _, comm := range comms {
+		ioExtra := fmt.Sprintf(
+			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
+			order.PaymentID,
+			order.ID,
+			comm.GetDirectContributorUserID(),
+			order.UserID,
+		)
+
+		details = append(details, &ledgerdetailpb.DetailReq{
+			AppID:      &order.AppID,
+			UserID:     &comm.UserID,
+			CoinTypeID: &order.PaymentCoinTypeID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &comm.Amount,
+			IOExtra:    &ioExtra,
+		})
+	}
+
+	err = ledgerv2mwcli.BookKeeping(ctx, details)
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processOrderPayment",
+			"Step", "BookKeeping Commissions",
+			"OrderID", order.ID,
+			"Error", err)
+		return err
+	}
+
+	event, err := eventmwcli.GetEventOnly(ctx, &eventmgrpb.Conds{
+		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
+		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
+	})
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processOrderPayment",
+			"Step", "Get Event Inspire",
+			"OrderID", order.ID,
+			"Error", err)
+		return nil
+	}
+	if event == nil {
+		return nil
+	}
+
+	count, err := ordermwcli.CountOrders(ctx, &ordermwpb.Conds{
+		AppID:  &commonpb.StringVal{Op: cruder.EQ, Value: order.AppID},
+		UserID: &commonpb.StringVal{Op: cruder.EQ, Value: order.UserID},
+		GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: order.GoodID},
+		States: &commonpb.Uint32SliceVal{
+			Op: cruder.EQ,
+			Value: []uint32{
+				uint32(ordermgrpb.OrderState_Paid),
+				uint32(ordermgrpb.OrderState_InService),
+				uint32(ordermgrpb.OrderState_Expired),
+			},
+		},
+	})
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processOrderPayment",
+			"Step", "Count Consecutive Orders",
+			"OrderID", order.ID,
+			"Error", err)
+		return nil
+	}
+
+	credits, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
+		AppID:       order.AppID,
+		UserID:      order.UserID,
+		EventType:   event.EventType,
+		GoodID:      &order.GoodID,
+		Consecutive: count,
+		Amount:      order.PaymentAmount,
+	})
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processOrderPayment",
+			"Step", "Reward Event",
+			"OrderID", order.ID,
+			"Consecutive", count,
+			"Amount", order.PaymentAmount,
+			"EventType", event.EventType,
+			"Error", err)
+		return nil
+	}
+	if credits.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
+
+	_credits := credits.String()
+	_, err = usermwcli.UpdateUser(ctx, &usermwpb.UserReq{
+		ID:            &order.UserID,
+		AppID:         &order.AppID,
+		ActionCredits: &_credits,
+	})
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processOrderPayment",
+			"Step", "Credits Increment",
+			"OrderID", order.ID,
+			"Credits", credits,
+			"Error", err)
+		return nil
+	}
+
+	// TODO: move to TX end
+
 	return nil
 }
 
-func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
+func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 	coin, err := coinmwcli.GetCoin(ctx, order.PaymentCoinTypeID)
 	if err != nil {
 		return err
@@ -563,14 +561,8 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 	}
 
 	good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		GoodID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.GoodID,
-		},
+		AppID:  &commonpb.StringVal{Op: cruder.EQ, Value: order.AppID},
+		GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: order.GoodID},
 	})
 	if err != nil {
 		return err
@@ -608,7 +600,7 @@ func _processFakeOrder(ctx context.Context, order *orderpb.Order) error {
 	return updateStock(ctx, order.GoodID, unlocked, 0, waitstart)
 }
 
-func processOrderPayment(ctx context.Context, order *orderpb.Order) error {
+func processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	switch order.OrderType {
 	case ordermgrpb.OrderType_Normal:
 		return _processOrderPayment(ctx, order)
@@ -622,7 +614,7 @@ func processOrderPayment(ctx context.Context, order *orderpb.Order) error {
 	return nil
 }
 
-func processOrderPayments(ctx context.Context, orders []*orderpb.Order) {
+func processOrderPayments(ctx context.Context, orders []*ordermwpb.Order) {
 	for _, order := range orders {
 		if order.PaymentState != paymentmgrpb.PaymentState_Wait {
 			continue
@@ -647,11 +639,8 @@ func checkOrderPayments(ctx context.Context) {
 	limit := int32(1000)
 
 	for {
-		orders, _, err := ordercli.GetOrders(ctx, &orderpb.Conds{
-			State: &commonpb.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(ordermgrpb.OrderState_WaitPayment),
-			},
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			State: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(ordermgrpb.OrderState_WaitPayment)},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("processOrderPayments", "offset", offset, "limit", limit, "error", err)
