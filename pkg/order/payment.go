@@ -34,7 +34,6 @@ import (
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
 	eventmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/event"
-	eventmgrpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/event"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
@@ -449,23 +448,6 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		return err
 	}
 
-	event, err := eventmwcli.GetEventOnly(ctx, &eventmgrpb.Conds{
-		AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
-		GoodID:    &basetypes.StringVal{Op: cruder.EQ, Value: order.GoodID},
-		EventType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.UsedFor_Purchase)},
-	})
-	if err != nil {
-		logger.Sugar().Errorw(
-			"processOrderPayment",
-			"Step", "Get Event Inspire",
-			"OrderID", order.ID,
-			"Error", err)
-		return nil
-	}
-	if event == nil {
-		return nil
-	}
-
 	count, err := ordermwcli.CountOrders(ctx, &ordermwpb.Conds{
 		AppID:  &commonpb.StringVal{Op: cruder.EQ, Value: order.AppID},
 		UserID: &commonpb.StringVal{Op: cruder.EQ, Value: order.UserID},
@@ -491,7 +473,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	credits, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
 		AppID:       order.AppID,
 		UserID:      order.UserID,
-		EventType:   event.EventType,
+		EventType:   basetypes.UsedFor_Purchase,
 		GoodID:      &order.GoodID,
 		Consecutive: count,
 		Amount:      order.PaymentAmount,
@@ -503,28 +485,53 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 			"OrderID", order.ID,
 			"Consecutive", count,
 			"Amount", order.PaymentAmount,
-			"EventType", event.EventType,
+			"EventType", basetypes.UsedFor_Purchase,
 			"Error", err)
 		return nil
 	}
-	if credits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
-	}
 
-	_credits := credits.String()
-	_, err = usermwcli.UpdateUser(ctx, &usermwpb.UserReq{
-		ID:            &order.UserID,
-		AppID:         &order.AppID,
-		ActionCredits: &_credits,
+	_credits, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
+		AppID:       order.AppID,
+		UserID:      order.UserID,
+		EventType:   basetypes.UsedFor_AffiliatePurchase,
+		GoodID:      &order.GoodID,
+		Consecutive: count,
+		Amount:      order.PaymentAmount,
 	})
 	if err != nil {
 		logger.Sugar().Errorw(
 			"processOrderPayment",
-			"Step", "Credits Increment",
+			"Step", "Reward Event",
 			"OrderID", order.ID,
-			"Credits", credits,
+			"Consecutive", count,
+			"Amount", order.PaymentAmount,
+			"EventType", basetypes.UsedFor_AffiliatePurchase,
 			"Error", err)
 		return nil
+	}
+
+	credits = append(credits, _credits...)
+	if len(credits) == 0 {
+		return nil
+	}
+
+	for _, credit := range credits {
+		_, err = usermwcli.UpdateUser(ctx, &usermwpb.UserReq{
+			ID:            &order.UserID,
+			AppID:         &order.AppID,
+			ActionCredits: &credit.Credits,
+		})
+		if err != nil {
+			logger.Sugar().Errorw(
+				"processOrderPayment",
+				"Step", "Credits Increment",
+				"AppID", order.AppID,
+				"UserID", order.UserID,
+				"OrderID", order.ID,
+				"Credits", credit.Credits,
+				"Error", err)
+			return nil
+		}
 	}
 
 	// TODO: move to TX end
