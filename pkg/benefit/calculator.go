@@ -118,8 +118,13 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 	return decimal.NewFromString(balance.BalanceStr)
 }
 
+//nolint:gocognit
 func (st *State) CalculateReward(ctx context.Context, good *Good) error {
-	if good.GetGoodTotal() == 0 {
+	total, err := decimal.NewFromString(good.GetGoodTotal())
+	if err != nil {
+		return err
+	}
+	if total.Cmp(decimal.NewFromInt(0)) == 0 {
 		return fmt.Errorf("invalid stock")
 	}
 
@@ -146,7 +151,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 
 	offset := int32(0)
 	limit := int32(100)
-	totalInService := uint32(0)
+	totalInService := decimal.NewFromInt(0)
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
@@ -167,16 +172,24 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		}
 
 		for _, ord := range orders {
-			totalInService += ord.Units
+			units, err := decimal.NewFromString(ord.Units)
+			if err != nil {
+				return err
+			}
+			totalInService = totalInService.Add(units)
 			if benefitable(good.Good, ord) {
-				good.BenefitOrderUnits += ord.Units
+				good.BenefitOrderUnits = good.BenefitOrderUnits.Add(units)
 			}
 		}
 
 		offset += limit
 	}
 
-	if good.GoodInService != totalInService {
+	inService, err := decimal.NewFromString(good.GoodInService)
+	if err != nil {
+		return err
+	}
+	if inService.Cmp(totalInService) != 0 {
 		logger.Sugar().Errorw("CalculateReward",
 			"GoodID", good.ID,
 			"GooInService", good.GoodInService,
@@ -200,9 +213,13 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid reward amount")
 	}
 
+	goodTotal, err := decimal.NewFromString(good.GoodTotal)
+	if err != nil {
+		return err
+	}
 	good.UserRewardAmount = good.TodayRewardAmount.
-		Mul(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
-		Div(decimal.NewFromInt(int64(good.GoodTotal)))
+		Mul(good.BenefitOrderUnits).
+		Div(goodTotal)
 	good.PlatformRewardAmount = good.TodayRewardAmount.
 		Sub(good.UserRewardAmount)
 
@@ -240,8 +257,9 @@ func benefitable(good *goodmwpb.Good, order *ordermwpb.Order) bool {
 	return true
 }
 
+//nolint:gocognit
 func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) error {
-	appUnits := map[string]uint32{}
+	appUnits := map[string]decimal.Decimal{}
 	offset := int32(0)
 	limit := int32(100)
 
@@ -267,7 +285,11 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 			if !benefitable(good.Good, ord) {
 				continue
 			}
-			appUnits[ord.AppID] += ord.Units
+			units, err := decimal.NewFromString(ord.Units)
+			if err != nil {
+				return err
+			}
+			appUnits[ord.AppID] = appUnits[ord.AppID].Add(units)
 			good.BenefitOrderIDs[ord.ID] = ord.PaymentID
 		}
 
@@ -279,7 +301,11 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		appIDs = append(appIDs, appID)
 	}
 
-	if good.BenefitOrderUnits > good.GoodInService {
+	goodInService, err := decimal.NewFromString(good.GoodInService)
+	if err != nil {
+		return err
+	}
+	if good.BenefitOrderUnits.Cmp(goodInService) > 0 {
 		return fmt.Errorf("inconsistent in service")
 	}
 
@@ -311,8 +337,8 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		}
 
 		_fee := good.UserRewardAmount.
-			Mul(decimal.NewFromInt(int64(units))).
-			Div(decimal.NewFromInt(int64(good.BenefitOrderUnits))).
+			Mul(units).
+			Div(good.BenefitOrderUnits).
 			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
 			Div(decimal.NewFromInt(100))
 
