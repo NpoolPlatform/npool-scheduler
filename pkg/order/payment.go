@@ -78,7 +78,7 @@ func processFinishAmount(order *ordermwpb.Order, balance decimal.Decimal) decima
 	return decimal.NewFromInt(0)
 }
 
-func processStock(order *orderpb.Order, balance decimal.Decimal) (unlocked, waitstart decimal.Decimal, err error) {
+func processStock(order *ordermwpb.Order, balance decimal.Decimal) (unlocked, waitstart decimal.Decimal, err error) {
 	units, err := decimal.NewFromString(order.Units)
 	if err != nil {
 		return decimal.Decimal{}, decimal.Decimal{}, err
@@ -406,7 +406,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	paymentAmountS := paymentAmount.String()
 
 	goodValue := decimal.RequireFromString(good.Price).
-		Mul(decimal.NewFromInt(int64(order.Units))).
+		Mul(decimal.RequireFromString(order.Units)).
 		String()
 
 	comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
