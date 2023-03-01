@@ -467,7 +467,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		UserID: &commonpb.StringVal{Op: cruder.EQ, Value: order.UserID},
 		GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: order.GoodID},
 		States: &commonpb.Uint32SliceVal{
-			Op: cruder.EQ,
+			Op: cruder.IN,
 			Value: []uint32{
 				uint32(ordermgrpb.OrderState_Paid),
 				uint32(ordermgrpb.OrderState_InService),
