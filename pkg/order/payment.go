@@ -484,13 +484,17 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		return nil
 	}
 
+	amount1 := decimal.RequireFromString(order.PaymentAmount)
+	amount1 = amount1.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
+	_amount := amount1.String()
+
 	credits, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
 		AppID:       order.AppID,
 		UserID:      order.UserID,
 		EventType:   basetypes.UsedFor_Purchase,
 		GoodID:      &order.GoodID,
 		Consecutive: count,
-		Amount:      order.PaymentAmount,
+		Amount:      _amount,
 	})
 	if err != nil {
 		logger.Sugar().Errorw(
@@ -509,7 +513,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		EventType:   basetypes.UsedFor_AffiliatePurchase,
 		GoodID:      &order.GoodID,
 		Consecutive: count,
-		Amount:      order.PaymentAmount,
+		Amount:      _amount,
 	})
 	if err != nil {
 		logger.Sugar().Errorw(
