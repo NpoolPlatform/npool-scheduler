@@ -15,7 +15,7 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 )
 
-var benefitInterval = 2 * time.Minute
+var benefitInterval = 24 * time.Hour
 
 func interval() time.Duration {
 	if duration, err := time.ParseDuration(
