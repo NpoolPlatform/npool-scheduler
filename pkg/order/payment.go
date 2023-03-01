@@ -501,7 +501,6 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 			"Amount", order.PaymentAmount,
 			"EventType", basetypes.UsedFor_Purchase,
 			"Error", err)
-		return nil
 	}
 
 	_credits, err := eventmwcli.RewardEvent(ctx, &eventmwpb.RewardEventRequest{
@@ -521,7 +520,6 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 			"Amount", order.PaymentAmount,
 			"EventType", basetypes.UsedFor_AffiliatePurchase,
 			"Error", err)
-		return nil
 	}
 
 	credits = append(credits, _credits...)
