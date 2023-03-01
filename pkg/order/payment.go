@@ -529,16 +529,16 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 
 	for _, credit := range credits {
 		_, err = usermwcli.UpdateUser(ctx, &usermwpb.UserReq{
-			ID:            &order.UserID,
-			AppID:         &order.AppID,
+			ID:            &credit.UserID,
+			AppID:         &credit.AppID,
 			ActionCredits: &credit.Credits,
 		})
 		if err != nil {
 			logger.Sugar().Errorw(
 				"processOrderPayment",
 				"Step", "Credits Increment",
-				"AppID", order.AppID,
-				"UserID", order.UserID,
+				"AppID", credit.AppID,
+				"UserID", credit.UserID,
 				"OrderID", order.ID,
 				"Credits", credit.Credits,
 				"Error", err)
