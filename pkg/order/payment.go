@@ -422,6 +422,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		PaymentAmount:          paymentAmountS,
 		GoodValue:              goodValue,
 		SettleType:             good.CommissionSettleType,
+		HasCommission:          true,
 	})
 	if err != nil {
 		return err
