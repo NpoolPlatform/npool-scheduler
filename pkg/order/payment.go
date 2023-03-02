@@ -452,14 +452,16 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		})
 	}
 
-	err = ledgerv2mwcli.BookKeeping(ctx, details)
-	if err != nil {
-		logger.Sugar().Errorw(
-			"processOrderPayment",
-			"Step", "BookKeeping Commissions",
-			"OrderID", order.ID,
-			"Error", err)
-		return err
+	if len(details) > 0 {
+		err = ledgerv2mwcli.BookKeeping(ctx, details)
+		if err != nil {
+			logger.Sugar().Errorw(
+				"processOrderPayment",
+				"Step", "BookKeeping Commissions",
+				"OrderID", order.ID,
+				"Error", err)
+			return err
+		}
 	}
 
 	count, err := ordermwcli.CountOrders(ctx, &ordermwpb.Conds{
