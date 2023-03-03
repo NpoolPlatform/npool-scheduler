@@ -586,13 +586,17 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 
 	finishAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 
+	if err := tryFinishPayment(ctx, order, state, orderState, true, finishAmount); err != nil {
+		return err
+	}
+
 	err = updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
 	if err != nil {
 		return err
 	}
 
-	if err := tryFinishPayment(ctx, order, state, orderState, true, finishAmount); err != nil {
-		return err
+	if order.OrderType != ordermgrpb.OrderType_Offline {
+		return nil
 	}
 
 	good, err := goodmwcli.GetGoodOnly(ctx, &goodmgrpb.Conds{
@@ -614,25 +618,23 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Mul(units).
 		String()
 
-	if order.OrderType == ordermgrpb.OrderType_Offline {
-		_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
-			AppID:                  order.AppID,
-			UserID:                 order.UserID,
-			GoodID:                 order.GoodID,
-			OrderID:                order.ID,
-			PaymentID:              order.PaymentID,
-			CoinTypeID:             good.CoinTypeID,
-			PaymentCoinTypeID:      order.PaymentCoinTypeID,
-			PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
-			Units:                  order.Units,
-			PaymentAmount:          paymentAmountS,
-			GoodValue:              goodValue,
-			SettleType:             good.CommissionSettleType,
-			HasCommission:          false,
-		})
-		if err != nil {
-			return err
-		}
+	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+		AppID:                  order.AppID,
+		UserID:                 order.UserID,
+		GoodID:                 order.GoodID,
+		OrderID:                order.ID,
+		PaymentID:              order.PaymentID,
+		CoinTypeID:             good.CoinTypeID,
+		PaymentCoinTypeID:      order.PaymentCoinTypeID,
+		PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
+		Units:                  order.Units,
+		PaymentAmount:          paymentAmountS,
+		GoodValue:              goodValue,
+		SettleType:             good.CommissionSettleType,
+		HasCommission:          false,
+	})
+	if err != nil {
+		logger.Sugar().Infow("_processFakeOrder", "Error", err)
 	}
 
 	return nil
