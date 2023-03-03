@@ -586,6 +586,11 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 
 	finishAmount, _ := decimal.NewFromString(order.PaymentStartAmount)
 
+	err = updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
+	if err != nil {
+		return err
+	}
+
 	if err := tryFinishPayment(ctx, order, state, orderState, true, finishAmount); err != nil {
 		return err
 	}
@@ -630,7 +635,7 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 		}
 	}
 
-	return updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
+	return nil
 }
 
 func processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
