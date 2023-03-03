@@ -609,23 +609,25 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Mul(units).
 		String()
 
-	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
-		AppID:                  order.AppID,
-		UserID:                 order.UserID,
-		GoodID:                 order.GoodID,
-		OrderID:                order.ID,
-		PaymentID:              order.PaymentID,
-		CoinTypeID:             good.CoinTypeID,
-		PaymentCoinTypeID:      order.PaymentCoinTypeID,
-		PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
-		Units:                  order.Units,
-		PaymentAmount:          paymentAmountS,
-		GoodValue:              goodValue,
-		SettleType:             good.CommissionSettleType,
-		HasCommission:          false,
-	})
-	if err != nil {
-		return err
+	if order.OrderType == ordermgrpb.OrderType_Offline {
+		_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+			AppID:                  order.AppID,
+			UserID:                 order.UserID,
+			GoodID:                 order.GoodID,
+			OrderID:                order.ID,
+			PaymentID:              order.PaymentID,
+			CoinTypeID:             good.CoinTypeID,
+			PaymentCoinTypeID:      order.PaymentCoinTypeID,
+			PaymentCoinUSDCurrency: order.PaymentCoinUSDCurrency,
+			Units:                  order.Units,
+			PaymentAmount:          paymentAmountS,
+			GoodValue:              goodValue,
+			SettleType:             good.CommissionSettleType,
+			HasCommission:          false,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return updateStock(ctx, order.GoodID, unlocked, decimal.NewFromInt(0), waitstart)
