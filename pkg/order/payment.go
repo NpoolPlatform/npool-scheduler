@@ -423,6 +423,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		GoodValue:              goodValue,
 		SettleType:             good.CommissionSettleType,
 		HasCommission:          true,
+		OrderCreatedAt:         order.CreatedAt,
 	})
 	if err != nil {
 		return err
@@ -632,6 +633,7 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 		GoodValue:              goodValue,
 		SettleType:             good.CommissionSettleType,
 		HasCommission:          false,
+		OrderCreatedAt:         order.CreatedAt,
 	})
 	if err != nil {
 		logger.Sugar().Infow("_processFakeOrder", "Error", err)
