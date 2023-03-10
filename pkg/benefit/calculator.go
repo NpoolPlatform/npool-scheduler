@@ -118,6 +118,38 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 	return decimal.NewFromString(balance.BalanceStr)
 }
 
+func updateAppGoodDailyRewardAmount(ctx context.Context, goodID, dailyRewardAmount string) error {
+	offset := int32(0)
+	limit := int32(1000)
+	for {
+		appGoods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmgrpb.Conds{
+			GoodID: &commonpb.StringVal{
+				Op:    cruder.EQ,
+				Value: goodID,
+			},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		offset += limit
+
+		if len(appGoods) == 0 {
+			break
+		}
+
+		for _, val := range appGoods {
+			_, err = appgoodmwcli.UpdateGood(ctx, &appgoodmgrpb.AppGoodReq{
+				ID:                &val.ID,
+				DailyRewardAmount: &dailyRewardAmount,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 //nolint:gocognit
 func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	total, err := decimal.NewFromString(good.GetGoodTotal())
@@ -135,6 +167,11 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 
 	if bal.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
+	}
+
+	err = updateAppGoodDailyRewardAmount(ctx, good.GetID(), bal.Mul(total).String())
+	if err != nil {
+		return err
 	}
 
 	good.BenefitAccountAmount = bal
