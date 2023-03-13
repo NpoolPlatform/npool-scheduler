@@ -142,16 +142,12 @@ func feedOne(
 	accountID, address string,
 	usedFor accountmgrpb.AccountUsedFor,
 	amount decimal.Decimal,
+	lowFeeAmount decimal.Decimal,
 ) (
 	bool, error,
 ) {
 	if address == "" || accountID == "" {
 		return false, fmt.Errorf("coin %v account %v address %v usedFor %v", coin.Name, accountID, address, usedFor)
-	}
-
-	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
-	if err != nil {
-		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
@@ -258,7 +254,13 @@ func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin
 	if err != nil {
 		return false, err
 	}
-	return feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, acc.UsedFor, amount)
+
+	lowFeeAmount, err := decimal.NewFromString(coin.HotLowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.HotLowFeeAmount, err)
+	}
+
+	return feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, acc.UsedFor, amount, lowFeeAmount)
 }
 
 func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) { //nolint
@@ -268,6 +270,11 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 	amount, err := decimal.NewFromString(coin.CollectFeeAmount)
 	if err != nil {
 		return false, err
+	}
+
+	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	for {
@@ -297,7 +304,17 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 		}
 
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_GoodPayment, amount)
+			feeded, err := feedOne(
+				ctx,
+				coin,
+				feeCoin,
+				gasProvider,
+				acc.AccountID,
+				acc.Address,
+				accountmgrpb.AccountUsedFor_GoodPayment,
+				amount,
+				lowFeeAmount,
+			)
 			if err != nil {
 				continue
 			}
@@ -317,6 +334,11 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 	amount, err := decimal.NewFromString(coin.CollectFeeAmount)
 	if err != nil {
 		return false, err
+	}
+
+	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	for {
@@ -353,8 +375,19 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 			"FeeCoin", feeCoin.Name,
 			"FeeCoinTypeID", feeCoin.ID,
 		)
+
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
+			feeded, err := feedOne(
+				ctx,
+				coin,
+				feeCoin,
+				gasProvider,
+				acc.AccountID,
+				acc.Address,
+				accountmgrpb.AccountUsedFor_UserDeposit,
+				amount,
+				lowFeeAmount,
+			)
 			if err != nil {
 				continue
 			}
