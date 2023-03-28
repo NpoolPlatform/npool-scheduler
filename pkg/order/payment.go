@@ -43,73 +43,10 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
-	allocatedmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/coupon/allocated"
-	allocatedmgrpb "github.com/NpoolPlatform/message/npool/inspire/mgr/v1/coupon/allocated"
-
 	"github.com/shopspring/decimal"
 )
 
 const TimeoutSeconds = 6 * 60 * 60
-
-func getReductionAmount(ctx context.Context, order *ordermwpb.Order) (decimal.Decimal, error) {
-	amount := decimal.NewFromInt(0)
-
-	if len(order.CouponIDs) == 0 {
-		return amount, nil
-	}
-
-	coupons, _, err := allocatedmwcli.GetCoupons(ctx, &allocatedmgrpb.Conds{
-		AppID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.AppID,
-		},
-		UserID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: order.UserID,
-		},
-		IDs: &commonpb.StringSliceVal{
-			Op:    cruder.IN,
-			Value: order.CouponIDs,
-		},
-	}, int32(0), int32(len(order.CouponIDs)))
-	if err != nil {
-		return amount, err
-	}
-
-	for _, coup := range coupons {
-		switch coup.CouponType {
-		case allocatedmgrpb.CouponType_FixAmount:
-			fallthrough //nolint
-		case allocatedmgrpb.CouponType_SpecialOffer:
-			val, err := decimal.NewFromString(coup.Value)
-			if err != nil {
-				return amount, err
-			}
-			amount = amount.Add(val)
-		case allocatedmgrpb.CouponType_Discount:
-			percent, err := decimal.NewFromString(coup.Value)
-			if err != nil {
-				return percent, err
-			}
-
-			paymentAmount, err := decimal.NewFromString(order.PaymentAmount)
-			if err != nil {
-				return amount, err
-			}
-
-			amount = amount.Add(amount.Sub(paymentAmount.Mul(percent).Div(decimal.NewFromInt(100))))
-		case allocatedmgrpb.CouponType_ThresholdFixAmount:
-		case allocatedmgrpb.CouponType_ThresholdDiscount:
-		case allocatedmgrpb.CouponType_GoodFixAmount:
-		case allocatedmgrpb.CouponType_GoodDiscount:
-		case allocatedmgrpb.CouponType_GoodThresholdFixAmount:
-		case allocatedmgrpb.CouponType_GoodThresholdDiscount:
-		default:
-			return decimal.Decimal{}, fmt.Errorf("unknown coupon type")
-		}
-	}
-	return amount, nil
-}
 
 func processState(order *ordermwpb.Order, balance decimal.Decimal) (paymentmgrpb.PaymentState, ordermgrpb.OrderState) {
 	if order.UserCanceled {
@@ -400,11 +337,6 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		return err
 	}
 
-	reductionAmount, err := getReductionAmount(ctx, order)
-	if err != nil {
-		return err
-	}
-
 	state, newOrderState := processState(order, bal)
 	remain := processFinishAmount(order, bal)
 	finishAmount := bal
@@ -470,7 +402,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	}
 
 	paymentAmount := decimal.RequireFromString(order.PaymentAmount)
-	paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount)).Add(reductionAmount)
+	paymentAmount = paymentAmount.Add(decimal.RequireFromString(order.PayWithBalanceAmount))
 	paymentAmountS := paymentAmount.String()
 
 	goodValue := decimal.RequireFromString(good.Price).
@@ -502,6 +434,13 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
 	for _, comm := range comms {
+		commAmount, err := decimal.NewFromString(comm.Amount)
+		if err != nil {
+			return err
+		}
+		if commAmount.Cmp(decimal.NewFromInt(0)) == 0 {
+			continue
+		}
 		ioExtra := fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 			order.PaymentID,
