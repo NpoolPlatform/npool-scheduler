@@ -438,7 +438,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		if err != nil {
 			return err
 		}
-		if commAmount.Cmp(decimal.NewFromInt(0)) == 0 {
+		if commAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
