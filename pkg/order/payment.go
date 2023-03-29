@@ -434,6 +434,13 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
 	for _, comm := range comms {
+		commAmount, err := decimal.NewFromString(comm.Amount)
+		if err != nil {
+			return err
+		}
+		if commAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 		ioExtra := fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 			order.PaymentID,
