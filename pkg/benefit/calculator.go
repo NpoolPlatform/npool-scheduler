@@ -169,11 +169,6 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return nil
 	}
 
-	err = updateAppGoodDailyRewardAmount(ctx, good.GetID(), bal.Mul(total).String())
-	if err != nil {
-		return err
-	}
-
 	good.BenefitAccountAmount = bal
 
 	coin, err := st.coin(ctx, good.CoinTypeID)
@@ -248,6 +243,11 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 			"ReservedAmount", reservedAmount,
 		)
 		return fmt.Errorf("invalid reward amount")
+	}
+
+	err = updateAppGoodDailyRewardAmount(ctx, good.GetID(), good.TodayRewardAmount.Div(total).String())
+	if err != nil {
+		return err
 	}
 
 	goodTotal, err := decimal.NewFromString(good.GoodTotal)
