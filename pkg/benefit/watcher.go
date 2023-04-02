@@ -16,13 +16,17 @@ import (
 )
 
 var benefitInterval = 24 * time.Hour
+var checkInterval = 10 * time.Minute
 
-func interval() time.Duration {
+func prepareInterval() {
 	if duration, err := time.ParseDuration(
 		fmt.Sprintf("%vs", os.Getenv("ENV_BENEFIT_INTERVAL_SECONDS"))); err == nil {
-		return duration
+		benefitInterval = duration
 	}
-	return benefitInterval
+	if duration, err := time.ParseDuration(
+		fmt.Sprintf("%vs", os.Getenv("ENV_CHECK_INTERVAL_SECONDS"))); err == nil {
+		checkInterval = duration
+	}
 }
 
 func tomorrowStart() time.Time {
@@ -171,13 +175,17 @@ func processBookKeepingGoods(ctx context.Context) {
 }
 
 func Watch(ctx context.Context) {
-	benefitInterval = interval()
-	logger.Sugar().Infow("benefit", "intervalSeconds", benefitInterval)
+	prepareInterval()
+	logger.Sugar().Infow(
+		"benefit",
+		"BenefitIntervalSeconds", benefitInterval,
+		"CheckIntervalSeconds", checkInterval,
+	)
 
 	delay()
 
 	tickerWait := time.NewTicker(benefitInterval)
-	tickerTransferring := time.NewTicker(10 * time.Minute)
+	tickerTransferring := time.NewTicker(checkInterval)
 
 	for {
 		select {
