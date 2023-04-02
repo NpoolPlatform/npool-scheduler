@@ -213,13 +213,9 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid reward amount")
 	}
 
-	goodTotal, err := decimal.NewFromString(good.GoodTotal)
-	if err != nil {
-		return err
-	}
 	good.UserRewardAmount = good.TodayRewardAmount.
 		Mul(good.BenefitOrderUnits).
-		Div(goodTotal)
+		Div(total)
 	good.PlatformRewardAmount = good.TodayRewardAmount.
 		Sub(good.UserRewardAmount)
 
@@ -330,31 +326,33 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 
 	techniqueServiceFee := decimal.NewFromInt(0)
 
-	for appID, units := range appUnits {
-		ag, ok := goodMap[appID]
-		if !ok {
-			return fmt.Errorf("unauthorized appgood")
+	if good.BenefitOrderUnits.Cmp(decimal.NewFromInt(0)) > 0 {
+		for appID, units := range appUnits {
+			ag, ok := goodMap[appID]
+			if !ok {
+				return fmt.Errorf("unauthorized appgood")
+			}
+
+			_fee := good.UserRewardAmount.
+				Mul(units).
+				Div(good.BenefitOrderUnits).
+				Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
+				Div(decimal.NewFromInt(100))
+
+			logger.Sugar().Infow("CalculateTechniqueServiceFee",
+				"GoodID", good.ID,
+				"GoodName", good.Title,
+				"TotalInService", good.GoodInService,
+				"BenefitOrderUnits", good.BenefitOrderUnits,
+				"AppID", appID,
+				"Units", units,
+				"Orders", len(good.BenefitOrderIDs),
+				"TechnicalFeeRatio", ag.TechnicalFeeRatio,
+				"FeeAmount", _fee,
+			)
+
+			techniqueServiceFee = techniqueServiceFee.Add(_fee)
 		}
-
-		_fee := good.UserRewardAmount.
-			Mul(units).
-			Div(good.BenefitOrderUnits).
-			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
-			Div(decimal.NewFromInt(100))
-
-		logger.Sugar().Infow("CalculateTechniqueServiceFee",
-			"GoodID", good.ID,
-			"GoodName", good.Title,
-			"TotalInService", good.GoodInService,
-			"BenefitOrderUnits", good.BenefitOrderUnits,
-			"AppID", appID,
-			"Units", units,
-			"Orders", len(good.BenefitOrderIDs),
-			"TechnicalFeeRatio", ag.TechnicalFeeRatio,
-			"FeeAmount", _fee,
-		)
-
-		techniqueServiceFee = techniqueServiceFee.Add(_fee)
 	}
 
 	good.TechniqueServiceFeeAmount = techniqueServiceFee
