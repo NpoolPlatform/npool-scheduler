@@ -299,6 +299,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		}
 	}
 
+	// TODO: we need to improve for some tx fail, some tx success
+
 	nextStart, err := decimal.NewFromString(good.NextBenefitStartAmount)
 	if err != nil {
 		return err
