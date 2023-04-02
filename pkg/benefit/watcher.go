@@ -15,8 +15,10 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 )
 
-var benefitInterval = 24 * time.Hour
-var checkInterval = 10 * time.Minute
+var (
+	benefitInterval = 24 * time.Hour
+	checkInterval   = 10 * time.Minute
+)
 
 func prepareInterval() {
 	if duration, err := time.ParseDuration(
