@@ -77,13 +77,8 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111062738-1054218618aa h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111062738-1054218618aa/go.mod h1:nmVvmSGYuOBGZ4RWeTZ8ny5Kw6Nx8uwQPblmJ/x1wYs=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQOJ0xQWdJS1BnimNdM6GZMLgTL/FnIa8C8K4xffUA=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
-<<<<<<< HEAD
 github.com/NpoolPlatform/message v0.0.0-20230329064500-da8e14fda821 h1:46Lbd8Vp5XSb2ZpSQQoMdNt5oClIFVtwtFvlYgL0P0M=
 github.com/NpoolPlatform/message v0.0.0-20230329064500-da8e14fda821/go.mod h1:bblNegLa6PLnrfbc7MEzwa1pjQOjJ8vJ/5K497ckiig=
-=======
-github.com/NpoolPlatform/message v0.0.0-20230313110131-64d0b6ec62b3 h1:SQm4BDp1Kqo42iYqOTjqD6G3A1GATUCRopNcw/Y+Lo4=
-github.com/NpoolPlatform/message v0.0.0-20230313110131-64d0b6ec62b3/go.mod h1:bblNegLa6PLnrfbc7MEzwa1pjQOjJ8vJ/5K497ckiig=
->>>>>>> Use different low fee amount for hot wallet
 github.com/NpoolPlatform/notif-manager v0.0.0-20230221092622-bd0f7a986b7e h1:uBst+PETr72P1/m2WDCH0/5jSWSU8oDuC6Nkf//yzpA=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230221093008-c752bddbb687 h1:EYQPrDW4UESGuEP49IV+Xwft4JUC16gb1DZQnH9YFu0=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230221093008-c752bddbb687/go.mod h1:leYq+Scn4WZ72AQtq4bZKlmeMsxTXUpTgWOPZK7Eb34=
