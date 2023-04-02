@@ -83,6 +83,10 @@ func processWaitGoods(ctx context.Context) { //nolint
 				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
 				continue
 			}
+			if err := UpdateDailyReward(ctx, g); err != nil {
+				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
+				continue
+			}
 
 			logger.Sugar().Infow("processWaitGoods",
 				"GoodID", g.ID,
