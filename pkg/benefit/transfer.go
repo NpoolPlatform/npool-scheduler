@@ -255,6 +255,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	return nil
 }
 
+//nolint:gocognit
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	transferred := decimal.NewFromInt(0)
 
