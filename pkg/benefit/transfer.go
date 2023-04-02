@@ -285,12 +285,13 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			case txmgrpb.TxState_StateTransferring:
 				return nil
 			case txmgrpb.TxState_StateSuccessful:
+				fallthrough //nolint
+			case txmgrpb.TxState_StateFail:
 				amount, err := decimal.NewFromString(tx.Amount)
 				if err != nil {
 					return err
 				}
 				transferred = transferred.Add(amount)
-			case txmgrpb.TxState_StateFail:
 			}
 		}
 	}
