@@ -259,6 +259,8 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	transferred := decimal.NewFromInt(0)
 
+	doneTIDs := []string{}
+
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
 			IDs: &commonpb.StringSliceVal{
@@ -286,15 +288,19 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			case txmgrpb.TxState_StateTransferring:
 				return nil
 			case txmgrpb.TxState_StateSuccessful:
+				fallthrough //nolint
+			case txmgrpb.TxState_StateFail:
 				amount, err := decimal.NewFromString(tx.Amount)
 				if err != nil {
 					return err
 				}
 				transferred = transferred.Add(amount)
-			case txmgrpb.TxState_StateFail:
+				doneTIDs = append(doneTIDs, tx.ID)
 			}
 		}
 	}
+
+	// TODO: we need to improve for some tx fail, some tx success
 
 	nextStart, err := decimal.NewFromString(good.NextBenefitStartAmount)
 	if err != nil {
@@ -309,10 +315,26 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	state := goodmgrpb.BenefitState_BenefitBookKeeping
 	nextStartS := nextStart.String()
 
+	remainTIDs := []string{}
+
+	for _, tid := range good.BenefitTIDs {
+		found := false
+		for _, _tid := range doneTIDs {
+			if _tid == tid {
+				found = true
+				break
+			}
+		}
+		if !found {
+			remainTIDs = append(remainTIDs, tid)
+		}
+	}
+
 	req := &goodmwpb.GoodReq{
 		ID:                     &good.ID,
 		BenefitState:           &state,
 		NextBenefitStartAmount: &nextStartS,
+		BenefitTIDs:            remainTIDs,
 	}
 	_, err = goodmwcli.UpdateGood(ctx, req)
 	if err != nil {

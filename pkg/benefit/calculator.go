@@ -118,38 +118,6 @@ func (st *State) balance(ctx context.Context, good *Good) (decimal.Decimal, erro
 	return decimal.NewFromString(balance.BalanceStr)
 }
 
-func updateAppGoodDailyRewardAmount(ctx context.Context, goodID, dailyRewardAmount string) error {
-	offset := int32(0)
-	limit := int32(1000)
-	for {
-		appGoods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmgrpb.Conds{
-			GoodID: &commonpb.StringVal{
-				Op:    cruder.EQ,
-				Value: goodID,
-			},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		offset += limit
-
-		if len(appGoods) == 0 {
-			break
-		}
-
-		for _, val := range appGoods {
-			_, err = appgoodmwcli.UpdateGood(ctx, &appgoodmgrpb.AppGoodReq{
-				ID:                &val.ID,
-				DailyRewardAmount: &dailyRewardAmount,
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 //nolint:gocognit
 func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	total, err := decimal.NewFromString(good.GetGoodTotal())
@@ -245,18 +213,9 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid reward amount")
 	}
 
-	err = updateAppGoodDailyRewardAmount(ctx, good.GetID(), good.TodayRewardAmount.Div(total).String())
-	if err != nil {
-		return err
-	}
-
-	goodTotal, err := decimal.NewFromString(good.GoodTotal)
-	if err != nil {
-		return err
-	}
 	good.UserRewardAmount = good.TodayRewardAmount.
 		Mul(good.BenefitOrderUnits).
-		Div(goodTotal)
+		Div(total)
 	good.PlatformRewardAmount = good.TodayRewardAmount.
 		Sub(good.UserRewardAmount)
 
@@ -367,31 +326,33 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 
 	techniqueServiceFee := decimal.NewFromInt(0)
 
-	for appID, units := range appUnits {
-		ag, ok := goodMap[appID]
-		if !ok {
-			return fmt.Errorf("unauthorized appgood")
+	if good.BenefitOrderUnits.Cmp(decimal.NewFromInt(0)) > 0 {
+		for appID, units := range appUnits {
+			ag, ok := goodMap[appID]
+			if !ok {
+				return fmt.Errorf("unauthorized appgood")
+			}
+
+			_fee := good.UserRewardAmount.
+				Mul(units).
+				Div(good.BenefitOrderUnits).
+				Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
+				Div(decimal.NewFromInt(100))
+
+			logger.Sugar().Infow("CalculateTechniqueServiceFee",
+				"GoodID", good.ID,
+				"GoodName", good.Title,
+				"TotalInService", good.GoodInService,
+				"BenefitOrderUnits", good.BenefitOrderUnits,
+				"AppID", appID,
+				"Units", units,
+				"Orders", len(good.BenefitOrderIDs),
+				"TechnicalFeeRatio", ag.TechnicalFeeRatio,
+				"FeeAmount", _fee,
+			)
+
+			techniqueServiceFee = techniqueServiceFee.Add(_fee)
 		}
-
-		_fee := good.UserRewardAmount.
-			Mul(units).
-			Div(good.BenefitOrderUnits).
-			Mul(decimal.NewFromInt(int64(ag.TechnicalFeeRatio))).
-			Div(decimal.NewFromInt(100))
-
-		logger.Sugar().Infow("CalculateTechniqueServiceFee",
-			"GoodID", good.ID,
-			"GoodName", good.Title,
-			"TotalInService", good.GoodInService,
-			"BenefitOrderUnits", good.BenefitOrderUnits,
-			"AppID", appID,
-			"Units", units,
-			"Orders", len(good.BenefitOrderIDs),
-			"TechnicalFeeRatio", ag.TechnicalFeeRatio,
-			"FeeAmount", _fee,
-		)
-
-		techniqueServiceFee = techniqueServiceFee.Add(_fee)
 	}
 
 	good.TechniqueServiceFeeAmount = techniqueServiceFee
