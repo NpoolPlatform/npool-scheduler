@@ -97,6 +97,13 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 	case txmgrpb.TxState_StateWait:
 		fallthrough //nolint
 	case txmgrpb.TxState_StateTransferring:
+		logger.Sugar().Infow("feeding",
+			"TxID", txs[0].ID,
+			"AccountID", accountID,
+			"From", txs[0].FromAccountID,
+			"To", txs[0].ToAccountID,
+			"Amount", txs[0].Amount,
+		)
 		return true, nil
 	case txmgrpb.TxState_StateSuccessful:
 	case txmgrpb.TxState_StateFail:
@@ -105,6 +112,13 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 
 	const coolDown = uint32(10 * 60)
 	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
+		logger.Sugar().Infow("feeding",
+			"TxID", txs[0].ID,
+			"AccountID", accountID,
+			"From", txs[0].FromAccountID,
+			"To", txs[0].ToAccountID,
+			"Amount", txs[0].Amount,
+		)
 		return true, nil
 	}
 
@@ -142,6 +156,7 @@ func feedOne(
 	accountID, address string,
 	usedFor accountmgrpb.AccountUsedFor,
 	amount decimal.Decimal,
+	lowFeeAmount decimal.Decimal,
 ) (
 	bool, error,
 ) {
@@ -149,10 +164,12 @@ func feedOne(
 		return false, fmt.Errorf("coin %v account %v address %v usedFor %v", coin.Name, accountID, address, usedFor)
 	}
 
-	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
-	if err != nil {
-		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
-	}
+	logger.Sugar().Infow("feedOne",
+		"Coin", coin.Name,
+		"feeCoin", feeCoin.Name,
+		"Address", address,
+		"LowFeeAmount", lowFeeAmount,
+	)
 
 	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
 	if err != nil {
@@ -258,7 +275,13 @@ func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin
 	if err != nil {
 		return false, err
 	}
-	return feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, acc.UsedFor, amount)
+
+	lowFeeAmount, err := decimal.NewFromString(coin.HotLowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.HotLowFeeAmount, err)
+	}
+
+	return feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, acc.UsedFor, amount, lowFeeAmount)
 }
 
 func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) { //nolint
@@ -268,6 +291,11 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 	amount, err := decimal.NewFromString(coin.CollectFeeAmount)
 	if err != nil {
 		return false, err
+	}
+
+	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	for {
@@ -297,7 +325,17 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 		}
 
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_GoodPayment, amount)
+			feeded, err := feedOne(
+				ctx,
+				coin,
+				feeCoin,
+				gasProvider,
+				acc.AccountID,
+				acc.Address,
+				accountmgrpb.AccountUsedFor_GoodPayment,
+				amount,
+				lowFeeAmount,
+			)
 			if err != nil {
 				continue
 			}
@@ -317,6 +355,11 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 	amount, err := decimal.NewFromString(coin.CollectFeeAmount)
 	if err != nil {
 		return false, err
+	}
+
+	lowFeeAmount, err := decimal.NewFromString(coin.LowFeeAmount)
+	if err != nil {
+		return false, fmt.Errorf("coin %v lowFeeAmount %v err %v", coin.Name, coin.LowFeeAmount, err)
 	}
 
 	for {
@@ -353,8 +396,19 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 			"FeeCoin", feeCoin.Name,
 			"FeeCoinTypeID", feeCoin.ID,
 		)
+
 		for _, acc := range accs {
-			feeded, err := feedOne(ctx, coin, feeCoin, gasProvider, acc.AccountID, acc.Address, accountmgrpb.AccountUsedFor_UserDeposit, amount)
+			feeded, err := feedOne(
+				ctx,
+				coin,
+				feeCoin,
+				gasProvider,
+				acc.AccountID,
+				acc.Address,
+				accountmgrpb.AccountUsedFor_UserDeposit,
+				amount,
+				lowFeeAmount,
+			)
 			if err != nil {
 				continue
 			}
@@ -385,6 +439,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if yes {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_GasProvider,
+			"State", "Feeding",
+		)
 		return nil
 	}
 
@@ -398,6 +459,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_UserBenefitHot,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
@@ -406,6 +474,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_UserDeposit,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
@@ -414,6 +489,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_GoodPayment,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
