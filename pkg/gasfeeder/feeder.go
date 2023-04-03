@@ -97,6 +97,13 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 	case txmgrpb.TxState_StateWait:
 		fallthrough //nolint
 	case txmgrpb.TxState_StateTransferring:
+		logger.Sugar().Infow("feeding",
+			"TxID", txs[0].ID,
+			"AccountID", accountID,
+			"From", txs[0].FromAccountID,
+			"To", txs[0].ToAccountID,
+			"Amount", txs[0].Amount,
+		)
 		return true, nil
 	case txmgrpb.TxState_StateSuccessful:
 	case txmgrpb.TxState_StateFail:
@@ -105,6 +112,13 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 
 	const coolDown = uint32(10 * 60)
 	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
+		logger.Sugar().Infow("feeding",
+			"TxID", txs[0].ID,
+			"AccountID", accountID,
+			"From", txs[0].FromAccountID,
+			"To", txs[0].ToAccountID,
+			"Amount", txs[0].Amount,
+		)
 		return true, nil
 	}
 
@@ -149,6 +163,13 @@ func feedOne(
 	if address == "" || accountID == "" {
 		return false, fmt.Errorf("coin %v account %v address %v usedFor %v", coin.Name, accountID, address, usedFor)
 	}
+
+	logger.Sugar().Infow("feedOne",
+		"Coin", coin.Name,
+		"feeCoin", feeCoin.Name,
+		"Address", address,
+		"LowFeeAmount", lowFeeAmount,
+	)
 
 	ok, err := enough(ctx, feeCoin.Name, address, lowFeeAmount)
 	if err != nil {
@@ -418,6 +439,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if yes {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_GasProvider,
+			"State", "Feeding",
+		)
 		return nil
 	}
 
@@ -431,6 +459,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_UserBenefitHot,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
@@ -439,6 +474,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_UserDeposit,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
@@ -447,6 +489,13 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 	if feeded {
+		logger.Sugar().Infow("feedCoin",
+			"Coin", coin.Name,
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"UsedFor", accountmgrpb.AccountUsedFor_GoodPayment,
+			"State", "Feeded",
+		)
 		return nil
 	}
 
