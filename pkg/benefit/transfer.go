@@ -316,10 +316,6 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	}
 
 	state := goodmgrpb.BenefitState_BenefitBookKeeping
-	if txFail {
-		state = goodmgrpb.BenefitState_BenefitWait
-	}
-
 	nextStartS := nextStart.String()
 
 	remainTIDs := []string{}
@@ -342,6 +338,20 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		BenefitState:           &state,
 		NextBenefitStartAmount: &nextStartS,
 		BenefitTIDs:            remainTIDs,
+	}
+
+	_, err = goodmwcli.UpdateGood(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	if txFail {
+		state = goodmgrpb.BenefitState_BenefitWait
+	}
+
+	req = &goodmwpb.GoodReq{
+		ID:           &good.ID,
+		BenefitState: &state,
 	}
 
 	_, err = goodmwcli.UpdateGood(ctx, req)
