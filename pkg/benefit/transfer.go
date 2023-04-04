@@ -261,6 +261,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 
 	doneTIDs := []string{}
 
+	txFail := false
+
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
 			IDs: &commonpb.StringSliceVal{
@@ -287,9 +289,10 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				fallthrough //nolint
 			case txmgrpb.TxState_StateTransferring:
 				return nil
-			case txmgrpb.TxState_StateSuccessful:
-				fallthrough //nolint
 			case txmgrpb.TxState_StateFail:
+				txFail = true
+				fallthrough //nolint
+			case txmgrpb.TxState_StateSuccessful:
 				amount, err := decimal.NewFromString(tx.Amount)
 				if err != nil {
 					return err
@@ -313,6 +316,10 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	}
 
 	state := goodmgrpb.BenefitState_BenefitBookKeeping
+	if txFail {
+		state = goodmgrpb.BenefitState_BenefitWait
+	}
+
 	nextStartS := nextStart.String()
 
 	remainTIDs := []string{}
@@ -336,6 +343,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		NextBenefitStartAmount: &nextStartS,
 		BenefitTIDs:            remainTIDs,
 	}
+
 	_, err = goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
