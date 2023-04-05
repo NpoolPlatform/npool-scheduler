@@ -182,8 +182,8 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 			continue
 		}
 
-		ioExtra := fmt.Sprintf(`{"GoodID":"%v","OrderID":"%v","BenefitDate":"%v"}`,
-			good.ID, ord.ID, good.LastBenefitAt)
+		ioExtra := fmt.Sprintf(`{"GoodID":"%v","OrderID":"%v", "Units", "%v","BenefitDate":"%v"}`,
+			good.ID, ord.ID, ord.Units, good.LastBenefitAt)
 		units, err := decimal.NewFromString(ord.Units)
 		if err != nil {
 			return err
