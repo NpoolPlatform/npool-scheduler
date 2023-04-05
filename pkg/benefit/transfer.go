@@ -345,10 +345,11 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		return err
 	}
 
-	if txFail {
-		state = goodmgrpb.BenefitState_BenefitWait
+	if !txFail {
+		return nil
 	}
 
+	state = goodmgrpb.BenefitState_BenefitWait
 	req = &goodmwpb.GoodReq{
 		ID:           &good.ID,
 		BenefitState: &state,

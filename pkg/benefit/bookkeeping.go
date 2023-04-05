@@ -34,7 +34,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		return err
 	}
 	if totalReward.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return fmt.Errorf("invalid reward")
+		return fmt.Errorf("invalid reward (%v)", totalReward)
 	}
 
 	ords := []*ordermwpb.Order{}
@@ -95,14 +95,14 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		goodMap[ag.AppID] = ag
 	}
 
-	appUnits := map[string]string{}
+	appUnits := map[string]decimal.Decimal{}
 	for _, ord := range ords {
 		_, ok := goodMap[ord.AppID]
 		if !ok {
 			continue
 		}
 
-		appUnits[ord.AppID] += ord.Units
+		appUnits[ord.AppID] = appUnits[ord.AppID].Add(decimal.RequireFromString(ord.Units))
 	}
 
 	appUnitRewards := map[string]decimal.Decimal{}
@@ -119,14 +119,10 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 	totalUnsoldReward := totalReward.
 		Sub(userRewardAmount)
 
-	for appID, unitsStr := range appUnits {
+	for appID, units := range appUnits {
 		ag, ok := goodMap[appID]
 		if !ok {
 			continue
-		}
-		units, err := decimal.NewFromString(unitsStr)
-		if err != nil {
-			return err
 		}
 		reward := userRewardAmount.
 			Mul(units).
