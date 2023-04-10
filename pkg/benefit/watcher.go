@@ -196,6 +196,8 @@ func Watch(ctx context.Context) {
 		case <-tickerTransferring.C:
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
+		case <-ctx.Done():
+			return
 		}
 	}
 }

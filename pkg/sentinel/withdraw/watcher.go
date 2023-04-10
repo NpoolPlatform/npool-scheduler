@@ -115,7 +115,11 @@ func Watch(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	for {
-		processWithdraws(ctx)
-		<-ticker.C
+		select {
+		case <-ticker.C:
+			processWithdraws(ctx)
+		case <-ctx.Done():
+			return
+		}
 	}
 }

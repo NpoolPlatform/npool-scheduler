@@ -507,61 +507,70 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 	return nil
 }
 
-func Watch(ctx context.Context) { //nolint
-	ticker := time.NewTicker(time.Minute)
+func feedCoins(ctx context.Context) {
+	offset := int32(0)
+	const limit = int32(100)
 
-	for range ticker.C {
-		offset := int32(0)
-		const limit = int32(100)
+	logger.Sugar().Infow("gasfeeder", "FeedGas", "Start...")
+	for {
+		coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw("gasfeeder", "Offset", offset, "Limit", limit)
+			break
+		}
+		if len(coins) == 0 {
+			break
+		}
 
-		logger.Sugar().Infow("gasfeeder", "FeedGas", "Start...")
-		for {
-			coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
-			if err != nil {
-				logger.Sugar().Errorw("gasfeeder", "Offset", offset, "Limit", limit)
-				break
-			}
-			if len(coins) == 0 {
-				break
-			}
-
-			for _, coin := range coins {
-				if coin.FeeCoinTypeID == uuid1.InvalidUUIDStr || coin.FeeCoinTypeID == "" {
-					logger.Sugar().Warnw(
-						"gasfeeder",
-						"Coin", coin.Name,
-						"CoinTypeID", coin.ID,
-						"FeeCoinType", coin.FeeCoinTypeID,
-						"State", "Empty",
-					)
-					continue
-				}
-
-				if coin.ID == coin.FeeCoinTypeID {
-					logger.Sugar().Warnw(
-						"gasfeeder",
-						"Coin", coin.Name,
-						"CoinTypeID", coin.ID,
-						"FeeCoinType", coin.FeeCoinTypeID,
-						"State", "Equal",
-					)
-					continue
-				}
-
+		for _, coin := range coins {
+			if coin.FeeCoinTypeID == uuid1.InvalidUUIDStr || coin.FeeCoinTypeID == "" {
 				logger.Sugar().Warnw(
 					"gasfeeder",
 					"Coin", coin.Name,
 					"CoinTypeID", coin.ID,
-					"FeeCoin", coin.FeeCoinName,
+					"FeeCoinType", coin.FeeCoinTypeID,
+					"State", "Empty",
 				)
-				if err := feedCoin(ctx, coin); err != nil {
-					logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
-				}
+				continue
 			}
 
-			offset += limit
+			if coin.ID == coin.FeeCoinTypeID {
+				logger.Sugar().Warnw(
+					"gasfeeder",
+					"Coin", coin.Name,
+					"CoinTypeID", coin.ID,
+					"FeeCoinType", coin.FeeCoinTypeID,
+					"State", "Equal",
+				)
+				continue
+			}
+
+			logger.Sugar().Warnw(
+				"gasfeeder",
+				"Coin", coin.Name,
+				"CoinTypeID", coin.ID,
+				"FeeCoin", coin.FeeCoinName,
+			)
+			if err := feedCoin(ctx, coin); err != nil {
+				logger.Sugar().Errorw("gasfeeder", "Coin", coin.Name, "error", err)
+			}
 		}
 
-		logger.Sugar().Infow("gasfeeder", "FeedGas", "End...")
+		offset += limit
+	}
+
+	logger.Sugar().Infow("gasfeeder", "FeedGas", "End...")
+}
+
+func Watch(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+
+	for {
+		select {
+		case <-ticker.C:
+			feedCoins(ctx)
+		case <-ctx.Done():
+			return
+		}
 	}
 }
