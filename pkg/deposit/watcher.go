@@ -35,7 +35,7 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
@@ -164,14 +164,8 @@ func deposit(ctx context.Context) {
 
 	for {
 		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
-			Locked: &commonpb.BoolVal{
-				Op:    cruder.EQ,
-				Value: false,
-			},
-			ScannableAt: &commonpb.Uint32Val{
-				Op:    cruder.LT,
-				Value: uint32(time.Now().Unix()),
-			},
+			Locked:      &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+			ScannableAt: &commonpb.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
@@ -279,30 +273,12 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 	}
 
 	collect, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
-			Op:    cruder.EQ,
-			Value: coin.ID,
-		},
-		UsedFor: &commonpb.Int32Val{
-			Op:    cruder.EQ,
-			Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector),
-		},
-		Backup: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
-		Active: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: true,
-		},
-		Locked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
-		Blocked: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
+		CoinTypeID: &commonpb.StringVal{Op: cruder.EQ, Value: coin.ID},
+		UsedFor:    &commonpb.Int32Val{Op: cruder.EQ, Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector)},
+		Backup:     &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		Active:     &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:     &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		Blocked:    &commonpb.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return nil

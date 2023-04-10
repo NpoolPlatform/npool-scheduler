@@ -51,8 +51,8 @@ github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20O
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b h1:s+E4M8NXItPZ+YUOE0Z5+EQJGuJi0zNHIr7KiiHtqE4=
 github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b/go.mod h1:flwnxJ3o9r2O05t3T4ALvYSU1oLLlGbL8EVPG4FfHxE=
-github.com/NpoolPlatform/account-middleware v0.0.0-20230112023810-a1206cc8bb2e h1:CtliqBjQdyY+wbx9n/FHfxJEahokG+4TJI6QzFOSk74=
-github.com/NpoolPlatform/account-middleware v0.0.0-20230112023810-a1206cc8bb2e/go.mod h1:qrBKAGK6cjoPkLQ10LPYRiFCfaS+S1wyPvV4SMDzL4w=
+github.com/NpoolPlatform/account-middleware v0.0.0-20230327041208-03d6e5dbae9e h1:N7jJlt5X+PPYkNvDJ6ex7ZJPuQDBJocrdYpGE3wQbHs=
+github.com/NpoolPlatform/account-middleware v0.0.0-20230327041208-03d6e5dbae9e/go.mod h1:1fa9pevCCaY29kHBpnFyRNKL8wKWwGQOs/j6jq/yl/4=
 github.com/NpoolPlatform/appuser-manager v0.0.0-20230301025811-83657783bdd0 h1:W/FGmQ1mn0JKB8ERc+BfJnbDRJan1q/sFaDVA65wssc=
 github.com/NpoolPlatform/appuser-middleware v0.0.0-20230301030209-7b107731185b h1:Dpncy1OhwCP4VVrOV3Ixrg97vWwdVAOWTvqeEYyrl68=
 github.com/NpoolPlatform/appuser-middleware v0.0.0-20230301030209-7b107731185b/go.mod h1:Jwgmcq5NY8WUZOX4XHSAzDDU2yReqGU0Kn3BZJ1CaiU=
