@@ -60,6 +60,7 @@ func watch(ctx context.Context) error {
 	go announcement.Watch(ctx)
 	return nil
 }
+
 func rpcRegister(server grpc.ServiceRegistrar) error {
 	api.Register(server)
 	return nil

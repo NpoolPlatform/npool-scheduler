@@ -502,6 +502,11 @@ func Watch(ctx context.Context) {
 			transfer(ctx)
 			finish(ctx)
 		case <-ctx.Done():
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "Done",
+				"Error", ctx.Err(),
+			)
 			return
 		}
 	}

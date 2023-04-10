@@ -16,9 +16,11 @@ import (
 	"github.com/google/uuid"
 )
 
-var processingMsg sync.Map
-var subscriber *pubsub.Subscriber
-var publisher *pubsub.Publisher
+var (
+	processingMsg sync.Map
+	subscriber    *pubsub.Subscriber
+	publisher     *pubsub.Publisher
+)
 
 // TODO: here we should call from DB transaction context
 func finish(ctx context.Context, msg *pubsub.Msg, err error) error {
@@ -46,6 +48,7 @@ func finish(ctx context.Context, msg *pubsub.Msg, err error) error {
 	})
 }
 
+//nolint
 func prepare(mid, body string) (req interface{}, err error) {
 	switch mid {
 	default:
@@ -68,7 +71,7 @@ func prepare(mid, body string) (req interface{}, err error) {
 //  Return
 //   bool   appliable == true, caller should go ahead to apply this message
 //   error  error message
-func statReq(ctx context.Context, mid string, uid uuid.UUID) (bool, error) {
+func statReq(ctx context.Context, mid string, uid uuid.UUID) (bool, error) { //nolint
 	var err error
 
 	err = db.WithClient(ctx, func(_ctx context.Context, cli *ent.Client) error {
@@ -105,7 +108,7 @@ func statReq(ctx context.Context, mid string, uid uuid.UUID) (bool, error) {
 //   bool    appliable == true, caller should go ahead to apply this message
 //   error   error message
 func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bool, error) { //nolint
-	switch mid {
+	switch mid { //nolint
 	default:
 		return false, fmt.Errorf("invalid message")
 	}
@@ -122,6 +125,7 @@ func stat(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bool,
 // Process will consume the message and return consuming state
 //  Return
 //   error   reason of error, if nil, means the message should be acked
+//nolint
 func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (err error) {
 	defer func() {
 		if err != nil {
@@ -158,7 +162,7 @@ func handler(ctx context.Context, msg *pubsub.Msg) error {
 	defer func() {
 		msg.Ack()
 		processingMsg.Delete(msg.UID)
-		_ = finish(ctx, msg, err)
+		_ = finish(ctx, msg, err) //nolint
 	}()
 
 	appliable, err := stat(ctx, msg.MID, msg.UID, msg.RID)
