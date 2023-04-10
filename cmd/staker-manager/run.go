@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+
+	"github.com/NpoolPlatform/go-service-framework/pkg/action"
+
 	"github.com/NpoolPlatform/staker-manager/api"
 	"github.com/NpoolPlatform/staker-manager/pkg/announcement"
 	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
@@ -9,14 +13,13 @@ import (
 	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
 	"github.com/NpoolPlatform/staker-manager/pkg/notification"
 	"github.com/NpoolPlatform/staker-manager/pkg/order"
+	"github.com/NpoolPlatform/staker-manager/pkg/pubsub"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
 	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
-	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	cli "github.com/urfave/cli/v2"
@@ -29,28 +32,34 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		go func() {
-			if err := grpc2.RunGRPC(rpcRegister); err != nil {
-				logger.Sugar().Errorf("fail to run grpc server: %v", err)
-			}
-		}()
-
-		go transaction.Watch(c.Context)
-		go deposit.Watch(c.Context)
-		go order.Watch(c.Context)
-		go collector.Watch(c.Context)
-		go limitation.Watch(c.Context)
-		go withdraw.Watch(c.Context)
-		go benefit.Watch(c.Context)
-		go currency.Watch(c.Context)
-		go gasfeeder.Watch(c.Context)
-		go notification.Watch(c.Context)
-		go announcement.Watch(c.Context)
-
-		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
+		return action.Run(
+			c.Context,
+			run,
+			rpcRegister,
+			rpcGatewayRegister,
+			watch,
+		)
 	},
 }
 
+func run(ctx context.Context) error {
+	return pubsub.Subscribe(ctx)
+}
+
+func watch(ctx context.Context) error {
+	go transaction.Watch(ctx)
+	go deposit.Watch(ctx)
+	go order.Watch(ctx)
+	go collector.Watch(ctx)
+	go limitation.Watch(ctx)
+	go withdraw.Watch(ctx)
+	go benefit.Watch(ctx)
+	go currency.Watch(ctx)
+	go gasfeeder.Watch(ctx)
+	go notification.Watch(ctx)
+	go announcement.Watch(ctx)
+	return nil
+}
 func rpcRegister(server grpc.ServiceRegistrar) error {
 	api.Register(server)
 	return nil

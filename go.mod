@@ -3,23 +3,25 @@ module github.com/NpoolPlatform/staker-manager
 go 1.17
 
 require (
+	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b
 	github.com/NpoolPlatform/account-middleware v0.0.0-20230112023810-a1206cc8bb2e
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230301030209-7b107731185b
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230221094657-688f81366495
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230403084036-0d823ee66ae1
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230210193058-7c376766d884
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230102062414-c71643aee0bd
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20230409120551-6a1ca546da8a
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230404085803-9c9ca93bb0db
 	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230329075705-1950f4c4564c
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111062738-1054218618aa
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230331105746-d35da1f1c402
+	github.com/NpoolPlatform/message v0.0.0-20230409095550-1cfc63ca0712
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20230221093008-c752bddbb687
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230216075025-a90a86bfd19b
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230221094357-40a170d76e2b
+	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
 	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3
@@ -30,18 +32,19 @@ require (
 require (
 	cloud.google.com/go/compute v1.14.0 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 )
 
 require (
 	ariga.io/atlas v0.7.2-0.20220927111110-867ee0cca56a // indirect
-	entgo.io/ent v0.11.3 // indirect
 	github.com/Shonminh/apollo-client v0.4.0 // indirect
+	github.com/ThreeDotsLabs/watermill v1.2.0 // indirect
+	github.com/ThreeDotsLabs/watermill-amqp/v2 v2.0.7 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
@@ -60,7 +63,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hashicorp/consul/api v1.12.0 // indirect
@@ -74,20 +76,23 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/hashicorp/serf v0.9.7 // indirect
+	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.12.1 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.33.0 // indirect
-	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/prometheus/client_golang v1.14.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
+	github.com/prometheus/common v0.39.0 // indirect
+	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
