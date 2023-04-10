@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	// "github.com/NpoolPlatform/staker-manager/pkg/announcement"
 	// "github.com/NpoolPlatform/staker-manager/pkg/benefit"
@@ -46,7 +47,18 @@ func run(ctx context.Context) error {
 	return pubsub.Subscribe(ctx)
 }
 
+func shutdown(ctx context.Context) {
+	<-ctx.Done()
+	logger.Sugar().Infow(
+		"Watch",
+		"State", "Done",
+		"Error", ctx.Err(),
+	)
+	_ = pubsub.Shutdown(ctx)
+}
+
 func watch(ctx context.Context) error {
+	go shutdown(ctx)
 	// go transaction.Watch(ctx)
 	go deposit.Watch(ctx)
 	// go order.Watch(ctx)

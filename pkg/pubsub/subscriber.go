@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/NpoolPlatform/staker-manager/pkg/db"
 	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
@@ -17,9 +16,8 @@ import (
 )
 
 var (
-	processingMsg sync.Map
-	subscriber    *pubsub.Subscriber
-	publisher     *pubsub.Publisher
+	subscriber *pubsub.Subscriber
+	publisher  *pubsub.Publisher
 )
 
 // TODO: here we should call from DB transaction context
@@ -158,10 +156,8 @@ func handler(ctx context.Context, msg *pubsub.Msg) error {
 		return nil
 	}
 
-	processingMsg.Store(msg.UID, msg)
 	defer func() {
 		msg.Ack()
-		processingMsg.Delete(msg.UID)
 		_ = finish(ctx, msg, err) //nolint
 	}()
 
@@ -191,42 +187,7 @@ func Subscribe(ctx context.Context) (err error) {
 	return subscriber.Subscribe(ctx, handler)
 }
 
-// TODO: if this will be run after signal catched ?
 func Shutdown(ctx context.Context) error {
-	if err := db.WithTx(ctx, func(_ctx context.Context, tx *ent.Tx) error {
-		var err error
-		var info *ent.PubsubMessage
-		processingMsg.Range(func(key, msg interface{}) bool {
-			info, err = tx.
-				PubsubMessage.
-				Query().
-				Where(
-					entpubsubmsg.ID(key.(uuid.UUID)),
-				).
-				Only(_ctx)
-			if err != nil {
-				if !ent.IsNotFound(err) {
-					return false
-				}
-			}
-			if info == nil {
-				msg.(*pubsub.Msg).Nack()
-				return true
-			}
-
-			_, err = tx.
-				PubsubMessage.
-				UpdateOneID(key.(uuid.UUID)).
-				SetState(basetypes.MsgState_StateFail.String()).
-				Save(_ctx)
-			msg.(*pubsub.Msg).Ack()
-			return err == nil
-		})
-		return err
-	}); err != nil {
-		return err
-	}
-
 	if subscriber != nil {
 		subscriber.Close()
 	}
