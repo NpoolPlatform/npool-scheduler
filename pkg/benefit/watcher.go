@@ -197,6 +197,11 @@ func Watch(ctx context.Context) {
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
 		case <-ctx.Done():
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "Done",
+				"Error", ctx.Err(),
+			)
 			return
 		}
 	}

@@ -13,11 +13,12 @@ import (
 	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
 	"github.com/NpoolPlatform/staker-manager/pkg/notification"
 	"github.com/NpoolPlatform/staker-manager/pkg/order"
-	"github.com/NpoolPlatform/staker-manager/pkg/pubsub"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/limitation"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
 	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
+
+	"github.com/NpoolPlatform/staker-manager/pkg/pubsub"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	"github.com/NpoolPlatform/staker-manager/api"
@@ -57,19 +58,33 @@ func shutdown(ctx context.Context) {
 	_ = pubsub.Shutdown(ctx) //nolint
 }
 
-func watch(ctx context.Context) error {
+func _watch(ctx context.Context, cancel context.CancelFunc, w func(ctx context.Context)) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "Panic",
+				"Error", err,
+			)
+			cancel()
+		}
+	}()
+	w(ctx)
+}
+
+func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
-	go transaction.Watch(ctx)
-	go deposit.Watch(ctx)
-	go order.Watch(ctx)
-	go collector.Watch(ctx)
-	go limitation.Watch(ctx)
-	go withdraw.Watch(ctx)
-	go benefit.Watch(ctx)
-	go currency.Watch(ctx)
-	go gasfeeder.Watch(ctx)
-	go notification.Watch(ctx)
-	go announcement.Watch(ctx)
+	go _watch(ctx, cancel, transaction.Watch)
+	go _watch(ctx, cancel, deposit.Watch)
+	go _watch(ctx, cancel, order.Watch)
+	go _watch(ctx, cancel, collector.Watch)
+	go _watch(ctx, cancel, limitation.Watch)
+	go _watch(ctx, cancel, withdraw.Watch)
+	go _watch(ctx, cancel, benefit.Watch)
+	go _watch(ctx, cancel, currency.Watch)
+	go _watch(ctx, cancel, gasfeeder.Watch)
+	go _watch(ctx, cancel, notification.Watch)
+	go _watch(ctx, cancel, announcement.Watch)
 	return nil
 }
 

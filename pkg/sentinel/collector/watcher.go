@@ -301,6 +301,11 @@ func Watch(ctx context.Context) {
 			checkGoodPayments(ctx)
 			checkCollectingPayments(ctx)
 		case <-ctx.Done():
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "Done",
+				"Error", ctx.Err(),
+			)
 			return
 		}
 	}
