@@ -147,8 +147,18 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 
 // No matter what handler return, the message will be acked, unless handler halt
 // If handler halt, the service will be restart, all message will be requeue
-func handler(ctx context.Context, msg *pubsub.Msg) error {
-	req, err := prepare(msg.MID, msg.Body)
+func handler(ctx context.Context, msg *pubsub.Msg) (err error) {
+	var req interface{}
+	var appliable bool
+
+	defer func() {
+		msg.Ack()
+		if req != nil && appliable {
+			_ = finish(ctx, msg, err) //nolint
+		}
+	}()
+
+	req, err = prepare(msg.MID, msg.Body)
 	if err != nil {
 		return err
 	}
@@ -156,12 +166,7 @@ func handler(ctx context.Context, msg *pubsub.Msg) error {
 		return nil
 	}
 
-	defer func() {
-		msg.Ack()
-		_ = finish(ctx, msg, err) //nolint
-	}()
-
-	appliable, err := stat(ctx, msg.MID, msg.UID, msg.RID)
+	appliable, err = stat(ctx, msg.MID, msg.UID, msg.RID)
 	if err != nil {
 		return err
 	}
