@@ -66,6 +66,8 @@ pipeline {
           kubectl exec --namespace kube-system mysql-0 -- mysql -h 127.0.0.1 -uroot -p$PASSWORD -P3306 -e "create database if not exists staker_manager;"
 
           username=`helm status rabbitmq --namespace kube-system | grep Username | awk -F ' : ' '{print $2}' | sed 's/"//g'`
+
+          kubectl exec --namespace kube-system rabbitmq-0 -- rabbitmqctl add_vhost global_pubsub
           kubectl exec --namespace kube-system rabbitmq-0 -- rabbitmqctl set_permissions -p global_pubsub $username ".*" ".*" ".*"
 
           for vhost in `cat cmd/*/*.viper.yaml | grep hostname | awk '{print $2}' | sed 's/"//g' | sed 's/\\./-/g'`; do
