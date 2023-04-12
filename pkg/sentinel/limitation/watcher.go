@@ -238,7 +238,11 @@ func Watch(ctx context.Context) {
 	ticker := time.NewTicker(4 * time.Hour)
 
 	for {
-		checkCoinLimits(ctx)
-		<-ticker.C
+		select {
+		case <-ticker.C:
+			checkCoinLimits(ctx)
+		case <-ctx.Done():
+			return
+		}
 	}
 }

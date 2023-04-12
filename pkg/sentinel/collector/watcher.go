@@ -295,8 +295,18 @@ func checkCollectingPayments(ctx context.Context) {
 
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
-	for range ticker.C {
-		checkGoodPayments(ctx)
-		checkCollectingPayments(ctx)
+	for {
+		select {
+		case <-ticker.C:
+			checkGoodPayments(ctx)
+			checkCollectingPayments(ctx)
+		case <-ctx.Done():
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "Done",
+				"Error", ctx.Err(),
+			)
+			return
+		}
 	}
 }

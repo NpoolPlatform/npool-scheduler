@@ -311,9 +311,14 @@ func onPayingChecker(ctx context.Context) { //nolint
 
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
-	for range ticker.C {
-		onCreatedChecker(ctx)
-		onWaitChecker(ctx)
-		onPayingChecker(ctx)
+	for {
+		select {
+		case <-ticker.C:
+			onCreatedChecker(ctx)
+			onWaitChecker(ctx)
+			onPayingChecker(ctx)
+		case <-ctx.Done():
+			return
+		}
 	}
 }

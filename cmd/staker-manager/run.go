@@ -1,7 +1,11 @@
 package main
 
 import (
-	"github.com/NpoolPlatform/staker-manager/api"
+	"context"
+
+	"github.com/NpoolPlatform/go-service-framework/pkg/action"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+
 	"github.com/NpoolPlatform/staker-manager/pkg/announcement"
 	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
 	"github.com/NpoolPlatform/staker-manager/pkg/currency"
@@ -14,9 +18,10 @@ import (
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/withdraw"
 	"github.com/NpoolPlatform/staker-manager/pkg/transaction"
 
+	"github.com/NpoolPlatform/staker-manager/pkg/pubsub"
+
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
-	grpc2 "github.com/NpoolPlatform/go-service-framework/pkg/grpc"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/staker-manager/api"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	cli "github.com/urfave/cli/v2"
@@ -29,26 +34,58 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		go func() {
-			if err := grpc2.RunGRPC(rpcRegister); err != nil {
-				logger.Sugar().Errorf("fail to run grpc server: %v", err)
-			}
-		}()
-
-		go transaction.Watch(c.Context)
-		go deposit.Watch(c.Context)
-		go order.Watch(c.Context)
-		go collector.Watch(c.Context)
-		go limitation.Watch(c.Context)
-		go withdraw.Watch(c.Context)
-		go benefit.Watch(c.Context)
-		go currency.Watch(c.Context)
-		go gasfeeder.Watch(c.Context)
-		go notification.Watch(c.Context)
-		go announcement.Watch(c.Context)
-
-		return grpc2.RunGRPCGateWay(rpcGatewayRegister)
+		return action.Run(
+			c.Context,
+			run,
+			rpcRegister,
+			rpcGatewayRegister,
+			watch,
+		)
 	},
+}
+
+func run(ctx context.Context) error {
+	return pubsub.Subscribe(ctx)
+}
+
+func shutdown(ctx context.Context) {
+	<-ctx.Done()
+	logger.Sugar().Infow(
+		"Watch",
+		"State", "Done",
+		"Error", ctx.Err(),
+	)
+	_ = pubsub.Shutdown(ctx) //nolint
+}
+
+func _watch(ctx context.Context, cancel context.CancelFunc, w func(ctx context.Context)) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Sugar().Errorw(
+				"Watch",
+				"State", "Panic",
+				"Error", err,
+			)
+			cancel()
+		}
+	}()
+	w(ctx)
+}
+
+func watch(ctx context.Context, cancel context.CancelFunc) error {
+	go shutdown(ctx)
+	go _watch(ctx, cancel, transaction.Watch)
+	go _watch(ctx, cancel, deposit.Watch)
+	go _watch(ctx, cancel, order.Watch)
+	go _watch(ctx, cancel, collector.Watch)
+	go _watch(ctx, cancel, limitation.Watch)
+	go _watch(ctx, cancel, withdraw.Watch)
+	go _watch(ctx, cancel, benefit.Watch)
+	go _watch(ctx, cancel, currency.Watch)
+	go _watch(ctx, cancel, gasfeeder.Watch)
+	go _watch(ctx, cancel, notification.Watch)
+	go _watch(ctx, cancel, announcement.Watch)
+	return nil
 }
 
 func rpcRegister(server grpc.ServiceRegistrar) error {
