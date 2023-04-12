@@ -63,10 +63,23 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return fmt.Errorf("invalid coin")
 	}
 
+	logger.Sugar().Infow(
+		"depositOne",
+		"AccountID", acc.AccountID,
+		"Address", acc.Address,
+		"State", "Lock",
+	)
 	if err := accountlock.Lock(acc.AccountID); err != nil {
 		return err
 	}
 	defer func() {
+		time.Sleep(1 * time.Minute)
+		logger.Sugar().Infow(
+			"depositOne",
+			"AccountID", acc.AccountID,
+			"Address", acc.Address,
+			"State", "Unlock",
+		)
 		_ = accountlock.Unlock(acc.AccountID) //nolint
 	}()
 
