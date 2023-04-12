@@ -6,17 +6,17 @@ require (
 	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/account-manager v0.0.0-20221217095007-bbe990c46b8b
 	github.com/NpoolPlatform/account-middleware v0.0.0-20230327041208-03d6e5dbae9e
-	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230301030209-7b107731185b
-	github.com/NpoolPlatform/basal-middleware v0.0.0-20230221094657-688f81366495
+	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230412115429-b5b48cdbde2a
+	github.com/NpoolPlatform/basal-middleware v0.0.0-20230412115324-44d36c38005e
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230403084036-0d823ee66ae1
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230210193058-7c376766d884
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230410062214-7f12a2f436c9
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20230412082654-0f8f9e7ae58d
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230404085803-9c9ca93bb0db
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230329075705-1950f4c4564c
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230412115440-b52771cfc9e9
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230111061350-4bddabacc212
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230111062738-1054218618aa
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230409095550-1cfc63ca0712
+	github.com/NpoolPlatform/message v0.0.0-20230412110246-1fd6805a4681
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20230221093008-c752bddbb687
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230216075025-a90a86bfd19b
@@ -29,10 +29,7 @@ require (
 	google.golang.org/protobuf v1.28.1
 )
 
-require (
-	cloud.google.com/go/compute v1.14.0 // indirect
-	go.opentelemetry.io/otel v1.10.0 // indirect
-)
+require go.opentelemetry.io/otel v1.10.0 // indirect
 
 require (
 	ariga.io/atlas v0.7.2-0.20220927111110-867ee0cca56a // indirect
