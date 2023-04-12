@@ -498,5 +498,7 @@ func Watch(ctx context.Context) {
 }
 
 func Shutdown() {
-	w.Shutdown()
+	if w != nil {
+		w.Shutdown()
+	}
 }
