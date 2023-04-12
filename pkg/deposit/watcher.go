@@ -42,6 +42,8 @@ import (
 	tmplmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
+	watcher "github.com/NpoolPlatform/staker-manager/pkg/watcher"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -468,8 +470,11 @@ func finish(ctx context.Context) {
 	}
 }
 
+var w *watcher.Watcher
+
 func Watch(ctx context.Context) {
 	ticker := time.NewTicker(60 * time.Second)
+	w = watcher.NewWatcher()
 
 	for {
 		select {
@@ -483,7 +488,15 @@ func Watch(ctx context.Context) {
 				"State", "Done",
 				"Error", ctx.Err(),
 			)
+			w.ClosedChan() <- struct{}{}
+			return
+		case <-w.CloseChan():
+			w.ClosedChan() <- struct{}{}
 			return
 		}
 	}
+}
+
+func Shutdown() {
+	w.Shutdown()
 }
