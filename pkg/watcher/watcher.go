@@ -23,5 +23,4 @@ func (w *Watcher) ClosedChan() chan struct{} {
 func (w *Watcher) Shutdown() {
 	close(w.closeChan)
 	<-w.closedChan
-	close(w.closedChan)
 }

@@ -501,10 +501,10 @@ func Watch(ctx context.Context) {
 				"State", "Done",
 				"Error", ctx.Err(),
 			)
-			w.ClosedChan() <- struct{}{}
+			close(w.ClosedChan())
 			return
 		case <-w.CloseChan():
-			w.ClosedChan() <- struct{}{}
+			close(w.ClosedChan())
 			return
 		}
 	}
