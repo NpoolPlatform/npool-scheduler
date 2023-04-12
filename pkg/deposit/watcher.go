@@ -73,7 +73,6 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		return err
 	}
 	defer func() {
-		time.Sleep(1 * time.Minute)
 		logger.Sugar().Infow(
 			"depositOne",
 			"AccountID", acc.AccountID,
