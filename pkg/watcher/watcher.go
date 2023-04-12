@@ -7,8 +7,8 @@ type Watcher struct {
 
 func NewWatcher() *Watcher {
 	return &Watcher{
-		closeChan:  make(chan struct{}, 0),
-		closedChan: make(chan struct{}, 0),
+		closeChan:  make(chan struct{}),
+		closedChan: make(chan struct{}),
 	}
 }
 
