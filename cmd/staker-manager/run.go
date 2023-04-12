@@ -34,13 +34,17 @@ var runCmd = &cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Run the daemon",
 	Action: func(c *cli.Context) error {
-		return action.Run(
+		err := action.Run(
 			c.Context,
 			run,
 			rpcRegister,
 			rpcGatewayRegister,
 			watch,
 		)
+
+		deposit.Shutdown()
+
+		return err
 	},
 }
 
