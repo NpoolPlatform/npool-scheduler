@@ -315,6 +315,14 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid start amount nextStart %v, transferred %v", nextStart, transferred)
 	}
 
+	logger.Sugar().Errorw("TransferReward",
+		"GoodID", good.ID,
+		"Transferred", transferred,
+		"NextStart", nextStart,
+		"BenefitTIDs", good.BenefitTIDs,
+		"DoneTIDs", doneTIDs,
+	)
+
 	state := goodmgrpb.BenefitState_BenefitBookKeeping
 	nextStartS := nextStart.String()
 
