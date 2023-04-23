@@ -14,11 +14,14 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/account"
+	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
+	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
@@ -130,6 +133,20 @@ func getAddress(ctx context.Context, id string) (string, error) {
 	return acc.Address, nil
 }
 
+func getMemo(ctx context.Context, tx *txmwpb.Tx, id string) (string, error) {
+	acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
+		AccountID:  &commonpb.StringVal{Op: cruder.EQ, Value: id},
+		CoinTypeID: &commonpb.StringVal{Op: cruder.EQ, Value: tx.CoinTypeID},
+		Active:     &commonpb.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:    &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		UsedFor:    &commonpb.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Withdraw)},
+	})
+	if err != nil {
+		return "", err
+	}
+	return acc.Memo, nil
+}
+
 func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 	logger.Sugar().Infow("transaction", "id", tx.ID, "amount", tx.Amount, "state", tx.State)
 
@@ -137,6 +154,14 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 	if err != nil {
 		logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
 		return err
+	}
+	memo := ""
+	if tx.Type == basetypes.TxType_TxWithdraw {
+		memo, err = getMemo(ctx, tx, tx.FromAccountID)
+		if err != nil {
+			logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
+			return err
+		}
 	}
 	toAddress, err := getAddress(ctx, tx.ToAccountID)
 	if err != nil {
@@ -174,6 +199,7 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 		Name:          coin.Name,
 		Amount:        transferAmount,
 		From:          fromAddress,
+		Memo:          &memo,
 		To:            toAddress,
 	})
 	if err != nil {
