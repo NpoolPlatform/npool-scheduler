@@ -37,15 +37,13 @@ func tomorrowStart() time.Time {
 	return time.Date(y, m, d+1, 0, 0, 0, 0, now.Location())
 }
 
-func delay() {
+func delay() time.Duration {
 	start := tomorrowStart()
 	if time.Until(start) > benefitInterval {
 		start = time.Now().Add(benefitInterval)
 	}
-
 	logger.Sugar().Infow("delay", "startAfter", time.Until(start))
-
-	<-time.After(time.Until(start))
+	return time.Until(start)
 }
 
 func processWaitGoods(ctx context.Context) { //nolint
@@ -184,13 +182,15 @@ func Watch(ctx context.Context) {
 		"CheckIntervalSeconds", checkInterval,
 	)
 
-	delay()
-
+	untilStart := delay()
 	tickerWait := time.NewTicker(benefitInterval)
 	tickerTransferring := time.NewTicker(checkInterval)
 
 	for {
 		select {
+		case <-time.After(untilStart):
+			processWaitGoods(ctx)
+			tickerWait = time.NewTicker(benefitInterval)
 		case <-tickerWait.C:
 			processWaitGoods(ctx)
 		case <-tickerTransferring.C:
