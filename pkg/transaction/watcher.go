@@ -144,6 +144,9 @@ func getMemo(ctx context.Context, tx *txmwpb.Tx, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if acc == nil {
+		return "", fmt.Errorf("invalid user account")
+	}
 	return acc.Memo, nil
 }
 
@@ -155,21 +158,21 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 		logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
 		return err
 	}
+	toAddress, err := getAddress(ctx, tx.ToAccountID)
+	if err != nil {
+		logger.Sugar().Errorw("transaction", "Account", tx.ToAccountID, "error", err)
+		return err
+	}
 	var memo *string
 	if tx.Type == basetypes.TxType_TxWithdraw {
-		_memo, err := getMemo(ctx, tx, tx.FromAccountID)
+		_memo, err := getMemo(ctx, tx, tx.ToAccountID)
 		if err != nil {
-			logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
+			logger.Sugar().Errorw("transaction", "Account", tx.ToAccountID, "error", err)
 			return err
 		}
 		if _memo != "" {
 			memo = &_memo
 		}
-	}
-	toAddress, err := getAddress(ctx, tx.ToAccountID)
-	if err != nil {
-		logger.Sugar().Errorw("transaction", "Account", tx.ToAccountID, "error", err)
-		return err
 	}
 
 	coin, err := coinmwcli.GetCoin(ctx, tx.CoinTypeID)
