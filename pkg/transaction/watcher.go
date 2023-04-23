@@ -155,12 +155,15 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 		logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
 		return err
 	}
-	memo := ""
+	var memo *string
 	if tx.Type == basetypes.TxType_TxWithdraw {
-		memo, err = getMemo(ctx, tx, tx.FromAccountID)
+		_memo, err := getMemo(ctx, tx, tx.FromAccountID)
 		if err != nil {
 			logger.Sugar().Errorw("transaction", "Account", tx.FromAccountID, "error", err)
 			return err
+		}
+		if _memo != "" {
+			memo = &_memo
 		}
 	}
 	toAddress, err := getAddress(ctx, tx.ToAccountID)
@@ -199,7 +202,7 @@ func transfer(ctx context.Context, tx *txmwpb.Tx) error {
 		Name:          coin.Name,
 		Amount:        transferAmount,
 		From:          fromAddress,
-		Memo:          &memo,
+		Memo:          memo,
 		To:            toAddress,
 	})
 	if err != nil {
