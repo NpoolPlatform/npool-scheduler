@@ -8,7 +8,6 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	usermgrpb "github.com/NpoolPlatform/message/npool/appuser/mgr/v2/appuser"
 	usermwpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	applangmgrpb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
 	ancmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement"
@@ -207,8 +206,8 @@ func broadcast(ctx context.Context, anc *ancmwpb.Announcement) error {
 	limit := int32(1000)
 
 	for {
-		users, _, err := usermwcli.GetUsers(ctx, &usermgrpb.Conds{
-			AppID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+		users, _, err := usermwcli.GetUsers(ctx, &usermwpb.Conds{
+			AppID: &basetypes.StringVal{Op: cruder.EQ, Value: anc.AppID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -250,7 +249,9 @@ func multicast(ctx context.Context, anc *ancmwpb.Announcement) error {
 			uids = append(uids, user.UserID)
 		}
 
-		users, _, err := usermwcli.GetManyUsers(ctx, uids)
+		users, _, err := usermwcli.GetUsers(ctx, &usermwpb.Conds{
+			IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: uids},
+		}, 0, int32(len(uids)))
 		if err != nil {
 			return err
 		}
