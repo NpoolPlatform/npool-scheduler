@@ -31,18 +31,17 @@ func prepareInterval() {
 	}
 }
 
-func tomorrowStart() time.Time {
+func nextBenefitAt() time.Time {
 	now := time.Now()
-	y, m, d := now.Date()
-	return time.Date(y, m, d+1, 0, 0, 0, 0, now.Location())
+	nowSec := now.Unix()
+	benefitSeconds := int64(benefitInterval.Seconds())
+	nextSec := (nowSec + benefitSeconds) / benefitSeconds * benefitSeconds
+	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
 }
 
 func delay() {
-	start := tomorrowStart()
-	if time.Until(start) > benefitInterval {
-		start = time.Now().Add(benefitInterval)
-	}
-	logger.Sugar().Infow("delay", "startAfter", time.Until(start))
+	start := nextBenefitAt()
+	logger.Sugar().Infow("delay", "startAfter", time.Until(start).Seconds(), "start", start)
 	<-time.After(time.Until(start))
 }
 
@@ -191,7 +190,15 @@ func Watch(ctx context.Context) {
 	for {
 		select {
 		case <-tickerWait.C:
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processWaitGoods ticker start",
+			)
 			processWaitGoods(ctx)
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processWaitGoods ticker end",
+			)
 		case <-tickerTransferring.C:
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
