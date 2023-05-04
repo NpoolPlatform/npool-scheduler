@@ -485,13 +485,15 @@ func finish(ctx context.Context) {
 var w *watcher.Watcher
 
 func Watch(ctx context.Context) {
-	ticker := time.NewTicker(60 * time.Second)
+	depositTicker := time.NewTicker(60 * time.Second)
+	transferTicker := time.NewTicker(4 * time.Hour)
 	w = watcher.NewWatcher()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-depositTicker.C:
 			deposit(ctx)
+		case <-transferTicker.C:
 			transfer(ctx)
 			finish(ctx)
 		case <-ctx.Done():
