@@ -493,9 +493,9 @@ func Watch(ctx context.Context) {
 		select {
 		case <-depositTicker.C:
 			deposit(ctx)
+			finish(ctx)
 		case <-transferTicker.C:
 			transfer(ctx)
-			finish(ctx)
 		case <-ctx.Done():
 			logger.Sugar().Infow(
 				"Watch",
