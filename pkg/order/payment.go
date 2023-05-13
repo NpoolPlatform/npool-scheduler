@@ -26,7 +26,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
