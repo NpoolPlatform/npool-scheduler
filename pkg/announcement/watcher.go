@@ -92,7 +92,7 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 	}
 
 	logger.Sugar().Infow(
-		"multicastUsers",
+		"unicast",
 		"AppID", user.AppID,
 		"UserID", user.ID,
 		"EmailAddress", user.EmailAddress,
@@ -175,7 +175,7 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 				"EmailAddress", user.EmailAddress,
 				"PhoneNO", user.PhoneNO,
 				"error", err)
-			return err
+			break
 		}
 
 		if !sent {
