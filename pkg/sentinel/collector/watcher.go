@@ -23,7 +23,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"

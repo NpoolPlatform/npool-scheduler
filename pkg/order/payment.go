@@ -26,7 +26,7 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
-	accountlock "github.com/NpoolPlatform/staker-manager/pkg/accountlock"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerv2mwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/v2"
@@ -139,14 +139,6 @@ func tryFinishPayment(
 	default:
 		return nil
 	}
-
-	err := accountlock.Lock(order.PaymentAccountID)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = accountlock.Unlock(order.PaymentAccountID)
-	}()
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
 		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
@@ -650,6 +642,14 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 }
 
 func processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
+	err := accountlock.Lock(order.PaymentAccountID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(order.PaymentAccountID)
+	}()
+
 	switch order.OrderType {
 	case ordermgrpb.OrderType_Normal:
 		return _processOrderPayment(ctx, order)
