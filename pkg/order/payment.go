@@ -140,14 +140,6 @@ func tryFinishPayment(
 		return nil
 	}
 
-	err := accountlock.Lock(order.PaymentAccountID)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = accountlock.Unlock(order.PaymentAccountID)
-	}()
-
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
 		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
 		Active:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
@@ -650,6 +642,14 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 }
 
 func processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
+	err := accountlock.Lock(order.PaymentAccountID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(order.PaymentAccountID)
+	}()
+
 	switch order.OrderType {
 	case ordermgrpb.OrderType_Normal:
 		return _processOrderPayment(ctx, order)
