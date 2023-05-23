@@ -40,10 +40,16 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 		Content: anc.Content,
 	}
 
-	lang, err := applangmwcli.GetLangOnly(ctx, &applangmgrpb.Conds{
+	langConds := &applangmgrpb.Conds{
 		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
-		Main:  &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-	})
+	}
+	if user.SelectedLangID != nil {
+		langConds.LangID = &commonpb.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
+	} else {
+		langConds.Main = &commonpb.BoolVal{Op: cruder.EQ, Value: true}
+	}
+
+	lang, err := applangmwcli.GetLangOnly(ctx, langConds)
 	if err != nil {
 		return false, err
 	}

@@ -28,10 +28,24 @@ import (
 )
 
 func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
-	lang, err := applangmwcli.GetLangOnly(ctx, &applangmgrpb.Conds{
+	user, err := usermwcli.GetUser(ctx, notif.AppID, notif.UserID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user invalid")
+	}
+
+	langConds := &applangmgrpb.Conds{
 		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
-		Main:  &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-	})
+	}
+	if user.SelectedLangID != nil {
+		langConds.LangID = &commonpb.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
+	} else {
+		langConds.Main = &commonpb.BoolVal{Op: cruder.EQ, Value: true}
+	}
+
+	lang, err := applangmwcli.GetLangOnly(ctx, langConds)
 	if err != nil {
 		return err
 	}
@@ -41,14 +55,6 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 
 	if notif.LangID != lang.LangID {
 		return nil
-	}
-
-	user, err := usermwcli.GetUser(ctx, notif.AppID, notif.UserID)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return fmt.Errorf("user invalid")
 	}
 
 	logger.Sugar().Infow(
