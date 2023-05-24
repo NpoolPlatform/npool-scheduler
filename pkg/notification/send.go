@@ -27,6 +27,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 )
 
+//nolint
 func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	user, err := usermwcli.GetUser(ctx, notif.AppID, notif.UserID)
 	if err != nil {
