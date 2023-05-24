@@ -126,6 +126,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 
 	notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
 		EventID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.EventID},
+		Channel: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(notif.Channel)},
 	}, 0, int32(1000)) //nolint
 	if err != nil {
 		return err
