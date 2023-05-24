@@ -25,6 +25,8 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+
+	"github.com/google/uuid"
 )
 
 //nolint
@@ -124,11 +126,25 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return err
 	}
 
-	notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
-		EventID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.EventID},
+	conds := &notifmgrpb.Conds{
 		Channel: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(notif.Channel)},
-	}, 0, int32(1000)) //nolint
+	}
+	if _, err := uuid.Parse(notif.EventID); err == nil {
+		conds.EventID = &commonpb.StringVal{Op: cruder.EQ, Value: notif.EventID}
+	}
+
+	notifs, _, err := notifmwcli.GetNotifs(ctx, conds, 0, int32(1000)) //nolint
 	if err != nil {
+		logger.Sugar().Errorw(
+			"sendOne",
+			"AppID", user.AppID,
+			"UserID", user.ID,
+			"EmailAddress", user.EmailAddress,
+			"ID", notif.ID,
+			"EventType", notif.EventType,
+			"EventID", notif.EventID,
+			"Error", err,
+		)
 		return err
 	}
 
