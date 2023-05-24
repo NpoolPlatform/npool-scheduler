@@ -110,14 +110,35 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 
 	err = sendmwcli.SendMessage(ctx, req)
 	if err != nil {
+		logger.Sugar().Infow(
+			"multicastUsers",
+			"AppID", user.AppID,
+			"UserID", user.ID,
+			"EmailAddress", user.EmailAddress,
+			"ID", notif.ID,
+			"EventType", notif.EventType,
+			"Req", req,
+			"Error", err,
+		)
 		return err
 	}
 
-	notified := true
-	_, err = notifmwcli.UpdateNotif(ctx, &notifmgrpb.NotifReq{
-		ID:       &notif.ID,
-		Notified: &notified,
-	})
+	notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
+		EventID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.EventID},
+	}, 0, int32(1000)) //nolint
+	if err != nil {
+		return err
+	}
+
+	ids := []string{}
+	for _, _notif := range notifs {
+		ids = append(ids, _notif.ID)
+	}
+	if len(ids) == 0 {
+		return fmt.Errorf("invalid ids")
+	}
+
+	_, err = notifmwcli.UpdateNotifs(ctx, ids, true)
 	if err != nil {
 		return err
 	}
