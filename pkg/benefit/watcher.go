@@ -173,6 +173,38 @@ func processBookKeepingGoods(ctx context.Context) {
 	}
 }
 
+type bookKeepingData struct {
+	GoodID   string
+	Amount   string
+	DateTime uint32
+}
+
+var bookKeepingTrigger chan *bookKeepingData
+
+func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
+	good, err := goodmwcli.GetGood(ctx, data.GoodID)
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processBookKeepingGood",
+			"Data", data,
+			"Error", err,
+		)
+		return
+	}
+
+	state := newState()
+
+	g := newGood(good)
+	g.LastBenefitAmount = data.Amount
+	if err := state.BookKeeping(ctx, g); err != nil {
+		logger.Sugar().Errorw(
+			"processBookKeepingGood",
+			"Data", data,
+			"Error", err,
+		)
+	}
+}
+
 func Watch(ctx context.Context) {
 	prepareInterval()
 	logger.Sugar().Infow(
@@ -186,6 +218,7 @@ func Watch(ctx context.Context) {
 
 	tickerWait := time.NewTicker(benefitInterval)
 	tickerTransferring := time.NewTicker(checkInterval)
+	bookKeepingTrigger := make(chan *bookKeepingData)
 
 	for {
 		select {
@@ -202,6 +235,8 @@ func Watch(ctx context.Context) {
 		case <-tickerTransferring.C:
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
+		case data := <-bookKeepingTrigger:
+			processBookKeepingGood(ctx, data)
 		case <-ctx.Done():
 			logger.Sugar().Infow(
 				"Watch",
@@ -211,4 +246,14 @@ func Watch(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func Redistribute(goodID, amount string, dateTime uint32) {
+	go func() {
+		bookKeepingTrigger <- &bookKeepingData{
+			GoodID:   goodID,
+			Amount:   amount,
+			DateTime: dateTime,
+		}
+	}()
 }
