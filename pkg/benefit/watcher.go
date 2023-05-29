@@ -223,6 +223,7 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 			break
 		}
 
+		ords := []*ordermwpb.OrderReq{}
 		for _, ord := range orders {
 			if !benefitable(g.Good, ord, data.DateTime) {
 				continue
@@ -237,6 +238,31 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 				return
 			}
 			g.BenefitOrderIDs[ord.ID] = ord.PaymentID
+
+			ords = append(ords, &ordermwpb.OrderReq{
+				ID:            &ord.ID,
+				PaymentID:     &ord.PaymentID,
+				LastBenefitAt: &g.LastBenefitAt,
+			})
+		}
+
+		if len(ords) > 0 {
+			logger.Sugar().Infow(
+				"processBookKeepingGood",
+				"GoodID", good.ID,
+				"UserRewardAmount", good.LastBenefitAmount,
+				"UpdateOrders", len(ords),
+				"LastBenefitAt", g.LastBenefitAt,
+			)
+			_, err := ordermwcli.UpdateOrders(ctx, ords)
+			if err != nil {
+				logger.Sugar().Errorw(
+					"processBookKeepingGood",
+					"Data", data,
+					"Error", err,
+				)
+				return
+			}
 		}
 
 		offset += limit
