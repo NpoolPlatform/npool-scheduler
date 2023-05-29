@@ -198,6 +198,7 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 	}
 
 	state := newState()
+	state.ChangeState = false
 
 	g := newGood(good)
 	g.LastBenefitAmount = data.Amount
