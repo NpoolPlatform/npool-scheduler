@@ -177,7 +177,7 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 				return err
 			}
 			totalInService = totalInService.Add(units)
-			if benefitable(good.Good, ord) {
+			if benefitable(good.Good, ord, uint32(time.Now().Unix())) {
 				good.BenefitOrderUnits = good.BenefitOrderUnits.Add(units)
 			}
 		}
@@ -234,19 +234,19 @@ func (st *State) CalculateReward(ctx context.Context, good *Good) error {
 	return nil
 }
 
-func benefitable(good *goodmwpb.Good, order *ordermwpb.Order) bool {
+func benefitable(good *goodmwpb.Good, order *ordermwpb.Order, dateTime uint32) bool {
 	if order.PaymentState != paymentmgrpb.PaymentState_Done {
 		return false
 	}
 
 	orderEnd := order.Start + uint32(good.DurationDays*timedef.SecondsPerDay)
-	if orderEnd < uint32(time.Now().Unix()) {
+	if orderEnd < dateTime {
 		return false
 	}
-	if order.Start > uint32(time.Now().Unix()) {
+	if order.Start > dateTime {
 		return false
 	}
-	if uint32(time.Now().Unix()) < order.Start+uint32(benefitInterval.Seconds()) {
+	if dateTime < order.Start+uint32(benefitInterval.Seconds()) {
 		return false
 	}
 
@@ -278,7 +278,7 @@ func (st *State) CalculateTechniqueServiceFee(ctx context.Context, good *Good) e
 		}
 
 		for _, ord := range orders {
-			if !benefitable(good.Good, ord) {
+			if !benefitable(good.Good, ord, uint32(time.Now().Unix())) {
 				continue
 			}
 			units, err := decimal.NewFromString(ord.Units)

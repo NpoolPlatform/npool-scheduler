@@ -12,7 +12,12 @@ import (
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
 	commonpb "github.com/NpoolPlatform/message/npool"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -196,6 +201,47 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 
 	g := newGood(good)
 	g.LastBenefitAmount = data.Amount
+	g.LastBenefitAt = data.DateTime
+
+	offset := int32(0)
+	const limit = int32(100)
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: good.ID},
+			State:  &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(ordermgrpb.OrderState_InService)},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw(
+				"processBookKeepingGood",
+				"Data", data,
+				"Error", err,
+			)
+			return
+		}
+		if len(orders) == 0 {
+			break
+		}
+
+		for _, ord := range orders {
+			if !benefitable(g.Good, ord, data.DateTime) {
+				continue
+			}
+			_, err := decimal.NewFromString(ord.Units)
+			if err != nil {
+				logger.Sugar().Errorw(
+					"processBookKeepingGood",
+					"Data", data,
+					"Error", err,
+				)
+				return
+			}
+			g.BenefitOrderIDs[ord.ID] = ord.PaymentID
+		}
+
+		offset += limit
+	}
+
 	if err := state.BookKeeping(ctx, g); err != nil {
 		logger.Sugar().Errorw(
 			"processBookKeepingGood",
