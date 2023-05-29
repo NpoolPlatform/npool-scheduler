@@ -332,6 +332,90 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	}
 
 	if !txFail {
+
+		coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
+		if err != nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", err,
+			)
+			return nil
+		}
+		if coin == nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", "invalid coin",
+			)
+			return nil
+		}
+
+		leastTransferAmount, err := decimal.NewFromString(coin.LeastTransferAmount)
+		if err != nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", err,
+			)
+			return nil
+		}
+		if leastTransferAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", "invalid least transfer amount",
+			)
+			return nil
+		}
+
+		if toPlatform.Cmp(leastTransferAmount) > 0 {
+			userHotAcc, err := st.platformAccount(
+				ctx,
+				good.CoinTypeID,
+				accountmgrpb.AccountUsedFor_UserBenefitHot)
+			if err != nil {
+				logger.Sugar().Warnw(
+					"CheckTransferring",
+					"Extra", txExtra,
+					"Error", err,
+				)
+				return nil
+			}
+
+			pltfColdAcc, err := st.platformAccount(
+				ctx,
+				good.CoinTypeID,
+				accountmgrpb.AccountUsedFor_PlatformBenefitCold)
+			if err != nil {
+				logger.Sugar().Warnw(
+					"CheckTransferring",
+					"Extra", txExtra,
+					"Error", err,
+				)
+				return nil
+			}
+
+			amount := toPlatform.String()
+			feeAmount := decimal.NewFromInt(0).String()
+			txType := basetypes.TxType_TxPlatformBenefit
+			_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+				CoinTypeID:    &good.CoinTypeID,
+				FromAccountID: &userHotAcc.AccountID,
+				ToAccountID:   &pltfColdAcc.AccountID,
+				Amount:        &amount,
+				FeeAmount:     &feeAmount,
+				Extra:         &txExtra,
+				Type:          &txType,
+			})
+			if err != nil {
+				logger.Sugar().Warnw(
+					"CheckTransferring",
+					"Extra", txExtra,
+					"Error", err,
+				)
+			}
+		}
 		return nil
 	}
 
@@ -344,90 +428,6 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	_, err = goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
-	}
-
-	coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
-	if err != nil {
-		logger.Sugar().Warnw(
-			"CheckTransferring",
-			"Extra", txExtra,
-			"Error", err,
-		)
-		return nil
-	}
-	if coin == nil {
-		logger.Sugar().Warnw(
-			"CheckTransferring",
-			"Extra", txExtra,
-			"Error", "invalid coin",
-		)
-		return nil
-	}
-
-	leastTransferAmount, err := decimal.NewFromString(coin.LeastTransferAmount)
-	if err != nil {
-		logger.Sugar().Warnw(
-			"CheckTransferring",
-			"Extra", txExtra,
-			"Error", err,
-		)
-		return nil
-	}
-	if leastTransferAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		logger.Sugar().Warnw(
-			"CheckTransferring",
-			"Extra", txExtra,
-			"Error", "invalid least transfer amount",
-		)
-		return nil
-	}
-
-	if toPlatform.Cmp(leastTransferAmount) > 0 {
-		userHotAcc, err := st.platformAccount(
-			ctx,
-			good.CoinTypeID,
-			accountmgrpb.AccountUsedFor_UserBenefitHot)
-		if err != nil {
-			logger.Sugar().Warnw(
-				"CheckTransferring",
-				"Extra", txExtra,
-				"Error", err,
-			)
-			return nil
-		}
-
-		pltfColdAcc, err := st.platformAccount(
-			ctx,
-			good.CoinTypeID,
-			accountmgrpb.AccountUsedFor_PlatformBenefitCold)
-		if err != nil {
-			logger.Sugar().Warnw(
-				"CheckTransferring",
-				"Extra", txExtra,
-				"Error", err,
-			)
-			return nil
-		}
-
-		amount := toPlatform.String()
-		feeAmount := decimal.NewFromInt(0).String()
-		txType := basetypes.TxType_TxPlatformBenefit
-		_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
-			CoinTypeID:    &good.CoinTypeID,
-			FromAccountID: &userHotAcc.AccountID,
-			ToAccountID:   &pltfColdAcc.AccountID,
-			Amount:        &amount,
-			FeeAmount:     &feeAmount,
-			Extra:         &txExtra,
-			Type:          &txType,
-		})
-		if err != nil {
-			logger.Sugar().Warnw(
-				"CheckTransferring",
-				"Extra", txExtra,
-				"Error", err,
-			)
-		}
 	}
 
 	return nil
