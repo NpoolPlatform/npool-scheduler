@@ -196,6 +196,7 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 			IOSubType:  &ioSubType,
 			Amount:     &amountS,
 			IOExtra:    &ioExtra,
+			CreatedAt:  &good.LastBenefitAt,
 		})
 	}
 
