@@ -332,11 +332,10 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	}
 
 	if !txFail {
-
 		coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
 		if err != nil {
 			logger.Sugar().Warnw(
-				"CheckTransferring",
+				"CheckTransfer",
 				"Extra", txExtra,
 				"Error", err,
 			)
@@ -344,7 +343,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		}
 		if coin == nil {
 			logger.Sugar().Warnw(
-				"CheckTransferring",
+				"CheckTransfer",
 				"Extra", txExtra,
 				"Error", "invalid coin",
 			)
@@ -354,7 +353,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		leastTransferAmount, err := decimal.NewFromString(coin.LeastTransferAmount)
 		if err != nil {
 			logger.Sugar().Warnw(
-				"CheckTransferring",
+				"CheckTransfer",
 				"Extra", txExtra,
 				"Error", err,
 			)
@@ -362,7 +361,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		}
 		if leastTransferAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 			logger.Sugar().Warnw(
-				"CheckTransferring",
+				"CheckTransfer",
 				"Extra", txExtra,
 				"Error", "invalid least transfer amount",
 			)
@@ -376,7 +375,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				accountmgrpb.AccountUsedFor_UserBenefitHot)
 			if err != nil {
 				logger.Sugar().Warnw(
-					"CheckTransferring",
+					"CheckTransfer",
 					"Extra", txExtra,
 					"Error", err,
 				)
@@ -389,7 +388,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				accountmgrpb.AccountUsedFor_PlatformBenefitCold)
 			if err != nil {
 				logger.Sugar().Warnw(
-					"CheckTransferring",
+					"CheckTransfer",
 					"Extra", txExtra,
 					"Error", err,
 				)
@@ -410,7 +409,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			})
 			if err != nil {
 				logger.Sugar().Warnw(
-					"CheckTransferring",
+					"CheckTransfer",
 					"Extra", txExtra,
 					"Error", err,
 				)
