@@ -184,7 +184,7 @@ type bookKeepingData struct {
 	DateTime uint32
 }
 
-var bookKeepingTrigger chan *bookKeepingData
+var bookKeepingTrigger = make(chan *bookKeepingData)
 
 func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 	good, err := goodmwcli.GetGood(ctx, data.GoodID)
@@ -285,12 +285,36 @@ func Watch(ctx context.Context) {
 		"CheckIntervalSeconds", checkInterval,
 	)
 
+	initialTriggerDone := make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case data := <-bookKeepingTrigger:
+				logger.Sugar().Infow(
+					"Watch",
+					"State", "processBookKeepingGood manual start",
+					"Data", data,
+				)
+				processBookKeepingGood(ctx, data)
+				logger.Sugar().Infow(
+					"Watch",
+					"State", "processBookKeepingGood manual end",
+					"Data", data,
+				)
+			case <-initialTriggerDone:
+				return
+			}
+		}
+	}()
+
 	delay()
+	close(initialTriggerDone)
+
 	processWaitGoods(ctx)
 
 	tickerWait := time.NewTicker(benefitInterval)
 	tickerTransferring := time.NewTicker(checkInterval)
-	bookKeepingTrigger := make(chan *bookKeepingData)
 
 	for {
 		select {
@@ -308,7 +332,17 @@ func Watch(ctx context.Context) {
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
 		case data := <-bookKeepingTrigger:
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processBookKeepingGood manual start",
+				"Data", data,
+			)
 			processBookKeepingGood(ctx, data)
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processBookKeepingGood manual end",
+				"Data", data,
+			)
 		case <-ctx.Done():
 			logger.Sugar().Infow(
 				"Watch",
@@ -322,10 +356,24 @@ func Watch(ctx context.Context) {
 
 func Redistribute(goodID, amount string, dateTime uint32) {
 	go func() {
+		logger.Sugar().Infow(
+			"Redistribute",
+			"GoodID", goodID,
+			"Amount", amount,
+			"DateTime", dateTime,
+			"State", "Start",
+		)
 		bookKeepingTrigger <- &bookKeepingData{
 			GoodID:   goodID,
 			Amount:   amount,
 			DateTime: dateTime,
 		}
+		logger.Sugar().Infow(
+			"Redistribute",
+			"GoodID", goodID,
+			"Amount", amount,
+			"DateTime", dateTime,
+			"State", "End",
+		)
 	}()
 }

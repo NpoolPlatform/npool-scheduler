@@ -94,6 +94,7 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 
 func rpcRegister(server grpc.ServiceRegistrar) error {
 	api.Register(server)
+	apicli.RegisterGRPC(server)
 	return nil
 }
 
