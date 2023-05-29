@@ -2,6 +2,7 @@ package benefit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -99,14 +100,6 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 		return err
 	}
 
-	pltfColdAcc, err := st.platformAccount(
-		ctx,
-		good.CoinTypeID,
-		accountmgrpb.AccountUsedFor_PlatformBenefitCold)
-	if err != nil {
-		return err
-	}
-
 	goodBenefitAcc, err := st.goodBenefit(ctx, good)
 	if err != nil {
 		return err
@@ -129,15 +122,10 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	}
 
 	txs := []*txmgrpb.TxReq{}
-
 	toUser := decimal.NewFromInt(0)
-	toPlatform := decimal.NewFromInt(0)
 
-	if good.UserRewardAmount.Cmp(leastTransferAmount) > 0 {
-		toUser = good.UserRewardAmount
-	}
-	if good.TodayRewardAmount.Sub(good.UserRewardAmount).Cmp(leastTransferAmount) > 0 {
-		toPlatform = good.TodayRewardAmount.Sub(good.UserRewardAmount)
+	if good.TodayRewardAmount.Cmp(leastTransferAmount) > 0 {
+		toUser = good.TodayRewardAmount
 	}
 
 	if toUser.Cmp(decimal.NewFromInt(0)) > 0 {
@@ -156,29 +144,6 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 			CoinTypeID:    &good.CoinTypeID,
 			FromAccountID: &goodBenefitAcc.AccountID,
 			ToAccountID:   &userHotAcc.AccountID,
-			Amount:        &amount,
-			FeeAmount:     &feeAmount,
-			Extra:         &txExtra,
-			Type:          &txType,
-		})
-	}
-
-	if toPlatform.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := toPlatform.String()
-		feeAmount := decimal.NewFromInt(0).String()
-		txExtra := fmt.Sprintf(
-			`{"GoodID":"%v","Reward":"%v","UserReward":"%v","PlatformReward":"%v","TechniqueServiceFee":"%v"}`,
-			good.ID,
-			good.TodayRewardAmount,
-			good.UserRewardAmount,
-			good.PlatformRewardAmount,
-			good.TechniqueServiceFeeAmount,
-		)
-		txType := basetypes.TxType_TxPlatformBenefit
-		txs = append(txs, &txmgrpb.TxReq{
-			CoinTypeID:    &good.CoinTypeID,
-			FromAccountID: &goodBenefitAcc.AccountID,
-			ToAccountID:   &pltfColdAcc.AccountID,
 			Amount:        &amount,
 			FeeAmount:     &feeAmount,
 			Extra:         &txExtra,
@@ -258,10 +223,10 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 //nolint:gocognit
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	transferred := decimal.NewFromInt(0)
-
+	toPlatform := decimal.NewFromInt(0)
 	doneTIDs := []string{}
-
 	txFail := false
+	txExtra := ""
 
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
@@ -299,6 +264,19 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				}
 				transferred = transferred.Add(amount)
 				doneTIDs = append(doneTIDs, tx.ID)
+
+				type p struct {
+					PlatformReward      decimal.Decimal
+					TechniqueServiceFee decimal.Decimal
+				}
+				_p := p{}
+				err = json.Unmarshal([]byte(tx.Extra), &_p)
+				if err != nil {
+					return err
+				}
+
+				toPlatform = _p.PlatformReward.Add(_p.TechniqueServiceFee)
+				txExtra = tx.Extra
 			}
 		}
 	}
@@ -366,6 +344,90 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	_, err = goodmwcli.UpdateGood(ctx, req)
 	if err != nil {
 		return err
+	}
+
+	coin, err := coinmwcli.GetCoin(ctx, good.CoinTypeID)
+	if err != nil {
+		logger.Sugar().Warnw(
+			"CheckTransferring",
+			"Extra", txExtra,
+			"Error", err,
+		)
+		return nil
+	}
+	if coin == nil {
+		logger.Sugar().Warnw(
+			"CheckTransferring",
+			"Extra", txExtra,
+			"Error", "invalid coin",
+		)
+		return nil
+	}
+
+	leastTransferAmount, err := decimal.NewFromString(coin.LeastTransferAmount)
+	if err != nil {
+		logger.Sugar().Warnw(
+			"CheckTransferring",
+			"Extra", txExtra,
+			"Error", err,
+		)
+		return nil
+	}
+	if leastTransferAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		logger.Sugar().Warnw(
+			"CheckTransferring",
+			"Extra", txExtra,
+			"Error", "invalid least transfer amount",
+		)
+		return nil
+	}
+
+	if toPlatform.Cmp(leastTransferAmount) > 0 {
+		userHotAcc, err := st.platformAccount(
+			ctx,
+			good.CoinTypeID,
+			accountmgrpb.AccountUsedFor_UserBenefitHot)
+		if err != nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", err,
+			)
+			return nil
+		}
+
+		pltfColdAcc, err := st.platformAccount(
+			ctx,
+			good.CoinTypeID,
+			accountmgrpb.AccountUsedFor_PlatformBenefitCold)
+		if err != nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", err,
+			)
+			return nil
+		}
+
+		amount := toPlatform.String()
+		feeAmount := decimal.NewFromInt(0).String()
+		txType := basetypes.TxType_TxPlatformBenefit
+		_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+			CoinTypeID:    &good.CoinTypeID,
+			FromAccountID: &userHotAcc.AccountID,
+			ToAccountID:   &pltfColdAcc.AccountID,
+			Amount:        &amount,
+			FeeAmount:     &feeAmount,
+			Extra:         &txExtra,
+			Type:          &txType,
+		})
+		if err != nil {
+			logger.Sugar().Warnw(
+				"CheckTransferring",
+				"Extra", txExtra,
+				"Error", err,
+			)
+		}
 	}
 
 	return nil
