@@ -12,7 +12,12 @@ import (
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 
+	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
 	commonpb "github.com/NpoolPlatform/message/npool"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -173,6 +178,106 @@ func processBookKeepingGoods(ctx context.Context) {
 	}
 }
 
+type bookKeepingData struct {
+	GoodID   string
+	Amount   string
+	DateTime uint32
+}
+
+var bookKeepingTrigger = make(chan *bookKeepingData)
+
+func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
+	good, err := goodmwcli.GetGood(ctx, data.GoodID)
+	if err != nil {
+		logger.Sugar().Errorw(
+			"processBookKeepingGood",
+			"Data", data,
+			"Error", err,
+		)
+		return
+	}
+
+	state := newState()
+	state.ChangeState = false
+
+	g := newGood(good)
+	g.LastBenefitAmount = data.Amount
+	g.LastBenefitAt = data.DateTime
+
+	offset := int32(0)
+	const limit = int32(100)
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			GoodID: &commonpb.StringVal{Op: cruder.EQ, Value: good.ID},
+			State:  &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(ordermgrpb.OrderState_InService)},
+		}, offset, limit)
+		if err != nil {
+			logger.Sugar().Errorw(
+				"processBookKeepingGood",
+				"Data", data,
+				"Error", err,
+			)
+			return
+		}
+		if len(orders) == 0 {
+			break
+		}
+
+		ords := []*ordermwpb.OrderReq{}
+		for _, ord := range orders {
+			if !benefitable(g.Good, ord, data.DateTime) {
+				continue
+			}
+			_, err := decimal.NewFromString(ord.Units)
+			if err != nil {
+				logger.Sugar().Errorw(
+					"processBookKeepingGood",
+					"Data", data,
+					"Error", err,
+				)
+				return
+			}
+			g.BenefitOrderIDs[ord.ID] = ord.PaymentID
+
+			ords = append(ords, &ordermwpb.OrderReq{
+				ID:            &ord.ID,
+				PaymentID:     &ord.PaymentID,
+				LastBenefitAt: &g.LastBenefitAt,
+			})
+		}
+
+		if len(ords) > 0 {
+			logger.Sugar().Infow(
+				"processBookKeepingGood",
+				"GoodID", good.ID,
+				"UserRewardAmount", good.LastBenefitAmount,
+				"UpdateOrders", len(ords),
+				"LastBenefitAt", g.LastBenefitAt,
+			)
+			_, err := ordermwcli.UpdateOrders(ctx, ords)
+			if err != nil {
+				logger.Sugar().Errorw(
+					"processBookKeepingGood",
+					"Data", data,
+					"Error", err,
+				)
+				return
+			}
+		}
+
+		offset += limit
+	}
+
+	if err := state.BookKeeping(ctx, g); err != nil {
+		logger.Sugar().Errorw(
+			"processBookKeepingGood",
+			"Data", data,
+			"Error", err,
+		)
+	}
+}
+
 func Watch(ctx context.Context) {
 	prepareInterval()
 	logger.Sugar().Infow(
@@ -181,7 +286,32 @@ func Watch(ctx context.Context) {
 		"CheckIntervalSeconds", checkInterval,
 	)
 
+	initialTriggerDone := make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case data := <-bookKeepingTrigger:
+				logger.Sugar().Infow(
+					"Watch",
+					"State", "processBookKeepingGood manual start",
+					"Data", data,
+				)
+				processBookKeepingGood(ctx, data)
+				logger.Sugar().Infow(
+					"Watch",
+					"State", "processBookKeepingGood manual end",
+					"Data", data,
+				)
+			case <-initialTriggerDone:
+				return
+			}
+		}
+	}()
+
 	delay()
+	close(initialTriggerDone)
+
 	processWaitGoods(ctx)
 
 	tickerWait := time.NewTicker(benefitInterval)
@@ -202,6 +332,18 @@ func Watch(ctx context.Context) {
 		case <-tickerTransferring.C:
 			processTransferringGoods(ctx)
 			processBookKeepingGoods(ctx)
+		case data := <-bookKeepingTrigger:
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processBookKeepingGood manual start",
+				"Data", data,
+			)
+			processBookKeepingGood(ctx, data)
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "processBookKeepingGood manual end",
+				"Data", data,
+			)
 		case <-ctx.Done():
 			logger.Sugar().Infow(
 				"Watch",
@@ -211,4 +353,28 @@ func Watch(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func Redistribute(goodID, amount string, dateTime uint32) {
+	go func() {
+		logger.Sugar().Infow(
+			"Redistribute",
+			"GoodID", goodID,
+			"Amount", amount,
+			"DateTime", dateTime,
+			"State", "Start",
+		)
+		bookKeepingTrigger <- &bookKeepingData{
+			GoodID:   goodID,
+			Amount:   amount,
+			DateTime: dateTime,
+		}
+		logger.Sugar().Infow(
+			"Redistribute",
+			"GoodID", goodID,
+			"Amount", amount,
+			"DateTime", dateTime,
+			"State", "End",
+		)
+	}()
 }

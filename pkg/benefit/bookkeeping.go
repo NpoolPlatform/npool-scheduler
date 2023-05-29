@@ -196,17 +196,20 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 			IOSubType:  &ioSubType,
 			Amount:     &amountS,
 			IOExtra:    &ioExtra,
+			CreatedAt:  &good.LastBenefitAt,
 		})
 	}
 
-	state := goodmgrpb.BenefitState_BenefitWait
-	req := &goodmwpb.GoodReq{
-		ID:           &good.ID,
-		BenefitState: &state,
-	}
-	_, err = goodmwcli.UpdateGood(ctx, req)
-	if err != nil {
-		return err
+	if st.ChangeState {
+		state := goodmgrpb.BenefitState_BenefitWait
+		req := &goodmwpb.GoodReq{
+			ID:           &good.ID,
+			BenefitState: &state,
+		}
+		_, err = goodmwcli.UpdateGood(ctx, req)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(details) > 0 {
