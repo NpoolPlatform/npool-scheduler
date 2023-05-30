@@ -13,7 +13,7 @@ import (
 	rabbitmqconst "github.com/NpoolPlatform/go-service-framework/pkg/rabbitmq/const"
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
-	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/message/const"
+	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/servicename"
 	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
 	thirdconst "github.com/NpoolPlatform/third-middleware/pkg/message/const"
@@ -43,7 +43,7 @@ func main() {
 		rabbitmqconst.RabbitMQServiceName,
 		ledgerconst.ServiceName,
 		orderconst.ServiceName,
-		chainconst.ServiceName,
+		chainconst.ServiceDomain,
 		thirdconst.ServiceName,
 	)
 	if err != nil {

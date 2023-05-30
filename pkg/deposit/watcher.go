@@ -27,7 +27,7 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
@@ -225,8 +225,8 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 	}
 	if tx != nil {
 		switch tx.State {
-		case txmgrpb.TxState_StateSuccessful:
-		case txmgrpb.TxState_StateFail:
+		case basetypes.TxState_TxStateSuccessful:
+		case basetypes.TxState_TxStateFail:
 		default:
 			return nil
 		}
@@ -314,7 +314,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 
 	// TODO: reliable record collecting TID
 
-	tx, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+	tx, err = txmwcli.CreateTx(ctx, &txmwpb.TxReq{
 		CoinTypeID:    &coin.ID,
 		FromAccountID: &acc.AccountID,
 		ToAccountID:   &collect.AccountID,
@@ -402,9 +402,9 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	outcoming := decimal.NewFromInt(0)
 
 	switch tx.State {
-	case txmgrpb.TxState_StateSuccessful:
+	case basetypes.TxState_TxStateSuccessful:
 		outcoming = outcoming.Add(decimal.RequireFromString(tx.Amount))
-	case txmgrpb.TxState_StateFail:
+	case basetypes.TxState_TxStateFail:
 	default:
 		return nil
 	}

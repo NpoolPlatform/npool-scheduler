@@ -18,7 +18,6 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -80,23 +79,23 @@ func accounts(ctx context.Context, coinTypeID string) (hot, cold *pltfaccmwpb.Ac
 	return hot, cold, nil
 }
 
-func transaction(ctx context.Context, account *pltfaccmwpb.Account, state txmgrpb.TxState) (*txmwpb.Tx, error) {
-	txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
+func transaction(ctx context.Context, account *pltfaccmwpb.Account, state basetypes.TxState) (*txmwpb.Tx, error) {
+	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+		CoinTypeID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: account.CoinTypeID,
 		},
-		AccountID: &commonpb.StringVal{
+		AccountID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: account.AccountID,
 		},
-		State: &commonpb.Int32Val{
+		State: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(state),
+			Value: uint32(state),
 		},
-		Type: &commonpb.Int32Val{
+		Type: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(basetypes.TxType_TxLimitation),
+			Value: uint32(basetypes.TxType_TxLimitation),
 		},
 	}, int32(0), int32(1)) //nolint
 	if err != nil {
@@ -110,7 +109,7 @@ func transaction(ctx context.Context, account *pltfaccmwpb.Account, state txmgrp
 }
 
 func transferring(ctx context.Context, account *pltfaccmwpb.Account) (bool, error) {
-	tx, err := transaction(ctx, account, txmgrpb.TxState_StateCreated)
+	tx, err := transaction(ctx, account, basetypes.TxState_TxStateCreated)
 	if err != nil {
 		return true, err
 	}
@@ -118,7 +117,7 @@ func transferring(ctx context.Context, account *pltfaccmwpb.Account) (bool, erro
 		return true, nil
 	}
 
-	tx, err = transaction(ctx, account, txmgrpb.TxState_StateWait)
+	tx, err = transaction(ctx, account, basetypes.TxState_TxStateWait)
 	if err != nil {
 		return true, err
 	}
@@ -126,7 +125,7 @@ func transferring(ctx context.Context, account *pltfaccmwpb.Account) (bool, erro
 		return true, nil
 	}
 
-	tx, err = transaction(ctx, account, txmgrpb.TxState_StateTransferring)
+	tx, err = transaction(ctx, account, basetypes.TxState_TxStateTransferring)
 	if err != nil {
 		return true, err
 	}
@@ -136,7 +135,7 @@ func transferring(ctx context.Context, account *pltfaccmwpb.Account) (bool, erro
 
 	const accountCoollDownSeconds = 1 * 60 * 60
 
-	tx, err = transaction(ctx, account, txmgrpb.TxState_StateSuccessful)
+	tx, err = transaction(ctx, account, basetypes.TxState_TxStateSuccessful)
 	if err != nil {
 		return true, err
 	}
@@ -198,7 +197,7 @@ func checkCoinLimit(ctx context.Context, coin *coinmwpb.Coin) error {
 	feeAmountS := "0"
 	txType := basetypes.TxType_TxLimitation
 
-	_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+	_, err = txmwcli.CreateTx(ctx, &txmwpb.TxReq{
 		CoinTypeID:    &coin.ID,
 		FromAccountID: &online.AccountID,
 		ToAccountID:   &offline.AccountID,

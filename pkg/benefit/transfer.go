@@ -20,7 +20,7 @@ import (
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
@@ -121,7 +121,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 		return fmt.Errorf("invalid least transfer amount")
 	}
 
-	txs := []*txmgrpb.TxReq{}
+	txs := []*txmwpb.TxReq{}
 	toUser := decimal.NewFromInt(0)
 
 	if good.TodayRewardAmount.Cmp(leastTransferAmount) > 0 {
@@ -140,7 +140,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 			good.TechniqueServiceFeeAmount,
 		)
 		txType := basetypes.TxType_TxUserBenefit
-		txs = append(txs, &txmgrpb.TxReq{
+		txs = append(txs, &txmwpb.TxReq{
 			CoinTypeID:    &good.CoinTypeID,
 			FromAccountID: &goodBenefitAcc.AccountID,
 			ToAccountID:   &userHotAcc.AccountID,
@@ -229,8 +229,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	txExtra := ""
 
 	if len(good.BenefitTIDs) > 0 {
-		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			IDs: &commonpb.StringSliceVal{
+		txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+			IDs: &basetypes.StringSliceVal{
 				Op:    cruder.IN,
 				Value: good.BenefitTIDs,
 			},
@@ -248,16 +248,16 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			}
 
 			switch tx.State {
-			case txmgrpb.TxState_StateCreated:
+			case basetypes.TxState_TxStateCreated:
 				fallthrough //nolint
-			case txmgrpb.TxState_StateWait:
+			case basetypes.TxState_TxStateWait:
 				fallthrough //nolint
-			case txmgrpb.TxState_StateTransferring:
+			case basetypes.TxState_TxStateTransferring:
 				return nil
-			case txmgrpb.TxState_StateFail:
+			case basetypes.TxState_TxStateFail:
 				txFail = true
 				fallthrough //nolint
-			case txmgrpb.TxState_StateSuccessful:
+			case basetypes.TxState_TxStateSuccessful:
 				amount, err := decimal.NewFromString(tx.Amount)
 				if err != nil {
 					return err
@@ -398,7 +398,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			amount := toPlatform.String()
 			feeAmount := decimal.NewFromInt(0).String()
 			txType := basetypes.TxType_TxPlatformBenefit
-			_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+			_, err = txmwcli.CreateTx(ctx, &txmwpb.TxReq{
 				CoinTypeID:    &good.CoinTypeID,
 				FromAccountID: &userHotAcc.AccountID,
 				ToAccountID:   &pltfColdAcc.AccountID,

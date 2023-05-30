@@ -22,7 +22,7 @@ import (
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -74,14 +74,14 @@ func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.Accoun
 }
 
 func feeding(ctx context.Context, accountID string) (bool, error) {
-	txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-		AccountID: &commonpb.StringVal{
+	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+		AccountID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: accountID,
 		},
-		Type: &commonpb.Int32Val{
+		Type: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(basetypes.TxType_TxFeedGas),
+			Value: uint32(basetypes.TxType_TxFeedGas),
 		},
 	}, int32(0), int32(1)) //nolint
 	if err != nil {
@@ -92,11 +92,11 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 	}
 
 	switch txs[0].State {
-	case txmgrpb.TxState_StateCreated:
+	case basetypes.TxState_TxStateCreated:
 		fallthrough //nolint
-	case txmgrpb.TxState_StateWait:
+	case basetypes.TxState_TxStateWait:
 		fallthrough //nolint
-	case txmgrpb.TxState_StateTransferring:
+	case basetypes.TxState_TxStateTransferring:
 		logger.Sugar().Infow("feeding",
 			"TxID", txs[0].ID,
 			"AccountID", accountID,
@@ -105,8 +105,8 @@ func feeding(ctx context.Context, accountID string) (bool, error) {
 			"Amount", txs[0].Amount,
 		)
 		return true, nil
-	case txmgrpb.TxState_StateSuccessful:
-	case txmgrpb.TxState_StateFail:
+	case basetypes.TxState_TxStateSuccessful:
+	case basetypes.TxState_TxStateFail:
 		return false, nil
 	}
 
@@ -246,7 +246,7 @@ func feedOne(
 	txExtra := fmt.Sprintf(`{"Coin":"%v","AccountType":"%v","FeeCoinTypeID":"%v"}`,
 		coin.Name, usedFor, coin.FeeCoinTypeID)
 
-	_, err = txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+	_, err = txmwcli.CreateTx(ctx, &txmwpb.TxReq{
 		CoinTypeID:    &coin.FeeCoinTypeID,
 		FromAccountID: &gasProvider.AccountID,
 		ToAccountID:   &accountID,
