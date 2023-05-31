@@ -283,7 +283,7 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 	}
 }
 
-func Watch(ctx context.Context) {
+func Watch(ctx context.Context) { //nolint
 	prepareInterval()
 	logger.Sugar().Infow(
 		"benefit",
