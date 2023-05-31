@@ -340,6 +340,11 @@ func Watch(ctx context.Context) {
 			)
 			if len(retryGoods) > 0 {
 				go func(retryGoods []string) {
+					defer func() {
+						if r := recover(); r != nil {
+							fmt.Println("Recovered in f", r)
+						}
+					}()
 					checkChan <- retryGoods
 				}(retryGoods)
 			}
@@ -359,6 +364,11 @@ func Watch(ctx context.Context) {
 			)
 			if len(retryGoods) > 0 {
 				go func(retryGoods []string) {
+					defer func() {
+						if r := recover(); r != nil {
+							fmt.Println("Recovered in f", r)
+						}
+					}()
 					checkChan <- retryGoods
 				}(retryGoods)
 			}
