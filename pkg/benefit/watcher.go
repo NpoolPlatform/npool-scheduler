@@ -117,8 +117,6 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 		offset += limit
 	}
-
-	return retryGoods
 }
 
 func processTransferringGoods(ctx context.Context) {
