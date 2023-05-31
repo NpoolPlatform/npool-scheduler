@@ -87,7 +87,9 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 			if err := state.CalculateReward(ctx, g); err != nil {
 				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
-				retryGoods = append(retryGoods, g.ID)
+				if g.Retry {
+					retryGoods = append(retryGoods, g.ID)
+				}
 				continue
 			}
 			if err := state.CalculateTechniqueServiceFee(ctx, g); err != nil {

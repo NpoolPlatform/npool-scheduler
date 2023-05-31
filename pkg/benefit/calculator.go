@@ -59,6 +59,7 @@ func (st *State) coin(ctx context.Context, coinTypeID string) (*coinmwpb.Coin, e
 func (st *State) goodBenefit(ctx context.Context, good *Good) (*gbmwpb.Account, error) {
 	acc, ok := st.GoodBenefits[good.ID]
 	if ok {
+		good.Retry = true
 		return acc, nil
 	}
 
@@ -90,6 +91,8 @@ func (st *State) goodBenefit(ctx context.Context, good *Good) (*gbmwpb.Account, 
 	if acc == nil {
 		return nil, fmt.Errorf("invalid good benefit")
 	}
+
+	good.Retry = true
 
 	st.GoodBenefits[good.ID] = acc
 
