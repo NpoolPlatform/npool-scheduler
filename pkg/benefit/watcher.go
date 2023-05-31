@@ -69,7 +69,7 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 			return []string{}
 		}
 		if len(goods) == 0 {
-			return []string{}
+			return retryGoods
 		}
 
 		for _, good := range goods {
@@ -354,7 +354,7 @@ func Watch(ctx context.Context) {
 			retryGoods := processWaitGoods(ctx, _retryGoods)
 			logger.Sugar().Infow(
 				"Watch",
-				"State", "processWaitGoods checl end",
+				"State", "processWaitGoods check end",
 				"RetryGoods", retryGoods,
 			)
 			if len(retryGoods) > 0 {
