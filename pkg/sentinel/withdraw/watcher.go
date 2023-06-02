@@ -29,6 +29,9 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 	if err != nil {
 		return err
 	}
+	if tx == nil {
+		return nil
+	}
 
 	outcoming := decimal.NewFromInt(0)
 	state := withdraw.State
