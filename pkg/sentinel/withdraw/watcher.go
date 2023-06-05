@@ -15,9 +15,9 @@ import (
 	ledgerdetailmgrpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
@@ -28,6 +28,9 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 	tx, err := txmwcli.GetTx(ctx, withdraw.PlatformTransactionID)
 	if err != nil {
 		return err
+	}
+	if tx == nil {
+		return nil
 	}
 
 	outcoming := decimal.NewFromInt(0)
@@ -40,9 +43,9 @@ func processWithdraw(ctx context.Context, withdraw *withdrawmgrpb.Withdraw) erro
 
 	// If tx done, unlock balance with outcoming, or unlock balance without outcoming
 	switch tx.State {
-	case txmgrpb.TxState_StateFail:
+	case basetypes.TxState_TxStateFail:
 		state = withdrawmgrpb.WithdrawState_TransactionFail
-	case txmgrpb.TxState_StateSuccessful:
+	case basetypes.TxState_TxStateSuccessful:
 		state = withdrawmgrpb.WithdrawState_Successful
 		outcoming = unlocked
 	default:

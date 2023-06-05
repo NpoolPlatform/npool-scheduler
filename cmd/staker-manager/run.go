@@ -8,7 +8,6 @@ import (
 
 	"github.com/NpoolPlatform/staker-manager/pkg/announcement"
 	"github.com/NpoolPlatform/staker-manager/pkg/benefit"
-	"github.com/NpoolPlatform/staker-manager/pkg/currency"
 	"github.com/NpoolPlatform/staker-manager/pkg/deposit"
 	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
 	"github.com/NpoolPlatform/staker-manager/pkg/notification"
@@ -85,7 +84,6 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go _watch(ctx, cancel, limitation.Watch)
 	go _watch(ctx, cancel, withdraw.Watch)
 	go _watch(ctx, cancel, benefit.Watch)
-	go _watch(ctx, cancel, currency.Watch)
 	go _watch(ctx, cancel, gasfeeder.Watch)
 	go _watch(ctx, cancel, notification.Watch)
 	go _watch(ctx, cancel, announcement.Watch)

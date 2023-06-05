@@ -18,7 +18,7 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -166,7 +166,7 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 	feeAmountS := "0"
 	txType := basetypes.TxType_TxPaymentCollect
 
-	tx, err := txmwcli.CreateTx(ctx, &txmgrpb.TxReq{
+	tx, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
 		CoinTypeID:    &coin.ID,
 		FromAccountID: &account.AccountID,
 		ToAccountID:   &collect.AccountID,
@@ -243,8 +243,8 @@ func checkCollectingPayment(ctx context.Context, account *payaccmwpb.Account) er
 	}
 
 	switch tx.State {
-	case txmgrpb.TxState_StateSuccessful:
-	case txmgrpb.TxState_StateFail:
+	case basetypes.TxState_TxStateSuccessful:
+	case basetypes.TxState_TxStateFail:
 	default:
 		return nil
 	}

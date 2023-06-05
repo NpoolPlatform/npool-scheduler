@@ -8,7 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/tx"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
@@ -49,15 +49,15 @@ func waitSuccess(ctx context.Context) error { //nolint
 			notifMap[notif.TxID] = notif
 		}
 
-		txs, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			IDs: &commonpb.StringSliceVal{Op: cruder.IN, Value: tids},
+		txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+			IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: tids},
 		}, 0, int32(len(tids)))
 		if err != nil {
 			return err
 		}
 
 		for _, tx := range txs {
-			if tx.State != txmgrpb.TxState_StateSuccessful {
+			if tx.State != basetypes.TxState_TxStateSuccessful {
 				continue
 			}
 

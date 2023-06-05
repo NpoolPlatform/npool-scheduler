@@ -10,7 +10,6 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	txmgrpb "github.com/NpoolPlatform/message/npool/chain/mgr/v1/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
@@ -38,10 +37,10 @@ func onCreatedChecker(ctx context.Context) { //nolint
 	ignores := map[string]struct{}{}
 
 	for {
-		createds, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			State: &commonpb.Int32Val{
+		createds, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+			State: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: int32(txmgrpb.TxState_StateCreated),
+				Value: uint32(basetypes.TxState_TxStateCreated),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -57,18 +56,18 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				continue
 			}
 
-			waits, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-				CoinTypeID: &commonpb.StringVal{
+			waits, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+				CoinTypeID: &basetypes.StringVal{
 					Op:    cruder.EQ,
 					Value: created.CoinTypeID,
 				},
-				AccountID: &commonpb.StringVal{
+				AccountID: &basetypes.StringVal{
 					Op:    cruder.EQ,
 					Value: created.FromAccountID,
 				},
-				State: &commonpb.Int32Val{
+				State: &basetypes.Uint32Val{
 					Op:    cruder.EQ,
-					Value: int32(txmgrpb.TxState_StateWait),
+					Value: uint32(basetypes.TxState_TxStateWait),
 				},
 			}, int32(0), int32(1)) //nolint
 			if err != nil {
@@ -79,18 +78,18 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				continue
 			}
 
-			payings, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-				CoinTypeID: &commonpb.StringVal{
+			payings, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+				CoinTypeID: &basetypes.StringVal{
 					Op:    cruder.EQ,
 					Value: created.CoinTypeID,
 				},
-				AccountID: &commonpb.StringVal{
+				AccountID: &basetypes.StringVal{
 					Op:    cruder.EQ,
 					Value: created.FromAccountID,
 				},
-				State: &commonpb.Int32Val{
+				State: &basetypes.Uint32Val{
 					Op:    cruder.EQ,
-					Value: int32(txmgrpb.TxState_StateTransferring),
+					Value: uint32(basetypes.TxState_TxStateTransferring),
 				},
 			}, int32(0), int32(1)) //nolint
 			if err != nil {
@@ -101,8 +100,8 @@ func onCreatedChecker(ctx context.Context) { //nolint
 				continue
 			}
 
-			state := txmgrpb.TxState_StateWait
-			_, err = txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+			state := basetypes.TxState_TxStateWait
+			_, err = txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 				ID:    &created.ID,
 				State: &state,
 			})
@@ -220,10 +219,10 @@ func onWaitChecker(ctx context.Context) {
 	const limit = int32(1000)
 
 	for {
-		waits, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			State: &commonpb.Int32Val{
+		waits, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+			State: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: int32(txmgrpb.TxState_StateWait),
+				Value: uint32(basetypes.TxState_TxStateWait),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -237,8 +236,8 @@ func onWaitChecker(ctx context.Context) {
 		for _, wait := range waits {
 			tx, _ := sphinxproxycli.GetTransaction(ctx, wait.ID) //nolint
 			if tx != nil {
-				state := txmgrpb.TxState_StateTransferring
-				_, err := txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+				state := basetypes.TxState_TxStateTransferring
+				_, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 					ID:    &wait.ID,
 					State: &state,
 				})
@@ -254,8 +253,8 @@ func onWaitChecker(ctx context.Context) {
 				continue
 			}
 
-			state := txmgrpb.TxState_StateTransferring
-			_, err := txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+			state := basetypes.TxState_TxStateTransferring
+			_, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 				ID:    &wait.ID,
 				State: &state,
 			})
@@ -273,10 +272,10 @@ func onPayingChecker(ctx context.Context) { //nolint
 	const limit = int32(1000)
 
 	for {
-		payings, _, err := txmwcli.GetTxs(ctx, &txmgrpb.Conds{
-			State: &commonpb.Int32Val{
+		payings, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+			State: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: int32(txmgrpb.TxState_StateTransferring),
+				Value: uint32(basetypes.TxState_TxStateTransferring),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -288,7 +287,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 		}
 
 		for _, paying := range payings {
-			toState := txmgrpb.TxState_StateTransferring
+			toState := basetypes.TxState_TxStateTransferring
 			cid := ""
 
 			tx, err := sphinxproxycli.GetTransaction(ctx, paying.ID)
@@ -298,7 +297,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 				case codes.InvalidArgument:
 					fallthrough //nolint
 				case codes.NotFound:
-					toState = txmgrpb.TxState_StateFail
+					toState = basetypes.TxState_TxStateFail
 				default:
 					continue
 				}
@@ -309,15 +308,15 @@ func onPayingChecker(ctx context.Context) { //nolint
 
 			extra := ""
 
-			if toState == txmgrpb.TxState_StateTransferring {
+			if toState == basetypes.TxState_TxStateTransferring {
 				switch tx.TransactionState {
 				case sphinxproxypb.TransactionState_TransactionStateFail:
-					toState = txmgrpb.TxState_StateFail
+					toState = basetypes.TxState_TxStateFail
 				case sphinxproxypb.TransactionState_TransactionStateDone:
-					toState = txmgrpb.TxState_StateSuccessful
+					toState = basetypes.TxState_TxStateSuccessful
 					if tx.CID == "" {
 						extra = "(successful without CID)"
-						toState = txmgrpb.TxState_StateFail
+						toState = basetypes.TxState_TxStateFail
 					}
 					cid = tx.CID
 				default:
@@ -325,7 +324,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 				}
 			}
 
-			_, err = txmwcli.UpdateTx(ctx, &txmgrpb.TxReq{
+			_, err = txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 				ID:        &paying.ID,
 				ChainTxID: &cid,
 				State:     &toState,
