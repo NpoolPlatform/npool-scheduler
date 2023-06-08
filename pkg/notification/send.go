@@ -7,7 +7,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	applangmgrpb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
+	applangmwpb "github.com/NpoolPlatform/message/npool/g11n/mw/v1/applang"
 	chanmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
 	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
 	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/email"
@@ -39,13 +39,13 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return fmt.Errorf("user invalid")
 	}
 
-	langConds := &applangmgrpb.Conds{
-		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
+	langConds := &applangmwpb.Conds{
+		AppID: &basetypes.StringVal{Op: cruder.EQ, Value: notif.AppID},
 	}
 	if user.SelectedLangID != nil {
-		langConds.LangID = &commonpb.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
+		langConds.LangID = &basetypes.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
 	} else {
-		langConds.Main = &commonpb.BoolVal{Op: cruder.EQ, Value: true}
+		langConds.Main = &basetypes.BoolVal{Op: cruder.EQ, Value: true}
 	}
 
 	lang, err := applangmwcli.GetLangOnly(ctx, langConds)
