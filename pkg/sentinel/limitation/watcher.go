@@ -181,7 +181,7 @@ func checkCoinLimit(ctx context.Context, coin *coinmwpb.Coin) error {
 		return err
 	}
 
-	if bal.Cmp(limit.Mul(decimal.NewFromInt(2))) > 0 {
+	if bal.Cmp(limit.Mul(decimal.NewFromInt(2))) < 0 {
 		return nil
 	}
 
@@ -192,6 +192,14 @@ func checkCoinLimit(ctx context.Context, coin *coinmwpb.Coin) error {
 	if yes {
 		return nil
 	}
+
+	logger.Sugar().Infow(
+		"checkCoinLimit",
+		"coin", coin.Name,
+		"amount", coin.HotWalletAccountAmount,
+		"balance", bal,
+		"limit", limit,
+	)
 
 	amountS := bal.Sub(limit).String()
 	feeAmountS := "0"

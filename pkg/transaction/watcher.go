@@ -288,7 +288,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 
 		for _, paying := range payings {
 			toState := basetypes.TxState_TxStateTransferring
-			cid := ""
+			var cid *string
 
 			tx, err := sphinxproxycli.GetTransaction(ctx, paying.ID)
 			if err != nil {
@@ -318,7 +318,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 						extra = "(successful without CID)"
 						toState = basetypes.TxState_TxStateFail
 					}
-					cid = tx.CID
+					cid = &tx.CID
 				default:
 					continue
 				}
@@ -326,7 +326,7 @@ func onPayingChecker(ctx context.Context) { //nolint
 
 			_, err = txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 				ID:        &paying.ID,
-				ChainTxID: &cid,
+				ChainTxID: cid,
 				State:     &toState,
 				Extra:     &extra,
 			})
