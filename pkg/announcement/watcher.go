@@ -9,7 +9,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	usermwpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
-	applangmgrpb "github.com/NpoolPlatform/message/npool/g11n/mgr/v1/applang"
+	applangmwpb "github.com/NpoolPlatform/message/npool/g11n/mw/v1/applang"
 	ancmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement"
 	ancsendmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement/sendstate"
 	ancusermgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/announcement/user"
@@ -40,13 +40,13 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 		Content: anc.Content,
 	}
 
-	langConds := &applangmgrpb.Conds{
-		AppID: &commonpb.StringVal{Op: cruder.EQ, Value: anc.AppID},
+	langConds := &applangmwpb.Conds{
+		AppID: &basetypes.StringVal{Op: cruder.EQ, Value: anc.AppID},
 	}
 	if user.SelectedLangID != nil {
-		langConds.LangID = &commonpb.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
+		langConds.LangID = &basetypes.StringVal{Op: cruder.EQ, Value: *user.SelectedLangID}
 	} else {
-		langConds.Main = &commonpb.BoolVal{Op: cruder.EQ, Value: true}
+		langConds.Main = &basetypes.BoolVal{Op: cruder.EQ, Value: true}
 	}
 
 	lang, err := applangmwcli.GetLangOnly(ctx, langConds)
