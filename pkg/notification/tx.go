@@ -119,7 +119,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 	return nil
 }
 
-func waitNotified(ctx context.Context) error {
+func waitNotified(ctx context.Context) error { // nolint
 	offset := int32(0)
 	limit := int32(1000)
 
