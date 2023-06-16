@@ -150,18 +150,20 @@ func (st *State) BookKeeping(ctx context.Context, good *Good) error { //nolint
 		"UserReward", totalUserReward,
 	)
 
-	err = miningbookkeepingmwcli.BookKeeping(
-		ctx,
-		&miningbookkeepingmwpb.BookKeepingRequest{
-			GoodID:                    good.ID,
-			CoinTypeID:                good.CoinTypeID,
-			TotalAmount:               totalReward.String(),
-			UnsoldAmount:              totalUnsoldReward.String(),
-			TechniqueServiceFeeAmount: totalFeeAmount.String(),
-			BenefitDate:               good.LastBenefitAt,
-		})
-	if err != nil {
-		return err
+	if st.UpdateGoodProfit {
+		err = miningbookkeepingmwcli.BookKeeping(
+			ctx,
+			&miningbookkeepingmwpb.BookKeepingRequest{
+				GoodID:                    good.ID,
+				CoinTypeID:                good.CoinTypeID,
+				TotalAmount:               totalReward.String(),
+				UnsoldAmount:              totalUnsoldReward.String(),
+				TechniqueServiceFeeAmount: totalFeeAmount.String(),
+				BenefitDate:               good.LastBenefitAt,
+			})
+		if err != nil {
+			return err
+		}
 	}
 
 	details := []*ledgerdetailmgrpb.DetailReq{}

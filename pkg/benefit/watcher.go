@@ -184,9 +184,10 @@ func processBookKeepingGoods(ctx context.Context) {
 }
 
 type bookKeepingData struct {
-	GoodID   string
-	Amount   string
-	DateTime uint32
+	GoodID           string
+	Amount           string
+	DateTime         uint32
+	UpdateGoodProfit bool
 }
 
 var bookKeepingTrigger = make(chan *bookKeepingData)
@@ -204,6 +205,7 @@ func processBookKeepingGood(ctx context.Context, data *bookKeepingData) {
 
 	state := newState()
 	state.ChangeState = false
+	state.UpdateGoodProfit = data.UpdateGoodProfit
 
 	g := newGood(good)
 	g.LastBenefitAmount = data.Amount
@@ -397,25 +399,28 @@ func Watch(ctx context.Context) { //nolint
 	}
 }
 
-func Redistribute(goodID, amount string, dateTime uint32) {
+func Redistribute(goodID, amount string, dateTime uint32, updateGoodProfit bool) {
 	go func() {
 		logger.Sugar().Infow(
 			"Redistribute",
 			"GoodID", goodID,
 			"Amount", amount,
 			"DateTime", dateTime,
+			"UpdateGoodProfit", updateGoodProfit,
 			"State", "Start",
 		)
 		bookKeepingTrigger <- &bookKeepingData{
-			GoodID:   goodID,
-			Amount:   amount,
-			DateTime: dateTime,
+			GoodID:           goodID,
+			Amount:           amount,
+			DateTime:         dateTime,
+			UpdateGoodProfit: updateGoodProfit,
 		}
 		logger.Sugar().Infow(
 			"Redistribute",
 			"GoodID", goodID,
 			"Amount", amount,
 			"DateTime", dateTime,
+			"UpdateGoodProfit", updateGoodProfit,
 			"State", "End",
 		)
 	}()

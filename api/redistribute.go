@@ -8,6 +8,10 @@ import (
 )
 
 func (s *Server) Redistribute(ctx context.Context, in *npool.RedistributeRequest) (*npool.RedistributeResponse, error) {
-	benefit1.Redistribute(in.GetGoodID(), in.GetAmount(), in.GetDateTime())
+	updateGoodProfit := true
+	if in.UpdateGoodProfit != nil {
+		updateGoodProfit = in.GetUpdateGoodProfit()
+	}
+	benefit1.Redistribute(in.GetGoodID(), in.GetAmount(), in.GetDateTime(), updateGoodProfit)
 	return &npool.RedistributeResponse{}, nil
 }

@@ -15,6 +15,7 @@ type State struct {
 	PlatformAccounts map[string]map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account // map[CoinTypeID]map[UsedFor]Account
 	GoodBenefits     map[string]*gbmwpb.Account
 	ChangeState      bool
+	UpdateGoodProfit bool
 }
 
 func newState() *State {
@@ -23,6 +24,7 @@ func newState() *State {
 		PlatformAccounts: map[string]map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account{},
 		GoodBenefits:     map[string]*gbmwpb.Account{},
 		ChangeState:      true,
+		UpdateGoodProfit: true,
 	}
 }
 
