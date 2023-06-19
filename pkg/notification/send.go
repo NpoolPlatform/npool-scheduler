@@ -8,7 +8,6 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	applangmwpb "github.com/NpoolPlatform/message/npool/g11n/mw/v1/applang"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/email"
 	smstmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/sms"
@@ -124,7 +123,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return err
 	}
 
-	conds := &notifmgrpb.Conds{
+	conds := &notifmwpb.Conds{
 		Channel: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(notif.Channel)},
 	}
 	if _, err := uuid.Parse(notif.EventID); err == nil {
@@ -188,7 +187,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 	limit := int32(1000)
 
 	for {
-		notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
+		notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmwpb.Conds{
 			Notified: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			Channel:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
 		}, offset, limit)
