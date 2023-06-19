@@ -9,9 +9,8 @@ import (
 
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
-	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif/tx"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
+	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/tx"
 	tmplmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 
 	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
@@ -21,7 +20,7 @@ import (
 	txnotifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/tx"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
+	npool "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 )
 
@@ -31,8 +30,8 @@ func waitSuccess(ctx context.Context) error { //nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
-			TxType:     &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
+			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -62,7 +61,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 			}
 
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
-				AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
+				AccountID: &npool.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
 			})
 			if err != nil {
 				return err
@@ -125,8 +124,8 @@ func waitNotified(ctx context.Context) error { // nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number())},
-			TxType:     &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number())},
+			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -136,8 +135,8 @@ func waitNotified(ctx context.Context) error { // nolint
 		}
 
 		for _, notif := range notifs {
-			_notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
-				Extra: &commonpb.StringVal{Op: cruder.LIKE, Value: notif.TxID},
+			_notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmwpb.Conds{
+				Extra: &basetypes.StringVal{Op: cruder.LIKE, Value: notif.TxID},
 			}, 0, int32(1000)) // nolint
 			if err != nil {
 				return err
