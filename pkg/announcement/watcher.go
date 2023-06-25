@@ -271,9 +271,9 @@ func multicast(ctx context.Context, anc *ancmwpb.Announcement) error {
 
 func sendOne(ctx context.Context, anc *ancmwpb.Announcement) error {
 	switch anc.AnnouncementType {
-	case ancmwpb.AnnouncementType_Broadcast:
+	case basetypes.NotifType_NotifBroadcast:
 		return broadcast(ctx, anc)
-	case ancmwpb.AnnouncementType_Multicast:
+	case basetypes.NotifType_NotifMulticast:
 		return multicast(ctx, anc)
 	}
 	return fmt.Errorf("announcement invalid")
@@ -286,8 +286,9 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 
 	for {
 		ancs, _, err := ancmwcli.GetAnnouncements(ctx, &ancmwpb.Conds{
-			EndAt:   &basetypes.Uint32Val{Op: cruder.GT, Value: now},
-			Channel: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
+			StartAt: &basetypes.Uint32Val{Op: cruder.GTE, Value: now},
+			EndAt:   &basetypes.Uint32Val{Op: cruder.LTE, Value: now},
+			Channel: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.NotifChannel_value[channel.String()])},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("send", "error", err)

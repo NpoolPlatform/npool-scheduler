@@ -145,11 +145,16 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return err
 	}
 
-	ids := []string{}
+	reqs := []*notifmwpb.NotifReq{}
+	nofitied := true
 	for _, _notif := range notifs {
-		ids = append(ids, _notif.ID)
+		reqs = append(reqs, &notifmwpb.NotifReq{
+			ID:       &_notif.ID,
+			Notified: &nofitied,
+		})
 	}
-	if len(ids) == 0 {
+
+	if len(reqs) == 0 {
 		logger.Sugar().Errorw(
 			"sendOne",
 			"AppID", user.AppID,
@@ -158,12 +163,12 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 			"ID", notif.ID,
 			"EventType", notif.EventType,
 			"EventID", notif.EventID,
-			"Error", "invalid ids",
+			"Error", "invalid reqs",
 		)
-		return fmt.Errorf("invalid ids")
+		return fmt.Errorf("invalid reqs")
 	}
 
-	_, err = notifmwcli.UpdateNotifs(ctx, ids, true)
+	_, err = notifmwcli.UpdateNotifs(ctx, reqs)
 	if err != nil {
 		logger.Sugar().Infow(
 			"sendOne",
@@ -173,7 +178,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 			"ID", notif.ID,
 			"EventType", notif.EventType,
 			"EventID", notif.EventID,
-			"IDs", ids,
+			"Reqs", reqs,
 			"Error", err,
 		)
 		return err
