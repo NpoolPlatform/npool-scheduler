@@ -129,6 +129,9 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	if _, err := uuid.Parse(notif.EventID); err == nil {
 		conds.EventID = &basetypes.StringVal{Op: cruder.EQ, Value: notif.EventID}
 	}
+	if _, err := uuid.Parse(notif.UserID); err == nil {
+		conds.UserID = &basetypes.StringVal{Op: cruder.EQ, Value: notif.UserID}
+	}
 
 	notifs, _, err := notifmwcli.GetNotifs(ctx, conds, 0, int32(1000)) //nolint
 	if err != nil {
