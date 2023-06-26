@@ -297,6 +297,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			return
 		}
 		if len(ancs) == 0 {
+			logger.Sugar().Infow("send", "Announcements", len(ancs))
 			break
 		}
 
