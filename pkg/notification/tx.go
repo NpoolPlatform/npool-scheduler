@@ -31,7 +31,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
 			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
-			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
+			TxTypes:    &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{uint32(basetypes.TxType_TxWithdraw), uint32(basetypes.TxType_TxPlatformBenefit)}}, // nolint
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -56,7 +56,8 @@ func waitSuccess(ctx context.Context) error { //nolint
 		}
 
 		for _, tx := range txs {
-			if tx.State != basetypes.TxState_TxStateSuccessful {
+			if tx.State != basetypes.TxState_TxStateSuccessful ||
+				(tx.Type == basetypes.TxType_TxPlatformBenefit && tx.State != basetypes.TxState_TxStateFail) {
 				continue
 			}
 
@@ -81,18 +82,25 @@ func waitSuccess(ctx context.Context) error { //nolint
 			extra := fmt.Sprintf(`{"TxID":"%v"}`, tx.ID)
 			now := uint32(time.Now().Unix())
 
+			notifVars := &tmplmwpb.TemplateVars{
+				Username:  &user.Username,
+				Amount:    &tx.Amount,
+				CoinUnit:  &tx.CoinUnit,
+				Address:   &acc.Address,
+				Timestamp: &now,
+			}
+			if tx.Type == basetypes.TxType_TxPlatformBenefit {
+				if tx.State == basetypes.TxState_TxStateFail {
+					failMessage := "Fail"
+					notifVars.Message = &failMessage
+				}
+			}
 			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     acc.AppID,
 				UserID:    acc.UserID,
 				EventType: basetypes.UsedFor_WithdrawalCompleted,
 				Extra:     &extra,
-				Vars: &tmplmwpb.TemplateVars{
-					Username:  &user.Username,
-					Amount:    &tx.Amount,
-					CoinUnit:  &tx.CoinUnit,
-					Address:   &acc.Address,
-					Timestamp: &now,
-				},
+				Vars:      notifVars,
 			}); err != nil {
 				return err
 			}
