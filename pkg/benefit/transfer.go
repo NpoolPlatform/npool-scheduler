@@ -26,6 +26,8 @@ import (
 	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
+	txnotifmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/tx"
+	txnotifcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/tx"
 	"github.com/shopspring/decimal"
 )
 
@@ -256,8 +258,12 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				return nil
 			case basetypes.TxState_TxStateFail:
 				txFail = true
+				// Create Notif Tx
+				createNotifTx(ctx, tx.ID)
 				fallthrough //nolint
 			case basetypes.TxState_TxStateSuccessful:
+				// Create Notif Tx
+				createNotifTx(ctx, tx.ID)
 				amount, err := decimal.NewFromString(tx.Amount)
 				if err != nil {
 					return err
@@ -430,4 +436,22 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	}
 
 	return nil
+}
+
+func createNotifTx(ctx context.Context, txID string) {
+	txNotifState := txnotifmgrpb.TxState_WaitSuccess
+	txNotifType := basetypes.TxType_TxWithdraw
+	logger.Sugar().Errorw(
+		"CreateTx",
+		"txNotifState", txNotifState,
+		"txNotifType", txNotifType,
+	)
+	_, err := txnotifcli.CreateTx(ctx, &txnotifmgrpb.TxReq{
+		TxID:       &txID,
+		NotifState: &txNotifState,
+		TxType:     &txNotifType,
+	})
+	if err != nil {
+		logger.Sugar().Errorw("CreateTx", "Error", err)
+	}
 }
