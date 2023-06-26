@@ -440,7 +440,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 
 func createNotifTx(ctx context.Context, txID string) {
 	txNotifState := txnotifmgrpb.TxState_WaitSuccess
-	txNotifType := basetypes.TxType_TxWithdraw
+	txNotifType := basetypes.TxType_TxPlatformBenefit
 	logger.Sugar().Errorw(
 		"CreateTx",
 		"txNotifState", txNotifState,
