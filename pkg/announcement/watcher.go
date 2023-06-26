@@ -99,7 +99,7 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 		"UserID", user.ID,
 		"EmailAddress", user.EmailAddress,
 		"AnnouncementID", anc.ID,
-		"AnnoucementType", anc.AnnouncementType,
+		"AnnouncementType", anc.AnnouncementType,
 		"State", "Sending")
 	if err := sendmwcli.SendMessage(ctx, req); err != nil {
 		return false, err
@@ -138,7 +138,7 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 				"UserID", user.ID,
 				"EmailAddress", user.EmailAddress,
 				"AnnouncementID", anc.ID,
-				"AnnoucementType", anc.AnnouncementType,
+				"AnnouncementType", anc.AnnouncementType,
 				"State", "Sent")
 			continue
 		}
