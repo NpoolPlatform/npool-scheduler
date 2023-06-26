@@ -288,8 +288,8 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 
 	for {
 		ancs, _, err := ancmwcli.GetAnnouncements(ctx, &ancmwpb.Conds{
-			StartAt: &basetypes.Uint32Val{Op: cruder.GTE, Value: now},
-			EndAt:   &basetypes.Uint32Val{Op: cruder.LTE, Value: now},
+			StartAt: &basetypes.Uint32Val{Op: cruder.LTE, Value: now},
+			EndAt:   &basetypes.Uint32Val{Op: cruder.GTE, Value: now},
 			Channel: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.NotifChannel_value[channel.String()])},
 		}, offset, limit)
 		if err != nil {
