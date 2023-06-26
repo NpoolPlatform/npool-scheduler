@@ -181,6 +181,8 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 		}
 
 		if !sent {
+			logger.Sugar().Errorw(
+				"sent", sent)
 			continue
 		}
 
