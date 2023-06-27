@@ -102,6 +102,10 @@ func unicast(ctx context.Context, anc *ancmwpb.Announcement, user *usermwpb.User
 		"AnnouncementType", anc.AnnouncementType,
 		"State", "Sending")
 	if err := sendmwcli.SendMessage(ctx, req); err != nil {
+		logger.Sugar().Infow(
+			"SendMessage",
+			"Error", err,
+			"State", "SendFail")
 		return false, err
 	}
 	return true, nil
@@ -116,7 +120,7 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 	stats, _, err := ancsendmwcli.GetSendStates(ctx, &ancsendmwpb.Conds{
 		AppID:          &basetypes.StringVal{Op: cruder.EQ, Value: anc.AppID},
 		AnnouncementID: &basetypes.StringVal{Op: cruder.EQ, Value: anc.ID},
-		Channel:        &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(anc.Channel.Number())},
+		Channel:        &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(anc.Channel)},
 		UserIDs:        &basetypes.StringSliceVal{Op: cruder.IN, Value: uids},
 	}, 0, int32(len(uids)))
 	if err != nil {
@@ -127,8 +131,6 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 	for _, stat := range stats {
 		statMap[stat.UserID] = stat
 	}
-
-	statReqs := []*ancsendmwpb.SendStateReq{}
 
 	for _, user := range users {
 		if _, ok := statMap[user.ID]; ok {
@@ -185,23 +187,19 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 				"sent", sent)
 			continue
 		}
-
-		statReqs = append(statReqs, &ancsendmwpb.SendStateReq{
+		info, err := ancsendmwcli.CreateSendState(ctx, &ancsendmwpb.SendStateReq{
 			AppID:          &anc.AppID,
 			UserID:         &user.ID,
 			AnnouncementID: &anc.ID,
-			Channel:        &anc.Channel,
 		})
+		if err != nil {
+			logger.Sugar().Errorf(
+				"CreateSendState",
+				"Error", err,
+			)
+		}
+		logger.Sugar().Info("Info", info)
 	}
-
-	if len(statReqs) == 0 {
-		return nil
-	}
-
-	if _, err := ancsendmwcli.CreateSendStates(ctx, statReqs); err != nil {
-		return err
-	}
-
 	return nil
 }
 
