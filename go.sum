@@ -76,8 +76,8 @@ github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQ
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
 github.com/NpoolPlatform/message v0.0.0-20230626113131-94794f2aa117 h1:kRJ9B3H/u7lPdXz0wNLN4g2bYWYnayvlCYn+UJdq8/g=
 github.com/NpoolPlatform/message v0.0.0-20230626113131-94794f2aa117/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20230626115818-67ef851f80ab h1:s1fvRklS7GWJyeCwuhYVUlHKbCeTVs9C0dfx4+8GBag=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20230626115818-67ef851f80ab/go.mod h1:WJyjo/RBz8Rg8Z+AXbVDtwLhnUW96SK1ifoYMdL1gqU=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20230627065307-27c0dc1bb668 h1:TEEZedv1veNpqs7e1hOzGMpCmN7IxXDVjLupj/NpARU=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20230627065307-27c0dc1bb668/go.mod h1:WJyjo/RBz8Rg8Z+AXbVDtwLhnUW96SK1ifoYMdL1gqU=
 github.com/NpoolPlatform/order-manager v0.0.0-20230301030435-b03a2a42a69c h1:l7frtKUbO/71g7h5B4s8Bfcr9ypo3BsqBdevTRtpGb4=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9 h1:98axvCtK0iUVfIeR+Lse7DjkFxk2K4ukyxNqYejK3jg=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9/go.mod h1:mtYbwHCRz/zGyf3zvyO3JcqAfo4RGamDj1mU8P1T6Tg=
