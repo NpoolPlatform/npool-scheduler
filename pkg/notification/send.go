@@ -111,7 +111,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	err = sendmwcli.SendMessage(ctx, req)
 	if err != nil {
 		logger.Sugar().Infow(
-			"sendOne",
+			"SendMessage",
 			"AppID", user.AppID,
 			"UserID", user.ID,
 			"EmailAddress", user.EmailAddress,
@@ -172,6 +172,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	}
 
 	_, err = notifmwcli.UpdateNotifs(ctx, reqs)
+
 	if err != nil {
 		logger.Sugar().Infow(
 			"sendOne",
