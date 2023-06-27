@@ -61,11 +61,6 @@ func waitSuccess(ctx context.Context) error { //nolint
 				continue
 			}
 
-			notifType := basetypes.NotifType_NotifUnicast
-			if tx.Type == basetypes.TxType_TxPlatformBenefit {
-				notifType = basetypes.NotifType_NotifMulticast
-			}
-
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
 				AccountID: &npool.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
 			})
@@ -84,6 +79,13 @@ func waitSuccess(ctx context.Context) error { //nolint
 				continue
 			}
 
+			notifType := basetypes.NotifType_NotifUnicast
+			eventType := basetypes.UsedFor_WithdrawalCompleted
+			if tx.Type == basetypes.TxType_TxPlatformBenefit {
+				notifType = basetypes.NotifType_NotifMulticast
+				eventType = basetypes.UsedFor_Transfer
+			}
+
 			extra := fmt.Sprintf(`{"TxID":"%v"}`, tx.ID)
 			now := uint32(time.Now().Unix())
 
@@ -94,6 +96,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 				Address:   &acc.Address,
 				Timestamp: &now,
 			}
+			
 			if tx.Type == basetypes.TxType_TxPlatformBenefit {
 				if tx.State == basetypes.TxState_TxStateFail {
 					failMessage := "Fail"
@@ -103,7 +106,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     acc.AppID,
 				UserID:    acc.UserID,
-				EventType: basetypes.UsedFor_WithdrawalCompleted,
+				EventType: eventType,
 				Extra:     &extra,
 				Vars:      notifVars,
 				NotifType: notifType,
