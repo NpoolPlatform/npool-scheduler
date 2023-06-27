@@ -155,6 +155,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 		AppID:     acc.AppID,
 		UserID:    acc.UserID,
 		EventType: basetypes.UsedFor_DepositReceived,
+		NotifType: basetypes.NotifType_NotifUnicast,
 		Vars: &tmplmwpb.TemplateVars{
 			Username:  &username,
 			Amount:    &amount,
