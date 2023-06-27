@@ -173,7 +173,7 @@ func multicastUsers(ctx context.Context, anc *ancmwpb.Announcement, users []*use
 		sent, err := unicast(ctx, anc, user)
 		if err != nil {
 			logger.Sugar().Errorw(
-				"multicastUsers",
+				"unicast",
 				"AppID", user.AppID,
 				"UserID", user.ID,
 				"EmailAddress", user.EmailAddress,
