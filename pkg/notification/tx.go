@@ -30,7 +30,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess)},
 			TxTypes:    &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{uint32(basetypes.TxType_TxWithdraw), uint32(basetypes.TxType_TxPlatformBenefit)}}, // nolint
 		}, offset, limit)
 		if err != nil {
@@ -59,6 +59,11 @@ func waitSuccess(ctx context.Context) error { //nolint
 			if tx.State != basetypes.TxState_TxStateSuccessful ||
 				(tx.Type == basetypes.TxType_TxPlatformBenefit && tx.State != basetypes.TxState_TxStateFail) {
 				continue
+			}
+
+			notifType := basetypes.NotifType_NotifUnicast
+			if tx.Type == basetypes.TxType_TxPlatformBenefit {
+				notifType = basetypes.NotifType_NotifMulticast
 			}
 
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
@@ -101,6 +106,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 				EventType: basetypes.UsedFor_WithdrawalCompleted,
 				Extra:     &extra,
 				Vars:      notifVars,
+				NotifType: notifType,
 			}); err != nil {
 				return err
 			}
@@ -132,8 +138,8 @@ func waitNotified(ctx context.Context) error { // nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number())},
-			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified)},
+			TxTypes:    &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{uint32(basetypes.TxType_TxWithdraw), uint32(basetypes.TxType_TxPlatformBenefit)}}, // nolint
 		}, offset, limit)
 		if err != nil {
 			return err
