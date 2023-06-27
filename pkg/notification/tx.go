@@ -30,7 +30,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess)},
 			TxTypes:    &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{uint32(basetypes.TxType_TxWithdraw), uint32(basetypes.TxType_TxPlatformBenefit)}}, // nolint
 		}, offset, limit)
 		if err != nil {
@@ -79,6 +79,13 @@ func waitSuccess(ctx context.Context) error { //nolint
 				continue
 			}
 
+			notifType := basetypes.NotifType_NotifUnicast
+			eventType := basetypes.UsedFor_WithdrawalCompleted
+			if tx.Type == basetypes.TxType_TxPlatformBenefit {
+				notifType = basetypes.NotifType_NotifMulticast
+				eventType = basetypes.UsedFor_Transfer
+			}
+
 			extra := fmt.Sprintf(`{"TxID":"%v"}`, tx.ID)
 			now := uint32(time.Now().Unix())
 
@@ -89,6 +96,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 				Address:   &acc.Address,
 				Timestamp: &now,
 			}
+			
 			if tx.Type == basetypes.TxType_TxPlatformBenefit {
 				if tx.State == basetypes.TxState_TxStateFail {
 					failMessage := "Fail"
@@ -98,9 +106,10 @@ func waitSuccess(ctx context.Context) error { //nolint
 			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     acc.AppID,
 				UserID:    acc.UserID,
-				EventType: basetypes.UsedFor_WithdrawalCompleted,
+				EventType: eventType,
 				Extra:     &extra,
 				Vars:      notifVars,
+				NotifType: notifType,
 			}); err != nil {
 				return err
 			}
@@ -132,8 +141,8 @@ func waitNotified(ctx context.Context) error { // nolint
 
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
-			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified.Number())},
-			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw.Number())},
+			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified)},
+			TxTypes:    &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{uint32(basetypes.TxType_TxWithdraw), uint32(basetypes.TxType_TxPlatformBenefit)}}, // nolint
 		}, offset, limit)
 		if err != nil {
 			return err
