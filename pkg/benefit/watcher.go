@@ -75,7 +75,22 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 		}
 
 		for _, good := range goods {
+			message := "Not Mining"
+			_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
+			now := uint32(time.Now().Unix())
+
 			if good.StartAt > uint32(time.Now().Unix()) {
+				req := &notifbenefitpb.GoodBenefitReq{
+					GoodID:      &good.ID,
+					GoodName:    &good.Title,
+					State:       &_result,
+					Message:     &message,
+					BenefitDate: &now,
+				}
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("CreateGoodBenefit", "Error", err)
+				}
 				continue
 			}
 
@@ -87,9 +102,6 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 			g := newGood(good)
 
-			message := ""
-			_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
-			now := uint32(time.Now().Unix())
 			req := &notifbenefitpb.GoodBenefitReq{
 				GoodID:      &g.ID,
 				GoodName:    &g.Title,
