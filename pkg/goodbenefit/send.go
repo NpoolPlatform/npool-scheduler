@@ -28,7 +28,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 
 	for {
 		goodBenefits, _, err := notifbenefitcli.GetGoodBenefits(ctx, &notifbenefitpb.Conds{
-			Notified:         &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			Generated:        &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			BenefitDateStart: &basetypes.Uint32Val{Op: cruder.GTE, Value: currentDayStart},
 		}, offset, limit)
 		if err != nil {
@@ -38,16 +38,16 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			break
 		}
 
-		content := "GoodID,GoodName,Amount,State,Message,BenefitDate,TxID,Notified\n"
+		content := "GoodID,GoodName,Amount,State,Message,TxID,BenefitDate\n"
 		benefitIDs := []string{}
 		goodIDs := []string{}
 		for _, benefit := range goodBenefits {
 			goodIDs = append(goodIDs, benefit.GoodID)
-			content += fmt.Sprintf(`%v,%v,%v,%v,%v,%v,%v,%v\n`,
+			content += fmt.Sprintf(`%v,%v,%v,%v,%v,%v,%v\n`,
 				benefit.GoodID, benefit.GoodName,
 				benefit.Amount, benefit.State,
-				benefit.Message, benefit.BenefitDate,
-				benefit.TxID, benefit.Notified,
+				benefit.Message, benefit.TxID,
+				benefit.BenefitDate,
 			)
 			benefitIDs = append(benefitIDs, benefit.ID)
 		}
@@ -62,8 +62,8 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		if err != nil {
 			logger.Sugar().Errorw("GetGoods", "error", err)
 		}
-
 		if len(goods) == 0 {
+			logger.Sugar().Errorw("GetGoods", "length", len(goods))
 			break
 		}
 
@@ -80,7 +80,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		extra := fmt.Sprintf(`{"GoodBenefitIDs":"%v"}`, string(_benefitIDs))
 
 		for _, appID := range appIDs {
-			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
+			_, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
 				EventType: basetypes.UsedFor_GoodBenefit,
 				Extra:     &extra,
@@ -88,8 +88,20 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 				Vars: &tmplmwpb.TemplateVars{
 					Message: &content,
 				},
-			}); err != nil {
+			})
+			if err != nil {
 				logger.Sugar().Errorw("GenerateNotifs", "Error", err)
+			}
+
+			generated := true
+			for _, benefitID := range benefitIDs {
+				_, err := notifbenefitcli.UpdateGoodBenefit(ctx, &notifbenefitpb.GoodBenefitReq{
+					ID:        &benefitID,
+					Generated: &generated,
+				})
+				if err != nil {
+					logger.Sugar().Errorw("UpdateGoodBenefit", "Error", err)
+				}
 			}
 		}
 
