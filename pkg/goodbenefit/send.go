@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
@@ -19,17 +18,14 @@ import (
 	notifbenefitcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 )
 
+//nolint
 func send(ctx context.Context, channel basetypes.NotifChannel) {
 	offset := int32(0)
 	limit := int32(1000)
 
-	t := time.Now()
-	currentDayStart := uint32(time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).Unix())
-
 	for {
 		goodBenefits, _, err := notifbenefitcli.GetGoodBenefits(ctx, &notifbenefitpb.Conds{
-			Generated:        &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-			BenefitDateStart: &basetypes.Uint32Val{Op: cruder.GTE, Value: currentDayStart},
+			Generated: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return

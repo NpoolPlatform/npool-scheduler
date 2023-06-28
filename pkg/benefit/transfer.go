@@ -222,7 +222,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	return nil
 }
 
-//nolint:gocognit
+//nolint
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	transferred := decimal.NewFromInt(0)
 	toPlatform := decimal.NewFromInt(0)
