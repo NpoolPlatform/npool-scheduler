@@ -35,16 +35,15 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			break
 		}
 
-		content := "GoodID,GoodName,Amount,State,Message,TxID,BenefitDate<br>"
+		content := "GoodID,GoodName,Amount,State,Message,BenefitDate<br>"
 		benefitIDs := []string{}
 		goodIDs := []string{}
 		for _, benefit := range goodBenefits {
 			goodIDs = append(goodIDs, benefit.GoodID)
-			content += fmt.Sprintf(`%v,%v,%v,%v,%v,%v,%v<br>`,
+			content += fmt.Sprintf(`%v,%v,%v,%v,%v,%v<br>`,
 				benefit.GoodID, benefit.GoodName,
 				benefit.Amount, benefit.State,
-				benefit.Message, benefit.TxID,
-				benefit.BenefitDate,
+				benefit.Message, benefit.BenefitDate,
 			)
 			benefitIDs = append(benefitIDs, benefit.ID)
 		}
