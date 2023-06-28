@@ -88,7 +88,6 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 			g := newGood(good)
 
 			message := ""
-			notified := false
 			_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
 			now := uint32(time.Now().Unix())
 			req := &notifbenefitpb.GoodBenefitReq{
@@ -97,7 +96,6 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 				State:       &_result,
 				Message:     &message,
 				BenefitDate: &now,
-				Notified:    &notified,
 			}
 
 			if err := state.CalculateReward(ctx, g); err != nil {
@@ -222,6 +220,21 @@ func processBookKeepingGoods(ctx context.Context) {
 
 			if err := state.BookKeeping(ctx, g); err != nil {
 				logger.Sugar().Errorw("processBookKeepingGoods", "GoodID", g.ID, "Error", err)
+
+				message := "CalculateRewardFailed"
+				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
+				now := uint32(time.Now().Unix())
+				req := &notifbenefitpb.GoodBenefitReq{
+					GoodID:      &g.ID,
+					GoodName:    &g.Title,
+					State:       &_result,
+					Message:     &message,
+					BenefitDate: &now,
+				}
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorw("BookKeeping", "Error", err)
+				}
 			}
 		}
 

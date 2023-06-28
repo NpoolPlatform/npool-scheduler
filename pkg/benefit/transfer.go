@@ -281,7 +281,6 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				toPlatform = _p.PlatformReward.Add(_p.TechniqueServiceFee)
 				txExtra = tx.Extra
 
-				notified := false
 				now := uint32(time.Now().Unix())
 				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
 
@@ -295,7 +294,6 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 					GoodName:    &_good.Title,
 					Amount:      &tx.Amount,
 					TxID:        &tx.ID,
-					Notified:    &notified,
 					State:       &_result,
 					BenefitDate: &now,
 				})
