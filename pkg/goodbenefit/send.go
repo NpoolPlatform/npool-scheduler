@@ -2,7 +2,6 @@ package goodbenefit
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -32,7 +31,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			return
 		}
 		if len(goodBenefits) == 0 {
-			logger.Sugar().Info("goodbenefits:","length:", 0)
+			logger.Sugar().Info("goodbenefits:", "length:", 0)
 			break
 		}
 
@@ -71,18 +70,15 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			appIDs = append(appIDs, _good.AppID)
 		}
 
-		_benefitIDs, err := json.Marshal(benefitIDs)
 		if err != nil {
 			logger.Sugar().Errorf("Marshal", "Error", err)
 		}
-		extra := fmt.Sprintf(`{"GoodBenefitIDs":"%v"}`, string(_benefitIDs))
 
 		logger.Sugar().Info("----------------------content------------------", content)
 		for _, appID := range appIDs {
 			_, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
 				EventType: basetypes.UsedFor_GoodBenefit,
-				Extra:     &extra,
 				NotifType: basetypes.NotifType_NotifMulticast,
 				Vars: &tmplmwpb.TemplateVars{
 					Message: &content,
