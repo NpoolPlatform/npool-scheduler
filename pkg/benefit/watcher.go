@@ -12,11 +12,13 @@ import (
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 
+	commonpb "github.com/NpoolPlatform/message/npool"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	notifbenefitpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	notifbenefitcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	commonpb "github.com/NpoolPlatform/message/npool"
 	"github.com/shopspring/decimal"
 )
 
@@ -85,19 +87,56 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 			g := newGood(good)
 
+			message := ""
+			notified := false
+			_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
+			now := uint32(time.Now().Unix())
+			req := &notifbenefitpb.GoodBenefitReq{
+				GoodID:      &g.ID,
+				GoodName:    &g.Title,
+				State:       &_result,
+				Message:     &message,
+				BenefitDate: &now,
+				Notified:    &notified,
+			}
+
 			if err := state.CalculateReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("CalculateReward", "GoodID", g.ID, "Error", err)
+
+				message = "CalculateRewardFailed"
+				req.Message = &message
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("CreateGoodBenefit", "Error", err)
+				}
+
 				if g.Retry {
 					retryGoods = append(retryGoods, g.ID)
 				}
 				continue
 			}
 			if err := state.CalculateTechniqueServiceFee(ctx, g); err != nil {
-				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("CalculateTechniqueServiceFee", "GoodID", g.ID, "Error", err)
+
+				message = "CalculateTechniqueServiceFeeFailed"
+				req.Message = &message
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("CreateGoodBenefit", "Error", err)
+				}
+
 				continue
 			}
 			if err := UpdateDailyReward(ctx, g); err != nil {
-				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
+				logger.Sugar().Errorw("UpdateDailyReward", "GoodID", g.ID, "Error", err)
+
+				message = "UpdateDailyRewardFailed"
+				req.Message = &message
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("CreateGoodBenefit", "Error", err)
+				}
+
 				continue
 			}
 
@@ -112,6 +151,13 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 			if err := state.TransferReward(ctx, g); err != nil {
 				logger.Sugar().Errorw("processWaitGoods", "GoodID", g.ID, "Error", err)
+
+				message = "TransferRewardFailed"
+				req.Message = &message
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("TransferReward", "Error", err)
+				}
 			}
 		}
 

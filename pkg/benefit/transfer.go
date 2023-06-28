@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -12,7 +13,6 @@ import (
 	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
@@ -22,10 +22,12 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-
+	notifbenefitpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
+	notifbenefitcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 	"github.com/shopspring/decimal"
 )
 
@@ -268,6 +270,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				type p struct {
 					PlatformReward      decimal.Decimal
 					TechniqueServiceFee decimal.Decimal
+					GoodID              string
 				}
 				_p := p{}
 				err = json.Unmarshal([]byte(tx.Extra), &_p)
@@ -277,6 +280,28 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 
 				toPlatform = _p.PlatformReward.Add(_p.TechniqueServiceFee)
 				txExtra = tx.Extra
+
+				notified := false
+				now := uint32(time.Now().Unix())
+				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
+
+				_good, err := goodmwcli.GetGood(ctx, _p.GoodID)
+				if err != nil {
+					logger.Sugar().Errorw("GetGood", "Error", err)
+				}
+
+				_, err = notifbenefitcli.CreateGoodBenefit(ctx, &notifbenefitpb.GoodBenefitReq{
+					GoodID:      &_p.GoodID,
+					GoodName:    &_good.Title,
+					Amount:      &tx.Amount,
+					TxID:        &tx.ID,
+					Notified:    &notified,
+					State:       &_result,
+					BenefitDate: &now,
+				})
+				if err != nil {
+					logger.Sugar().Errorw("CreateGoodBenefit", "Error", err)
+				}
 			}
 		}
 	}
