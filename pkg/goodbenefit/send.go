@@ -82,7 +82,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		for _, appID := range appIDs {
 			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
-				EventType: basetypes.UsedFor_WithdrawalCompleted,
+				EventType: basetypes.UsedFor_GoodBenefit,
 				Extra:     &extra,
 				NotifType: basetypes.NotifType_NotifMulticast,
 				Vars: &tmplmwpb.TemplateVars{
