@@ -28,9 +28,11 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			Generated: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
+			logger.Sugar().Errorw("GetGoodBenefits:", "Error", err)
 			return
 		}
 		if len(goodBenefits) == 0 {
+			logger.Sugar().Info("goodbenefits:","length:", 0)
 			break
 		}
 
@@ -75,6 +77,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		}
 		extra := fmt.Sprintf(`{"GoodBenefitIDs":"%v"}`, string(_benefitIDs))
 
+		logger.Sugar().Info("----------------------content------------------", content)
 		for _, appID := range appIDs {
 			_, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
