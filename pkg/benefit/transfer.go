@@ -22,7 +22,6 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
@@ -231,6 +230,12 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	txFail := false
 	txExtra := ""
 
+	logger.Sugar().Infow(
+		"CheckTransfer",
+		"GoodID", good.ID,
+		"BenefitTIDs", good.BenefitTIDs,
+	)
+
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
 			IDs: &basetypes.StringSliceVal{
@@ -285,16 +290,13 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				now := uint32(time.Now().Unix())
 				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
 
-				_good, err := appgoodmwcli.GetGood(ctx, _p.GoodID)
-				if err != nil {
-					logger.Sugar().Errorw("GetGood", "Error", err)
-				}
-
+				message := tx.State.String()
 				_, err = notifbenefitcli.CreateGoodBenefit(ctx, &notifbenefitpb.GoodBenefitReq{
 					GoodID:      &_p.GoodID,
-					GoodName:    &_good.GoodName,
+					GoodName:    &good.Title,
 					Amount:      &tx.Amount,
 					TxID:        &tx.ID,
+					Message:     &message,
 					State:       &_result,
 					BenefitDate: &now,
 				})
@@ -317,7 +319,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid start amount nextStart %v, transferred %v", nextStart, transferred)
 	}
 
-	logger.Sugar().Errorw("TransferReward",
+	logger.Sugar().Errorw(
+		"CheckTransfer",
 		"GoodID", good.ID,
 		"Transferred", transferred,
 		"NextStart", nextStart,
