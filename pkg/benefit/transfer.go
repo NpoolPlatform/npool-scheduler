@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
@@ -12,7 +13,6 @@ import (
 	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
@@ -22,10 +22,12 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-
+	notifbenefitpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
+	notifbenefitcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 	"github.com/shopspring/decimal"
 )
 
@@ -220,13 +222,19 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	return nil
 }
 
-//nolint:gocognit
+//nolint
 func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 	transferred := decimal.NewFromInt(0)
 	toPlatform := decimal.NewFromInt(0)
 	doneTIDs := []string{}
 	txFail := false
 	txExtra := ""
+
+	logger.Sugar().Infow(
+		"CheckTransfer",
+		"GoodID", good.ID,
+		"BenefitTIDs", good.BenefitTIDs,
+	)
 
 	if len(good.BenefitTIDs) > 0 {
 		txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
@@ -268,6 +276,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				type p struct {
 					PlatformReward      decimal.Decimal
 					TechniqueServiceFee decimal.Decimal
+					GoodID              string
 				}
 				_p := p{}
 				err = json.Unmarshal([]byte(tx.Extra), &_p)
@@ -277,6 +286,23 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 
 				toPlatform = _p.PlatformReward.Add(_p.TechniqueServiceFee)
 				txExtra = tx.Extra
+
+				now := uint32(time.Now().Unix())
+				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
+
+				message := tx.State.String()
+				_, err = notifbenefitcli.CreateGoodBenefit(ctx, &notifbenefitpb.GoodBenefitReq{
+					GoodID:      &_p.GoodID,
+					GoodName:    &good.Title,
+					Amount:      &tx.Amount,
+					TxID:        &tx.ID,
+					Message:     &message,
+					State:       &_result,
+					BenefitDate: &now,
+				})
+				if err != nil {
+					logger.Sugar().Errorw("CreateGoodBenefit", "Error", err)
+				}
 			}
 		}
 	}
@@ -293,7 +319,8 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 		return fmt.Errorf("invalid start amount nextStart %v, transferred %v", nextStart, transferred)
 	}
 
-	logger.Sugar().Errorw("TransferReward",
+	logger.Sugar().Errorw(
+		"CheckTransfer",
 		"GoodID", good.ID,
 		"Transferred", transferred,
 		"NextStart", nextStart,

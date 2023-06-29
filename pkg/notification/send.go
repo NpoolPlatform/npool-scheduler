@@ -8,11 +8,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	applangmwpb "github.com/NpoolPlatform/message/npool/g11n/mw/v1/applang"
-	chanmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/channel"
-	notifmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/notif"
-	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/email"
-	smstmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mgr/v1/template/sms"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
+	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/email"
+	smstmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/sms"
 	sendmwpb "github.com/NpoolPlatform/message/npool/third/mw/v1/send"
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
@@ -23,7 +21,6 @@ import (
 	sendmwcli "github.com/NpoolPlatform/third-middleware/pkg/client/send"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/google/uuid"
@@ -74,11 +71,11 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	}
 
 	switch notif.Channel {
-	case chanmgrpb.NotifChannel_ChannelEmail:
+	case basetypes.NotifChannel_ChannelEmail:
 		tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmgrpb.Conds{
-			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
-			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: notif.LangID},
-			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
+			AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: notif.AppID},
+			LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: notif.LangID},
+			UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
@@ -92,11 +89,11 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		req.ToCCs = tmpl.CCTos
 		req.ReplyTos = tmpl.ReplyTos
 		req.AccountType = basetypes.SignMethod_Email
-	case chanmgrpb.NotifChannel_ChannelSMS:
+	case basetypes.NotifChannel_ChannelSMS:
 		tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmgrpb.Conds{
-			AppID:   &commonpb.StringVal{Op: cruder.EQ, Value: notif.AppID},
-			LangID:  &commonpb.StringVal{Op: cruder.EQ, Value: notif.LangID},
-			UsedFor: &commonpb.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
+			AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: notif.AppID},
+			LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: notif.LangID},
+			UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(notif.EventType)},
 		})
 		if err != nil {
 			return err
@@ -114,7 +111,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	err = sendmwcli.SendMessage(ctx, req)
 	if err != nil {
 		logger.Sugar().Infow(
-			"sendOne",
+			"SendMessage",
 			"AppID", user.AppID,
 			"UserID", user.ID,
 			"EmailAddress", user.EmailAddress,
@@ -126,11 +123,14 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return err
 	}
 
-	conds := &notifmgrpb.Conds{
-		Channel: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(notif.Channel)},
+	conds := &notifmwpb.Conds{
+		Channel: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(notif.Channel)},
 	}
 	if _, err := uuid.Parse(notif.EventID); err == nil {
-		conds.EventID = &commonpb.StringVal{Op: cruder.EQ, Value: notif.EventID}
+		conds.EventID = &basetypes.StringVal{Op: cruder.EQ, Value: notif.EventID}
+	}
+	if _, err := uuid.Parse(notif.UserID); err == nil {
+		conds.UserID = &basetypes.StringVal{Op: cruder.EQ, Value: notif.UserID}
 	}
 
 	notifs, _, err := notifmwcli.GetNotifs(ctx, conds, 0, int32(1000)) //nolint
@@ -148,11 +148,16 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 		return err
 	}
 
-	ids := []string{}
+	reqs := []*notifmwpb.NotifReq{}
+	nofitied := true
 	for _, _notif := range notifs {
-		ids = append(ids, _notif.ID)
+		reqs = append(reqs, &notifmwpb.NotifReq{
+			ID:       &_notif.ID,
+			Notified: &nofitied,
+		})
 	}
-	if len(ids) == 0 {
+
+	if len(reqs) == 0 {
 		logger.Sugar().Errorw(
 			"sendOne",
 			"AppID", user.AppID,
@@ -161,12 +166,13 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 			"ID", notif.ID,
 			"EventType", notif.EventType,
 			"EventID", notif.EventID,
-			"Error", "invalid ids",
+			"Error", "invalid reqs",
 		)
-		return fmt.Errorf("invalid ids")
+		return fmt.Errorf("invalid reqs")
 	}
 
-	_, err = notifmwcli.UpdateNotifs(ctx, ids, true)
+	_, err = notifmwcli.UpdateNotifs(ctx, reqs)
+
 	if err != nil {
 		logger.Sugar().Infow(
 			"sendOne",
@@ -176,7 +182,7 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 			"ID", notif.ID,
 			"EventType", notif.EventType,
 			"EventID", notif.EventID,
-			"IDs", ids,
+			"Reqs", reqs,
 			"Error", err,
 		)
 		return err
@@ -185,14 +191,14 @@ func sendOne(ctx context.Context, notif *notifmwpb.Notif) error {
 	return nil
 }
 
-func send(ctx context.Context, channel chanmgrpb.NotifChannel) {
+func send(ctx context.Context, channel basetypes.NotifChannel) {
 	offset := int32(0)
 	limit := int32(1000)
 
 	for {
-		notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmgrpb.Conds{
-			Notified: &commonpb.BoolVal{Op: cruder.EQ, Value: false},
-			Channel:  &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
+		notifs, _, err := notifmwcli.GetNotifs(ctx, &notifmwpb.Conds{
+			Notified: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			Channel:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(channel)},
 		}, offset, limit)
 		if err != nil {
 			return
