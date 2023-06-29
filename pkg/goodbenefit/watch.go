@@ -12,7 +12,7 @@ import (
 
 var (
 	benefitInterval = 24 * time.Hour
-	checkInterval   = 6 * time.Hour
+	checkDelay      = 6 * time.Hour
 )
 
 func prepareInterval() {
@@ -20,9 +20,9 @@ func prepareInterval() {
 		fmt.Sprintf("%vs", os.Getenv("ENV_GOOD_BENEFIT_INTERVAL_SECONDS"))); err == nil {
 		benefitInterval = duration
 	}
-	if duration, err := time.ParseDuration(
-		fmt.Sprintf("%vs", os.Getenv("ENV_GOOD_BENEFIT_CHECK_INTERVAL_SECONDS"))); err == nil {
-		checkInterval = duration
+	if delay, err := time.ParseDuration(
+		fmt.Sprintf("%vs", os.Getenv("ENV_GOOD_BENEFIT_CHECK_DELAY_SECONDS"))); err == nil {
+		checkDelay = delay
 	}
 }
 
@@ -30,7 +30,7 @@ func nextBenefitAt() time.Time {
 	now := time.Now()
 	nowSec := now.Unix()
 	benefitSeconds := int64(benefitInterval.Seconds())
-	nextSec := (nowSec+benefitSeconds)/benefitSeconds*benefitSeconds + int64(checkInterval.Seconds())
+	nextSec := (nowSec+benefitSeconds)/benefitSeconds*benefitSeconds + int64(checkDelay.Seconds())
 	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
 }
 
