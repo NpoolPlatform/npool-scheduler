@@ -35,7 +35,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			break
 		}
 
-		content := "<html><table><tr><th>GoodID</th><th>GoodName</th><th>Amount</th><th>State</th><th>Message</th><th>BenefitDate</th></tr>"
+		content := "<html><head><style>table {border-collapse: collapse;width: 100%;}td, th {border: 1px solid #dddddd;text-align: left;padding: 8px;}</style></head><table><tr><th>GoodID</th><th>GoodName</th><th>Amount</th><th>State</th><th>Message</th><th>BenefitDate</th></tr>" //nolint
 		benefitIDs := []string{}
 		goodIDs := []string{}
 		for _, benefit := range goodBenefits {
