@@ -64,17 +64,16 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		}
 
 		// find AppID from Goods
-		appIDs := []string{}
+		appIDs := map[string]struct{}{}
 		for _, _good := range goods {
-			appIDs = append(appIDs, _good.AppID)
+			appIDs[_good.AppID] = struct{}{}
 		}
 
 		if err != nil {
 			logger.Sugar().Errorf("Marshal", "Error", err)
 		}
 
-		logger.Sugar().Info("----------------------content------------------", content)
-		for _, appID := range appIDs {
+		for appID, _ := range appIDs {
 			_, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
 				EventType: basetypes.UsedFor_GoodBenefit,
