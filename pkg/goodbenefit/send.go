@@ -35,18 +35,20 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			break
 		}
 
-		content := "GoodID,GoodName,Amount,State,Message,BenefitDate<br>"
+		content := "<html><table><tr><th>GoodID</th><th>GoodName</th><th>Amount</th><th>State</th><th>Message</th><th>BenefitDate</th></tr>"
 		benefitIDs := []string{}
 		goodIDs := []string{}
 		for _, benefit := range goodBenefits {
 			goodIDs = append(goodIDs, benefit.GoodID)
-			content += fmt.Sprintf(`%v,%v,%v,%v,%v,%v<br>`,
+			content += fmt.Sprintf(`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				benefit.GoodID, benefit.GoodName,
 				benefit.Amount, benefit.State,
 				benefit.Message, benefit.BenefitDate,
 			)
 			benefitIDs = append(benefitIDs, benefit.ID)
 		}
+		content += "</table></html>"
+
 		logger.Sugar().Infow("Content", content)
 
 		goods, _, err := appgoodcli.GetGoods(ctx, &appgood.Conds{
