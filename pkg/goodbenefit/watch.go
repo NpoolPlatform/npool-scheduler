@@ -2,35 +2,56 @@ package goodbenefit
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 )
 
-func Watch(ctx context.Context) {
-	hour := 6
-	minute := 0
-	second := 0
-	now := time.Now()
-	next := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, now.Location())
-	if now.After(next) {
-		next = next.Add(24 * time.Hour)
-	}
+var benefitInterval = 6 * time.Hour
 
-	duration := next.Sub(now)
-	timer := time.NewTicker(duration)
-	defer timer.Stop()
+func prepareInterval() {
+	if duration, err := time.ParseDuration(
+		fmt.Sprintf("%vs", os.Getenv("ENV_GOOD_BENEFIT_INTERVAL_SECONDS"))); err == nil {
+		benefitInterval = duration
+	}
+}
+
+func nextBenefitAt() time.Time {
+	now := time.Now()
+	nowSec := now.Unix()
+	benefitSeconds := int64(benefitInterval.Seconds())
+	nextSec := (nowSec + benefitSeconds) / benefitSeconds * benefitSeconds
+	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
+}
+
+func delay() {
+	start := nextBenefitAt()
+	logger.Sugar().Infow("delay", "startAfter", time.Until(start).Seconds(), "start", start)
+	<-time.After(time.Until(start))
+}
+
+func Watch(ctx context.Context) {
+	prepareInterval()
+	logger.Sugar().Infow(
+		"goodbenefit",
+		"GoodBenefitIntervalSeconds", benefitInterval,
+	)
+
+	delay()
+
+	tickerWait := time.NewTicker(benefitInterval)
 
 	for { //nolint
 		select {
-		case <-timer.C:
+		case <-tickerWait.C:
+			logger.Sugar().Infow(
+				"Watch",
+				"State", "good benefit ticker start",
+			)
 			send(ctx, basetypes.NotifChannel_ChannelEmail)
-			now := time.Now()
-			next := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, now.Location())
-			next = next.Add(24 * time.Hour)
-			duration = next.Sub(now)
-			timer.Stop()
-			timer = time.NewTicker(duration)
 		}
 	}
 }
