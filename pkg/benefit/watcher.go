@@ -112,7 +112,6 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 
 			if err := state.CalculateReward(ctx, g); err != nil {
 				logger.Sugar().Errorw("CalculateReward", "GoodID", g.ID, "Error", err)
-
 				message = "CalculateRewardFailed"
 				req.Message = &message
 				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
@@ -167,6 +166,15 @@ func processWaitGoods(ctx context.Context, goodIDs []string) []string { //nolint
 				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
 				if err != nil {
 					logger.Sugar().Errorf("TransferReward", "Error", err)
+				}
+			}
+
+			if g.TodayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+				message = "TodayRewardAmount is 0"
+				req.Message = &message
+				_, err := notifbenefitcli.CreateGoodBenefit(ctx, req)
+				if err != nil {
+					logger.Sugar().Errorf("TodayRewardAmount", "Error", err)
 				}
 			}
 		}
