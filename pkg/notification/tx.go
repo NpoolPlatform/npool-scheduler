@@ -31,7 +31,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
 			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitSuccess)},
-			TxType:     &basetypes.Uint32Val{Op: cruder.IN, Value: uint32(basetypes.TxType_TxWithdraw)}, // nolint
+			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -128,7 +128,7 @@ func waitNotified(ctx context.Context) error { // nolint
 	for {
 		notifs, _, err := txnotifmwcli.GetTxs(ctx, &txnotifmgrpb.Conds{
 			NotifState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(txnotifmgrpb.TxState_WaitNotified)},
-			TxType:     &basetypes.Uint32Val{Op: cruder.IN, Value: uint32(basetypes.TxType_TxWithdraw)}, // nolint
+			TxType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxWithdraw)},
 		}, offset, limit)
 		if err != nil {
 			return err
