@@ -86,7 +86,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 			content += fmt.Sprintf(`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				benefit.GoodID, benefit.GoodName,
 				benefit.Amount, amount.Div(total), benefit.State,
-				benefit.Message, tm.UTC().Format("2006-01-02 15:04:05"),
+				benefit.Message, tm,
 			)
 		}
 		content += "</table></html>"
