@@ -47,9 +47,9 @@ func Watch(ctx context.Context) {
 		"GoodBenefitIntervalSeconds", benefitInterval,
 	)
 
-	send(ctx, basetypes.NotifChannel_ChannelEmail)
-
 	delay()
+
+	send(ctx, basetypes.NotifChannel_ChannelEmail)
 
 	tickerWait := time.NewTicker(benefitInterval)
 
