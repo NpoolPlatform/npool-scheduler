@@ -3,6 +3,7 @@ package goodbenefit
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
@@ -40,10 +41,11 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		goodIDs := []string{}
 		for _, benefit := range goodBenefits {
 			goodIDs = append(goodIDs, benefit.GoodID)
+			tm := time.Unix(int64(benefit.BenefitDate), 0)
 			content += fmt.Sprintf(`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				benefit.GoodID, benefit.GoodName,
 				benefit.Amount, benefit.State,
-				benefit.Message, benefit.BenefitDate,
+				benefit.Message, tm.UTC().Format("2006-01-02 15:04:05"),
 			)
 			benefitIDs = append(benefitIDs, benefit.ID)
 		}
