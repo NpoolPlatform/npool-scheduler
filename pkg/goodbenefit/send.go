@@ -106,7 +106,7 @@ func send(ctx context.Context, channel basetypes.NotifChannel) {
 		for appID, _ := range appIDs {
 			_, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 				AppID:     appID,
-				EventType: basetypes.UsedFor_GoodBenefit,
+				EventType: basetypes.UsedFor_GoodBenefit1,
 				NotifType: basetypes.NotifType_NotifMulticast,
 				Vars: &tmplmwpb.TemplateVars{
 					Message: &content,

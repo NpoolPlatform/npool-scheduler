@@ -4,8 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.12.0
-	github.com/NpoolPlatform/account-manager v0.0.0-20230423124304-1863f82b79db
-	github.com/NpoolPlatform/account-middleware v0.0.0-20230423125921-a60e98f91992
+	github.com/NpoolPlatform/account-middleware v0.0.0-20230709121029-4ff9a4fac165
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230609030803-0b26c1f95713
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230518061816-62bd589c0f63
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230605123408-7e083d1f9b54
@@ -16,7 +15,7 @@ require (
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230301112903-ee77b010c928
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230616103442-693da657e0f9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230704074320-3b0736660660
+	github.com/NpoolPlatform/message v0.0.0-20230710013349-5c5a280d40c6
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20230629102531-6aa588cd8391
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230216075025-a90a86bfd19b

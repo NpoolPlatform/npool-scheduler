@@ -141,10 +141,10 @@ func tryFinishPayment(
 	}
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
-		Active:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Blocked:   &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
+		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return err
@@ -300,10 +300,10 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	}
 
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &commonpb.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
-		Active:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:    &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Blocked:   &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: order.PaymentAccountID},
+		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return err

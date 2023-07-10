@@ -12,7 +12,6 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
@@ -28,35 +27,34 @@ import (
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/shopspring/decimal"
 )
 
-func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.AccountUsedFor) (*pltfaccmwpb.Account, error) {
+func account(ctx context.Context, coinTypeID string, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
 	acc, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
+		CoinTypeID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: coinTypeID,
 		},
-		UsedFor: &commonpb.Int32Val{
+		UsedFor: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(usedFor),
+			Value: uint32(usedFor),
 		},
-		Backup: &commonpb.BoolVal{
+		Backup: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Active: &commonpb.BoolVal{
+		Active: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: true,
 		},
-		Locked: &commonpb.BoolVal{
+		Locked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Blocked: &commonpb.BoolVal{
+		Blocked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
@@ -154,7 +152,7 @@ func feedOne(
 	coin, feeCoin *coinmwpb.Coin,
 	gasProvider *pltfaccmwpb.Account,
 	accountID, address string,
-	usedFor accountmgrpb.AccountUsedFor,
+	usedFor basetypes.AccountUsedFor,
 	amount decimal.Decimal,
 	lowFeeAmount decimal.Decimal,
 ) (
@@ -263,7 +261,7 @@ func feedOne(
 }
 
 func feedUserBenefitHotAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasProvider *pltfaccmwpb.Account) (bool, error) {
-	acc, err := account(ctx, coin.ID, accountmgrpb.AccountUsedFor_UserBenefitHot)
+	acc, err := account(ctx, coin.ID, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {
 		return false, fmt.Errorf("%v benefit hot error: %v", coin.Name, err)
 	}
@@ -300,19 +298,19 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 
 	for {
 		accs, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
-			CoinTypeID: &commonpb.StringVal{
+			CoinTypeID: &basetypes.StringVal{
 				Op:    cruder.EQ,
 				Value: coin.ID,
 			},
-			Active: &commonpb.BoolVal{
+			Active: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,
 			},
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
-			Blocked: &commonpb.BoolVal{
+			Blocked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
@@ -332,7 +330,7 @@ func feedPaymentAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				gasProvider,
 				acc.AccountID,
 				acc.Address,
-				accountmgrpb.AccountUsedFor_GoodPayment,
+				basetypes.AccountUsedFor_GoodPayment,
 				amount,
 				lowFeeAmount,
 			)
@@ -364,19 +362,19 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 
 	for {
 		accs, _, err := depositaccmwcli.GetAccounts(ctx, &depositaccmwpb.Conds{
-			CoinTypeID: &commonpb.StringVal{
+			CoinTypeID: &basetypes.StringVal{
 				Op:    cruder.EQ,
 				Value: coin.ID,
 			},
-			Active: &commonpb.BoolVal{
+			Active: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,
 			},
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
-			Blocked: &commonpb.BoolVal{
+			Blocked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
@@ -405,7 +403,7 @@ func feedDepositAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, gasPr
 				gasProvider,
 				acc.AccountID,
 				acc.Address,
-				accountmgrpb.AccountUsedFor_UserDeposit,
+				basetypes.AccountUsedFor_UserDeposit,
 				amount,
 				lowFeeAmount,
 			)
@@ -426,7 +424,7 @@ func feedGoodBenefitAccount(ctx context.Context, coin, feeCoin *coinmwpb.Coin, g
 }
 
 func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
-	acc, err := account(ctx, coin.FeeCoinTypeID, accountmgrpb.AccountUsedFor_GasProvider)
+	acc, err := account(ctx, coin.FeeCoinTypeID, basetypes.AccountUsedFor_GasProvider)
 	if err != nil {
 		return fmt.Errorf("%v [%v] gas provider error: %v", coin.Name, coin.FeeCoinName, err)
 	}
@@ -443,7 +441,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 			"Coin", coin.Name,
 			"AccountID", acc.AccountID,
 			"Address", acc.Address,
-			"UsedFor", accountmgrpb.AccountUsedFor_GasProvider,
+			"UsedFor", basetypes.AccountUsedFor_GasProvider,
 			"State", "Feeding",
 		)
 		return nil
@@ -463,7 +461,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 			"Coin", coin.Name,
 			"AccountID", acc.AccountID,
 			"Address", acc.Address,
-			"UsedFor", accountmgrpb.AccountUsedFor_UserBenefitHot,
+			"UsedFor", basetypes.AccountUsedFor_UserBenefitHot,
 			"State", "Feeded",
 		)
 		return nil
@@ -478,7 +476,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 			"Coin", coin.Name,
 			"AccountID", acc.AccountID,
 			"Address", acc.Address,
-			"UsedFor", accountmgrpb.AccountUsedFor_UserDeposit,
+			"UsedFor", basetypes.AccountUsedFor_UserDeposit,
 			"State", "Feeded",
 		)
 		return nil
@@ -493,7 +491,7 @@ func feedCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 			"Coin", coin.Name,
 			"AccountID", acc.AccountID,
 			"Address", acc.Address,
-			"UsedFor", accountmgrpb.AccountUsedFor_GoodPayment,
+			"UsedFor", basetypes.AccountUsedFor_GoodPayment,
 			"State", "Feeded",
 		)
 		return nil

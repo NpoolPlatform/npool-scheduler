@@ -10,7 +10,6 @@ import (
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/good"
@@ -24,7 +23,6 @@ import (
 
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifbenefitpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	notifbenefitcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
@@ -34,7 +32,7 @@ import (
 func (st *State) platformAccount(
 	ctx context.Context,
 	coinTypeID string,
-	usedFor accountmgrpb.AccountUsedFor,
+	usedFor basetypes.AccountUsedFor,
 ) (
 	*pltfaccmwpb.Account,
 	error,
@@ -48,27 +46,27 @@ func (st *State) platformAccount(
 	}
 
 	acc, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
+		CoinTypeID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: coinTypeID,
 		},
-		UsedFor: &commonpb.Int32Val{
+		UsedFor: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(usedFor),
+			Value: uint32(usedFor),
 		},
-		Backup: &commonpb.BoolVal{
+		Backup: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Active: &commonpb.BoolVal{
+		Active: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: true,
 		},
-		Blocked: &commonpb.BoolVal{
+		Blocked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Locked: &commonpb.BoolVal{
+		Locked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
@@ -82,7 +80,7 @@ func (st *State) platformAccount(
 
 	_, ok = st.PlatformAccounts[coinTypeID]
 	if !ok {
-		st.PlatformAccounts[coinTypeID] = map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account{}
+		st.PlatformAccounts[coinTypeID] = map[basetypes.AccountUsedFor]*pltfaccmwpb.Account{}
 	}
 	st.PlatformAccounts[coinTypeID][usedFor] = acc
 
@@ -97,7 +95,7 @@ func (st *State) TransferReward(ctx context.Context, good *Good) error { //nolin
 	userHotAcc, err := st.platformAccount(
 		ctx,
 		good.CoinTypeID,
-		accountmgrpb.AccountUsedFor_UserBenefitHot)
+		basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {
 		return err
 	}
@@ -399,7 +397,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			userHotAcc, err := st.platformAccount(
 				ctx,
 				good.CoinTypeID,
-				accountmgrpb.AccountUsedFor_UserBenefitHot)
+				basetypes.AccountUsedFor_UserBenefitHot)
 			if err != nil {
 				logger.Sugar().Warnw(
 					"CheckTransfer",
@@ -412,7 +410,7 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 			pltfColdAcc, err := st.platformAccount(
 				ctx,
 				good.CoinTypeID,
-				accountmgrpb.AccountUsedFor_PlatformBenefitCold)
+				basetypes.AccountUsedFor_PlatformBenefitCold)
 			if err != nil {
 				logger.Sugar().Warnw(
 					"CheckTransfer",
