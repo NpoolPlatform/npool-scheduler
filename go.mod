@@ -7,7 +7,7 @@ require (
 	github.com/NpoolPlatform/account-middleware v0.0.0-20230709121029-4ff9a4fac165
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230609030803-0b26c1f95713
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230518061816-62bd589c0f63
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20230605123408-7e083d1f9b54
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20230706073246-a3a557262ac7
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230629111059-d8280578df85
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230711041740-b7d186d5465f
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230404085803-9c9ca93bb0db

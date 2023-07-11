@@ -72,10 +72,10 @@ func (st *State) platformAccount(
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail get platform %v usedfor %v: %v", coinTypeID, usedFor, err)
 	}
 	if acc == nil {
-		return nil, fmt.Errorf("invalid account")
+		return nil, fmt.Errorf("invalid account of cointypeid %v usedfor %v", coinTypeID, usedFor)
 	}
 
 	_, ok = st.PlatformAccounts[coinTypeID]

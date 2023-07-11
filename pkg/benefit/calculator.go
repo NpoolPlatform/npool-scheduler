@@ -88,10 +88,10 @@ func (st *State) goodBenefit(ctx context.Context, good *Good) (*gbmwpb.Account, 
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail get goodbenefit %v: %v", good.ID, err)
 	}
 	if acc == nil {
-		return nil, fmt.Errorf("invalid good benefit")
+		return nil, fmt.Errorf("invalid goodbenefit %v", good.ID)
 	}
 
 	good.Retry = true
