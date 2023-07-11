@@ -39,6 +39,9 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 	if err != nil {
 		return fmt.Errorf("invalid coin %v: %v", account.CoinTypeID, err)
 	}
+	if coin == nil {
+		return fmt.Errorf("invalid coin %v", account.CoinTypeID)
+	}
 
 	if err := accountlock.Lock(account.AccountID); err != nil {
 		logger.Sugar().Errorw("checkGoodPayment", "account", account.AccountID, "error", err)
