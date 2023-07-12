@@ -11,10 +11,8 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
@@ -28,29 +26,29 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.AccountUsedFor) (*pltfaccmwpb.Account, error) {
+func account(ctx context.Context, coinTypeID string, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
 	acc, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
+		CoinTypeID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: coinTypeID,
 		},
-		UsedFor: &commonpb.Int32Val{
+		UsedFor: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(usedFor),
+			Value: uint32(usedFor),
 		},
-		Backup: &commonpb.BoolVal{
-			Op:    cruder.EQ,
-			Value: false,
-		},
-		Locked: &commonpb.BoolVal{
+		Backup: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Active: &commonpb.BoolVal{
+		Locked: &basetypes.BoolVal{
+			Op:    cruder.EQ,
+			Value: false,
+		},
+		Active: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: true,
 		},
-		Blocked: &commonpb.BoolVal{
+		Blocked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
@@ -66,12 +64,12 @@ func account(ctx context.Context, coinTypeID string, usedFor accountmgrpb.Accoun
 }
 
 func accounts(ctx context.Context, coinTypeID string) (hot, cold *pltfaccmwpb.Account, err error) {
-	hot, err = account(ctx, coinTypeID, accountmgrpb.AccountUsedFor_UserBenefitHot)
+	hot, err = account(ctx, coinTypeID, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cold, err = account(ctx, coinTypeID, accountmgrpb.AccountUsedFor_UserBenefitCold)
+	cold, err = account(ctx, coinTypeID, basetypes.AccountUsedFor_UserBenefitCold)
 	if err != nil {
 		return nil, nil, err
 	}

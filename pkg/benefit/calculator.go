@@ -31,6 +31,8 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	commonpb "github.com/NpoolPlatform/message/npool"
 
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -64,32 +66,32 @@ func (st *State) goodBenefit(ctx context.Context, good *Good) (*gbmwpb.Account, 
 	}
 
 	acc, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
-		GoodID: &commonpb.StringVal{
+		GoodID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: good.ID,
 		},
-		Backup: &commonpb.BoolVal{
+		Backup: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Active: &commonpb.BoolVal{
+		Active: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: true,
 		},
-		Locked: &commonpb.BoolVal{
+		Locked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Blocked: &commonpb.BoolVal{
+		Blocked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail get goodbenefit %v: %v", good.ID, err)
 	}
 	if acc == nil {
-		return nil, fmt.Errorf("invalid good benefit")
+		return nil, fmt.Errorf("invalid goodbenefit %v", good.ID)
 	}
 
 	good.Retry = true

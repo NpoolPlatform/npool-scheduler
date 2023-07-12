@@ -9,7 +9,6 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
@@ -26,7 +25,6 @@ import (
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	"github.com/shopspring/decimal"
@@ -40,6 +38,9 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 	coin, err := coinmwcli.GetCoin(ctx, account.CoinTypeID)
 	if err != nil {
 		return fmt.Errorf("invalid coin %v: %v", account.CoinTypeID, err)
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid coin %v", account.CoinTypeID)
 	}
 
 	if err := accountlock.Lock(account.AccountID); err != nil {
@@ -130,27 +131,27 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 	}
 
 	collect, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{
+		CoinTypeID: &basetypes.StringVal{
 			Op:    cruder.EQ,
 			Value: coin.ID,
 		},
-		UsedFor: &commonpb.Int32Val{
+		UsedFor: &basetypes.Uint32Val{
 			Op:    cruder.EQ,
-			Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector),
+			Value: uint32(basetypes.AccountUsedFor_PaymentCollector),
 		},
-		Backup: &commonpb.BoolVal{
+		Backup: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Active: &commonpb.BoolVal{
+		Active: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: true,
 		},
-		Locked: &commonpb.BoolVal{
+		Locked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
-		Blocked: &commonpb.BoolVal{
+		Blocked: &basetypes.BoolVal{
 			Op:    cruder.EQ,
 			Value: false,
 		},
@@ -179,7 +180,7 @@ func checkGoodPayment(ctx context.Context, account *payaccmwpb.Account) error { 
 	}
 
 	locked := true
-	lockedBy := accountmgrpb.LockedBy_Collecting
+	lockedBy := basetypes.AccountLockedBy_Collecting
 
 	_, err = payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
 		ID:            &account.ID,
@@ -197,15 +198,15 @@ func checkGoodPayments(ctx context.Context) {
 
 	for {
 		accs, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
-			Active: &commonpb.BoolVal{
+			Active: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,
 			},
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
-			Blocked: &commonpb.BoolVal{
+			Blocked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
@@ -266,13 +267,13 @@ func checkCollectingPayments(ctx context.Context) {
 
 	for {
 		accs, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,
 			},
-			LockedBy: &commonpb.Int32Val{
+			LockedBy: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: int32(accountmgrpb.LockedBy_Collecting),
+				Value: uint32(basetypes.AccountLockedBy_Collecting),
 			},
 		}, offset, limit)
 		if err != nil {

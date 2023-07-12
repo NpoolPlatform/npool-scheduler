@@ -20,7 +20,6 @@ import (
 	txnotifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/tx"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	npool "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 )
 
@@ -61,7 +60,7 @@ func waitSuccess(ctx context.Context) error { //nolint
 			}
 
 			acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
-				AccountID: &npool.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
+				AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: tx.ToAccountID},
 			})
 			if err != nil {
 				return err

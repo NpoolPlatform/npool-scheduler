@@ -12,7 +12,6 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 
-	commonpb "github.com/NpoolPlatform/message/npool"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -134,11 +133,11 @@ func getAddress(ctx context.Context, id string) (string, error) {
 
 func getMemo(ctx context.Context, tx *txmwpb.Tx, id string) (string, error) {
 	acc, err := useraccmwcli.GetAccountOnly(ctx, &useraccmwpb.Conds{
-		AccountID:  &commonpb.StringVal{Op: cruder.EQ, Value: id},
-		CoinTypeID: &commonpb.StringVal{Op: cruder.EQ, Value: tx.CoinTypeID},
-		Active:     &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Blocked:    &commonpb.BoolVal{Op: cruder.EQ, Value: false},
-		UsedFor:    &commonpb.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Withdraw)},
+		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: id},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: tx.CoinTypeID},
+		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.UsedFor_Withdraw)},
 	})
 	if err != nil {
 		return "", err

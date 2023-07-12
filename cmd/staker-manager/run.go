@@ -62,33 +62,19 @@ func shutdown(ctx context.Context) {
 	_ = pubsub.Shutdown(ctx) //nolint
 }
 
-func _watch(ctx context.Context, cancel context.CancelFunc, w func(ctx context.Context)) {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Sugar().Errorw(
-				"Watch",
-				"State", "Panic",
-				"Error", err,
-			)
-			cancel()
-		}
-	}()
-	w(ctx)
-}
-
 func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
-	go _watch(ctx, cancel, transaction.Watch)
-	go _watch(ctx, cancel, deposit.Watch)
-	go _watch(ctx, cancel, order.Watch)
-	go _watch(ctx, cancel, collector.Watch)
-	go _watch(ctx, cancel, limitation.Watch)
-	go _watch(ctx, cancel, withdraw.Watch)
-	go _watch(ctx, cancel, benefit.Watch)
-	go _watch(ctx, cancel, gasfeeder.Watch)
-	go _watch(ctx, cancel, notification.Watch)
-	go _watch(ctx, cancel, announcement.Watch)
-	go _watch(ctx, cancel, goodbenefit.Watch)
+	go action.Watch(ctx, cancel, transaction.Watch)
+	go action.Watch(ctx, cancel, deposit.Watch)
+	go action.Watch(ctx, cancel, order.Watch)
+	go action.Watch(ctx, cancel, collector.Watch)
+	go action.Watch(ctx, cancel, limitation.Watch)
+	go action.Watch(ctx, cancel, withdraw.Watch)
+	go action.Watch(ctx, cancel, benefit.Watch)
+	go action.Watch(ctx, cancel, gasfeeder.Watch)
+	go action.Watch(ctx, cancel, notification.Watch)
+	go action.Watch(ctx, cancel, announcement.Watch)
+	go action.Watch(ctx, cancel, goodbenefit.Watch)
 	return nil
 }
 

@@ -9,15 +9,11 @@ import (
 
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
-	depositmgrcli "github.com/NpoolPlatform/account-manager/pkg/client/deposit"
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	depositmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/deposit"
 	depositmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
-
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -33,7 +29,6 @@ import (
 	ledgerdetailpb "github.com/NpoolPlatform/message/npool/ledger/mgr/v1/ledger/detail"
 
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	commonpb "github.com/NpoolPlatform/message/npool"
 
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 
@@ -106,7 +101,7 @@ func depositOne(ctx context.Context, acc *depositmwpb.Account) error {
 
 	// TODO: move add and book keeping to TX
 
-	_, err = depositmgrcli.AddAccount(ctx, &depositmgrpb.AccountReq{
+	_, err = depositmwcli.UpdateAccount(ctx, &depositmwpb.AccountReq{
 		ID:        &acc.ID,
 		AppID:     &acc.AppID,
 		UserID:    &acc.UserID,
@@ -179,8 +174,8 @@ func deposit(ctx context.Context) {
 
 	for {
 		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
-			Locked:      &commonpb.BoolVal{Op: cruder.EQ, Value: false},
-			ScannableAt: &commonpb.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
+			Locked:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			ScannableAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
 		}, offset, limit)
 		if err != nil {
 			logger.Sugar().Errorw("deposit", "error", err)
@@ -288,12 +283,12 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 	}
 
 	collect, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &commonpb.StringVal{Op: cruder.EQ, Value: coin.ID},
-		UsedFor:    &commonpb.Int32Val{Op: cruder.EQ, Value: int32(accountmgrpb.AccountUsedFor_PaymentCollector)},
-		Backup:     &commonpb.BoolVal{Op: cruder.EQ, Value: false},
-		Active:     &commonpb.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:     &commonpb.BoolVal{Op: cruder.EQ, Value: false},
-		Blocked:    &commonpb.BoolVal{Op: cruder.EQ, Value: false},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: coin.ID},
+		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountUsedFor_PaymentCollector)},
+		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return nil
@@ -328,7 +323,7 @@ func tryTransferOne(ctx context.Context, acc *depositmwpb.Account) error { //nol
 	}
 
 	locked := true
-	lockedBy := accountmgrpb.LockedBy_Collecting
+	lockedBy := basetypes.AccountLockedBy_Collecting
 
 	_, err = depositmwcli.UpdateAccount(ctx, &depositmwpb.AccountReq{
 		ID:            &acc.ID,
@@ -355,11 +350,11 @@ func transfer(ctx context.Context) {
 
 	for {
 		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: false,
 			},
-			ScannableAt: &commonpb.Uint32Val{
+			ScannableAt: &basetypes.Uint32Val{
 				Op:    cruder.LT,
 				Value: uint32(time.Now().Unix()),
 			},
@@ -420,7 +415,7 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
 
 	locked := false
-	lockedBy := accountmgrpb.LockedBy_DefaultLockedBy
+	lockedBy := basetypes.AccountLockedBy_DefaultLockedBy
 	collectingID := uuid1.InvalidUUIDStr
 	outcomingS := outcoming.String()
 
@@ -452,15 +447,15 @@ func finish(ctx context.Context) {
 
 	for {
 		accs, _, err := depositmwcli.GetAccounts(ctx, &depositmwpb.Conds{
-			Locked: &commonpb.BoolVal{
+			Locked: &basetypes.BoolVal{
 				Op:    cruder.EQ,
 				Value: true,
 			},
-			LockedBy: &commonpb.Int32Val{
+			LockedBy: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: int32(accountmgrpb.LockedBy_Collecting),
+				Value: uint32(basetypes.AccountLockedBy_Collecting),
 			},
-			ScannableAt: &commonpb.Uint32Val{
+			ScannableAt: &basetypes.Uint32Val{
 				Op:    cruder.LT,
 				Value: uint32(time.Now().Unix()),
 			},

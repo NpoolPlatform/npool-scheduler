@@ -1,9 +1,9 @@
 package benefit
 
 import (
-	accountmgrpb "github.com/NpoolPlatform/message/npool/account/mgr/v1/account"
 	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 
@@ -12,7 +12,7 @@ import (
 
 type State struct {
 	Coins            map[string]*coinmwpb.Coin
-	PlatformAccounts map[string]map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account // map[CoinTypeID]map[UsedFor]Account
+	PlatformAccounts map[string]map[basetypes.AccountUsedFor]*pltfaccmwpb.Account // map[CoinTypeID]map[UsedFor]Account
 	GoodBenefits     map[string]*gbmwpb.Account
 	ChangeState      bool
 	UpdateGoodProfit bool
@@ -21,7 +21,7 @@ type State struct {
 func newState() *State {
 	return &State{
 		Coins:            map[string]*coinmwpb.Coin{},
-		PlatformAccounts: map[string]map[accountmgrpb.AccountUsedFor]*pltfaccmwpb.Account{},
+		PlatformAccounts: map[string]map[basetypes.AccountUsedFor]*pltfaccmwpb.Account{},
 		GoodBenefits:     map[string]*gbmwpb.Account{},
 		ChangeState:      true,
 		UpdateGoodProfit: true,
