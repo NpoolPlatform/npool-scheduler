@@ -11,7 +11,6 @@ import (
 
 	depositmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
-	uuid1 "github.com/NpoolPlatform/go-service-framework/pkg/const/uuid"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	depositmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 
@@ -39,6 +38,7 @@ import (
 
 	watcher "github.com/NpoolPlatform/staker-manager/pkg/watcher"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -415,8 +415,7 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
 
 	locked := false
-	lockedBy := basetypes.AccountLockedBy_DefaultLockedBy
-	collectingID := uuid1.InvalidUUIDStr
+	collectingID := uuid.Nil.String()
 	outcomingS := outcoming.String()
 
 	req := &depositmwpb.AccountReq{
@@ -426,7 +425,6 @@ func tryFinishOne(ctx context.Context, acc *depositmwpb.Account) error {
 		CoinTypeID:    &acc.CoinTypeID,
 		AccountID:     &acc.AccountID,
 		Locked:        &locked,
-		LockedBy:      &lockedBy,
 		CollectingTID: &collectingID,
 		ScannableAt:   &scannableAt,
 	}
