@@ -13,7 +13,7 @@ import (
 var (
 	benefitInterval  = 24 * time.Hour
 	firstCheckDelay  = 1 * time.Hour
-	secondCheckDelay = 6 * time.Hour
+	secondCheckDelay = 5 * time.Hour
 )
 
 func prepareInterval() {
