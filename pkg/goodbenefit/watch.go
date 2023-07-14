@@ -31,30 +31,16 @@ func prepareInterval() {
 	}
 }
 
-func delayBenefitAt() time.Time {
+func nextBenefitAt(delay time.Duration) time.Time {
 	now := time.Now()
 	nowSec := now.Unix()
 	benefitSeconds := int64(benefitInterval.Seconds())
-	nextSec := (nowSec+benefitSeconds)/benefitSeconds*benefitSeconds + int64(firstCheckDelay.Seconds())
+	nextSec := (nowSec+benefitSeconds)/benefitSeconds*benefitSeconds + int64(delay.Seconds())
 	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
 }
 
-func firstDelay() {
-	start := delayBenefitAt()
-	logger.Sugar().Infow("firstDelay", "startAfter", time.Until(start).Seconds(), "start", start)
-	<-time.After(time.Until(start))
-}
-
-func nextBenefitAt() time.Time {
-	now := time.Now()
-	nowSec := now.Unix()
-	benefitSeconds := int64(benefitInterval.Seconds())
-	nextSec := (nowSec+benefitSeconds)/benefitSeconds*benefitSeconds + int64(secondCheckDelay.Seconds())
-	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
-}
-
-func delay() {
-	start := nextBenefitAt()
+func delay(delay time.Duration) {
+	start := nextBenefitAt(delay)
 	logger.Sugar().Infow("delay", "startAfter", time.Until(start).Seconds(), "start", start)
 	<-time.After(time.Until(start))
 }
@@ -66,11 +52,11 @@ func Watch(ctx context.Context) {
 		"GoodBenefitIntervalSeconds", benefitInterval,
 	)
 
-	firstDelay()
+	delay(firstCheckDelay)
 	send(ctx, basetypes.NotifChannel_ChannelEmail)
 	firstTickerWait := time.NewTicker(benefitInterval)
 
-	delay()
+	delay(secondCheckDelay)
 	send(ctx, basetypes.NotifChannel_ChannelEmail)
 	secondTickerWait := time.NewTicker(benefitInterval)
 
