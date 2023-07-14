@@ -21,7 +21,7 @@ import (
 )
 
 //nolint
-func send(ctx context.Context, channel basetypes.NotifChannel) {
+func Send(ctx context.Context, channel basetypes.NotifChannel) {
 	offset := int32(0)
 	limit := int32(1000)
 
