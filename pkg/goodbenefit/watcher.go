@@ -39,26 +39,41 @@ func nextBenefitAt(delay time.Duration) time.Time {
 	return now.Add(time.Duration(nextSec-nowSec) * time.Second)
 }
 
-func delay(delay time.Duration) {
-	start := nextBenefitAt(delay)
+func delay(delay time.Duration, alignBenefitAt bool) {
+	start := time.Now().Add(delay)
+	if alignBenefitAt {
+		start = nextBenefitAt(delay)
+	}
 	logger.Sugar().Infow("delay", "startAfter", time.Until(start).Seconds(), "start", start)
 	<-time.After(time.Until(start))
 }
 
 func Watch(ctx context.Context) {
 	prepareInterval()
+
 	logger.Sugar().Infow(
 		"goodbenefit",
 		"GoodBenefitIntervalSeconds", benefitInterval,
+		"FirstCheckDelay", firstCheckDelay,
 	)
-
-	delay(firstCheckDelay)
+	delay(firstCheckDelay, true)
 	send(ctx, basetypes.NotifChannel_ChannelEmail)
 	firstTickerWait := time.NewTicker(benefitInterval)
 
-	delay(secondCheckDelay)
+	logger.Sugar().Infow(
+		"goodbenefit",
+		"GoodBenefitIntervalSeconds", benefitInterval,
+		"SecondCheckDelay", secondCheckDelay,
+	)
+	delay(secondCheckDelay, false)
 	send(ctx, basetypes.NotifChannel_ChannelEmail)
 	secondTickerWait := time.NewTicker(benefitInterval)
+
+	logger.Sugar().Infow(
+		"goodbenefit",
+		"GoodBenefitIntervalSeconds", benefitInterval,
+		"State", "Loop",
+	)
 
 	for { //nolint
 		select {
