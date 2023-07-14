@@ -11,7 +11,7 @@ import (
 	"github.com/NpoolPlatform/staker-manager/pkg/deposit"
 	"github.com/NpoolPlatform/staker-manager/pkg/gasfeeder"
 	"github.com/NpoolPlatform/staker-manager/pkg/goodbenefit"
-	goodbenefit1 "github.com/NpoolPlatform/staker-manager/pkg/goodbenefit/ticker"
+	goodbenefit1 "github.com/NpoolPlatform/staker-manager/pkg/goodbenefit1"
 	"github.com/NpoolPlatform/staker-manager/pkg/notification"
 	"github.com/NpoolPlatform/staker-manager/pkg/order"
 	"github.com/NpoolPlatform/staker-manager/pkg/sentinel/collector"

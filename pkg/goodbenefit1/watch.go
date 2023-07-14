@@ -1,4 +1,4 @@
-package ticker
+package goodbenefit
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	"github.com/NpoolPlatform/staker-manager/pkg/goodbenefit"
 )
 
 var (
@@ -50,7 +49,7 @@ func Watch(ctx context.Context) {
 
 	delay()
 
-	goodbenefit.Send(ctx, basetypes.NotifChannel_ChannelEmail)
+	send(ctx, basetypes.NotifChannel_ChannelEmail)
 
 	tickerWait := time.NewTicker(benefitInterval)
 
@@ -61,7 +60,7 @@ func Watch(ctx context.Context) {
 				"Watch",
 				"State", "good benefit ticker start",
 			)
-			goodbenefit.Send(ctx, basetypes.NotifChannel_ChannelEmail)
+			send(ctx, basetypes.NotifChannel_ChannelEmail)
 		}
 	}
 }
