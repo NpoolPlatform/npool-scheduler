@@ -11,6 +11,8 @@ import (
 
 	accountingmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/accounting"
 	accountingmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/accounting"
+	"github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
+	"github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/appgood"
 	goodmgrpb "github.com/NpoolPlatform/message/npool/good/mgr/v1/appgood"
@@ -42,6 +44,8 @@ import (
 	ordermgrpb "github.com/NpoolPlatform/message/npool/order/mgr/v1/order"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
 	"github.com/shopspring/decimal"
 )
@@ -134,6 +138,7 @@ func tryFinishPayment(
 
 	switch newState {
 	case paymentmgrpb.PaymentState_Done:
+		orderPaidNotif(ctx, order)
 	case paymentmgrpb.PaymentState_Canceled:
 	case paymentmgrpb.PaymentState_TimeOut:
 	default:
@@ -679,6 +684,31 @@ func processOrderPayments(ctx context.Context, orders []*ordermwpb.Order) {
 			)
 			continue
 		}
+	}
+}
+
+func orderPaidNotif(ctx context.Context, order *ordermwpb.Order) {
+	coin, err := coinmwcli.GetCoin(ctx, order.PaymentCoinTypeID)
+	if err != nil {
+		logger.Sugar().Errorf("get coin failed when generate notif, err: %v", err)
+		return
+	}
+
+	now := uint32(time.Now().Unix())
+	_, err = notifmwcli.GenerateNotifs(ctx, &notif.GenerateNotifsRequest{
+		AppID:     order.AppID,
+		UserID:    order.UserID,
+		EventType: basetypes.UsedFor_OrderCompleted,
+		Vars: &template.TemplateVars{
+			Amount:    &order.PaymentAmount,
+			CoinUnit:  &coin.Unit,
+			Timestamp: &now,
+		},
+		NotifType: basetypes.NotifType_NotifUnicast,
+	})
+
+	if err != nil {
+		logger.Sugar().Errorf("generate notif failed when order paid, err: %v", err)
 	}
 }
 
