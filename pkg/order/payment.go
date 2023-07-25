@@ -134,11 +134,14 @@ func tryFinishPayment(
 		order.PaymentState = newState
 		order.OrderState = newOrderState
 		order.PaymentFinishAmount = finishAmountS
+
+		if order.OrderState == ordermgrpb.OrderState_Paid {
+			orderPaidNotif(ctx, order)
+		}
 	}
 
 	switch newState {
 	case paymentmgrpb.PaymentState_Done:
-		orderPaidNotif(ctx, order)
 	case paymentmgrpb.PaymentState_Canceled:
 	case paymentmgrpb.PaymentState_TimeOut:
 	default:
