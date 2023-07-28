@@ -697,13 +697,27 @@ func orderPaidNotif(ctx context.Context, order *ordermwpb.Order) {
 		return
 	}
 
+	balanceAmount, err := decimal.NewFromString(order.PayWithBalanceAmount)
+	if err != nil {
+		logger.Sugar().Errorf("decial pay with balance amount err: %v", err)
+		return
+	}
+	payAmount, err := decimal.NewFromString(order.PaymentAmount)
+	if err != nil {
+		logger.Sugar().Errorf("decimal pay amount err: %v", err)
+		return
+	}
+
+	amount := balanceAmount.Add(payAmount)
+	amountStr := amount.String()
+
 	now := uint32(time.Now().Unix())
 	_, err = notifmwcli.GenerateNotifs(ctx, &notif.GenerateNotifsRequest{
 		AppID:     order.AppID,
 		UserID:    order.UserID,
 		EventType: basetypes.UsedFor_OrderCompleted,
 		Vars: &template.TemplateVars{
-			Amount:    &order.PaymentAmount,
+			Amount:    &amountStr,
 			CoinUnit:  &coin.Unit,
 			Timestamp: &now,
 		},
