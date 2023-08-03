@@ -9,8 +9,8 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
-	accountingmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/accounting"
-	accountingmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/accounting"
+	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
+	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 
@@ -409,7 +409,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		Mul(decimal.RequireFromString(order.Units)).
 		String()
 
-	comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+	comms, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  order.AppID,
 		UserID:                 order.UserID,
 		GoodID:                 order.GoodID,
@@ -445,7 +445,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 			order.PaymentID,
 			order.ID,
-			comm.GetDirectContributorUserID(),
+			comm.GetDirectContributorID(),
 			order.UserID,
 		)
 
@@ -626,7 +626,7 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 		Mul(units).
 		String()
 
-	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+	_, err = calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  order.AppID,
 		UserID:                 order.UserID,
 		GoodID:                 order.GoodID,
