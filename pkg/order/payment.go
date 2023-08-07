@@ -9,7 +9,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
+	statementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
+	statementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
@@ -47,6 +49,7 @@ import (
 
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -425,6 +428,34 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		HasCommission:          true,
 		OrderCreatedAt:         order.CreatedAt,
 	})
+	if err != nil {
+		return err
+	}
+
+	statementReqs := []*statementmwpb.StatementReq{}
+	for _, statement := range statements {
+		req := &statementmwpb.StatementReq{
+			AppID:                  &statement.AppID,
+			UserID:                 &statement.UserID,
+			GoodID:                 &statement.GoodID,
+			OrderID:                &statement.OrderID,
+			SelfOrder:              &statement.SelfOrder,
+			PaymentID:              &statement.PaymentID,
+			CoinTypeID:             &statement.CoinTypeID,
+			PaymentCoinTypeID:      &statement.PaymentCoinTypeID,
+			PaymentCoinUSDCurrency: &statement.PaymentCoinUSDCurrency,
+			Units:                  &statement.Units,
+			Amount:                 &statement.Amount,
+			USDAmount:              &statement.USDAmount,
+			Commission:             &statement.Commission,
+		}
+		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
+			req.DirectContributorID = &statement.DirectContributorID
+		}
+		statementReqs = append(statementReqs, req)
+	}
+
+	_, err = statementmwcli.CreateStatements(ctx, statementReqs)
 	if err != nil {
 		return err
 	}
