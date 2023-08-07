@@ -409,7 +409,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		Mul(decimal.RequireFromString(order.Units)).
 		String()
 
-	comms, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
+	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  order.AppID,
 		UserID:                 order.UserID,
 		GoodID:                 order.GoodID,
@@ -433,29 +433,29 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
-	for _, comm := range comms {
-		commAmount, err := decimal.NewFromString(comm.Amount)
+	for _, statement := range statements {
+		commission, err := decimal.NewFromString(statement.Commission)
 		if err != nil {
 			return err
 		}
-		if commAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		if commission.Cmp(decimal.NewFromInt(0)) <= 0 {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 			order.PaymentID,
 			order.ID,
-			comm.GetDirectContributorID(),
+			statement.GetDirectContributorID(),
 			order.UserID,
 		)
 
 		details = append(details, &ledgerdetailpb.DetailReq{
 			AppID:      &order.AppID,
-			UserID:     &comm.UserID,
+			UserID:     &statement.UserID,
 			CoinTypeID: &order.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
-			Amount:     &comm.Amount,
+			Amount:     &statement.Commission,
 			IOExtra:    &ioExtra,
 		})
 	}
