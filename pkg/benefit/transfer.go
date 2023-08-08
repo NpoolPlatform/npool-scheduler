@@ -286,7 +286,10 @@ func (st *State) CheckTransfer(ctx context.Context, good *Good) error {
 				txExtra = tx.Extra
 
 				now := uint32(time.Now().Unix())
-				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
+				_result := basetypes.Result(basetypes.Result_value[basetypes.Result_Fail.String()])
+				if tx.State == basetypes.TxState_TxStateSuccessful {
+					_result = basetypes.Result(basetypes.Result_value[basetypes.Result_Success.String()])
+				}
 
 				message := tx.State.String()
 				_, err = notifbenefitcli.CreateGoodBenefit(ctx, &notifbenefitpb.GoodBenefitReq{
