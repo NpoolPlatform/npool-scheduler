@@ -25,6 +25,7 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -424,7 +425,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		Units:                  order.Units,
 		PaymentAmount:          paymentAmountS,
 		GoodValue:              goodValue,
-		SettleType:             good.CommissionSettleType,
+		SettleType:             inspiretypes.SettleType_GoodOrderPayment,
 		HasCommission:          true,
 		OrderCreatedAt:         order.CreatedAt,
 	})
