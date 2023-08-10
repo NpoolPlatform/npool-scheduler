@@ -411,6 +411,7 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 
 	goodValue := decimal.RequireFromString(good.Price).
 		Mul(decimal.RequireFromString(order.Units)).
+		Div(decimal.RequireFromString(order.PaymentCoinUSDCurrency)).
 		String()
 
 	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
@@ -656,6 +657,7 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 
 	goodValue := decimal.RequireFromString(good.Price).
 		Mul(units).
+		Div(decimal.RequireFromString(order.PaymentCoinUSDCurrency)).
 		String()
 
 	_, err = calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
