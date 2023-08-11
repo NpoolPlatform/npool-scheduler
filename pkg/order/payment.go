@@ -9,8 +9,10 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 
-	accountingmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/accounting"
-	accountingmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/accounting"
+	statementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
+	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
+	statementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
+	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	"github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 
@@ -23,6 +25,7 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 
 	commonpb "github.com/NpoolPlatform/message/npool"
+	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -47,6 +50,7 @@ import (
 
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -407,9 +411,10 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 
 	goodValue := decimal.RequireFromString(good.Price).
 		Mul(decimal.RequireFromString(order.Units)).
+		Div(decimal.RequireFromString(order.PaymentCoinUSDCurrency)).
 		String()
 
-	comms, err := accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  order.AppID,
 		UserID:                 order.UserID,
 		GoodID:                 order.GoodID,
@@ -421,10 +426,38 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 		Units:                  order.Units,
 		PaymentAmount:          paymentAmountS,
 		GoodValue:              goodValue,
-		SettleType:             good.CommissionSettleType,
+		SettleType:             inspiretypes.SettleType_GoodOrderPayment,
 		HasCommission:          true,
 		OrderCreatedAt:         order.CreatedAt,
 	})
+	if err != nil {
+		return err
+	}
+
+	statementReqs := []*statementmwpb.StatementReq{}
+	for _, statement := range statements {
+		req := &statementmwpb.StatementReq{
+			AppID:                  &statement.AppID,
+			UserID:                 &statement.UserID,
+			GoodID:                 &statement.GoodID,
+			OrderID:                &statement.OrderID,
+			SelfOrder:              &statement.SelfOrder,
+			PaymentID:              &statement.PaymentID,
+			CoinTypeID:             &statement.CoinTypeID,
+			PaymentCoinTypeID:      &statement.PaymentCoinTypeID,
+			PaymentCoinUSDCurrency: &statement.PaymentCoinUSDCurrency,
+			Units:                  &statement.Units,
+			Amount:                 &statement.Amount,
+			USDAmount:              &statement.USDAmount,
+			Commission:             &statement.Commission,
+		}
+		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
+			req.DirectContributorID = &statement.DirectContributorID
+		}
+		statementReqs = append(statementReqs, req)
+	}
+
+	_, err = statementmwcli.CreateStatements(ctx, statementReqs)
 	if err != nil {
 		return err
 	}
@@ -433,29 +466,29 @@ func _processOrderPayment(ctx context.Context, order *ordermwpb.Order) error {
 	ioType := ledgerdetailpb.IOType_Incoming
 	ioSubType := ledgerdetailpb.IOSubType_Commission
 
-	for _, comm := range comms {
-		commAmount, err := decimal.NewFromString(comm.Amount)
+	for _, statement := range statements {
+		commission, err := decimal.NewFromString(statement.Commission)
 		if err != nil {
 			return err
 		}
-		if commAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		if commission.Cmp(decimal.NewFromInt(0)) <= 0 {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
 			order.PaymentID,
 			order.ID,
-			comm.GetDirectContributorUserID(),
+			statement.GetDirectContributorID(),
 			order.UserID,
 		)
 
 		details = append(details, &ledgerdetailpb.DetailReq{
 			AppID:      &order.AppID,
-			UserID:     &comm.UserID,
+			UserID:     &statement.UserID,
 			CoinTypeID: &order.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
-			Amount:     &comm.Amount,
+			Amount:     &statement.Commission,
 			IOExtra:    &ioExtra,
 		})
 	}
@@ -624,9 +657,10 @@ func _processFakeOrder(ctx context.Context, order *ordermwpb.Order) error {
 
 	goodValue := decimal.RequireFromString(good.Price).
 		Mul(units).
+		Div(decimal.RequireFromString(order.PaymentCoinUSDCurrency)).
 		String()
 
-	_, err = accountingmwcli.Accounting(ctx, &accountingmwpb.AccountingRequest{
+	_, err = calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  order.AppID,
 		UserID:                 order.UserID,
 		GoodID:                 order.GoodID,
