@@ -40,6 +40,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	go action.Watch(ctx, cancel, h.run)
 }
 
+//nolint
 func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 	logger.Sugar().Infow(
 		"execOrder",

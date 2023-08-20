@@ -67,5 +67,5 @@ func QueryCache(ctx context.Context, key string) (interface{}, error) {
 		return nil, fmt.Errorf("invalid unmarshaler")
 	}
 
-	return f(string(val))
+	return f(val)
 }

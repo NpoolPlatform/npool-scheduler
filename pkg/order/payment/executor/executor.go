@@ -21,5 +21,4 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan
 }
 
 func (e *exec) Feed(order *ordermwpb.Order) {
-
 }
