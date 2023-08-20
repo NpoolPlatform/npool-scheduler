@@ -56,8 +56,8 @@ github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff/go.mod h1:Kh7DMkWnYOMHxEKq7QfJqbxm1HaUPkhTNN74lfHQxyE=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb h1:IAQOJ0xQWdJS1BnimNdM6GZMLgTL/FnIa8C8K4xffUA=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb/go.mod h1:zvvqlRwbOdTUauPQ9dFDhDuxa91ILV0CQfVdPBZj+eA=
-github.com/NpoolPlatform/message v0.0.0-20230820041128-1b1116bf0e61 h1:3rAGE0l6592ZmA8WYz8nw4cgoXasm8gQpgAoiSTIGGA=
-github.com/NpoolPlatform/message v0.0.0-20230820041128-1b1116bf0e61/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20230820080453-fbbe6e7ec961 h1:LjUn81rsToV3iJcqPLZ0Xyzev5oSZEUl7EUSIbLO9PI=
+github.com/NpoolPlatform/message v0.0.0-20230820080453-fbbe6e7ec961/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/order-manager v0.0.0-20230301030435-b03a2a42a69c h1:l7frtKUbO/71g7h5B4s8Bfcr9ypo3BsqBdevTRtpGb4=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9 h1:98axvCtK0iUVfIeR+Lse7DjkFxk2K4ukyxNqYejK3jg=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9/go.mod h1:mtYbwHCRz/zGyf3zvyO3JcqAfo4RGamDj1mU8P1T6Tg=
