@@ -41,6 +41,11 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 }
 
 func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
+	logger.Sugar().Infow(
+		"execOrder",
+		"ID", order.ID,
+		"OrderState", order.OrderState,
+	)
 	return nil
 }
 
