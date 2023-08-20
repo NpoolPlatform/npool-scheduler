@@ -5,5 +5,4 @@ import (
 )
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
-
 }
