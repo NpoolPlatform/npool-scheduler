@@ -18,8 +18,10 @@ const (
 
 type UnmarshalFunc func(val string) (interface{}, error)
 
-var unmarshalFuncs = map[string]UnmarshalFunc{}
-var _mutex sync.Mutex
+var (
+	unmarshalFuncs = map[string]UnmarshalFunc{}
+	_mutex         sync.Mutex
+)
 
 func CreateCache(ctx context.Context, key string, val interface{}, f UnmarshalFunc) error {
 	cli, err := redis2.GetClient()
