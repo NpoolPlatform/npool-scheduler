@@ -15,6 +15,7 @@ import (
 type handler struct {
 	exec       chan *ordermwpb.Order
 	persistent chan *ordermwpb.Order
+	execIndex  int
 	exectors   []executor.Executor
 	w          *watcher.Watcher
 }
@@ -25,6 +26,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	h = &handler{
 		exec:       make(chan *ordermwpb.Order),
 		persistent: make(chan *ordermwpb.Order),
+		w:          watcher.NewWatcher(),
 	}
 
 	sentinel.Initialize(ctx, cancel, h.exec)
@@ -40,13 +42,16 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	go action.Watch(ctx, cancel, h.run)
 }
 
-//nolint
 func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 	logger.Sugar().Infow(
 		"execOrder",
 		"ID", order.ID,
 		"OrderState", order.OrderState,
+		"execIndex", h.execIndex,
 	)
+	h.exectors[h.execIndex].Feed(order)
+	h.execIndex += 1
+	h.execIndex = h.execIndex % len(h.exectors)
 	return nil
 }
 
@@ -89,8 +94,6 @@ func (h *handler) handler(ctx context.Context) bool {
 }
 
 func (h *handler) run(ctx context.Context) {
-	h.w = watcher.NewWatcher()
-
 	for {
 		if b := h.handler(ctx); b {
 			break
