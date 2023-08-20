@@ -6,8 +6,7 @@ require (
 	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230518061816-62bd589c0f63
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230712041523-2e1d215244e0
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820051111-0dbf5b2f0292
-	github.com/NpoolPlatform/ledger-manager v0.0.0-20230301112903-ee77b010c928
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
 	github.com/NpoolPlatform/message v0.0.0-20230820041128-1b1116bf0e61
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9

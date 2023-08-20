@@ -6,6 +6,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
+	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
 
@@ -38,6 +39,10 @@ var runCmd = &cli.Command{
 }
 
 func run(ctx context.Context) error {
+	logger.Sugar().Infow(
+		"run",
+		"Subsystems", config.Subsystems(),
+	)
 	return pubsub.Subscribe(ctx)
 }
 

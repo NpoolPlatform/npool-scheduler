@@ -14,7 +14,6 @@ import (
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/servicename"
-	ledgerconst "github.com/NpoolPlatform/ledger-manager/pkg/message/const"
 	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
 	thirdconst "github.com/NpoolPlatform/third-middleware/pkg/message/const"
 
@@ -41,7 +40,6 @@ func main() {
 		redisconst.RedisServiceName,
 		mysqlconst.MysqlServiceName,
 		rabbitmqconst.RabbitMQServiceName,
-		ledgerconst.ServiceName,
 		orderconst.ServiceName,
 		chainconst.ServiceDomain,
 		thirdconst.ServiceName,
