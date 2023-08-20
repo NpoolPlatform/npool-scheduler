@@ -7,7 +7,7 @@ import (
 func SupportSubsystem(system string) bool {
 	subsystems := config.GetStringSliceValueWithNameSpace("", config.KeySubsystems)
 	for _, subsystem := range subsystems {
-		if subsystem == subsystem {
+		if system == subsystem {
 			return true
 		}
 	}
