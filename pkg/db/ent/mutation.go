@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/predicate"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/predicate"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	"github.com/google/uuid"
 
 	"entgo.io/ent"

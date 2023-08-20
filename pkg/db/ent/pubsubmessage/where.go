@@ -4,7 +4,7 @@ package pubsubmessage
 
 import (
 	"entgo.io/ent/dialect/sql"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/predicate"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/predicate"
 	"github.com/google/uuid"
 )
 

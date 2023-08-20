@@ -2,4 +2,4 @@
 
 package ent
 
-// The schema-stitching logic is generated in github.com/NpoolPlatform/staker-manager/pkg/db/ent/runtime/runtime.go
+// The schema-stitching logic is generated in github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/runtime/runtime.go

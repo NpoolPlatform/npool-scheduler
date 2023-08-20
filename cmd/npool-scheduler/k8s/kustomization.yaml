@@ -1,7 +1,7 @@
 commonLabels:
-  # app: staker-manager
+  # app: npool-scheduler
 
 resources:
 - 00-configmap.yaml
-- 01-staker-manager.yaml
+- 01-npool-scheduler.yaml
 - 02-traefik-ingress.yaml

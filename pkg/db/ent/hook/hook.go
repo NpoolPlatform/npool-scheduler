@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent"
 )
 
 // The PubsubMessageFunc type is an adapter to allow the use of ordinary

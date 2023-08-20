@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/migrate"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/migrate"
 	"github.com/google/uuid"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"

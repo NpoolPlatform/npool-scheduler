@@ -8,7 +8,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	npool "github.com/NpoolPlatform/message/npool"
-	"github.com/NpoolPlatform/staker-manager/pkg/version"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/version"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"

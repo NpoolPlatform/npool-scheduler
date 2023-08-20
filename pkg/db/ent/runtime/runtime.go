@@ -5,8 +5,8 @@ package runtime
 import (
 	"context"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/schema"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/schema"
 	"github.com/google/uuid"
 
 	"entgo.io/ent"

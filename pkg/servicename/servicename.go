@@ -1,6 +1,6 @@
 package servicename
 
 const (
-	ServiceName   = "Staker Manager"
-	ServiceDomain = "staker-manager.npool.top"
+	ServiceName   = "Npool Scheduler"
+	ServiceDomain = "npool-scheduler.npool.top"
 )

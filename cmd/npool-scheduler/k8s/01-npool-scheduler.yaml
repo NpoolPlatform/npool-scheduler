@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: staker-manager
+  name: npool-scheduler
   namespace: kube-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: staker-manager
+      app: npool-scheduler
   template:
     metadata:
       labels:
-        app: staker-manager
+        app: npool-scheduler
     spec:
       containers:
-      - name: staker-manager
-        image: uhub.service.ucloud.cn/entropypool/staker-manager:latest
+      - name: npool-scheduler
+        image: uhub.service.ucloud.cn/entropypool/npool-scheduler:latest
         imagePullPolicy: Always
         env:
         - name: ENV_ENVIRONMENT_TARGET
@@ -59,7 +59,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: staker-manager
+  name: npool-scheduler
   namespace: kube-system
 spec:
   ports:
@@ -73,4 +73,4 @@ spec:
     port: 50182
     targetPort: 50182
   selector:
-    app: staker-manager
+    app: npool-scheduler

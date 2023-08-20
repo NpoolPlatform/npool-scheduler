@@ -5,7 +5,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	msgpb "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/mixin"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/mixin"
 	"github.com/google/uuid"
 )
 

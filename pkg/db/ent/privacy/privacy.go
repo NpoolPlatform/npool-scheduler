@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent"
 
 	"entgo.io/ent/entql"
 	"entgo.io/ent/privacy"

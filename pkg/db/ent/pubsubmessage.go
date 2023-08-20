@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	"github.com/google/uuid"
 )
 

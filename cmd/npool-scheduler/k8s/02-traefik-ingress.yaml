@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: staker-manager-ingress
+  name: npool-scheduler-ingress
   namespace: kube-system
   annotations:
-    k8s.kuboard.cn/displayName: staker-manager
-    k8s.kuboard.cn/workload: staker-manager
+    k8s.kuboard.cn/displayName: npool-scheduler
+    k8s.kuboard.cn/workload: npool-scheduler
     kubernetes.io/ingress.class: "traefik-internet"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.middlewares: kube-system-strip-subscribe-manager-prefix@kubernetescrd,
@@ -20,9 +20,9 @@ spec:
     - host: api.npool.top
       http: &http_rules
         paths:
-          - path: /api/staker-manager/version
+          - path: /api/npool-scheduler/version
             backend:
-              serviceName: staker-manager
+              serviceName: npool-scheduler
               servicePort: 50180
     - host: api.procyon.vip
       http: *http_rules
@@ -46,9 +46,9 @@ spec:
 apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
-  name: strip-staker-manager-prefix
+  name: strip-npool-scheduler-prefix
   namespace: kube-system
 spec:
   stripPrefix:
     prefixes:
-      - /api/staker-manager
+      - /api/npool-scheduler

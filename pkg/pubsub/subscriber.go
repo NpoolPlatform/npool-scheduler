@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
-	entpubsubmsg "github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent"
+	entpubsubmsg "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 

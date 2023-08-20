@@ -64,7 +64,7 @@ pipeline {
         sh 'git clone https://github.com/NpoolPlatform/apollo-base-config.git .apollo-base-config'
         sh(returnStdout: false, script: '''
           PASSWORD=`kubectl get secret --namespace "kube-system" mysql-password-secret -o jsonpath="{.data.rootpassword}" | base64 --decode`
-          kubectl exec --namespace kube-system mysql-0 -- mysql -h 127.0.0.1 -uroot -p$PASSWORD -P3306 -e "create database if not exists staker_manager;"
+          kubectl exec --namespace kube-system mysql-0 -- mysql -h 127.0.0.1 -uroot -p$PASSWORD -P3306 -e "create database if not exists npool_scheduler;"
 
           username=`helm status rabbitmq --namespace kube-system | grep Username | awk -F ' : ' '{print $2}' | sed 's/"//g'`
 
@@ -77,7 +77,7 @@ pipeline {
 
             cd .apollo-base-config
             ./apollo-base-config.sh $APP_ID $TARGET_ENV $vhost
-            ./apollo-item-config.sh $APP_ID $TARGET_ENV $vhost database_name staker_manager
+            ./apollo-item-config.sh $APP_ID $TARGET_ENV $vhost database_name npool_scheduler
             cd -
           done
         '''.stripIndent())
@@ -91,7 +91,7 @@ pipeline {
       steps {
         sh(returnStdout: false, script: '''
           devboxpod=`kubectl get pods -A | grep development-box | head -n1 | awk '{print $2}'`
-          servicename="staker-manager"
+          servicename="npool-scheduler"
 
           kubectl exec --namespace kube-system $devboxpod -- make -C /tmp/$servicename after-test || true
           kubectl exec --namespace kube-system $devboxpod -- rm -rf /tmp/$servicename || true
@@ -259,13 +259,13 @@ pipeline {
         sh(returnStdout: false, script: '''
           feature_name=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
           set +e
-          docker images | grep staker-manager | grep $feature_name
+          docker images | grep npool-scheduler | grep $feature_name
           rc=$?
           set -e
           if [ 0 -eq $rc ]; then
             TAG=$feature_name DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
           fi
-          images=`docker images | grep entropypool | grep staker-manager | grep none | awk '{ print $3 }'`
+          images=`docker images | grep entropypool | grep npool-scheduler | grep none | awk '{ print $3 }'`
           for image in $images; do
             docker rmi $image -f
           done
@@ -280,13 +280,13 @@ pipeline {
       steps {
         sh(returnStdout: false, script: '''
           set +e
-          docker images | grep staker-manager | grep latest
+          docker images | grep npool-scheduler | grep latest
           rc=$?
           set -e
           if [ 0 -eq $rc ]; then
             TAG=latest DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
           fi
-          images=`docker images | grep entropypool | grep staker-manager | grep none | awk '{ print $3 }'`
+          images=`docker images | grep entropypool | grep npool-scheduler | grep none | awk '{ print $3 }'`
           for image in $images; do
             docker rmi $image -f
           done
@@ -308,7 +308,7 @@ pipeline {
           if [ 0 -eq $rc -a x"$revlist" != x ]; then
             tag=`git describe --tags $revlist`
             set +e
-            docker images | grep staker-manager | grep $tag
+            docker images | grep npool-scheduler | grep $tag
             rc=$?
             set -e
             if [ 0 -eq $rc ]; then
@@ -333,7 +333,7 @@ pipeline {
           if [ 0 -eq $rc -a x"$taglist" != x ]; then
             tag=`git describe --abbrev=0 --tags $taglist |grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
             set +e
-            docker images | grep staker-manager | grep $tag
+            docker images | grep npool-scheduler | grep $tag
             rc=$?
             set -e
             if [ 0 -eq $rc ]; then
@@ -353,10 +353,10 @@ pipeline {
       steps {
         sh(returnStdout: false, script: '''
           feature_name=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
-          sed -i "s/staker-manager:latest/staker-manager:$feature_name/g" cmd/staker-manager/k8s/01-staker-manager.yaml
-          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/staker-manager/k8s/00-configmap.yaml
-          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/staker-manager/k8s/00-configmap.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml
+          sed -i "s/npool-scheduler:latest/npool-scheduler:$feature_name/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml
+          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           TAG=$feature_name make deploy-to-k8s-cluster
         '''.stripIndent())
       }
@@ -369,9 +369,9 @@ pipeline {
         expression { BRANCH_NAME == 'master' }
       }
       steps {
-        sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml'
-        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/staker-manager/k8s/00-configmap.yaml'
-        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/staker-manager/k8s/00-configmap.yaml'
+        sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml'
+        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml'
+        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml'
         sh 'TAG=latest make deploy-to-k8s-cluster'
       }
     }
@@ -394,10 +394,10 @@ pipeline {
 
           git reset --hard
           git checkout $tag
-          sed -i "s/staker-manager:latest/staker-manager:$tag/g" cmd/staker-manager/k8s/01-staker-manager.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml
-          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/staker-manager/k8s/00-configmap.yaml
-          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/staker-manager/k8s/00-configmap.yaml
+          sed -i "s/npool-scheduler:latest/npool-scheduler:$tag/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml
+          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml
           TAG=$tag make deploy-to-k8s-cluster
         '''.stripIndent())
       }
@@ -420,8 +420,8 @@ pipeline {
           tag=`git describe --abbrev=0 --tags $taglist |grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
           git reset --hard
           git checkout $tag
-          sed -i "s/staker-manager:latest/staker-manager:$tag/g" cmd/staker-manager/k8s/01-staker-manager.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/staker-manager/k8s/01-staker-manager.yaml
+          sed -i "s/npool-scheduler:latest/npool-scheduler:$tag/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           TAG=$tag make deploy-to-k8s-cluster
         '''.stripIndent())
       }

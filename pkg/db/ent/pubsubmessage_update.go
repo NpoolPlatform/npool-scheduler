@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/predicate"
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent/pubsubmessage"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/predicate"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	"github.com/google/uuid"
 )
 

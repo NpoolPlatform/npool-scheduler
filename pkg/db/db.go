@@ -6,14 +6,14 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	"github.com/NpoolPlatform/staker-manager/pkg/db/ent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/NpoolPlatform/go-service-framework/pkg/mysql"
 
 	// ent policy runtime
-	_ "github.com/NpoolPlatform/staker-manager/pkg/db/ent/runtime"
+	_ "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/runtime"
 )
 
 func client() (*ent.Client, error) {

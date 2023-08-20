@@ -1,0 +1,12 @@
+---
+config:
+  hostname: "npool-scheduler.npool.top"
+  http_port: 50800
+  grpc_port: 50801
+  healthz_port: 50802
+  appid: "89089012783789789719823798127398"
+  serviceid: "5db85832-3f12-11ee-8408-ab47170b25a9"
+  logdir: "./"
+  apolloAccessKey: "0147fb70b815403790e8634b899fac07"
+  subsystems:
+    - order

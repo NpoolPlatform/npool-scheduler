@@ -1,28 +1,19 @@
-module github.com/NpoolPlatform/staker-manager
+module github.com/NpoolPlatform/npool-scheduler
 
 go 1.17
 
 require (
 	entgo.io/ent v0.12.0
-	github.com/NpoolPlatform/account-middleware v0.0.0-20230712122024-60dc0bb4c0c0
-	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230609030803-0b26c1f95713
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230518061816-62bd589c0f63
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230712041523-2e1d215244e0
-	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230629111059-d8280578df85
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230813055757-23d6ad3123fc
-	github.com/NpoolPlatform/good-middleware v0.0.0-20230811102318-3badbd5ab606
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230811101104-636b885293d2
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820051111-0dbf5b2f0292
 	github.com/NpoolPlatform/ledger-manager v0.0.0-20230301112903-ee77b010c928
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230616103442-693da657e0f9
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20221109023947-366125b690fb
-	github.com/NpoolPlatform/message v0.0.0-20230811100148-665aae942dc8
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20230726072521-677a75767535
+	github.com/NpoolPlatform/message v0.0.0-20230820041128-1b1116bf0e61
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230303152829-ad541a97b1c9
-	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230216075025-a90a86bfd19b
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3
-	github.com/shopspring/decimal v1.3.1
 	github.com/urfave/cli/v2 v2.16.3
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
@@ -46,7 +37,6 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/coocood/freecache v1.0.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-chassis/go-archaius v1.5.3 // indirect
@@ -54,7 +44,6 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
-	github.com/go-redis/redis/v8 v8.11.4 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -76,8 +65,11 @@ require (
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-sqlite3 v1.14.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/miekg/dns v1.1.48 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
@@ -95,6 +87,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
+	github.com/stretchr/testify v1.8.3 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
