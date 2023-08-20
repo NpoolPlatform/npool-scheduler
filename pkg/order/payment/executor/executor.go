@@ -76,4 +76,5 @@ func (e *exec) Finalize() {
 }
 
 func (e *exec) Feed(order *ordermwpb.Order) {
+	e.newOrder <- order
 }
