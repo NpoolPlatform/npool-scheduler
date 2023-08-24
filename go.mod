@@ -10,7 +10,7 @@ require (
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230824050454-a216e2356a9c
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20230822060122-512da6e5c8bf
-	github.com/NpoolPlatform/message v0.0.0-20230824074209-eb000592d3c5
+	github.com/NpoolPlatform/message v0.0.0-20230824092301-71540ff4fcd3
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230817033627-aaca162bd40e
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f

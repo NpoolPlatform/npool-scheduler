@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
@@ -12,17 +13,22 @@ import (
 
 var locked = false
 
+const subsystem = "order"
+
+func lockKey() string {
+	return fmt.Sprintf("%v:%v", basetypes.Prefix_PrefixScheduler, subsystem)
+}
+
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
-	if b := config.SupportSubsystem("order"); !b {
+	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
 	logger.Sugar().Infow(
 		"Initialize",
-		"Subsystem", "order",
+		"Subsystem", subsystem,
 	)
 
-	key := basetypes.Prefix_PrefixSchedulerOrder.String()
-	if err := redis2.TryLock(key, 0); err != nil {
+	if err := redis2.TryLock(lockKey(), 0); err != nil {
 		logger.Sugar().Infow(
 			"Initialize",
 			"Error", err,
@@ -35,12 +41,11 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 }
 
 func Finalize() {
-	if b := config.SupportSubsystem("order"); !b {
+	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
 	payment.Finalize()
-	key := basetypes.Prefix_PrefixSchedulerOrder.String()
 	if locked {
-		_ = redis2.Unlock(key)
+		_ = redis2.Unlock(lockKey())
 	}
 }

@@ -10,3 +10,4 @@ config:
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
     - order
+    - gasfeeder
