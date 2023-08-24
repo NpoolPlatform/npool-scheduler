@@ -12,4 +12,5 @@ type PersistentOrder struct {
 	PaymentBalance  decimal.Decimal
 	NewOrderState   ordertypes.OrderState
 	NewPaymentState ordertypes.PaymentState
+	Error           error
 }

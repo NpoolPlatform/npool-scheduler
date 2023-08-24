@@ -204,10 +204,29 @@ func (h *orderHandler) resolveNewState() error {
 	return nil
 }
 
-func (h *orderHandler) recheck(ctx context.Context) {
+func (h *orderHandler) final(ctx context.Context, err error) {
+	// Update order state
+	// Move good stock from lock to
+	// Change lock state of payment account
+	// Update user ledger and statement (incoming, outcoming, locked balance)
+	// Update user achievement and statement
+	// Allocate reward of user purchase action
+	// Send order payment notification or timeout hint
+
+	persistentOrder := &types.PersistentOrder{
+		Order:           h.Order,
+		PaymentBalance:  h.paymentAccountBalance,
+		NewOrderState:   h.newOrderState,
+		NewPaymentState: h.newPaymentState,
+		Error:           err,
+	}
+
+	h.notifOrder <- persistentOrder
 	if h.newOrderState != h.OrderState {
+		h.persistentOrder <- persistentOrder
 		return
 	}
+
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -222,43 +241,36 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	h.newOrderState = h.OrderState
 	h.newPaymentState = h.PaymentState
 
-	defer h.recheck(ctx)
+	var err error
+	defer h.final(ctx, err)
 
-	if err := h.getGood(ctx); err != nil {
+	if err = h.getGood(ctx); err != nil {
 		return err
 	}
-	if err := h.getPaymentCoin(ctx); err != nil {
+	if err = h.getPaymentCoin(ctx); err != nil {
 		return err
 	}
 
-	if err := accountlock.Lock(h.PaymentAccountID); err != nil {
+	if err = accountlock.Lock(h.PaymentAccountID); err != nil {
 		return err
 	}
 	defer func() {
 		_ = accountlock.Unlock(h.PaymentAccountID)
 	}()
 
-	if err := h.getPaymentAccount(ctx); err != nil {
+	if err = h.getPaymentAccount(ctx); err != nil {
 		return err
 	}
-	if err := h.getPaymentAccountBalance(ctx); err != nil {
+	if err = h.getPaymentAccountBalance(ctx); err != nil {
 		return err
 	}
-	if err := h.resolveNewState(); err != nil {
+	if err = h.resolveNewState(); err != nil {
 		return err
 	}
-	_, err := h.orderStatePaymentRemain()
+	_, err = h.orderStatePaymentRemain()
 	if err != nil {
 		return err
 	}
-
-	// Update order state
-	// Move good stock from lock to
-	// Change lock state of payment account
-	// Update user ledger and statement (incoming, outcoming, locked balance)
-	// Update user achievement and statement
-	// Allocate reward of user purchase action
-	// Send order payment notification or timeout hint
 
 	return nil
 }

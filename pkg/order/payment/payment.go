@@ -53,10 +53,20 @@ func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 }
 
 func (h *handler) persistentOrder(ctx context.Context, order *types.PersistentOrder) error {
+	logger.Sugar().Infow(
+		"persistentOrder",
+		"OrderID", order.ID,
+		"Error", order.Error,
+	)
 	return nil
 }
 
 func (h *handler) notifOrder(ctx context.Context, order *types.PersistentOrder) error {
+	logger.Sugar().Infow(
+		"notifOrder",
+		"OrderID", order.ID,
+		"Error", order.Error,
+	)
 	return nil
 }
 
