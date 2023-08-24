@@ -11,8 +11,8 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
-	// basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	commonpb "github.com/NpoolPlatform/message/npool"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
@@ -39,8 +39,7 @@ func (h *handler) scanWaitPayment(ctx context.Context) error {
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			// State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(types.OrderState_WaitPayment)},
-			State: &commonpb.Uint32Val{Op: cruder.EQ, Value: uint32(10)},
+			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateWaitPayment)},
 		}, offset, limit)
 		if err != nil {
 			return err
