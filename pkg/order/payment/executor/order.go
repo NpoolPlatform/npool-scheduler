@@ -201,7 +201,12 @@ func (h *orderHandler) recheck(ctx context.Context) {
 		return
 	}
 	go func() {
-		h.retryOrder <- h.Order
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute):
+			h.retryOrder <- h.Order
+		}
 	}()
 }
 
