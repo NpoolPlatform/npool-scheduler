@@ -43,12 +43,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 }
 
 func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
-	logger.Sugar().Infow(
-		"execOrder",
-		"ID", order.ID,
-		"OrderState", order.OrderState,
-		"execIndex", h.execIndex,
-	)
 	h.exectors[h.execIndex].Feed(order)
 	h.execIndex += 1
 	h.execIndex = h.execIndex % len(h.exectors)

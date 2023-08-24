@@ -32,7 +32,10 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan
 }
 
 func (e *exec) execOrder(ctx context.Context, order *ordermwpb.Order) error {
-	return nil
+	h := &orderHandler{
+		Order: order,
+	}
+	return h.exec(ctx)
 }
 
 func (e *exec) handler(ctx context.Context) bool {

@@ -39,8 +39,8 @@ func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
 	if order.OrderState == ordertypes.OrderState_OrderStateWaitPayment {
 		newState := ordertypes.OrderState_OrderStateCheckPayment
 		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-			ID:    &order.ID,
-			State: &newState,
+			ID:         &order.ID,
+			OrderState: &newState,
 		}); err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			State:         &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			ParentOrderID: &basetypes.StringVal{Op: cruder.NEQ, Value: uuid.Nil.String()},
 		}, offset, limit)
 		if err != nil {
