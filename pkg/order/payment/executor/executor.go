@@ -33,7 +33,8 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan
 
 func (e *exec) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 	h := &orderHandler{
-		Order: order,
+		Order:      order,
+		retryOrder: e.newOrder,
 	}
 	return h.exec(ctx)
 }
