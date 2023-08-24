@@ -11,7 +11,9 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/sentinel"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 )
 
 var locked = false
@@ -19,8 +21,11 @@ var locked = false
 const subsystem = "gasfeeder"
 
 type handler struct {
-	exec chan *coinmwpb.Coin
-	w    *watcher.Watcher
+	exec       chan *coinmwpb.Coin
+	persistent chan *types.PersistentCoin
+	notif      chan *types.PersistentCoin
+	w          *watcher.Watcher
+	executor   executor.Executor
 }
 
 func lockKey() string {
@@ -47,10 +52,12 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	locked = true
 
 	h := &handler{
-		exec: make(chan *coinmwpb.Coin),
-		w:    watcher.NewWatcher(),
+		exec:       make(chan *coinmwpb.Coin),
+		persistent: make(chan *types.PersistentCoin),
+		w:          watcher.NewWatcher(),
 	}
 	sentinel.Initialize(ctx, cancel, h.exec)
+	h.executor = executor.NewExecutor(ctx, cancel, h.persistent, h.notif)
 	go action.Watch(ctx, cancel, h.run)
 }
 
