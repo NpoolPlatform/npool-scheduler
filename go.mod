@@ -8,7 +8,7 @@ require (
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230712041523-2e1d215244e0
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20230822060122-512da6e5c8bf
-	github.com/NpoolPlatform/message v0.0.0-20230824031420-a601f6159707
+	github.com/NpoolPlatform/message v0.0.0-20230824051526-29d1c45baa5d
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f
 	github.com/go-redis/redis/v8 v8.11.5

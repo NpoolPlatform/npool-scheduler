@@ -14,6 +14,8 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+
+	"github.com/google/uuid"
 )
 
 type handler struct {
@@ -33,13 +35,28 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *order
 	})
 }
 
-func (h *handler) scanWaitPayment(ctx context.Context) error {
+func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
+	if order.OrderState == ordertypes.OrderState_OrderStateWaitPayment {
+		newState := ordertypes.OrderState_OrderStateCheckPayment
+		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
+			ID:    &order.ID,
+			State: &newState,
+		}); err != nil {
+			return err
+		}
+	}
+	h.exec <- order
+	return nil
+}
+
+func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateWaitPayment)},
+			State:         &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			ParentOrderID: &basetypes.StringVal{Op: cruder.NEQ, Value: uuid.Nil.String()},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -49,7 +66,9 @@ func (h *handler) scanWaitPayment(ctx context.Context) error {
 		}
 
 		for _, order := range orders {
-			h.exec <- order
+			if err := h.feedOrder(ctx, order); err != nil {
+				return err
+			}
 		}
 
 		offset += limit
@@ -62,7 +81,7 @@ func (h *handler) handler(ctx context.Context) bool {
 
 	select {
 	case <-ticker.C:
-		if err := h.scanWaitPayment(ctx); err != nil {
+		if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "scanWaitPayment",
@@ -85,6 +104,14 @@ func (h *handler) handler(ctx context.Context) bool {
 }
 
 func (h *handler) run(ctx context.Context) {
+	// Feed the interrupted check payment
+	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment); err != nil {
+		logger.Sugar().Errorw(
+			"run",
+			"Error", err,
+		)
+		return
+	}
 	for {
 		if b := h.handler(ctx); b {
 			break
