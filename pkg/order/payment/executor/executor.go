@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/types"
 )
 
 type Executor interface {
@@ -15,15 +16,17 @@ type Executor interface {
 }
 
 type exec struct {
-	persistent chan *ordermwpb.Order
+	persistent chan *types.PersistentOrder
+	notif      chan *types.PersistentOrder
 	newOrder   chan *ordermwpb.Order
 	w          *watcher.Watcher
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan *ordermwpb.Order) Executor {
+func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan *types.PersistentOrder) Executor {
 	e := &exec{
-		persistent: persistent,
 		newOrder:   make(chan *ordermwpb.Order),
+		persistent: persistent,
+		notif:      notif,
 		w:          watcher.NewWatcher(),
 	}
 
@@ -33,8 +36,10 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan
 
 func (e *exec) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 	h := &orderHandler{
-		Order:      order,
-		retryOrder: e.newOrder,
+		Order:           order,
+		retryOrder:      e.newOrder,
+		persistentOrder: e.persistent,
+		notifOrder:      e.notif,
 	}
 	return h.exec(ctx)
 }

@@ -18,6 +18,7 @@ import (
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
@@ -33,6 +34,8 @@ type orderHandler struct {
 	newPaymentState       ordertypes.PaymentState
 	remainBalance         decimal.Decimal
 	retryOrder            chan *ordermwpb.Order
+	persistentOrder       chan *types.PersistentOrder
+	notifOrder            chan *types.PersistentOrder
 }
 
 func (h *orderHandler) getGood(ctx context.Context) error {
@@ -185,6 +188,11 @@ func (h *orderHandler) resolveNewState() error {
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
 		return nil
 	}
+	if !h.onlinePayment() {
+		h.newOrderState = ordertypes.OrderState_OrderStatePaid
+		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
+		return nil
+	}
 	enough, err := h.paymentBalanceEnough()
 	if err != nil {
 		return err
@@ -243,6 +251,14 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Update order state
+	// Move good stock from lock to
+	// Change lock state of payment account
+	// Update user ledger and statement (incoming, outcoming, locked balance)
+	// Update user achievement and statement
+	// Allocate reward of user purchase action
+	// Send order payment notification or timeout hint
 
 	return nil
 }
