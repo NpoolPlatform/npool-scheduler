@@ -222,7 +222,7 @@ func (h *orderHandler) final(ctx context.Context, err error) {
 	}
 
 	h.notifOrder <- persistentOrder
-	if h.newOrderState != h.OrderState {
+	if h.newOrderState != h.OrderState && err == nil {
 		h.persistentOrder <- persistentOrder
 		return
 	}
