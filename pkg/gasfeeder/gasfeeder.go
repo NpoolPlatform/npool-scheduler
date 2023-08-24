@@ -61,9 +61,39 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	go action.Watch(ctx, cancel, h.run)
 }
 
+func (h *handler) execCoin(ctx context.Context, coin *coinmwpb.Coin) error {
+	h.executor.Feed(coin)
+	return nil
+}
+
+func (h *handler) persistentCoin(ctx context.Context, coin *types.PersistentCoin) error {
+	logger.Sugar().Infow(
+		"persistentCoin",
+		"Coin", coin,
+		"Error", coin.Error,
+	)
+	return nil
+}
+
 func (h *handler) handler(ctx context.Context) bool {
 	select {
-	case <-h.exec:
+	case coin := <-h.exec:
+		if err := h.execCoin(ctx, coin); err != nil {
+			logger.Sugar().Infow(
+				"handler",
+				"State", "execCoin",
+				"Error", err,
+			)
+		}
+		return false
+	case coin := <-h.persistent:
+		if err := h.persistentCoin(ctx, coin); err != nil {
+			logger.Sugar().Infow(
+				"handler",
+				"State", "persistentCoin",
+				"Error", err,
+			)
+		}
 		return false
 	case <-ctx.Done():
 		logger.Sugar().Infow(

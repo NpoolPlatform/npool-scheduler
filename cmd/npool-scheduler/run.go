@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
 
@@ -32,6 +33,7 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
+		gasfeeder.Finalize()
 		order.Finalize()
 
 		return err
@@ -59,6 +61,7 @@ func shutdown(ctx context.Context) {
 func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
 	order.Initialize(ctx, cancel)
+	gasfeeder.Initialize(ctx, cancel)
 	return nil
 }
 

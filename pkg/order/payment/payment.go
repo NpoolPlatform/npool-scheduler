@@ -18,7 +18,7 @@ type handler struct {
 	persistent chan *types.PersistentOrder
 	notif      chan *types.PersistentOrder
 	execIndex  int
-	exectors   []executor.Executor
+	executors  []executor.Executor
 	w          *watcher.Watcher
 }
 
@@ -37,7 +37,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	const executors = 4
 	for i := 0; i < executors; i++ {
 		pe := executor.NewExecutor(ctx, cancel, h.persistent, h.notif)
-		h.exectors = append(h.exectors, pe)
+		h.executors = append(h.executors, pe)
 	}
 
 	persistent.Initialize(ctx, cancel)
@@ -46,9 +46,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 }
 
 func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
-	h.exectors[h.execIndex].Feed(order)
+	h.executors[h.execIndex].Feed(order)
 	h.execIndex += 1
-	h.execIndex = h.execIndex % len(h.exectors)
+	h.execIndex = h.execIndex % len(h.executors)
 	return nil
 }
 
