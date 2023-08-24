@@ -10,6 +10,8 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+
+	"github.com/google/uuid"
 )
 
 type handler struct {
@@ -43,6 +45,15 @@ func (h *handler) scanCoins(ctx context.Context) error {
 		}
 
 		for _, coin := range coins {
+			if _, err := uuid.Parse(coin.FeeCoinTypeID); err != nil {
+				continue
+			}
+			if coin.FeeCoinTypeID == uuid.Nil.String() {
+				continue
+			}
+			if coin.FeeCoinTypeID == coin.ID {
+				continue
+			}
 			h.exec <- coin
 		}
 
