@@ -234,7 +234,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err := h.resolveNewState(); err != nil {
 		return err
 	}
-	remain, err := h.orderStatePaymentRemain()
+	_, err := h.orderStatePaymentRemain()
 	if err != nil {
 		return err
 	}
