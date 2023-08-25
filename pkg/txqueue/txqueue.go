@@ -9,6 +9,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait"
 )
 
 var locked = false
@@ -38,12 +39,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 
 	locked = true
 	created.Initialize(ctx, cancel)
+	wait.Initialize(ctx, cancel)
 }
 
 func Finalize() {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	wait.Finalize()
 	created.Finalize()
 	if locked {
 		_ = redis2.Unlock(lockKey())

@@ -156,6 +156,7 @@ func (h *txHandler) final(ctx context.Context) {
 		FromAddress:      h.fromAccount.Address,
 		ToAddress:        h.toAccount.Address,
 		Amount:           h.transferAmount.String(),
+		FloatAmount:      h.transferAmount.InexactFloat64(),
 		AccountMemo:      h.memo,
 	}
 	h.persistent <- persistentTx

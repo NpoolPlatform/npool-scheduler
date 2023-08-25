@@ -9,6 +9,7 @@ type PersistentTx struct {
 	TransactionExist bool
 	CoinName         string
 	Amount           string
+	FloatAmount      float64
 	FromAddress      string
 	ToAddress        string
 	AccountMemo      *string
