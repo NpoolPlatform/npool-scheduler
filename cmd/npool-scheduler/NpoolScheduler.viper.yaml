@@ -11,3 +11,4 @@ config:
   subsystems:
     - order
     - gasfeeder
+    - txqueue

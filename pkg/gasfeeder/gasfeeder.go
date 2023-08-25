@@ -30,6 +30,8 @@ type handler struct {
 	persistenter persistent.Persistent
 }
 
+var h *handler
+
 func lockKey() string {
 	return fmt.Sprintf("%v:%v", basetypes.Prefix_PrefixScheduler, subsystem)
 }
@@ -53,7 +55,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 
 	locked = true
 
-	h := &handler{
+	h = &handler{
 		exec:       make(chan *coinmwpb.Coin),
 		persistent: make(chan *types.PersistentCoin),
 		notif:      make(chan *types.PersistentCoin),
@@ -101,17 +103,18 @@ func (h *handler) handler(ctx context.Context) bool {
 			"State", "Done",
 			"Error", ctx.Err(),
 		)
-		h.finalize()
+		close(h.w.ClosedChan())
 		return true
 	case <-h.w.CloseChan():
-		h.finalize()
+		close(h.w.ClosedChan())
 		return true
 	}
 }
 
 func (h *handler) finalize() {
-	close(h.w.CloseChan())
-	close(h.w.ClosedChan())
+	if h.w != nil {
+		h.w.Shutdown()
+	}
 	close(h.persistent)
 	close(h.notif)
 	close(h.exec)
@@ -132,6 +135,9 @@ func Finalize() {
 		return
 	}
 	sentinel.Finalize()
+	if h != nil {
+		h.finalize()
+	}
 	if locked {
 		_ = redis2.Unlock(lockKey())
 	}

@@ -4,24 +4,22 @@ import (
 	"context"
 	"time"
 
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-
-	"github.com/google/uuid"
 )
 
 type handler struct {
 	w    *watcher.Watcher
-	exec chan *coinmwpb.Coin
+	exec chan *txmwpb.Tx
 }
 
 var h *handler
 
-func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *coinmwpb.Coin) {
+func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *txmwpb.Tx) {
 	go action.Watch(ctx, cancel, func(_ctx context.Context) {
 		h = &handler{
 			w:    watcher.NewWatcher(),
@@ -31,30 +29,26 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *coinm
 	})
 }
 
-func (h *handler) scanCoins(ctx context.Context) error {
+func (h *handler) scanTxs(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
-		coins, _, err := coinmwcli.GetCoins(ctx, &coinmwpb.Conds{}, offset, limit)
+		txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{}, offset, limit)
 		if err != nil {
 			return err
 		}
-		if len(coins) == 0 {
+		if len(txs) == 0 {
 			return nil
 		}
 
-		for _, coin := range coins {
-			if _, err := uuid.Parse(coin.FeeCoinTypeID); err != nil {
+		ignores := map[string]struct{}{}
+		for _, tx := range txs {
+			if _, ok := ignores[tx.FromAccountID]; ok {
 				continue
 			}
-			if coin.FeeCoinTypeID == uuid.Nil.String() {
-				continue
-			}
-			if coin.FeeCoinTypeID == coin.ID {
-				continue
-			}
-			h.exec <- coin
+			h.exec <- tx
+			ignores[tx.FromAccountID] = struct{}{}
 		}
 
 		offset += limit
@@ -67,10 +61,10 @@ func (h *handler) handler(ctx context.Context) bool {
 
 	select {
 	case <-ticker.C:
-		if err := h.scanCoins(ctx); err != nil {
+		if err := h.scanTxs(ctx); err != nil {
 			logger.Sugar().Infow(
 				"handler",
-				"State", "scanCoins",
+				"State", "scanTxs",
 				"Error", err,
 			)
 		}
