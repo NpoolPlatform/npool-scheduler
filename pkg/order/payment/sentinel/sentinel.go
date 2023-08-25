@@ -4,35 +4,34 @@ import (
 	"context"
 	"time"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	"github.com/google/uuid"
 )
 
 type handler struct {
-	w    *watcher.Watcher
-	exec chan *ordermwpb.Order
+	basesentinel.Sentinel
 }
 
 var h *handler
 
 func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *ordermwpb.Order) {
-	go action.Watch(ctx, cancel, func(_ctx context.Context) {
-		h = &handler{
-			w:    watcher.NewWatcher(),
-			exec: exec,
-		}
-		h.run(_ctx)
-	})
+	h = &handler{
+		Sentinel: basesentinel.NewSentinel(ctx, cancel, h, time.Minute),
+	}
+	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment); err != nil {
+		logger.Sugar().Errorw(
+			"run",
+			"Error", err,
+		)
+	}
 }
 
 func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
@@ -45,7 +44,7 @@ func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
 			return err
 		}
 	}
-	h.exec <- order
+	h.Exec() <- order
 	return nil
 }
 
@@ -75,52 +74,6 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 	}
 }
 
-func (h *handler) handler(ctx context.Context) bool {
-	const scanInterval = 30 * time.Second
-	ticker := time.NewTicker(scanInterval)
-
-	select {
-	case <-ticker.C:
-		if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment); err != nil {
-			logger.Sugar().Infow(
-				"handler",
-				"State", "scanWaitPayment",
-				"Error", err,
-			)
-		}
-		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Error", ctx.Err(),
-		)
-		close(h.w.ClosedChan())
-		return true
-	case <-h.w.CloseChan():
-		close(h.w.ClosedChan())
-		return true
-	}
-}
-
-func (h *handler) run(ctx context.Context) {
-	// Feed the interrupted check payment
-	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment); err != nil {
-		logger.Sugar().Errorw(
-			"run",
-			"Error", err,
-		)
-		return
-	}
-	for {
-		if b := h.handler(ctx); b {
-			break
-		}
-	}
-}
-
-func Finalize() {
-	if h != nil && h.w != nil {
-		h.w.Shutdown()
-	}
+func (h *handler) Scan(ctx context.Context) error {
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment)
 }

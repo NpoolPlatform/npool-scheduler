@@ -7,18 +7,18 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/sentinel"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/types"
 )
 
 type handler struct {
 	exec       chan *ordermwpb.Order
-	persistent chan *types.PersistentOrder
-	notif      chan *types.PersistentOrder
+	persistent chan interface{}
+	notif      chan interface{}
 	execIndex  int
-	executors  []executor.Executor
+	executors  []baseexecutor.Executor
 	w          *watcher.Watcher
 }
 
@@ -27,8 +27,8 @@ var h *handler
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	h = &handler{
 		exec:       make(chan *ordermwpb.Order),
-		persistent: make(chan *types.PersistentOrder),
-		notif:      make(chan *types.PersistentOrder),
+		persistent: make(chan interface{}),
+		notif:      make(chan interface{}),
 		w:          watcher.NewWatcher(),
 	}
 
@@ -52,20 +52,18 @@ func (h *handler) execOrder(ctx context.Context, order *ordermwpb.Order) error {
 	return nil
 }
 
-func (h *handler) persistentOrder(ctx context.Context, order *types.PersistentOrder) error {
+func (h *handler) persistentOrder(ctx context.Context, order interface{}) error {
 	logger.Sugar().Infow(
 		"persistentOrder",
-		"OrderID", order.ID,
-		"Error", order.Error,
+		"Order", order,
 	)
 	return nil
 }
 
-func (h *handler) notifOrder(ctx context.Context, order *types.PersistentOrder) error {
+func (h *handler) notifOrder(ctx context.Context, order interface{}) error {
 	logger.Sugar().Infow(
 		"notifOrder",
-		"OrderID", order.ID,
-		"Error", order.Error,
+		"Order", order,
 	)
 	return nil
 }
@@ -94,7 +92,7 @@ func (h *handler) handler(ctx context.Context) bool {
 		if err := h.notifOrder(ctx, order); err != nil {
 			logger.Sugar().Infow(
 				"handler",
-				"State", "persistentOrder",
+				"State", "notifOrder",
 				"Error", err,
 			)
 		}

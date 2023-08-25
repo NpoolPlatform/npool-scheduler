@@ -13,6 +13,7 @@ type Executor interface {
 	Finalize()
 	Notif() chan interface{}
 	Persistent() chan interface{}
+	Feeder() chan interface{}
 }
 
 type Exec interface {
@@ -90,4 +91,8 @@ func (e *handler) Persistent() chan interface{} {
 
 func (e *handler) Notif() chan interface{} {
 	return e.notif
+}
+
+func (e *handler) Feeder() chan interface{} {
+	return e.feeder
 }
