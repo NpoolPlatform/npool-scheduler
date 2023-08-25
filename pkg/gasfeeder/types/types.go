@@ -12,6 +12,8 @@ type PersistentCoin struct {
 	ToAccountID   string
 	ToAddress     string
 	Amount        string
+	FeeAmount     string
+	Extra         string
 	UsedFor       basetypes.AccountUsedFor
 	Error         error
 }

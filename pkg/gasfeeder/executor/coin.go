@@ -320,7 +320,9 @@ func (h *coinHandler) final(ctx context.Context, account *accountmwpb.Account, u
 		FromAccountID: h.gasProviderAccount.ID,
 		FromAddress:   h.gasProviderAccount.Address,
 		Amount:        amount.String(),
+		FeeAmount:     decimal.NewFromInt(0).String(),
 		UsedFor:       usedFor,
+		Extra:         fmt.Sprintf(`{"Coin":"%v","FeeCoin":"%v","Type":"%v"}`, h.Name, h.feeCoin.Name, usedFor),
 		Error:         err,
 	}
 	if account != nil {

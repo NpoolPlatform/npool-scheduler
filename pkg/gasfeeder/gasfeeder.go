@@ -12,6 +12,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/sentinel"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 )
@@ -21,11 +22,12 @@ var locked = false
 const subsystem = "gasfeeder"
 
 type handler struct {
-	exec       chan *coinmwpb.Coin
-	persistent chan *types.PersistentCoin
-	notif      chan *types.PersistentCoin
-	w          *watcher.Watcher
-	executor   executor.Executor
+	exec         chan *coinmwpb.Coin
+	persistent   chan *types.PersistentCoin
+	notif        chan *types.PersistentCoin
+	w            *watcher.Watcher
+	executor     executor.Executor
+	persistenter persistent.Persistent
 }
 
 func lockKey() string {
@@ -54,10 +56,12 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	h := &handler{
 		exec:       make(chan *coinmwpb.Coin),
 		persistent: make(chan *types.PersistentCoin),
+		notif:      make(chan *types.PersistentCoin),
 		w:          watcher.NewWatcher(),
 	}
 	sentinel.Initialize(ctx, cancel, h.exec)
 	h.executor = executor.NewExecutor(ctx, cancel, h.persistent, h.notif)
+	h.persistenter = persistent.NewPersistent(ctx, cancel)
 	go action.Watch(ctx, cancel, h.run)
 }
 
@@ -67,11 +71,7 @@ func (h *handler) execCoin(ctx context.Context, coin *coinmwpb.Coin) error {
 }
 
 func (h *handler) persistentCoin(ctx context.Context, coin *types.PersistentCoin) error {
-	logger.Sugar().Infow(
-		"persistentCoin",
-		"Coin", coin,
-		"Error", coin.Error,
-	)
+	h.persistenter.Feed(coin)
 	return nil
 }
 
@@ -101,12 +101,22 @@ func (h *handler) handler(ctx context.Context) bool {
 			"State", "Done",
 			"Error", ctx.Err(),
 		)
-		close(h.w.ClosedChan())
+		h.finalize()
 		return true
 	case <-h.w.CloseChan():
-		close(h.w.ClosedChan())
+		h.finalize()
 		return true
 	}
+}
+
+func (h *handler) finalize() {
+	close(h.w.CloseChan())
+	close(h.w.ClosedChan())
+	close(h.persistent)
+	close(h.notif)
+	close(h.exec)
+	h.executor.Finalize()
+	h.persistenter.Finalize()
 }
 
 func (h *handler) run(ctx context.Context) {
