@@ -2,84 +2,29 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/action"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
+	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
-type Executor interface {
-	Feed(*txmwpb.Tx)
-	Finalize()
+type handler struct {
+	baseexecutor.Executor
 }
 
-type exec struct {
-	persistent chan *types.PersistentTx
-	feeder     chan *txmwpb.Tx
-	w          *watcher.Watcher
+func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}) baseexecutor.Executor {
+	h := &handler{}
+	return baseexecutor.NewExecutor(ctx, cancel, persistent, notif, h)
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent chan *types.PersistentTx) Executor {
-	e := &exec{
-		feeder:     make(chan *txmwpb.Tx),
-		persistent: persistent,
-		w:          watcher.NewWatcher(),
+func (e *handler) Exec(ctx context.Context, tx interface{}) error {
+	_tx, ok := tx.(*txmwpb.Tx)
+	if !ok {
+		return fmt.Errorf("invalid tx")
 	}
-
-	go action.Watch(ctx, cancel, e.run)
-	return e
-}
-
-func (e *exec) execTx(ctx context.Context, tx *txmwpb.Tx) error {
 	h := &txHandler{
-		Tx:         tx,
-		persistent: e.persistent,
+		Tx:         _tx,
+		persistent: e.Persistent(),
 	}
 	return h.exec(ctx)
-}
-
-func (e *exec) handler(ctx context.Context) bool {
-	select {
-	case tx := <-e.feeder:
-		if err := e.execTx(ctx, tx); err != nil {
-			logger.Sugar().Infow(
-				"handler",
-				"State", "execTx",
-				"Error", err,
-			)
-		}
-		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Error", ctx.Err(),
-		)
-		close(e.w.ClosedChan())
-		return true
-	case <-e.w.CloseChan():
-		close(e.w.ClosedChan())
-		return true
-	}
-}
-
-func (e *exec) run(ctx context.Context) {
-	for {
-		if b := e.handler(ctx); b {
-			break
-		}
-	}
-}
-
-func (e *exec) Finalize() {
-	if e != nil && e.w != nil {
-		e.w.Shutdown()
-		close(e.feeder)
-	}
-}
-
-func (e *exec) Feed(tx *txmwpb.Tx) {
-	e.feeder <- tx
 }

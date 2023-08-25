@@ -8,18 +8,23 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 )
 
-type Persistenter interface {
-	Persistent(context.Context, interface{}) error
+type Persistent interface {
+	Feed(interface{})
+	Finalize()
 }
 
-type Persistent struct {
+type Persistenter interface {
+	Update(context.Context, interface{}) error
+}
+
+type handler struct {
 	feeder       chan interface{}
 	w            *watcher.Watcher
 	persistenter Persistenter
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter Persistenter) *Persistent {
-	p := &Persistent{
+func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter Persistenter) Persistent {
+	p := &handler{
 		feeder:       make(chan interface{}),
 		w:            watcher.NewWatcher(),
 		persistenter: persistenter,
@@ -29,13 +34,13 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter 
 	return p
 }
 
-func (p *Persistent) handler(ctx context.Context) bool {
+func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.persistenter.Persistent(ctx, ent); err != nil {
+		if err := p.persistenter.Update(ctx, ent); err != nil {
 			logger.Sugar().Infow(
 				"handler",
-				"State", "Persistent",
+				"State", "Update",
 				"Error", err,
 			)
 		}
@@ -54,7 +59,7 @@ func (p *Persistent) handler(ctx context.Context) bool {
 	}
 }
 
-func (p *Persistent) run(ctx context.Context) {
+func (p *handler) run(ctx context.Context) {
 	for {
 		if b := p.handler(ctx); b {
 			break
@@ -62,13 +67,13 @@ func (p *Persistent) run(ctx context.Context) {
 	}
 }
 
-func (p *Persistent) Finalize() {
+func (p *handler) Finalize() {
 	if p != nil && p.w != nil {
 		p.w.Shutdown()
 		close(p.feeder)
 	}
 }
 
-func (p *Persistent) Feed(ent interface{}) {
+func (p *handler) Feed(ent interface{}) {
 	p.feeder <- ent
 }

@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
@@ -14,7 +13,7 @@ import (
 )
 
 type handler struct {
-	*basesentinel.Sentinel
+	basesentinel.Sentinel
 }
 
 var h *handler

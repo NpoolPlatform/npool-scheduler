@@ -8,18 +8,23 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 )
 
+type Notif interface {
+	Feed(interface{})
+	Finalize()
+}
+
 type Notify interface {
 	Notify(context.Context, interface{}) error
 }
 
-type Notif struct {
+type handler struct {
 	feeder chan interface{}
 	w      *watcher.Watcher
 	notify Notify
 }
 
-func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify) *Notif {
-	p := &Notif{
+func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify) Notif {
+	p := &handler{
 		feeder: make(chan interface{}),
 		w:      watcher.NewWatcher(),
 		notify: notify,
@@ -29,7 +34,7 @@ func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify) *No
 	return p
 }
 
-func (p *Notif) handler(ctx context.Context) bool {
+func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
 		if err := p.notify.Notify(ctx, ent); err != nil {
@@ -54,7 +59,7 @@ func (p *Notif) handler(ctx context.Context) bool {
 	}
 }
 
-func (p *Notif) run(ctx context.Context) {
+func (p *handler) run(ctx context.Context) {
 	for {
 		if b := p.handler(ctx); b {
 			break
@@ -62,13 +67,13 @@ func (p *Notif) run(ctx context.Context) {
 	}
 }
 
-func (p *Notif) Finalize() {
+func (p *handler) Finalize() {
 	if p != nil && p.w != nil {
 		p.w.Shutdown()
 		close(p.feeder)
 	}
 }
 
-func (p *Notif) Feed(ent interface{}) {
+func (p *handler) Feed(ent interface{}) {
 	p.feeder <- ent
 }
