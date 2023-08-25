@@ -10,7 +10,7 @@ import (
 )
 
 type Scanner interface {
-	Scan(context.Context, chan interface{}) error
+	Scan(context.Context) error
 }
 
 type Sentinel struct {
@@ -22,9 +22,10 @@ type Sentinel struct {
 
 func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner, scanInterval time.Duration) *Sentinel {
 	h := &Sentinel{
-		w:       watcher.NewWatcher(),
-		exec:    make(chan interface{}),
-		scanner: scanner,
+		w:            watcher.NewWatcher(),
+		exec:         make(chan interface{}),
+		scanner:      scanner,
+		scanInterval: scanInterval,
 	}
 	go action.Watch(ctx, cancel, h.run)
 	return h
@@ -36,7 +37,7 @@ func (h *Sentinel) Exec() chan interface{} {
 func (h *Sentinel) handler(ctx context.Context) bool {
 	select {
 	case <-time.After(h.scanInterval):
-		if err := h.scanner.Scan(ctx, h.exec); err != nil {
+		if err := h.scanner.Scan(ctx); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Scan",

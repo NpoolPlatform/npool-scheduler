@@ -39,7 +39,7 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) getGood(ctx context.Context) error {
-	if h.timeout() || h.cancelled() {
+	if h.timeout() || h.canceled() {
 		return nil
 	}
 
@@ -76,12 +76,12 @@ func (h *orderHandler) timeout() bool {
 	return h.CreatedAt+timeoutSeconds < uint32(time.Now().Unix())
 }
 
-func (h *orderHandler) cancelled() bool {
-	return h.UserSetCancelled
+func (h *orderHandler) canceled() bool {
+	return h.UserSetCanceled
 }
 
 func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
-	if !h.onlinePayment() || h.timeout() || h.cancelled() {
+	if !h.onlinePayment() || h.timeout() || h.canceled() {
 		return nil
 	}
 
@@ -100,7 +100,7 @@ func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.cancelled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
 		return nil
 	}
 
@@ -122,7 +122,7 @@ func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.cancelled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
 		return nil
 	}
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -168,7 +168,7 @@ func (h *orderHandler) orderStatePaymentRemain() (decimal.Decimal, error) {
 	if h.paymentAccountBalance.Cmp(startAmount) < 0 {
 		return decimal.NewFromInt(0), fmt.Errorf("invalid balance")
 	}
-	if h.cancelled() || h.timeout() {
+	if h.canceled() || h.timeout() {
 		return h.paymentAccountBalance.Sub(startAmount), nil
 	}
 	if h.newOrderState == ordertypes.OrderState_OrderStatePaid {
@@ -178,9 +178,9 @@ func (h *orderHandler) orderStatePaymentRemain() (decimal.Decimal, error) {
 }
 
 func (h *orderHandler) resolveNewState() error {
-	if h.cancelled() {
-		h.newOrderState = ordertypes.OrderState_OrderStateCancelled
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateCancelled
+	if h.canceled() {
+		h.newOrderState = ordertypes.OrderState_OrderStateCanceled
+		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
 		return nil
 	}
 	if h.timeout() {

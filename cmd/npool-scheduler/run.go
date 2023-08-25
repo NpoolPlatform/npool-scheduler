@@ -10,6 +10,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	"github.com/NpoolPlatform/npool-scheduler/api"
@@ -33,6 +34,7 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
+		txqueue.Finalize()
 		gasfeeder.Finalize()
 		order.Finalize()
 
@@ -62,6 +64,7 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
 	order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
+	txqueue.Initialize(ctx, cancel)
 	return nil
 }
 
