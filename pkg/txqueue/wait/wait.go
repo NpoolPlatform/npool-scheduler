@@ -1,4 +1,4 @@
-package created
+package wait
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/sentinel"
 )
 
 type handler struct {

@@ -22,11 +22,11 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	h = &handler{
 		Sentinel: basesentinel.NewSentinel(ctx, cancel, h, time.Minute),
 	}
-	h.scanTxs(ctx, basetypes.TxState_TxStateCreatedCheck)
+	h.scanTxs(ctx, basetypes.TxState_TxStateWaitCheck)
 }
 
 func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx) error {
-	state := basetypes.TxState_TxStateCreatedCheck
+	state := basetypes.TxState_TxStateWaitCheck
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:    &tx.ID,
 		State: &state,
@@ -68,7 +68,7 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState) error {
 }
 
 func (h *handler) Scan(ctx context.Context) error {
-	return h.scanTxs(ctx, basetypes.TxState_TxStateCreated)
+	return h.scanTxs(ctx, basetypes.TxState_TxStateWait)
 }
 
 func Exec() chan interface{} {
