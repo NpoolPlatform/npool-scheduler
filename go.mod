@@ -6,11 +6,11 @@ require (
 	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/account-middleware v0.0.0-20230817045736-db255e871a3c
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20230518061816-62bd589c0f63
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20230712041523-2e1d215244e0
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20230825051420-8b0fe024643d
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230824050454-a216e2356a9c
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20230822060122-512da6e5c8bf
-	github.com/NpoolPlatform/message v0.0.0-20230825030126-ab36f269e14c
+	github.com/NpoolPlatform/message v0.0.0-20230825050903-57a538d7aeea
 	github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230817033627-aaca162bd40e
 	github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f
