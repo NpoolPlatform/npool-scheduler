@@ -30,8 +30,8 @@ import (
 
 type coinHandler struct {
 	*coinmwpb.Coin
-	persistent         chan *types.PersistentCoin
-	notif              chan *types.PersistentCoin
+	persistent         chan interface{}
+	notif              chan interface{}
 	gasProviderAccount *accountmwpb.Account
 	feeCoin            *coinmwpb.Coin
 	persistentCoin     *types.PersistentCoin

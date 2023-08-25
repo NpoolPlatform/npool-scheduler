@@ -9,12 +9,12 @@ import (
 	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
+	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/sentinel"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 )
 
 var locked = false
@@ -22,12 +22,11 @@ var locked = false
 const subsystem = "gasfeeder"
 
 type handler struct {
-	exec         chan *coinmwpb.Coin
-	persistent   chan *types.PersistentCoin
-	notif        chan *types.PersistentCoin
+	persistent   chan interface{}
+	notif        chan interface{}
 	w            *watcher.Watcher
-	executor     executor.Executor
-	persistenter persistent.Persistent
+	executor     baseexecutor.Executor
+	persistenter basepersistent.Persistent
 }
 
 var h *handler
@@ -56,30 +55,29 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	locked = true
 
 	h = &handler{
-		exec:       make(chan *coinmwpb.Coin),
-		persistent: make(chan *types.PersistentCoin),
-		notif:      make(chan *types.PersistentCoin),
+		persistent: make(chan interface{}),
+		notif:      make(chan interface{}),
 		w:          watcher.NewWatcher(),
 	}
-	sentinel.Initialize(ctx, cancel, h.exec)
+	sentinel.Initialize(ctx, cancel)
 	h.executor = executor.NewExecutor(ctx, cancel, h.persistent, h.notif)
 	h.persistenter = persistent.NewPersistent(ctx, cancel)
 	go action.Watch(ctx, cancel, h.run)
 }
 
-func (h *handler) execCoin(ctx context.Context, coin *coinmwpb.Coin) error {
+func (h *handler) execCoin(ctx context.Context, coin interface{}) error {
 	h.executor.Feed(coin)
 	return nil
 }
 
-func (h *handler) persistentCoin(ctx context.Context, coin *types.PersistentCoin) error {
+func (h *handler) persistentCoin(ctx context.Context, coin interface{}) error {
 	h.persistenter.Feed(coin)
 	return nil
 }
 
 func (h *handler) handler(ctx context.Context) bool {
 	select {
-	case coin := <-h.exec:
+	case coin := <-sentinel.Exec():
 		if err := h.execCoin(ctx, coin); err != nil {
 			logger.Sugar().Infow(
 				"handler",
@@ -117,7 +115,6 @@ func (h *handler) finalize() {
 	}
 	close(h.persistent)
 	close(h.notif)
-	close(h.exec)
 	h.executor.Finalize()
 	h.persistenter.Finalize()
 }
