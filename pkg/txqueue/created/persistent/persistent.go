@@ -8,6 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
+	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
@@ -28,6 +29,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interfa
 		ID:    &_tx.ID,
 		State: &state,
 	}); err != nil {
+		retry1.Retry(ctx, _tx, retry)
 		return err
 	}
 	return nil

@@ -3,13 +3,13 @@ package persistent
 import (
 	"context"
 	"fmt"
-	"time"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
+	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 )
@@ -18,17 +18,6 @@ type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
-}
-
-func (p *handler) retry(ctx context.Context, tx *types.PersistentTx, retry chan interface{}) {
-	go func() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Minute):
-			retry <- tx
-		}
-	}()
 }
 
 func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interface{}) error {
@@ -46,7 +35,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interfa
 			Memo:          _tx.AccountMemo,
 			To:            _tx.ToAddress,
 		}); err != nil {
-			p.retry(ctx, _tx, retry)
+			retry1.Retry(ctx, _tx, retry)
 			return err
 		}
 	}
@@ -58,7 +47,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interfa
 		ID:    &_tx.ID,
 		State: &state,
 	}); err != nil {
-		p.retry(ctx, _tx, retry)
+		retry1.Retry(ctx, _tx, retry)
 		return err
 	}
 
