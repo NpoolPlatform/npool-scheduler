@@ -54,7 +54,7 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
-func (h *txHandler) final(ctx context.Context) {
+func (h *txHandler) final() {
 	if h.newState == h.State {
 		return
 	}
@@ -71,7 +71,7 @@ func (h *txHandler) final(ctx context.Context) {
 func (h *txHandler) exec(ctx context.Context) error {
 	h.newState = h.State
 
-	defer h.final(ctx)
+	defer h.final()
 
 	if err := h.checkTransfer(ctx); err != nil {
 		return err
