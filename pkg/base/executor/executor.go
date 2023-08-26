@@ -17,7 +17,7 @@ type Executor interface {
 }
 
 type Exec interface {
-	Exec(context.Context, interface{}) error
+	Exec(context.Context, interface{}, chan interface{}, chan interface{}) error
 }
 
 type handler struct {
@@ -44,7 +44,7 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 func (e *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-e.feeder:
-		if err := e.exec.Exec(ctx, ent); err != nil {
+		if err := e.exec.Exec(ctx, ent, e.persistent, e.notif); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Exec",

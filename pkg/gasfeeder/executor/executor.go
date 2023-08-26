@@ -8,16 +8,13 @@ import (
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
-type handler struct {
-	baseexecutor.Executor
+type handler struct{}
+
+func NewExecutor() baseexecutor.Exec {
+	return &handler{}
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}) baseexecutor.Executor {
-	h := &handler{}
-	return baseexecutor.NewExecutor(ctx, cancel, persistent, notif, h)
-}
-
-func (e *handler) Exec(ctx context.Context, coin interface{}) error {
+func (e *handler) Exec(ctx context.Context, coin interface{}, persistent, notif chan interface{}) error {
 	_coin, ok := coin.(*coinmwpb.Coin)
 	if !ok {
 		return fmt.Errorf("invalid coin")
@@ -25,8 +22,8 @@ func (e *handler) Exec(ctx context.Context, coin interface{}) error {
 
 	h := &coinHandler{
 		Coin:       _coin,
-		persistent: e.Persistent(),
-		notif:      e.Notif(),
+		persistent: persistent,
+		notif:      notif,
 	}
 	return h.exec(ctx)
 }

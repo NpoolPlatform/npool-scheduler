@@ -15,7 +15,7 @@ type Sentinel interface {
 }
 
 type Scanner interface {
-	Scan(context.Context) error
+	Scan(context.Context, chan interface{}) error
 }
 
 type handler struct {
@@ -42,7 +42,7 @@ func (h *handler) Exec() chan interface{} {
 func (h *handler) handler(ctx context.Context) bool {
 	select {
 	case <-time.After(h.scanInterval):
-		if err := h.scanner.Scan(ctx); err != nil {
+		if err := h.scanner.Scan(ctx, h.exec); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Scan",

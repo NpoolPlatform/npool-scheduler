@@ -11,10 +11,14 @@ import (
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 )
 
-type handler struct{}
+type handler struct {
+	basepersistent.Persistent
+}
 
-func NewPersistent() basepersistent.Persistenter {
-	return &handler{}
+func NewPersistent(ctx context.Context, cancel context.CancelFunc) basepersistent.Persistent {
+	p := &handler{}
+	p.Persistent = basepersistent.NewPersistent(ctx, cancel, p)
+	return p
 }
 
 func (p *handler) Update(ctx context.Context, coin interface{}) error {

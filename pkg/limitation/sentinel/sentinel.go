@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"time"
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
@@ -11,13 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type handler struct{}
-
-func NewSentinel() basesentinel.Scanner {
-	return &handler{}
+type handler struct {
+	basesentinel.Sentinel
 }
 
-func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+var h *handler
+
+func Initialize(ctx context.Context, cancel context.CancelFunc) {
+	h = &handler{
+		Sentinel: basesentinel.NewSentinel(ctx, cancel, h, time.Minute),
+	}
+}
+
+func (h *handler) Scan(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -40,9 +47,19 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 			if coin.FeeCoinTypeID == coin.ID {
 				continue
 			}
-			exec <- coin
+			h.Exec() <- coin
 		}
 
 		offset += limit
+	}
+}
+
+func Exec() chan interface{} {
+	return h.Exec()
+}
+
+func Finalize() {
+	if h != nil {
+		h.Finalize()
 	}
 }

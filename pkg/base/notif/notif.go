@@ -37,6 +37,9 @@ func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify) Not
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
+		if p.notify == nil {
+			return false
+		}
 		if err := p.notify.Notify(ctx, ent); err != nil {
 			logger.Sugar().Infow(
 				"handler",
