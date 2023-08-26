@@ -1,0 +1,140 @@
+package executor
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	depositaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
+	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
+	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
+
+	"github.com/shopspring/decimal"
+)
+
+type accountHandler struct {
+	*depositaccmwpb.Account
+	persistent chan interface{}
+	notif      chan interface{}
+	incoming   decimal.Decimal
+	outcoming  decimal.Decimal
+	amount     decimal.Decimal
+	coin       *coinmwpb.Coin
+	extra      string
+}
+
+func (h *accountHandler) getCoin(ctx context.Context) error {
+	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid coin")
+	}
+	h.coin = coin
+	return nil
+}
+
+func (h *accountHandler) recheckAccountLock(ctx context.Context) (bool, error) {
+	account, err := depositaccmwcli.GetAccount(ctx, h.ID)
+	if err != nil {
+		return false, err
+	}
+	if account == nil {
+		return false, fmt.Errorf("invalid account")
+	}
+	return account.Locked, nil
+}
+
+func (h *accountHandler) checkBalance(ctx context.Context) error {
+	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    h.coin.Name,
+		Address: h.Address,
+	})
+	if err != nil {
+		return err
+	}
+	if bal == nil {
+		return fmt.Errorf("invalid balance")
+	}
+
+	balance, err := decimal.NewFromString(bal.BalanceStr)
+	if err != nil {
+		return err
+	}
+	if balance.Cmp(h.incoming.Sub(h.outcoming)) <= 0 {
+		return nil
+	}
+	h.amount = balance.Sub(h.incoming.Sub(h.outcoming))
+	return nil
+}
+
+func (h *accountHandler) final(ctx context.Context, err *error) {
+	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		return
+	}
+
+	ioExtra := fmt.Sprintf(
+		`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
+		h.AppID,
+		h.UserID,
+		h.AccountID,
+		h.coin.Name,
+		h.Address,
+		time.Now(),
+	)
+	persistentAccount := &types.PersistentAccount{
+		Account:       h.Account,
+		DepositAmount: h.amount.String(),
+		Extra:         ioExtra,
+		Error:         *err,
+	}
+
+	if *err == nil {
+		h.persistent <- persistentAccount
+	} else {
+		h.notif <- persistentAccount
+	}
+}
+
+func (h *accountHandler) exec(ctx context.Context) error {
+	if h.Locked {
+		return nil
+	}
+
+	var err error
+	var locked bool
+
+	h.incoming, err = decimal.NewFromString(h.Incoming)
+	if err != nil {
+		return err
+	}
+	h.outcoming, err = decimal.NewFromString(h.Outcoming)
+	if err != nil {
+		return err
+	}
+
+	defer h.final(ctx, &err)
+
+	if err = h.getCoin(ctx); err != nil {
+		return err
+	}
+	if err = accountlock.Lock(h.AccountID); err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(h.AccountID)
+	}()
+	if locked, err = h.recheckAccountLock(ctx); err != nil || locked {
+		return err
+	}
+	if err = h.checkBalance(ctx); err != nil {
+		return err
+	}
+	return nil
+}

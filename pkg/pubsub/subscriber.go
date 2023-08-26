@@ -10,6 +10,8 @@ import (
 
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 
+	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
+
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	"github.com/google/uuid"
@@ -49,6 +51,8 @@ func finish(ctx context.Context, msg *pubsub.Msg, err error) error {
 //nolint
 func prepare(mid, body string) (req interface{}, err error) {
 	switch mid {
+	case basetypes.MsgID_DepositReceivedReq.String():
+		req, err = depositnotif.Prepare(body)
 	default:
 		return nil, nil
 	}
@@ -107,6 +111,8 @@ func statReq(ctx context.Context, mid string, uid uuid.UUID) (bool, error) { //n
 //   error   error message
 func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bool, error) { //nolint
 	switch mid { //nolint
+	case basetypes.MsgID_DepositReceivedReq.String():
+		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
 	}
@@ -138,6 +144,8 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 	}()
 
 	switch mid {
+	case basetypes.MsgID_DepositReceivedReq.String():
+		err = depositnotif.Apply(ctx, req)
 	default:
 		return nil
 	}
