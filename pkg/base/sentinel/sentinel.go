@@ -24,14 +24,16 @@ type handler struct {
 	exec         chan interface{}
 	scanner      Scanner
 	scanInterval time.Duration
+	subsystem    string
 }
 
-func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner, scanInterval time.Duration) Sentinel {
+func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner, scanInterval time.Duration, subsystem string) Sentinel {
 	h := &handler{
 		w:            watcher.NewWatcher(),
 		exec:         make(chan interface{}),
 		scanner:      scanner,
 		scanInterval: scanInterval,
+		subsystem:    subsystem,
 	}
 	go action.Watch(ctx, cancel, h.run)
 	scanner.InitScan(ctx, h.exec)
@@ -48,6 +50,7 @@ func (h *handler) handler(ctx context.Context) bool {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Scan",
+				"Subsystem", h.subsystem,
 				"Error", err,
 			)
 		}
@@ -56,6 +59,7 @@ func (h *handler) handler(ctx context.Context) bool {
 		logger.Sugar().Infow(
 			"handler",
 			"State", "Done",
+			"Subsystem", h.subsystem,
 			"Error", ctx.Err(),
 		)
 		close(h.w.ClosedChan())

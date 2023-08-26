@@ -26,15 +26,17 @@ type handler struct {
 	feeder     chan interface{}
 	exec       Exec
 	w          *watcher.Watcher
+	subsystem  string
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}, exec Exec) Executor {
+func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}, exec Exec, subsystem string) Executor {
 	e := &handler{
 		feeder:     make(chan interface{}),
 		persistent: persistent,
 		notif:      notif,
 		w:          watcher.NewWatcher(),
 		exec:       exec,
+		subsystem:  subsystem,
 	}
 
 	go action.Watch(ctx, cancel, e.run)
@@ -48,6 +50,7 @@ func (e *handler) handler(ctx context.Context) bool {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Exec",
+				"Subsystem", e.subsystem,
 				"Error", err,
 			)
 		}
@@ -56,6 +59,7 @@ func (e *handler) handler(ctx context.Context) bool {
 		logger.Sugar().Infow(
 			"handler",
 			"State", "Done",
+			"Subsystem", e.subsystem,
 			"Error", ctx.Err(),
 		)
 		close(e.w.ClosedChan())

@@ -33,6 +33,7 @@ func (p *handler) Update(ctx context.Context, coin interface{}, retry chan inter
 		Extra:         &_coin.Extra,
 		Type:          &txType,
 	}); err != nil {
+		fmt.Printf("tx - %v - %v\n", _coin, err)
 		return err
 	}
 	return nil

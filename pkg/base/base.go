@@ -53,12 +53,12 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	h.persistent = make(chan interface{})
 	h.notif = make(chan interface{})
 
-	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval)
+	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval, h.subsystem)
 	for i := 0; i < h.executorNumber; i++ {
-		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer))
+		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer, h.subsystem))
 	}
-	h.persistenter = persistent.NewPersistent(ctx, cancel, h.persistentor)
-	h.notifier = notif.NewNotif(ctx, cancel, h.notify)
+	h.persistenter = persistent.NewPersistent(ctx, cancel, h.persistentor, h.subsystem)
+	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)
 
 	h.w = watcher.NewWatcher()
 
@@ -146,6 +146,7 @@ func (h *Handler) handler(ctx context.Context) bool {
 		logger.Sugar().Infow(
 			"handler",
 			"State", "Done",
+			"Subsystem", h.subsystem,
 			"Error", ctx.Err(),
 		)
 		close(h.w.ClosedChan())

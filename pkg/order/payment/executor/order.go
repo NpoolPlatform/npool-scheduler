@@ -204,7 +204,7 @@ func (h *orderHandler) resolveNewState() error {
 	return nil
 }
 
-func (h *orderHandler) final(ctx context.Context, err error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	// Update order state
 	// Move good stock from lock to
 	// Change lock state of payment account
@@ -218,11 +218,11 @@ func (h *orderHandler) final(ctx context.Context, err error) {
 		PaymentBalance:  h.paymentAccountBalance,
 		NewOrderState:   h.newOrderState,
 		NewPaymentState: h.newPaymentState,
-		Error:           err,
+		Error:           *err,
 	}
 
 	h.notifOrder <- persistentOrder
-	if h.newOrderState != h.OrderState && err == nil {
+	if h.newOrderState != h.OrderState && *err == nil {
 		h.persistentOrder <- persistentOrder
 		return
 	}
@@ -242,7 +242,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	h.newPaymentState = h.PaymentState
 
 	var err error
-	defer h.final(ctx, err)
+	defer h.final(ctx, &err)
 
 	if err = h.getGood(ctx); err != nil {
 		return err

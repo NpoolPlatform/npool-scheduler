@@ -18,16 +18,18 @@ type Notify interface {
 }
 
 type handler struct {
-	feeder chan interface{}
-	w      *watcher.Watcher
-	notify Notify
+	feeder    chan interface{}
+	w         *watcher.Watcher
+	notify    Notify
+	subsystem string
 }
 
-func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify) Notif {
+func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify, subsystem string) Notif {
 	p := &handler{
-		feeder: make(chan interface{}),
-		w:      watcher.NewWatcher(),
-		notify: notify,
+		feeder:    make(chan interface{}),
+		w:         watcher.NewWatcher(),
+		notify:    notify,
+		subsystem: subsystem,
 	}
 
 	go action.Watch(ctx, cancel, p.run)
@@ -44,6 +46,7 @@ func (p *handler) handler(ctx context.Context) bool {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Notify",
+				"Subsystem", p.subsystem,
 				"Error", err,
 			)
 		}
@@ -52,6 +55,7 @@ func (p *handler) handler(ctx context.Context) bool {
 		logger.Sugar().Infow(
 			"handler",
 			"State", "Done",
+			"Subsystem", p.subsystem,
 			"Error", ctx.Err(),
 		)
 		close(p.w.ClosedChan())

@@ -314,24 +314,24 @@ func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.
 	return false, nil, decimal.NewFromInt(0), nil
 }
 
-func (h *coinHandler) final(ctx context.Context, account *accountmwpb.Account, usedFor basetypes.AccountUsedFor, amount decimal.Decimal, err error) {
+func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
 	persistentCoin := &types.PersistentCoin{
 		Coin:          h.Coin,
 		FromAccountID: h.gasProviderAccount.ID,
 		FromAddress:   h.gasProviderAccount.Address,
 		Amount:        amount.String(),
 		FeeAmount:     decimal.NewFromInt(0).String(),
-		UsedFor:       usedFor,
-		Extra:         fmt.Sprintf(`{"Coin":"%v","FeeCoin":"%v","Type":"%v"}`, h.Name, h.feeCoin.Name, usedFor),
-		Error:         err,
+		UsedFor:       *usedFor,
+		Extra:         fmt.Sprintf(`{"Coin":"%v","FeeCoin":"%v","Type":"%v"}`, h.Name, h.feeCoin.Name, *usedFor),
+		Error:         *err,
 	}
-	if account != nil {
-		persistentCoin.ToAccountID = account.ID
-		persistentCoin.ToAddress = account.Address
+	if *account != nil {
+		persistentCoin.ToAccountID = (*account).ID
+		persistentCoin.ToAddress = (*account).Address
 	}
 
 	h.notif <- persistentCoin
-	if err == nil {
+	if *err == nil {
 		h.persistent <- persistentCoin
 	}
 }
@@ -353,7 +353,7 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	var feedable bool
 	var usedFor basetypes.AccountUsedFor
 
-	defer h.final(ctx, account, usedFor, amount, err)
+	defer h.final(ctx, &account, &usedFor, &amount, &err)
 
 	if feedable, account, amount, err = h.checkUserBenefitHot(ctx); err != nil || feedable {
 		usedFor = basetypes.AccountUsedFor_UserBenefitHot

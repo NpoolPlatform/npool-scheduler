@@ -21,13 +21,15 @@ type handler struct {
 	feeder       chan interface{}
 	w            *watcher.Watcher
 	persistenter Persistenter
+	subsystem    string
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter Persistenter) Persistent {
+func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter Persistenter, subsystem string) Persistent {
 	p := &handler{
 		feeder:       make(chan interface{}),
 		w:            watcher.NewWatcher(),
 		persistenter: persistenter,
+		subsystem:    subsystem,
 	}
 
 	go action.Watch(ctx, cancel, p.run)
@@ -41,6 +43,7 @@ func (p *handler) handler(ctx context.Context) bool {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Update",
+				"Subsystem", p.subsystem,
 				"Error", err,
 			)
 		}
@@ -49,6 +52,7 @@ func (p *handler) handler(ctx context.Context) bool {
 		logger.Sugar().Infow(
 			"handler",
 			"State", "Done",
+			"Subsystem", p.subsystem,
 			"Error", ctx.Err(),
 		)
 		close(p.w.ClosedChan())
