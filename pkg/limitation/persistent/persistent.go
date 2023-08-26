@@ -22,5 +22,18 @@ func (p *handler) Update(ctx context.Context, coin interface{}, retry chan inter
 	if !ok {
 		return fmt.Errorf("invalid coin")
 	}
+
+	txType := basetypes.TxType_TxLimitation
+	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
+		CoinTypeID:    &_coin.ID,
+		FromAccountID: &_coin.FromAccountID,
+		ToAccountID:   &_coin.ToAccountID,
+		Amount:        &_coin.Amount,
+		FeeAmount:     &_coin.FeeAmount,
+		Type:          &txType,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
