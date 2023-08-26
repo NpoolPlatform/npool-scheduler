@@ -46,3 +46,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		offset += limit
 	}
 }
+
+func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
+	return nil
+}

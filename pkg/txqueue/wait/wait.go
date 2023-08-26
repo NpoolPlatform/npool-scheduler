@@ -2,98 +2,44 @@ package wait
 
 import (
 	"context"
+	"time"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
-	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
-	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/sentinel"
 )
 
-type handler struct {
-	persistent   chan interface{}
-	notif        chan interface{}
-	executor     baseexecutor.Executor
-	persistenter basepersistent.Persistent
-	w            *watcher.Watcher
-}
+const subsystem = "txqueuewait"
 
-var h *handler
+var h *base.Handler
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
-	h = &handler{
-		persistent: make(chan interface{}),
-		notif:      make(chan interface{}),
-		w:          watcher.NewWatcher(),
-	}
-
-	sentinel.Initialize(ctx, cancel)
-	h.executor = executor.NewExecutor(ctx, cancel, h.persistent, h.notif)
-	h.persistenter = persistent.NewPersistent(ctx, cancel)
-
-	go action.Watch(ctx, cancel, h.run)
-}
-
-func (h *handler) execTx(ctx context.Context, tx interface{}) error {
-	h.executor.Feed(tx)
-	return nil
-}
-
-func (h *handler) persistentTx(ctx context.Context, tx interface{}) error {
-	h.persistenter.Feed(tx)
-	return nil
-}
-
-func (h *handler) handler(ctx context.Context) bool {
-	select {
-	case tx := <-sentinel.Exec():
-		if err := h.execTx(ctx, tx); err != nil {
-			logger.Sugar().Infow(
-				"handler",
-				"State", "execTx",
-				"Error", err,
-			)
-		}
-		return false
-	case tx := <-h.persistent:
-		if err := h.persistentTx(ctx, tx); err != nil {
-			logger.Sugar().Infow(
-				"handler",
-				"State", "persistentTx",
-				"Error", err,
-			)
-		}
-		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Error", ctx.Err(),
+	_h, err := base.NewHandler(
+		ctx,
+		cancel,
+		base.WithSubsystem(subsystem),
+		base.WithScanInterval(time.Minute),
+		base.WithScanner(sentinel.NewSentinel()),
+		base.WithExec(executor.NewExecutor()),
+		base.WithPersistenter(persistent.NewPersistent()),
+	)
+	if err != nil {
+		logger.Sugar().Errorw(
+			"Initialize",
+			"Subsystem", subsystem,
+			"Error", err,
 		)
-		close(h.w.ClosedChan())
-		return true
-	case <-h.w.CloseChan():
-		close(h.w.ClosedChan())
-		return true
+		return
 	}
-}
 
-func (h *handler) run(ctx context.Context) {
-	for {
-		if b := h.handler(ctx); b {
-			break
-		}
-	}
+	h = _h
+	go h.Run(ctx, cancel)
 }
 
 func Finalize() {
-	if h != nil && h.w != nil {
-		h.w.Shutdown()
-		close(h.persistent)
-		h.executor.Finalize()
-		h.persistenter.Finalize()
+	if h != nil {
+		h.Finalize()
 	}
 }

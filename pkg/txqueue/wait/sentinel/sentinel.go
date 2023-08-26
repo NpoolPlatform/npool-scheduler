@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"time"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -12,20 +11,13 @@ import (
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
-type handler struct {
-	basesentinel.Sentinel
+type handler struct{}
+
+func NewSentinel() basesentinel.Scanner {
+	return &handler{}
 }
 
-var h *handler
-
-func Initialize(ctx context.Context, cancel context.CancelFunc) {
-	h = &handler{
-		Sentinel: basesentinel.NewSentinel(ctx, cancel, h, time.Minute),
-	}
-	h.scanTxs(ctx, basetypes.TxState_TxStateWaitCheck)
-}
-
-func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx) error {
+func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx, exec chan interface{}) error {
 	state := basetypes.TxState_TxStateWaitCheck
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:    &tx.ID,
@@ -33,11 +25,11 @@ func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx) error {
 	}); err != nil {
 		return err
 	}
-	h.Exec() <- tx
+	exec <- tx
 	return nil
 }
 
-func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState) error {
+func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -57,7 +49,7 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState) error {
 			if _, ok := ignores[tx.FromAccountID]; ok {
 				continue
 			}
-			if err := h.feedTx(ctx, tx); err != nil {
+			if err := h.feedTx(ctx, tx, exec); err != nil {
 				return err
 			}
 			ignores[tx.FromAccountID] = struct{}{}
@@ -67,16 +59,10 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState) error {
 	}
 }
 
-func (h *handler) Scan(ctx context.Context) error {
-	return h.scanTxs(ctx, basetypes.TxState_TxStateWait)
+func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+	return h.scanTxs(ctx, basetypes.TxState_TxStateWait, exec)
 }
 
-func Exec() chan interface{} {
-	return h.Exec()
-}
-
-func Finalize() {
-	if h != nil {
-		h.Finalize()
-	}
+func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
+	return h.scanTxs(ctx, basetypes.TxState_TxStateWaitCheck, exec)
 }

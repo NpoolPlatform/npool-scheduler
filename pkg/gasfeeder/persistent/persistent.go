@@ -17,7 +17,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, coin interface{}) error {
+func (p *handler) Update(ctx context.Context, coin interface{}, retry chan interface{}) error {
 	_coin, ok := coin.(*types.PersistentCoin)
 	if !ok {
 		return fmt.Errorf("invalid coin")

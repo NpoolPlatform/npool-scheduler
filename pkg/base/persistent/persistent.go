@@ -14,7 +14,7 @@ type Persistent interface {
 }
 
 type Persistenter interface {
-	Update(context.Context, interface{}) error
+	Update(context.Context, interface{}, chan interface{}) error
 }
 
 type handler struct {
@@ -37,7 +37,7 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, persistenter 
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.persistenter.Update(ctx, ent); err != nil {
+		if err := p.persistenter.Update(ctx, ent, p.feeder); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Update",

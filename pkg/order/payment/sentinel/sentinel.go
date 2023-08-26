@@ -2,9 +2,7 @@ package sentinel
 
 import (
 	"context"
-	"time"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -16,25 +14,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type handler struct {
-	basesentinel.Sentinel
+type handler struct{}
+
+func NewSentinel() basesentinel.Scanner {
+	return &handler{}
 }
 
-var h *handler
-
-func Initialize(ctx context.Context, cancel context.CancelFunc, exec chan *ordermwpb.Order) {
-	h = &handler{
-		Sentinel: basesentinel.NewSentinel(ctx, cancel, h, time.Minute),
-	}
-	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment); err != nil {
-		logger.Sugar().Errorw(
-			"run",
-			"Error", err,
-		)
-	}
-}
-
-func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
+func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order, exec chan interface{}) error {
 	if order.OrderState == ordertypes.OrderState_OrderStateWaitPayment {
 		newState := ordertypes.OrderState_OrderStateCheckPayment
 		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
@@ -44,11 +30,11 @@ func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order) error {
 			return err
 		}
 	}
-	h.Exec() <- order
+	exec <- order
 	return nil
 }
 
-func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState) error {
+func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -65,7 +51,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 		}
 
 		for _, order := range orders {
-			if err := h.feedOrder(ctx, order); err != nil {
+			if err := h.feedOrder(ctx, order, exec); err != nil {
 				return err
 			}
 		}
@@ -74,6 +60,10 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 	}
 }
 
-func (h *handler) Scan(ctx context.Context) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment)
+func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment, exec)
+}
+
+func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment, exec)
 }

@@ -14,28 +14,24 @@ import (
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 )
 
-type handler struct {
-	basepersistent.Persistent
+type handler struct{}
+
+func NewPersistent() basepersistent.Persistenter {
+	return &handler{}
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc) basepersistent.Persistent {
-	p := &handler{}
-	p.Persistent = basepersistent.NewPersistent(ctx, cancel, p)
-	return p
-}
-
-func (p *handler) retry(ctx context.Context, tx *types.PersistentTx) {
+func (p *handler) retry(ctx context.Context, tx *types.PersistentTx, retry chan interface{}) {
 	go func() {
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Minute):
-			p.Persistent.Feed(tx)
+			retry <- tx
 		}
 	}()
 }
 
-func (p *handler) Update(ctx context.Context, tx interface{}) error {
+func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interface{}) error {
 	_tx, ok := tx.(*types.PersistentTx)
 	if !ok {
 		return fmt.Errorf("invalid tx")
@@ -50,7 +46,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}) error {
 			Memo:          _tx.AccountMemo,
 			To:            _tx.ToAddress,
 		}); err != nil {
-			p.retry(ctx, _tx)
+			p.retry(ctx, _tx, retry)
 			return err
 		}
 	}
@@ -62,7 +58,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}) error {
 		ID:    &_tx.ID,
 		State: &state,
 	}); err != nil {
-		p.retry(ctx, _tx)
+		p.retry(ctx, _tx, retry)
 		return err
 	}
 

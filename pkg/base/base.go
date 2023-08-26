@@ -18,19 +18,21 @@ import (
 )
 
 type Handler struct {
-	persistent   chan interface{}
-	notif        chan interface{}
-	w            *watcher.Watcher
-	sentinel     sentinel.Sentinel
-	scanner      sentinel.Scanner
-	executor     executor.Executor
-	execer       executor.Exec
-	persistenter persistent.Persistent
-	persistentor persistent.Persistenter
-	notifier     notif.Notif
-	notify       notif.Notify
-	subsystem    string
-	scanInterval time.Duration
+	persistent     chan interface{}
+	notif          chan interface{}
+	w              *watcher.Watcher
+	sentinel       sentinel.Sentinel
+	scanner        sentinel.Scanner
+	executors      []executor.Executor
+	execer         executor.Exec
+	executorNumber int
+	executorIndex  int
+	persistenter   persistent.Persistent
+	persistentor   persistent.Persistenter
+	notifier       notif.Notif
+	notify         notif.Notify
+	subsystem      string
+	scanInterval   time.Duration
 }
 
 func (h *Handler) lockKey() string {
@@ -38,7 +40,9 @@ func (h *Handler) lockKey() string {
 }
 
 func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(*Handler)) (*Handler, error) {
-	h := &Handler{}
+	h := &Handler{
+		executorNumber: 1,
+	}
 	for _, opt := range options {
 		opt(h)
 	}
@@ -50,7 +54,9 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	h.notif = make(chan interface{})
 
 	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval)
-	h.executor = executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer)
+	for i := 0; i < h.executorNumber; i++ {
+		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer))
+	}
 	h.persistenter = persistent.NewPersistent(ctx, cancel, h.persistentor)
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify)
 
@@ -97,6 +103,12 @@ func WithExec(exec executor.Exec) func(*Handler) {
 	}
 }
 
+func WithExecutorNumber(n int) func(*Handler) {
+	return func(h *Handler) {
+		h.executorNumber = n
+	}
+}
+
 func WithPersistenter(persistenter persistent.Persistenter) func(*Handler) {
 	return func(h *Handler) {
 		h.persistentor = persistenter
@@ -113,10 +125,16 @@ func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
 	action.Watch(ctx, cancel, h.run)
 }
 
+func (h *Handler) execEnt(ent interface{}) {
+	h.executors[h.executorIndex].Feed(ent)
+	h.executorIndex += 1
+	h.executorIndex %= len(h.executors)
+}
+
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
-		h.executor.Feed(ent)
+		h.execEnt(ent)
 		return false
 	case ent := <-h.persistent:
 		h.persistenter.Feed(ent)
@@ -155,7 +173,9 @@ func (h *Handler) Finalize() {
 		h.w.Shutdown()
 	}
 	h.sentinel.Finalize()
-	h.executor.Finalize()
+	for _, e := range h.executors {
+		e.Finalize()
+	}
 	h.persistenter.Finalize()
 	h.notifier.Finalize()
 	close(h.persistent)

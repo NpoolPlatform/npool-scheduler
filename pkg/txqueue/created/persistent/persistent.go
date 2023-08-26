@@ -11,17 +11,13 @@ import (
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
-type handler struct {
-	basepersistent.Persistent
+type handler struct{}
+
+func NewPersistent() basepersistent.Persistenter {
+	return &handler{}
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc) basepersistent.Persistent {
-	p := &handler{}
-	p.Persistent = basepersistent.NewPersistent(ctx, cancel, p)
-	return p
-}
-
-func (p *handler) Update(ctx context.Context, tx interface{}) error {
+func (p *handler) Update(ctx context.Context, tx interface{}, retry chan interface{}) error {
 	_tx, ok := tx.(*types.PersistentTx)
 	if !ok {
 		return fmt.Errorf("invalid tx")

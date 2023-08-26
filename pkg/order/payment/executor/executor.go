@@ -8,16 +8,13 @@ import (
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
-type handler struct {
-	baseexecutor.Executor
+type handler struct{}
+
+func NewExecutor() baseexecutor.Exec {
+	return &handler{}
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}) baseexecutor.Executor {
-	h := &handler{}
-	return baseexecutor.NewExecutor(ctx, cancel, persistent, notif, h)
-}
-
-func (e *handler) Exec(ctx context.Context, order interface{}) error {
+func (e *handler) Exec(ctx context.Context, order interface{}, retry, persistent, notif chan interface{}) error {
 	_order, ok := order.(*ordermwpb.Order)
 	if !ok {
 		return fmt.Errorf("invalid order")
@@ -25,9 +22,9 @@ func (e *handler) Exec(ctx context.Context, order interface{}) error {
 
 	h := &orderHandler{
 		Order:           _order,
-		retryOrder:      e.Feeder(),
-		persistentOrder: e.Persistent(),
-		notifOrder:      e.Notif(),
+		retryOrder:      retry,
+		persistentOrder: persistent,
+		notifOrder:      notif,
 	}
 	return h.exec(ctx)
 }

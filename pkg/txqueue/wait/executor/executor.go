@@ -8,23 +8,20 @@ import (
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
-type handler struct {
-	baseexecutor.Executor
+type handler struct{}
+
+func NewExecutor() baseexecutor.Exec {
+	return &handler{}
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}) baseexecutor.Executor {
-	h := &handler{}
-	return baseexecutor.NewExecutor(ctx, cancel, persistent, notif, h)
-}
-
-func (e *handler) Exec(ctx context.Context, tx interface{}) error {
+func (e *handler) Exec(ctx context.Context, tx interface{}, retry, persistent, notif chan interface{}) error {
 	_tx, ok := tx.(*txmwpb.Tx)
 	if !ok {
 		return fmt.Errorf("invalid tx")
 	}
 	h := &txHandler{
 		Tx:         _tx,
-		persistent: e.Persistent(),
+		persistent: persistent,
 	}
 	return h.exec(ctx)
 }

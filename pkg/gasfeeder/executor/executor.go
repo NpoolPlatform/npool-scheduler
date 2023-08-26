@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, coin interface{}, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, coin interface{}, retry, persistent, notif chan interface{}) error {
 	_coin, ok := coin.(*coinmwpb.Coin)
 	if !ok {
 		return fmt.Errorf("invalid coin")

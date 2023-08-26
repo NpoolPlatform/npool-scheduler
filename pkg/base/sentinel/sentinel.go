@@ -15,6 +15,7 @@ type Sentinel interface {
 }
 
 type Scanner interface {
+	InitScan(context.Context, chan interface{}) error
 	Scan(context.Context, chan interface{}) error
 }
 
@@ -33,6 +34,7 @@ func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner
 		scanInterval: scanInterval,
 	}
 	go action.Watch(ctx, cancel, h.run)
+	scanner.InitScan(ctx, h.exec)
 	return h
 }
 func (h *handler) Exec() chan interface{} {
