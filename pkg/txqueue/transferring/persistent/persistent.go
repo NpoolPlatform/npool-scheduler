@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/transferring/types"
 )
 
 type handler struct {
@@ -27,12 +26,14 @@ func (p *handler) Update(ctx context.Context, tx interface{}) error {
 		return fmt.Errorf("invalid tx")
 	}
 
-	state := basetypes.TxState_TxStateWait
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
-		ID:    &_tx.ID,
-		State: &state,
+		ID:        &_tx.ID,
+		State:     &_tx.NewTxState,
+		ChainTxID: &_tx.TxCID,
+		Extra:     &_tx.TxExtra,
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }

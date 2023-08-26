@@ -58,7 +58,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}) error {
 	_tx.TransactionExist = true
 
 	state := basetypes.TxState_TxStateTransferring
-	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
+	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:    &_tx.ID,
 		State: &state,
 	}); err != nil {
