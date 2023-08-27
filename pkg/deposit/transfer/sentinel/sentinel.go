@@ -18,8 +18,6 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-// Potential issue: if this account cannot be processed within one interval, then we may add
-//   deposit amount for this account again
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit

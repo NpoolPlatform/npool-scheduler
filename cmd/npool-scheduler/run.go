@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
@@ -36,6 +37,7 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
+		deposit.Finalize()
 		withdraw.Finalize()
 		limitation.Finalize()
 		txqueue.Finalize()
@@ -71,6 +73,7 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	txqueue.Initialize(ctx, cancel)
 	limitation.Initialize(ctx, cancel)
 	withdraw.Initialize(ctx, cancel)
+	deposit.Initialize(ctx, cancel)
 	return nil
 }
 
