@@ -3,14 +3,12 @@ package persistent
 import (
 	"context"
 	"fmt"
-	"time"
 
-	depositaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
+	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
-	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
+	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
 
 	"github.com/google/uuid"
 )
@@ -34,18 +32,14 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 		_ = accountlock.Unlock(_account.AccountID) //nolint
 	}()
 
-	scannableAt := uint32(time.Now().Unix() + timedef.SecondsPerHour)
 	locked := false
 	collectingID := uuid.Nil.String()
-	if _, err := depositaccmwcli.UpdateAccount(ctx, &depositaccmwpb.AccountReq{
+	if _, err := payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
 		ID:            &_account.ID,
-		AppID:         &_account.AppID,
-		UserID:        &_account.UserID,
 		CoinTypeID:    &_account.CoinTypeID,
 		AccountID:     &_account.AccountID,
 		Locked:        &locked,
 		CollectingTID: &collectingID,
-		ScannableAt:   &scannableAt,
 	}); err != nil {
 		return err
 	}
