@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	depositaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -35,6 +36,13 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 	}
 
 	if !_account.Locked {
+		if err := accountlock.Lock(_account.DepositAccountID); err != nil {
+			return err
+		}
+		defer func() {
+			_ = accountlock.Unlock(_account.DepositAccountID)
+		}()
+
 		locked := true
 		lockedBy := basetypes.AccountLockedBy_Collecting
 

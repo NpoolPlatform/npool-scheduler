@@ -5,6 +5,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/transfer"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user"
 )
@@ -21,6 +22,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	)
 
 	user.Initialize(ctx, cancel)
+	finish.Initialize(ctx, cancel)
 	transfer.Initialize(ctx, cancel)
 }
 
@@ -29,5 +31,6 @@ func Finalize() {
 		return
 	}
 	transfer.Finalize()
+	finish.Finalize()
 	user.Finalize()
 }
