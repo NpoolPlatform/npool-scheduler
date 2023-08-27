@@ -14,7 +14,7 @@ type Notif interface {
 }
 
 type Notify interface {
-	Notify(context.Context, interface{}) error
+	Notify(context.Context, interface{}, chan interface{}) error
 }
 
 type handler struct {
@@ -42,7 +42,7 @@ func (p *handler) handler(ctx context.Context) bool {
 		if p.notify == nil {
 			return false
 		}
-		if err := p.notify.Notify(ctx, ent); err != nil {
+		if err := p.notify.Notify(ctx, ent, p.feeder); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Notify",
