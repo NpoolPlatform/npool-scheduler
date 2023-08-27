@@ -11,17 +11,20 @@ import (
 
 type Sentinel interface {
 	Exec() chan interface{}
+	Trigger(interface{})
 	Finalize()
 }
 
 type Scanner interface {
 	InitScan(context.Context, chan interface{}) error
 	Scan(context.Context, chan interface{}) error
+	TriggerScan(context.Context, interface{}, chan interface{}) error
 }
 
 type handler struct {
 	w            *watcher.Watcher
 	exec         chan interface{}
+	trigger      chan interface{}
 	scanner      Scanner
 	scanInterval time.Duration
 	subsystem    string
@@ -31,6 +34,7 @@ func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner
 	h := &handler{
 		w:            watcher.NewWatcher(),
 		exec:         make(chan interface{}),
+		trigger:      make(chan interface{}),
 		scanner:      scanner,
 		scanInterval: scanInterval,
 		subsystem:    subsystem,
@@ -47,6 +51,16 @@ func (h *handler) handler(ctx context.Context) bool {
 	select {
 	case <-time.After(h.scanInterval):
 		if err := h.scanner.Scan(ctx, h.exec); err != nil {
+			logger.Sugar().Infow(
+				"handler",
+				"State", "Scan",
+				"Subsystem", h.subsystem,
+				"Error", err,
+			)
+		}
+		return false
+	case cond := <-h.trigger:
+		if err := h.scanner.TriggerScan(ctx, cond, h.exec); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Scan",
@@ -76,6 +90,10 @@ func (h *handler) run(ctx context.Context) {
 			break
 		}
 	}
+}
+
+func (h *handler) Trigger(cond interface{}) {
+	h.trigger <- cond
 }
 
 func (h *handler) Finalize() {

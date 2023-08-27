@@ -165,6 +165,10 @@ func (h *Handler) run(ctx context.Context) {
 	}
 }
 
+func (h *Handler) Trigger(cond interface{}) {
+	h.sentinel.Trigger(cond)
+}
+
 func (h *Handler) Finalize() {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return

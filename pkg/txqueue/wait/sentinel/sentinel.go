@@ -66,3 +66,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
 	return h.scanTxs(ctx, basetypes.TxState_TxStateWaitCheck, exec)
 }
+
+func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
+	return nil
+}
