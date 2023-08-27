@@ -16,7 +16,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, withdraw interface{}, retry chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")

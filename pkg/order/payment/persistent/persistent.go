@@ -14,7 +14,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, retry chan interface{}) error {
+func (p *handler) Update(ctx context.Context, order interface{}, retry, notif chan interface{}) error {
 	_, ok := order.(*types.PersistentOrder)
 	if !ok {
 		return fmt.Errorf("invalid order")

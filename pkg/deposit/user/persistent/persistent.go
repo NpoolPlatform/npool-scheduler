@@ -92,7 +92,7 @@ func (p *handler) notifyDeposit(account *types.PersistentAccount) {
 	}
 }
 
-func (p *handler) Update(ctx context.Context, account interface{}, retry chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, retry, notif chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")
