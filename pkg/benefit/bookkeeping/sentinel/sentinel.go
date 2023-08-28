@@ -20,7 +20,7 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedGood(ctx context.Context, good *goodmwpb.Good, exec chan interface{}) error {
-	state := goodtypes.BenefitState_BenefitCheckTransferring
+	state := goodtypes.BenefitState_BenefitCheckBookKeeping
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:          &good.ID,
 		RewardState: &state,
@@ -57,13 +57,13 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitTransferring, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitBookKeeping, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckTransferring, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckBookKeeping, exec)
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitTransferring, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitBookKeeping, exec)
 }

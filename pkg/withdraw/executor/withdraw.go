@@ -25,6 +25,7 @@ func (h *withdrawHandler) checkTransfer(ctx context.Context) error {
 		return err
 	}
 	if tx == nil {
+		h.newState = ledgertypes.WithdrawState_TransactionFail
 		return fmt.Errorf("invalid tx")
 	}
 

@@ -11,7 +11,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/sentinel"
 )
 
-const subsystem = "benefit"
+const subsystem = "benefitwait"
 
 var h *base.Handler
 
