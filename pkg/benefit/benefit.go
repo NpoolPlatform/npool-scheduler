@@ -6,6 +6,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/fail"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
@@ -23,6 +24,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	)
 
 	wait.Initialize(ctx, cancel)
+	fail.Initialize(ctx, cancel)
 	done.Initialize(ctx, cancel)
 	transferring.Initialize(ctx, cancel)
 	bookkeeping.Initialize(ctx, cancel)
@@ -35,5 +37,6 @@ func Finalize() {
 	bookkeeping.Finalize()
 	transferring.Finalize()
 	done.Finalize()
+	fail.Finalize()
 	wait.Finalize()
 }

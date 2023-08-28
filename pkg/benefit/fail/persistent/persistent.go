@@ -8,7 +8,7 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/fail/types"
 )
 
 type handler struct{}
