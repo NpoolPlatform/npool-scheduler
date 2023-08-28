@@ -41,6 +41,7 @@ func (h *accountHandler) checkTransfer(ctx context.Context) error {
 		return err
 	}
 	if tx == nil {
+		h.txFinished = true
 		return nil
 	}
 

@@ -70,7 +70,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 		FeeAmount:     &_account.FeeAmount,
 		Type:          &txType,
 	}); err != nil {
-		retry1.Retry(ctx, _account, retry)
 		return err
 	}
 

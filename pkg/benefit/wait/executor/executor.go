@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
+	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
 )
 
 type handler struct{}
@@ -14,16 +15,18 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, coin interface{}, retry, persistent, notif chan interface{}) error {
-	_coin, ok := coin.(*coinmwpb.Coin)
+func (e *handler) Exec(ctx context.Context, good interface{}, retry, persistent, notif chan interface{}) error {
+	_good, ok := good.(*goodmwpb.Good)
 	if !ok {
-		return fmt.Errorf("invalid coin")
+		return fmt.Errorf("invalid good")
 	}
 
-	h := &coinHandler{
-		Coin:       _coin,
+	h := &goodHandler{
+		Good:       _good,
+		Handler:    common.NewHandler(),
 		persistent: persistent,
 		notif:      notif,
+		retry:      retry,
 	}
 	return h.exec(ctx)
 }
