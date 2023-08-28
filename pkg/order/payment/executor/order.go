@@ -145,7 +145,7 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 }
 
 func (h *orderHandler) paymentBalanceEnough() (bool, error) {
-	transferAmount, err := decimal.NewFromString(h.PaymentTransferAmount)
+	transferAmount, err := decimal.NewFromString(h.TransferAmount)
 	if err != nil {
 		return false, err
 	}
@@ -157,7 +157,7 @@ func (h *orderHandler) paymentBalanceEnough() (bool, error) {
 }
 
 func (h *orderHandler) orderStatePaymentRemain() (decimal.Decimal, error) {
-	transferAmount, err := decimal.NewFromString(h.PaymentTransferAmount)
+	transferAmount, err := decimal.NewFromString(h.TransferAmount)
 	if err != nil {
 		return decimal.NewFromInt(0), err
 	}
