@@ -11,6 +11,7 @@ import (
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -79,26 +80,26 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		return
 	}
 
-	ioExtra := fmt.Sprintf(
-		`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
-		h.AppID,
-		h.UserID,
-		h.AccountID,
-		h.coin.Name,
-		h.Address,
-		time.Now(),
-	)
 	persistentAccount := &types.PersistentAccount{
 		Account:       h.Account,
 		DepositAmount: h.amount.String(),
-		Extra:         ioExtra,
 		Error:         *err,
 	}
 
 	if *err == nil {
-		h.persistent <- persistentAccount
+		ioExtra := fmt.Sprintf(
+			`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
+			h.AppID,
+			h.UserID,
+			h.AccountID,
+			h.coin.Name,
+			h.Address,
+			time.Now(),
+		)
+		persistentAccount.Extra = ioExtra
+		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
 	} else {
-		h.notif <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.notif)
 	}
 }
 

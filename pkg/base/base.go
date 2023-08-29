@@ -155,6 +155,12 @@ func (h *Handler) handler(ctx context.Context) bool {
 		close(h.w.ClosedChan())
 		return true
 	case <-h.w.CloseChan():
+		logger.Sugar().Infow(
+			"handler",
+			"State", "Close",
+			"Subsystem", h.subsystem,
+			"Error", ctx.Err(),
+		)
 		close(h.w.ClosedChan())
 		return true
 	}
