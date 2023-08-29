@@ -11,14 +11,16 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	PaymentBalance         decimal.Decimal
-	NewOrderState          ordertypes.OrderState
-	NewPaymentState        ordertypes.PaymentState
-	IncomingAmount         *string
-	IncomingExtra          string
-	TransferOutcomingExtra string
-	BalanceOutcomingExtra  string
-	AchievementStatements  []*achievementstatementmwpb.StatementReq
-	CommissionStatements   []*ledgerstatementmwpb.StatementReq
-	Error                  error
+	PaymentBalance          decimal.Decimal
+	NewOrderState           ordertypes.OrderState
+	NewPaymentState         ordertypes.PaymentState
+	IncomingAmount          *string
+	IncomingExtra           string
+	TransferOutcomingAmount *string
+	TransferOutcomingExtra  string
+	BalanceOutcomingAmount  *string
+	BalanceOutcomingExtra   string
+	AchievementStatements   []*achievementstatementmwpb.StatementReq
+	CommissionStatements    []*ledgerstatementmwpb.StatementReq
+	Error                   error
 }
