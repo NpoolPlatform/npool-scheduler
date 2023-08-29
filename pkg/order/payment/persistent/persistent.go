@@ -111,6 +111,10 @@ func (p *handler) withCreateIncomingStatement(dispose *dtmcli.SagaDispose, order
 }
 
 func (p *handler) withCreateOutcomingStatement(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.NewOrderState != ordertypes.OrderState_OrderStatePaid {
+		return
+	}
+
 	id := uuid.NewString()
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_Payment
@@ -135,7 +139,7 @@ func (p *handler) withCreateOutcomingStatement(dispose *dtmcli.SagaDispose, orde
 	)
 }
 
-func (p *handler) withSpendBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	id := uuid.NewString()
 	ioSubType := ledgertypes.IOSubType_Payment
 	req := &ledgermwpb.LedgerReq{
@@ -152,6 +156,29 @@ func (p *handler) withSpendBalance(dispose *dtmcli.SagaDispose, order *types.Per
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/SubBalance",
 		"ledger.middleware.ledger.v2.Middleware/AddBalance",
+		&ledgermwpb.SubBalanceRequest{
+			Info: req,
+		},
+	)
+}
+
+func (p *handler) withUnlockLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	id := uuid.NewString()
+	ioSubType := ledgertypes.IOSubType_Payment
+	req := &ledgermwpb.LedgerReq{
+		AppID:       &order.AppID,
+		UserID:      &order.UserID,
+		CoinTypeID:  &order.PaymentCoinTypeID,
+		Spendable:   &order.BalanceAmount,
+		IOSubType:   &ioSubType,
+		IOExtra:     &order.BalanceOutcomingExtra,
+		StatementID: &id,
+	}
+
+	dispose.Add(
+		ledgersvcname.ServiceDomain,
+		"ledger.middleware.ledger.v2.Middleware/AddBalance",
+		"ledger.middleware.ledger.v2.Middleware/SubBalance",
 		&ledgermwpb.SubBalanceRequest{
 			Info: req,
 		},
@@ -200,7 +227,11 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif ch
 	p.withUpdateStock(sagaDispose, _order)
 	p.withCreateIncomingStatement(sagaDispose, _order)
 	p.withCreateOutcomingStatement(sagaDispose, _order)
-	p.withSpendBalance(sagaDispose, _order)
+	if _order.NewOrderState == ordertypes.OrderState_OrderStatePaid {
+		p.withSpendLockedBalance(sagaDispose, _order)
+	} else {
+		p.withUnlockLockedBalance(sagaDispose, _order)
+	}
 	p.withCreateAchievementStatements(sagaDispose, _order)
 	p.withCreateCommissionStatements(sagaDispose, _order)
 	p.withUpdateOrder(sagaDispose, _order)
