@@ -21,6 +21,8 @@ import (
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type txHandler struct {
@@ -40,6 +42,10 @@ type txHandler struct {
 func (h *txHandler) checkTransfer(ctx context.Context) (bool, error) {
 	tx, err := sphinxproxycli.GetTransaction(ctx, h.ID)
 	if err != nil {
+		switch status.Code(err) {
+		case codes.NotFound:
+			return false, nil
+		}
 		return false, err
 	}
 	if tx == nil {
@@ -167,7 +173,7 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		persistentTx.ToAddress = h.toAccount.Address
 	}
 
-	if *err == nil {
+	if *err == nil && h.coin != nil {
 		asyncfeed.AsyncFeed(persistentTx, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(persistentTx, h.notif)
