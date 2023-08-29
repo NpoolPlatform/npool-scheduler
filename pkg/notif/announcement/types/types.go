@@ -1,9 +1,11 @@
 package types
 
 import (
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	ancmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/announcement"
+	sendmwpb "github.com/NpoolPlatform/message/npool/third/mw/v1/send"
 )
 
-type PersistentOrder struct {
-	*ordermwpb.Order
+type PersistentAnnouncement struct {
+	*ancmwpb.Announcement
+	MessageRequest *sendmwpb.SendMessageRequest
 }

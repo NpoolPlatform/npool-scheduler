@@ -11,6 +11,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
@@ -43,6 +44,7 @@ var runCmd = &cli.Command{
 		withdraw.Finalize()
 		limitation.Finalize()
 		txqueue.Finalize()
+		announcement.Finalize()
 		gasfeeder.Finalize()
 		order.Finalize()
 
@@ -72,6 +74,7 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
 	order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
+	announcement.Initialize(ctx, cancel)
 	txqueue.Initialize(ctx, cancel)
 	limitation.Initialize(ctx, cancel)
 	withdraw.Initialize(ctx, cancel)
