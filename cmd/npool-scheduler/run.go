@@ -8,6 +8,7 @@ import (
 
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/db"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
@@ -57,6 +58,9 @@ func run(ctx context.Context) error {
 		"run",
 		"Subsystems", config.Subsystems(),
 	)
+	if err := db.Init(); err != nil {
+		return err
+	}
 	return pubsub.Subscribe(ctx)
 }
 
