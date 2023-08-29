@@ -122,6 +122,9 @@ func WithNotify(notify notif.Notify) func(*Handler) {
 }
 
 func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
+	if b := config.SupportSubsystem(h.subsystem); !b {
+		return
+	}
 	action.Watch(ctx, cancel, h.run)
 }
 

@@ -26,7 +26,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithExecutorNumber(4),
 		base.WithPersistenter(persistent.NewPersistent()),
 	)
-	if err != nil {
+	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
 			"Initialize",
 			"Subsystem", subsystem,
