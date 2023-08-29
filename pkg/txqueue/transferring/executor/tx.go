@@ -7,6 +7,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/transferring/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -65,7 +66,7 @@ func (h *txHandler) final() {
 		TxExtra:    h.txExtra,
 		TxCID:      h.txCID,
 	}
-	h.persistent <- persistentTx
+	asyncfeed.AsyncFeed(persistentTx, h.persistent)
 }
 
 func (h *txHandler) exec(ctx context.Context) error {

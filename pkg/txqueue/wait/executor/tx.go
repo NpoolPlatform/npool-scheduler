@@ -3,11 +3,11 @@ package executor
 import (
 	"context"
 	"fmt"
-	"time"
 
 	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/account"
 	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	accountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/account"
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
@@ -15,6 +15,8 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -25,6 +27,7 @@ type txHandler struct {
 	*txmwpb.Tx
 	retry            chan interface{}
 	persistent       chan interface{}
+	notif            chan interface{}
 	newState         basetypes.TxState
 	transactionExist bool
 	fromAccount      *accountmwpb.Account
@@ -136,48 +139,56 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 	return nil
 }
 
-func (h *txHandler) final(ctx context.Context) {
-	if h.newState == h.State {
-		go func() {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Minute):
-				h.retry <- h.Tx
-			}
-		}()
+func (h *txHandler) final(ctx context.Context, err *error) {
+	logger.Sugar().Infow(
+		"final",
+		"PersistentTx", h,
+		"Error", *err,
+	)
+	if h.newState == h.State && *err == nil {
+		retry1.Retry(ctx, h.Tx, h.retry)
 		return
 	}
 
 	persistentTx := &types.PersistentTx{
 		Tx:               h.Tx,
 		TransactionExist: h.transactionExist,
-		CoinName:         h.coin.Name,
-		FromAddress:      h.fromAccount.Address,
-		ToAddress:        h.toAccount.Address,
 		Amount:           h.transferAmount.String(),
 		FloatAmount:      h.transferAmount.InexactFloat64(),
 		AccountMemo:      h.memo,
 	}
-	h.persistent <- persistentTx
+	if h.coin != nil {
+		persistentTx.CoinName = h.coin.Name
+	}
+	if h.fromAccount != nil {
+		persistentTx.FromAddress = h.fromAccount.Address
+	}
+	if h.toAccount != nil {
+		persistentTx.ToAddress = h.toAccount.Address
+	}
+
+	if *err == nil {
+		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(persistentTx, h.notif)
+	}
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
-	defer h.final(ctx)
-
+	var err error
+	defer h.final(ctx, &err)
 	if exist, err := h.checkTransfer(ctx); err != nil || exist {
 		return err
 	}
-	var err error
+	if err := h.getCoin(ctx); err != nil {
+		return err
+	}
 	h.fromAccount, err = h.getAccount(ctx, h.FromAccountID)
 	if err != nil {
 		return err
 	}
 	h.toAccount, err = h.getAccount(ctx, h.ToAccountID)
 	if err != nil {
-		return err
-	}
-	if err := h.getCoin(ctx); err != nil {
 		return err
 	}
 	if err := h.checkTransferAmount(ctx); err != nil {

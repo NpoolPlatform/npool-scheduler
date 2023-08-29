@@ -7,6 +7,7 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
@@ -43,7 +44,7 @@ func (h *txHandler) final() {
 	persistentTx := &types.PersistentTx{
 		Tx: h.Tx,
 	}
-	h.persistent <- persistentTx
+	asyncfeed.AsyncFeed(persistentTx, h.persistent)
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
