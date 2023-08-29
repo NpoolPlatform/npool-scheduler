@@ -39,10 +39,11 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 		Rollback:   &rollback,
 	}
 
+	// Here potential fail to rollback if stock is consumed, we may need a change id for that
 	dispose.Add(
 		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/AddStock",
 		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
+		"good.middleware.app.good1.stock.v1.Middleware/AddStock",
 		&appstockmwpb.AddStockRequest{
 			Info: req,
 		},

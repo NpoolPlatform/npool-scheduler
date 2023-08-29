@@ -206,7 +206,7 @@ func (h *orderHandler) resolveNewState() error {
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	// Update order state
-	// Move good stock from lock to
+	// Move good stock from lock to paid or spot quantity
 	// Change lock state of payment account
 	// Update user ledger and statement (incoming, outcoming, locked balance)
 	// Update user achievement and statement
