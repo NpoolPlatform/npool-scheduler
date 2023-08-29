@@ -11,6 +11,7 @@ require (
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20230818021644-f31bfbcb1215
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230828123204-a28c50d8f806
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230828113408-6b4d82695fac
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99
 	github.com/NpoolPlatform/message v0.0.0-20230828122448-f9cfc5212889

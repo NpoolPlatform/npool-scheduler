@@ -33,9 +33,9 @@ type orderHandler struct {
 	newOrderState         ordertypes.OrderState
 	newPaymentState       ordertypes.PaymentState
 	remainBalance         decimal.Decimal
-	retryOrder            chan interface{}
-	persistentOrder       chan interface{}
-	notifOrder            chan interface{}
+	retry                 chan interface{}
+	persistent            chan interface{}
+	notif                 chan interface{}
 }
 
 func (h *orderHandler) getGood(ctx context.Context) error {

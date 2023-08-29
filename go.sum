@@ -62,6 +62,8 @@ github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff
 github.com/NpoolPlatform/go-service-framework v0.0.0-20230820075926-c294ec025fff/go.mod h1:Kh7DMkWnYOMHxEKq7QfJqbxm1HaUPkhTNN74lfHQxyE=
 github.com/NpoolPlatform/good-middleware v0.0.0-20230828123204-a28c50d8f806 h1:x/ynhILduwdeNnjDgoaF+l8qBuD5iukqXldHU3LJXJk=
 github.com/NpoolPlatform/good-middleware v0.0.0-20230828123204-a28c50d8f806/go.mod h1:K8ve/Vd6HYrpXN83GtzxDAMpHk447mRQQKQx1g5XYGk=
+github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771 h1:AzwvjYi0zdnpWDNb+QMbb1vi5IOIm7YQZunCwX+eSEk=
+github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771/go.mod h1:dnXdGb97v575pBYjX8o8UxLYHe5EIrRWk34WtHMwu/0=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20230828113408-6b4d82695fac h1:BjUOC22rFoqDyfxWLzuq6DHDV4abRcDnVStM39tscQc=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20230828113408-6b4d82695fac/go.mod h1:8MS6sutcbJRHKfUVlO/SQMwz3QVOMNFbqt4uhHVlNQE=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99 h1:boB4NuhQxXWeV0Z1qSxgIqbiMYU30dqFGDLtgNTqYbE=

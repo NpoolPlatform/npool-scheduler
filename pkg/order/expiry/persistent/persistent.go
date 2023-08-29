@@ -15,8 +15,6 @@ import (
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
-
-	"github.com/google/uuid"
 )
 
 type handler struct{}
@@ -26,7 +24,6 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	id := uuid.NewString()
 	chargeBack := false
 	rollback := true
 	req := &appstockmwpb.StockReq{
