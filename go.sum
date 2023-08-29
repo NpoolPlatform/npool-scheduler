@@ -77,8 +77,8 @@ github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b h1:
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b/go.mod h1:9EtGerqd6ZsTiCpetgL3MiFjzWeyO6i6hG7RiKyfvoc=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095 h1:p7MketGtON0UlRhiPjF/s38iNUCLhe25p8eRTkLZla8=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095/go.mod h1:b5o/5bVk/dpX+8lNfXYqTt0AfXMcBah3cgOzl4NH6yo=
-github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230817033627-aaca162bd40e h1:55BSMxNJnShADM1f8Iaf6NMMI1Tl5Fq/1SUrG8WV9mw=
-github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230817033627-aaca162bd40e/go.mod h1:B1Y1GcfFZY8Qjl8ebe2SHCtKrOFlxyOXNvT6cdGKAps=
+github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230829095133-969955d6ea2d h1:pjEE6n49za8i/OXpSC7ODa0wbcS8fIQCTCkRbeFW6do=
+github.com/NpoolPlatform/sphinx-proxy v0.0.0-20230829095133-969955d6ea2d/go.mod h1:B1Y1GcfFZY8Qjl8ebe2SHCtKrOFlxyOXNvT6cdGKAps=
 github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f h1:tuw5HGAtiMcei4jEU3EgCexSg2KESlR1m02zecc8H3c=
 github.com/NpoolPlatform/third-middleware v0.0.0-20230704082227-6d9cd6cef31f/go.mod h1:+xDXVgI0EstTM18cbrbBVV7Koo0YSUwpmIHNCqO2SUE=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
