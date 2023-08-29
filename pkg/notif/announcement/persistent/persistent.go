@@ -27,6 +27,7 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 	chargeBack := false
 	rollback := true
 	req := &appstockmwpb.StockReq{
+		ID:         &id,
 		AppID:      &order.AppID,
 		GoodID:     &order.GoodID,
 		AppGoodID:  &order.AppGoodID,
