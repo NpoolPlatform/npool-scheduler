@@ -19,5 +19,20 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif ch
 	if !ok {
 		return fmt.Errorf("invalid order")
 	}
+
+	/*
+		const timeoutSeconds = 10
+		sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
+			WaitResult:     true,
+			RequestTimeout: timeoutSeconds,
+		})
+		p.withUpdateStock(sagaDispose, _order)
+		p.withUpdateOrder(sagaDispose, _order)
+		if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
+			retry1.Retry(ctx, _order, retry)
+			return err
+		}
+	*/
+
 	return nil
 }

@@ -10,11 +10,11 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
+	// "github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
+	// "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	"github.com/NpoolPlatform/npool-scheduler/api"
@@ -40,8 +40,8 @@ var runCmd = &cli.Command{
 
 		benefit.Finalize()
 		deposit.Finalize()
-		withdraw.Finalize()
-		limitation.Finalize()
+		// withdraw.Finalize()
+		// limitation.Finalize()
 		txqueue.Finalize()
 		gasfeeder.Finalize()
 		order.Finalize()
@@ -73,8 +73,8 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
 	txqueue.Initialize(ctx, cancel)
-	limitation.Initialize(ctx, cancel)
-	withdraw.Initialize(ctx, cancel)
+	//limitation.Initialize(ctx, cancel)
+	// withdraw.Initialize(ctx, cancel)
 	deposit.Initialize(ctx, cancel)
 	benefit.Initialize(ctx, cancel)
 	return nil
