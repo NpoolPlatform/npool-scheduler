@@ -47,7 +47,7 @@ func (e *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-e.feeder:
 		if err := e.exec.Exec(ctx, ent, e.feeder, e.persistent, e.notif); err != nil {
-			logger.Sugar().Infow(
+			logger.Sugar().Errorw(
 				"handler",
 				"State", "Exec",
 				"Subsystem", e.subsystem,
@@ -55,15 +55,6 @@ func (e *handler) handler(ctx context.Context) bool {
 			)
 		}
 		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Subsystem", e.subsystem,
-			"Error", ctx.Err(),
-		)
-		close(e.w.ClosedChan())
-		return true
 	case <-e.w.CloseChan():
 		close(e.w.ClosedChan())
 		return true
@@ -81,7 +72,6 @@ func (e *handler) run(ctx context.Context) {
 func (e *handler) Finalize() {
 	if e != nil && e.w != nil {
 		e.w.Shutdown()
-		close(e.feeder)
 	}
 }
 

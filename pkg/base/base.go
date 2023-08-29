@@ -145,15 +145,6 @@ func (h *Handler) handler(ctx context.Context) bool {
 	case ent := <-h.notif:
 		h.notifier.Feed(ent)
 		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Subsystem", h.subsystem,
-			"Error", ctx.Err(),
-		)
-		close(h.w.ClosedChan())
-		return true
 	case <-h.w.CloseChan():
 		logger.Sugar().Infow(
 			"handler",
@@ -183,17 +174,15 @@ func (h *Handler) Finalize() {
 		return
 	}
 	_ = redis2.Unlock(h.lockKey())
+	h.sentinel.Finalize()
 	if h.w != nil {
 		h.w.Shutdown()
 	}
-	h.sentinel.Finalize()
 	for _, e := range h.executors {
 		e.Finalize()
 	}
 	h.persistenter.Finalize()
 	h.notifier.Finalize()
-	close(h.persistent)
-	close(h.notif)
 	logger.Sugar().Infow(
 		"Finalize",
 		"Subsystem", h.subsystem,

@@ -69,15 +69,6 @@ func (h *handler) handler(ctx context.Context) bool {
 			)
 		}
 		return false
-	case <-ctx.Done():
-		logger.Sugar().Infow(
-			"handler",
-			"State", "Done",
-			"Subsystem", h.subsystem,
-			"Error", ctx.Err(),
-		)
-		close(h.w.ClosedChan())
-		return true
 	case <-h.w.CloseChan():
 		close(h.w.ClosedChan())
 		return true
@@ -100,5 +91,4 @@ func (h *handler) Finalize() {
 	if h.w != nil {
 		h.w.Shutdown()
 	}
-	close(h.exec)
 }
