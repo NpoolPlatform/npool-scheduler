@@ -5,18 +5,17 @@ import (
 	"fmt"
 
 	accountsvcname "github.com/NpoolPlatform/account-middleware/pkg/servicename"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
+
 	"github.com/google/uuid"
 )
 
@@ -70,28 +69,6 @@ func (p *handler) withCreateStatement(dispose *dtmcli.SagaDispose, account *type
 	)
 }
 
-func (p *handler) notifyDeposit(account *types.PersistentAccount) {
-	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := p.statement(account)
-		return publisher.Update(
-			basetypes.MsgID_DepositReceivedReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
-	}); err != nil {
-		logger.Sugar().Errorw(
-			"notifDeposit",
-			"AppID", account.AppID,
-			"UserID", account.UserID,
-			"Account", account.CoinTypeID,
-			"AccountType", account.DepositAmount,
-			"Error", err,
-		)
-	}
-}
-
 func (p *handler) Update(ctx context.Context, account interface{}, retry, notif chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
@@ -109,7 +86,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 		return err
 	}
 
-	p.notifyDeposit(_account)
-
+	asyncfeed.AsyncFeed(_account, notif)
 	return nil
 }
