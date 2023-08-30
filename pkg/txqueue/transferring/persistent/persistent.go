@@ -25,7 +25,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif chan 
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:        &_tx.ID,
 		State:     &_tx.NewTxState,
-		ChainTxID: &_tx.TxCID,
+		ChainTxID: _tx.TxCID,
 		Extra:     &_tx.TxExtra,
 	}); err != nil {
 		return err

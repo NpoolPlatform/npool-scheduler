@@ -9,5 +9,5 @@ type PersistentTx struct {
 	*txmwpb.Tx
 	NewTxState basetypes.TxState
 	TxExtra    string
-	TxCID      string
+	TxCID      *string
 }
