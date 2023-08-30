@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -26,6 +27,7 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 			uint32(basetypes.TxState_TxStateTransferring),
 		}},
 	})
+	fmt.Printf("================================================ %v - %v - %v - %v\n", h.CoinTypeID, h.FromAccountID, exist, err)
 	if err != nil {
 		return err
 	}
@@ -36,21 +38,24 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 	return nil
 }
 
-func (h *txHandler) final() {
-	if h.newState == h.State {
+func (h *txHandler) final(err *error) {
+	if h.newState == h.State && *err == nil {
 		return
 	}
 
 	persistentTx := &types.PersistentTx{
 		Tx: h.Tx,
 	}
-	asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	if *err == nil {
+		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	}
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
-	defer h.final()
+	var err error
+	defer h.final(&err)
 
-	if err := h.checkWait(ctx); err != nil {
+	if err = h.checkWait(ctx); err != nil {
 		return err
 	}
 	return nil

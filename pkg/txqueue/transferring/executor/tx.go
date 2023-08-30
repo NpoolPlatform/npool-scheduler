@@ -55,8 +55,8 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
-func (h *txHandler) final() {
-	if h.newState == h.State {
+func (h *txHandler) final(err *error) {
+	if h.newState == h.State && *err == nil {
 		return
 	}
 
@@ -66,15 +66,18 @@ func (h *txHandler) final() {
 		TxExtra:    h.txExtra,
 		TxCID:      h.txCID,
 	}
-	asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	if *err == nil {
+		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	}
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
 	h.newState = h.State
+	var err error
 
-	defer h.final()
+	defer h.final(&err)
 
-	if err := h.checkTransfer(ctx); err != nil {
+	if err = h.checkTransfer(ctx); err != nil {
 		return err
 	}
 
