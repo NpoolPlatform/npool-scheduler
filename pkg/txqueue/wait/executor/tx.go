@@ -110,6 +110,7 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 		return err
 	}
 	if amount.Cmp(feeAmount) <= 0 {
+		h.newState = basetypes.TxState_TxStateFail
 		return fmt.Errorf("invalid amount")
 	}
 
