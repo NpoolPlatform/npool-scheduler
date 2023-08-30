@@ -20,7 +20,7 @@ type txHandler struct {
 	persistent chan interface{}
 	newState   basetypes.TxState
 	txExtra    string
-	txCID      string
+	txCID      *string
 }
 
 func (h *txHandler) checkTransfer(ctx context.Context) error {
@@ -46,9 +46,10 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 		h.newState = basetypes.TxState_TxStateFail
 	case sphinxproxypb.TransactionState_TransactionStateDone:
 		h.newState = basetypes.TxState_TxStateSuccessful
-		h.txCID = tx.CID
+		h.txCID = &tx.CID
 		if tx.CID == "" {
-			h.txCID = "(successful without CID)"
+			txCID := "(successful without CID)"
+			h.txCID = &txCID
 			h.newState = basetypes.TxState_TxStateFail
 		}
 	}
