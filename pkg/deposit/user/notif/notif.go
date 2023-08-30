@@ -2,6 +2,7 @@ package notif
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -41,14 +42,20 @@ func (p *handler) statement(account *types.PersistentAccount) *statementmwpb.Sta
 
 func (p *handler) notifyDeposit(account *types.PersistentAccount) error {
 	return pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := p.statement(account)
-		return publisher.Update(
-			basetypes.MsgID_DepositReceivedReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
+		msgID := basetypes.MsgID_DepositReceivedReq.String()
+		if account.Error != nil {
+			msgID = basetypes.MsgID_DepositCheckFailReq.String()
+		}
+		if account.Error == nil {
+			return publisher.Update(msgID, nil, nil, nil, p.statement(account))
+		} else {
+			req := &basetypes.MsgError{
+				Error: account.Error.Error(),
+			}
+			value, _ := json.Marshal(p.statement(account))
+			req.Value = string(value)
+			return publisher.Update(msgID, nil, nil, nil, req)
+		}
 	})
 }
 
