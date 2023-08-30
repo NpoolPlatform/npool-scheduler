@@ -49,8 +49,12 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 			if _, ok := ignores[tx.FromAccountID]; ok {
 				continue
 			}
-			if err := h.feedTx(ctx, tx, exec); err != nil {
-				return err
+			if state == basetypes.TxState_TxStateCreated {
+				if err := h.feedTx(ctx, tx, exec); err != nil {
+					return err
+				}
+			} else {
+				exec <- tx
 			}
 			ignores[tx.FromAccountID] = struct{}{}
 		}
