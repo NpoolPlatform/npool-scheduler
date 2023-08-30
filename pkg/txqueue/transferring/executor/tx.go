@@ -58,10 +58,11 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 }
 
 func (h *txHandler) final(err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Tx", h,
+			"NewTxState", h.newState,
 			"Error", *err,
 		)
 	}
