@@ -2,19 +2,20 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
 type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
+	retry      chan interface{}
 	newState   basetypes.TxState
 }
 
@@ -27,7 +28,6 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 			uint32(basetypes.TxState_TxStateTransferring),
 		}},
 	})
-	fmt.Printf("================================================ %v - %v - %v - %v\n", h.CoinTypeID, h.FromAccountID, exist, err)
 	if err != nil {
 		return err
 	}
@@ -38,8 +38,9 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 	return nil
 }
 
-func (h *txHandler) final(err *error) {
+func (h *txHandler) final(ctx context.Context, err *error) {
 	if h.newState == h.State && *err == nil {
+		retry1.Retry(ctx, h.Tx, h.retry)
 		return
 	}
 
@@ -48,12 +49,14 @@ func (h *txHandler) final(err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+	} else {
+		retry1.Retry(ctx, h.Tx, h.retry)
 	}
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
 	var err error
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.checkWait(ctx); err != nil {
 		return err

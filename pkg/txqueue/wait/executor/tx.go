@@ -7,7 +7,6 @@ import (
 	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/account"
 	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	accountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/account"
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
@@ -146,11 +145,6 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 }
 
 func (h *txHandler) final(ctx context.Context, err *error) {
-	logger.Sugar().Infow(
-		"final",
-		"PersistentTx", h,
-		"Error", *err,
-	)
 	if h.newState == h.State && *err == nil {
 		retry1.Retry(ctx, h.Tx, h.retry)
 		return
@@ -173,10 +167,11 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		persistentTx.ToAddress = h.toAccount.Address
 	}
 
-	if *err == nil && h.coin != nil {
+	if *err == nil {
 		asyncfeed.AsyncFeed(persistentTx, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(persistentTx, h.notif)
+		retry1.Retry(ctx, h.Tx, h.retry)
 	}
 }
 
