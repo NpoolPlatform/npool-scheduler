@@ -7,6 +7,7 @@ import (
 	accountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/account"
 	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	accountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/account"
 	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
@@ -61,7 +62,8 @@ func (h *txHandler) getAccount(ctx context.Context, accountID string) (*accountm
 		return nil, err
 	}
 	if account == nil {
-		return nil, fmt.Errorf("invlaid")
+		h.newState = basetypes.TxState_TxStateFail
+		return nil, fmt.Errorf("invalid account")
 	}
 	return account, nil
 }
@@ -72,6 +74,7 @@ func (h *txHandler) getCoin(ctx context.Context) error {
 		return err
 	}
 	if coin == nil {
+		h.newState = basetypes.TxState_TxStateFail
 		return fmt.Errorf("invalid coin")
 	}
 	h.coin = coin
@@ -111,8 +114,7 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 	}
 
 	h.transferAmount = amount.Sub(feeAmount)
-
-	if h.transferAmount.Add(reserved).Cmp(balance) < 0 {
+	if h.transferAmount.Add(reserved).Cmp(balance) > 0 {
 		return fmt.Errorf("insufficient funds")
 	}
 
@@ -135,6 +137,7 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 		return err
 	}
 	if account == nil {
+		h.newState = basetypes.TxState_TxStateFail
 		return fmt.Errorf("invalid useraccount")
 	}
 	if account.Memo == "" {
@@ -145,6 +148,15 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 }
 
 func (h *txHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Tx", h,
+			"NewTxState", h.newState,
+			"TransactionExist", h.transactionExist,
+			"Error", *err,
+		)
+	}
 	if h.newState == h.State && *err == nil {
 		retry1.Retry(ctx, h.Tx, h.retry)
 		return
@@ -156,6 +168,8 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		Amount:           h.transferAmount.String(),
 		FloatAmount:      h.transferAmount.InexactFloat64(),
 		AccountMemo:      h.memo,
+		NewTxState:       h.newState,
+		Error:            *err,
 	}
 	if h.coin != nil {
 		persistentTx.CoinName = h.coin.Name
@@ -167,15 +181,18 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		persistentTx.ToAddress = h.toAccount.Address
 	}
 
-	if *err == nil {
+	if h.newState != h.State {
 		asyncfeed.AsyncFeed(persistentTx, h.persistent)
-	} else {
+		return
+	} else if *err != nil {
 		asyncfeed.AsyncFeed(persistentTx, h.notif)
-		retry1.Retry(ctx, h.Tx, h.retry)
 	}
+	retry1.Retry(ctx, h.Tx, h.retry)
 }
 
 func (h *txHandler) exec(ctx context.Context) error {
+	h.newState = h.State
+
 	var err error
 	defer h.final(ctx, &err)
 	if exist, err := h.checkTransfer(ctx); err != nil || exist {

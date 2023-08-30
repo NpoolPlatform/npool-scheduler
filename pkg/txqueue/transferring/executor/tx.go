@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -57,6 +58,13 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 }
 
 func (h *txHandler) final(err *error) {
+	if *err != nil || true {
+		logger.Sugar().Errorw(
+			"final",
+			"Tx", h,
+			"Error", *err,
+		)
+	}
 	if h.newState == h.State && *err == nil {
 		return
 	}
