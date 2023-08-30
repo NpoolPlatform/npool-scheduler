@@ -67,12 +67,12 @@ github.com/NpoolPlatform/good-middleware v0.0.0-20230828123204-a28c50d8f806 h1:x
 github.com/NpoolPlatform/good-middleware v0.0.0-20230828123204-a28c50d8f806/go.mod h1:K8ve/Vd6HYrpXN83GtzxDAMpHk447mRQQKQx1g5XYGk=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771 h1:AzwvjYi0zdnpWDNb+QMbb1vi5IOIm7YQZunCwX+eSEk=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771/go.mod h1:dnXdGb97v575pBYjX8o8UxLYHe5EIrRWk34WtHMwu/0=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20230828113408-6b4d82695fac h1:BjUOC22rFoqDyfxWLzuq6DHDV4abRcDnVStM39tscQc=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20230828113408-6b4d82695fac/go.mod h1:8MS6sutcbJRHKfUVlO/SQMwz3QVOMNFbqt4uhHVlNQE=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20230830092842-f2072ea81e7c h1:p7YZ7ENqC0egqxqMjRGUId6heLDZpBFC4QSiyaPk8/w=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20230830092842-f2072ea81e7c/go.mod h1:wU2uWiDBcBDlAF7JMkhXiQIBP6Kz7LsjKJjyruPi3s8=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99 h1:boB4NuhQxXWeV0Z1qSxgIqbiMYU30dqFGDLtgNTqYbE=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99/go.mod h1:1B4hvnPiGavpCYaEjW5H6xDz+UizFdRTIRBtNIGbx5s=
-github.com/NpoolPlatform/message v0.0.0-20230828122448-f9cfc5212889 h1:hIpz9FnrEjEkEzcUDB8VmBdegJfTuh4KlTI4mkF2U2k=
-github.com/NpoolPlatform/message v0.0.0-20230828122448-f9cfc5212889/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20230830090707-095d057e3cf8 h1:aKfgNPoO8LO6P/FsmCye4rHVICEKlpfgorgJKjytKh4=
+github.com/NpoolPlatform/message v0.0.0-20230830090707-095d057e3cf8/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b h1:NnP+3SvF3YPytIGb3CWGZIpeLJJItY1Aw4jfiLzTfas=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b/go.mod h1:9EtGerqd6ZsTiCpetgL3MiFjzWeyO6i6hG7RiKyfvoc=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095 h1:p7MketGtON0UlRhiPjF/s38iNUCLhe25p8eRTkLZla8=
