@@ -26,6 +26,17 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif chan 
 		return fmt.Errorf("invalid tx")
 	}
 
+	if _tx.NewTxState != basetypes.TxState_TxStateTransferring {
+		if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
+			ID:    &_tx.ID,
+			State: &_tx.NewTxState,
+		}); err != nil {
+			retry1.Retry(ctx, _tx, retry)
+			return err
+		}
+		return nil
+	}
+
 	if !_tx.TransactionExist {
 		if err := sphinxproxycli.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
 			TransactionID: _tx.ID,
@@ -41,11 +52,9 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif chan 
 	}
 
 	_tx.TransactionExist = true
-
-	state := basetypes.TxState_TxStateTransferring
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:    &_tx.ID,
-		State: &state,
+		State: &_tx.NewTxState,
 	}); err != nil {
 		retry1.Retry(ctx, _tx, retry)
 		return err

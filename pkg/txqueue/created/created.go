@@ -2,6 +2,7 @@ package created
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -13,7 +14,10 @@ import (
 
 const subsystem = "txqueuecreated"
 
-var h *base.Handler
+var (
+	h     *base.Handler
+	mutex sync.Mutex
+)
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	_h, err := base.NewHandler(
@@ -21,9 +25,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		cancel,
 		base.WithSubsystem(subsystem),
 		base.WithScanInterval(time.Minute),
-		base.WithScanner(sentinel.NewSentinel()),
-		base.WithExec(executor.NewExecutor()),
-		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithScanner(sentinel.NewSentinel(&mutex)),
+		base.WithExec(executor.NewExecutor(&mutex)),
+		base.WithPersistenter(persistent.NewPersistent(&mutex)),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(

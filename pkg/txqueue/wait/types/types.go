@@ -1,6 +1,7 @@
 package types
 
 import (
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 )
 
@@ -13,4 +14,6 @@ type PersistentTx struct {
 	FromAddress      string
 	ToAddress        string
 	AccountMemo      *string
+	NewTxState       basetypes.TxState
+	Error            error
 }

@@ -2,8 +2,10 @@ package executor
 
 import (
 	"context"
+	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
@@ -16,10 +18,14 @@ type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
 	retry      chan interface{}
+	mutex      *sync.Mutex
 	newState   basetypes.TxState
 }
 
 func (h *txHandler) checkWait(ctx context.Context) error {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
 		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.FromAccountID},
@@ -39,6 +45,14 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 }
 
 func (h *txHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Tx", h,
+			"NewTxState", h.newState,
+			"Error", *err,
+		)
+	}
 	if h.newState == h.State && *err == nil {
 		retry1.Retry(ctx, h.Tx, h.retry)
 		return
