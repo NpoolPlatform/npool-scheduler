@@ -179,12 +179,14 @@ func (h *txHandler) checkAccountCoin() error {
 	switch h.fromAccount.CoinTypeID {
 	case h.CoinTypeID:
 	default:
+		h.newState = basetypes.TxState_TxStateFail
 		return fmt.Errorf("invalid from account coin")
 	}
 	switch h.CoinTypeID {
 	case h.toAccount.CoinTypeID:
 	case h.toAccountCoin.FeeCoinTypeID:
 	default:
+		h.newState = basetypes.TxState_TxStateFail
 		return fmt.Errorf("invalid to account coin")
 	}
 	return nil
@@ -260,16 +262,16 @@ func (h *txHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = h.checkTransferAmount(ctx); err != nil {
-		return err
-	}
-	if err = h.checkFeeAmount(ctx); err != nil {
+	if err = h.checkAccountCoin(); err != nil {
 		return err
 	}
 	if err = h.getMemo(ctx); err != nil {
 		return err
 	}
-	if err = h.checkAccountCoin(); err != nil {
+	if err = h.checkTransferAmount(ctx); err != nil {
+		return err
+	}
+	if err = h.checkFeeAmount(ctx); err != nil {
 		return err
 	}
 
