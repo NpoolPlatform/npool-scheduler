@@ -9,13 +9,17 @@ import (
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -91,7 +95,7 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if balance.Cmp(limit) <= 0 || balance.Cmp(reserved) <= 0 {
+	if balance.Cmp(limit) < 0 || balance.Cmp(reserved) <= 0 {
 		return nil
 	}
 	h.amount = balance.Sub(reserved)
@@ -117,14 +121,10 @@ func (h *accountHandler) checkFeeBalance(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if bal.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("insufficient gas")
+	}
 
-	feeAmount, err := decimal.NewFromString(h.coin.CollectFeeAmount)
-	if err != nil {
-		return err
-	}
-	if bal.Cmp(feeAmount) < 0 {
-		return nil
-	}
 	return nil
 }
 
@@ -138,7 +138,7 @@ func (h *accountHandler) getCollectAccount(ctx context.Context) error {
 		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
-		return nil
+		return err
 	}
 	if account == nil {
 		return fmt.Errorf("invalid collect account")
@@ -147,14 +147,53 @@ func (h *accountHandler) getCollectAccount(ctx context.Context) error {
 	return nil
 }
 
-func (h *accountHandler) final(ctx context.Context, err *error) {
+func (h *accountHandler) checkTransferring(ctx context.Context) (bool, error) {
+	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
+		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: h.AccountID},
+		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
+			uint32(basetypes.TxState_TxStateCreated),
+			uint32(basetypes.TxState_TxStateCreatedCheck),
+			uint32(basetypes.TxState_TxStateWait),
+			uint32(basetypes.TxState_TxStateWaitCheck),
+			uint32(basetypes.TxState_TxStateTransferring),
+		}},
+		Type: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxPaymentCollect)},
+	})
 	if err != nil {
+		return false, err
+	}
+	if exist {
+		return true, nil
+	}
+
+	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
+		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AccountID},
+		State:      &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxState_TxStateSuccessful)},
+		Type:       &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxPaymentCollect)},
+	}, int32(0), int32(1))
+	if err != nil {
+		return false, err
+	}
+	if len(txs) == 0 {
+		return false, nil
+	}
+	const coolDown = timedef.SecondsPerHour
+	if txs[0].CreatedAt+coolDown > uint32(time.Now().Unix()) {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (h *accountHandler) final(ctx context.Context, err *error) {
+	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
 			"Account", h,
 			"Coin", h.coin,
 			"Amount", h.amount,
 			"CollectAccount", h.collectAccount,
+			"Error", *err,
 		)
 	}
 
@@ -176,9 +215,9 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		h.persistent <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
 	} else {
-		h.notif <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.notif)
 	}
 }
 
@@ -189,6 +228,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 
 	var err error
 	var executable bool
+	var yes bool
 
 	defer h.final(ctx, &err)
 
@@ -208,7 +248,10 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	defer func() {
 		_ = accountlock.Unlock(h.AccountID)
 	}()
-	if executable, err = h.recheckAccount(ctx); err != nil || executable {
+	if executable, err = h.recheckAccount(ctx); err != nil || !executable {
+		return err
+	}
+	if yes, err = h.checkTransferring(ctx); err != nil || yes {
 		return err
 	}
 	if err = h.checkFeeBalance(ctx); err != nil {
