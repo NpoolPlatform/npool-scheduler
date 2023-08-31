@@ -13,7 +13,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
+	// "github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
@@ -47,7 +47,7 @@ var runCmd = &cli.Command{
 		txqueue.Finalize()
 		announcement.Finalize()
 		gasfeeder.Finalize()
-		order.Finalize()
+		// order.Finalize()
 
 		return err
 	},
@@ -76,7 +76,7 @@ func shutdown(ctx context.Context) {
 
 func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
-	order.Initialize(ctx, cancel)
+	// order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
 	announcement.Initialize(ctx, cancel)
 	txqueue.Initialize(ctx, cancel)

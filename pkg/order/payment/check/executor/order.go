@@ -19,7 +19,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
@@ -27,19 +27,17 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	good                    *appgoodmwpb.Good
-	paymentCoin             *coinmwpb.Coin
-	paymentAccount          *payaccmwpb.Account
-	paymentAccountBalance   decimal.Decimal
-	incomingAmount          decimal.Decimal
-	transferOutcomingAmount decimal.Decimal
-	balanceOutcomingAmount  decimal.Decimal
-	newOrderState           ordertypes.OrderState
-	newPaymentState         ordertypes.PaymentState
-	remainBalance           decimal.Decimal
-	retry                   chan interface{}
-	persistent              chan interface{}
-	notif                   chan interface{}
+	retry                 chan interface{}
+	persistent            chan interface{}
+	notif                 chan interface{}
+	good                  *appgoodmwpb.Good
+	paymentCoin           *coinmwpb.Coin
+	paymentAccount        *payaccmwpb.Account
+	paymentAccountBalance decimal.Decimal
+	incomingAmount        decimal.Decimal
+	transferAmount        decimal.Decimal
+	newOrderState         ordertypes.OrderState
+	newPaymentState       ordertypes.PaymentState
 }
 
 func (h *orderHandler) getGood(ctx context.Context) error {
@@ -68,7 +66,7 @@ func (h *orderHandler) onlinePayment() bool {
 	case ordertypes.OrderType_Airdrop:
 		return false
 	}
-	return true
+	return h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0
 }
 
 func (h *orderHandler) payWithBalanceOnly() bool {
@@ -153,12 +151,8 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) paymentBalanceEnough() (bool, error) {
-	transferAmount, err := decimal.NewFromString(h.TransferAmount)
-	if err != nil {
-		return false, err
-	}
-	return h.incomingAmount.Sub(transferAmount).Cmp(decimal.NewFromInt(0)) >= 0, nil
+func (h *orderHandler) paymentBalanceEnough() bool {
+	return h.incomingAmount.Sub(h.transferAmount).Cmp(decimal.NewFromInt(0)) >= 0
 }
 
 func (h *orderHandler) resolveNewState() error {
@@ -173,76 +167,30 @@ func (h *orderHandler) resolveNewState() error {
 		return nil
 	}
 	if !h.onlinePayment() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaid
+		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 		return nil
 	}
-	enough, err := h.paymentBalanceEnough()
-	if err != nil {
-		return err
-	}
-	if enough {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaid
+	if h.paymentBalanceEnough() {
+		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 	}
 	return nil
 }
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	// Update order state
-	// Move good stock from lock to paid or spot quantity
-	// Change lock state of payment account
-	// Update user ledger and statement (incoming, outcoming, locked balance)
-	// Update user achievement and statement
-	// Allocate reward of user purchase action
-	// Send order payment notification or timeout hint
-
+	if h.newOrderState == h.OrderState && *err == nil {
+		return
+	}
 	persistentOrder := &types.PersistentOrder{
-		Order:           h.Order,
-		PaymentBalance:  h.paymentAccountBalance,
-		NewOrderState:   h.newOrderState,
-		NewPaymentState: h.newPaymentState,
-		Error:           *err,
+		Order: h.Order,
+		Error: *err,
 	}
-	if h.incomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.incomingAmount.String()
-		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v"}`,
-			h.PaymentID,
-			h.ID,
-			h.newPaymentState,
-			h.GoodID,
-		)
-		persistentOrder.IncomingAmount = &amount
-		persistentOrder.IncomingExtra = ioExtra
-	}
-	if h.transferOutcomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.transferOutcomingAmount.String()
-		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","TransferAmount":"%v"}`,
-			h.PaymentID,
-			h.ID,
-			h.TransferAmount,
-		)
-		persistentOrder.TransferOutcomingAmount = &amount
-		persistentOrder.TransferOutcomingExtra = ioExtra
-	}
-	if h.balanceOutcomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.balanceOutcomingAmount.String()
-		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","BalanceAmount":"%v"}`,
-			h.PaymentID,
-			h.ID,
-			h.BalanceAmount,
-		)
-		persistentOrder.TransferOutcomingAmount = &amount
-		persistentOrder.TransferOutcomingExtra = ioExtra
-	}
-
-	h.notif <- persistentOrder
-	if h.newOrderState != h.OrderState && *err == nil {
+	if h.newOrderState != h.OrderState {
 		h.persistent <- persistentOrder
 		return
+	} else if *err != nil {
+		h.notif <- persistentOrder
 	}
 	retry1.Retry(ctx, h.Order, h.retry)
 }
@@ -252,10 +200,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	h.newPaymentState = h.PaymentState
 
 	var err error
-	if h.transferOutcomingAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
-		return err
-	}
-	if h.balanceOutcomingAmount, err = decimal.NewFromString(h.BalanceAmount); err != nil {
+	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
 		return err
 	}
 

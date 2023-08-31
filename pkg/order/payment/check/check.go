@@ -1,4 +1,4 @@
-package payment
+package check
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/sentinel"
 )
 
-const subsystem = "orderpayment"
+const subsystem = "orderpaymentcheck"
 
 var h *base.Handler
 
