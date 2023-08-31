@@ -10,6 +10,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/start"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/timeout"
 )
 
 const subsystem = "order"
@@ -28,12 +29,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	start.Initialize(ctx, cancel)
 	finish.Initialize(ctx, cancel)
 	expiry.Initialize(ctx, cancel)
+	timeout.Initialize(ctx, cancel)
 }
 
 func Finalize() {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	timeout.Finalize()
 	expiry.Finalize()
 	finish.Finalize()
 	start.Finalize()
