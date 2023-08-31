@@ -45,7 +45,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrders(ctx, ordertypes.OrderState_OrderStatePreCancel, exec)
+	return h.scanOrders(ctx, ordertypes.OrderState_OrderStatePreExpired, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
