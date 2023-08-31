@@ -87,7 +87,7 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 		Address: h.fromAccount.Address,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("fail check transfer amount (%v)", err)
 	}
 	if bal == nil {
 		return fmt.Errorf("invalid balance")
@@ -122,6 +122,33 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 	return nil
 }
 
+func (h *txHandler) checkFeeAmount(ctx context.Context) error {
+	if h.coin.ID == h.coin.FeeCoinTypeID {
+		return nil
+	}
+
+	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    h.coin.FeeCoinName,
+		Address: h.fromAccount.Address,
+	})
+	if err != nil {
+		return fmt.Errorf("fail check fee amount (%v)", err)
+	}
+	if bal == nil {
+		return fmt.Errorf("invalid balance")
+	}
+
+	balance, err := decimal.NewFromString(bal.BalanceStr)
+	if err != nil {
+		return err
+	}
+	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("insufficient gas")
+	}
+
+	return nil
+}
+
 func (h *txHandler) getMemo(ctx context.Context) error {
 	if h.Type != basetypes.TxType_TxWithdraw {
 		return nil
@@ -145,6 +172,13 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 		return nil
 	}
 	h.memo = &account.Memo
+	return nil
+}
+
+func (h *txHandler) checkAccountCoin() error {
+	if h.CoinTypeID != h.fromAccount.CoinTypeID || h.CoinTypeID != h.toAccount.CoinTypeID {
+		return fmt.Errorf("invalid account coin")
+	}
 	return nil
 }
 
@@ -210,10 +244,16 @@ func (h *txHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := h.checkTransferAmount(ctx); err != nil {
+	if err = h.checkTransferAmount(ctx); err != nil {
 		return err
 	}
-	if err := h.getMemo(ctx); err != nil {
+	if err = h.checkFeeAmount(ctx); err != nil {
+		return err
+	}
+	if err = h.getMemo(ctx); err != nil {
+		return err
+	}
+	if err = h.checkAccountCoin(); err != nil {
 		return err
 	}
 

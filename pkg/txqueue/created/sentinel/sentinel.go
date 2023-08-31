@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
@@ -78,6 +79,7 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 				exec <- tx
 			}
 			feedable, err := h.feedable(ctx, tx)
+			fmt.Printf("feedable %v, err %v, tx %v\n", feedable, err, tx)
 			if err != nil {
 				return err
 			}
