@@ -82,7 +82,10 @@ func (h *coinHandler) checkBalanceLimitation(ctx context.Context) (bool, error) 
 func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.userBenefitColdAccount.AccountID},
+		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
+			h.userBenefitHotAccount.AccountID,
+			h.userBenefitColdAccount.AccountID,
+		}},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreated),
 			uint32(basetypes.TxState_TxStateCreatedCheck),
