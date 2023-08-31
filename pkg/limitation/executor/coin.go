@@ -171,10 +171,10 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if yes, err = h.checkBalanceLimitation(ctx); err != nil || !yes {
+	if yes, err = h.checkTransferring(ctx); err != nil || yes {
 		return err
 	}
-	if yes, err = h.checkTransferring(ctx); err != nil || yes {
+	if yes, err = h.checkBalanceLimitation(ctx); err != nil || !yes {
 		return err
 	}
 

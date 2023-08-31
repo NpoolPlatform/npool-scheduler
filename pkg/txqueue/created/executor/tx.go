@@ -28,8 +28,9 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
-		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.FromAccountID},
+		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{h.FromAccountID, h.ToAccountID}},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
+			uint32(basetypes.TxState_TxStateWaitCheck),
 			uint32(basetypes.TxState_TxStateWait),
 			uint32(basetypes.TxState_TxStateTransferring),
 		}},

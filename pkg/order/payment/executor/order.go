@@ -81,7 +81,7 @@ func (h *orderHandler) timeout() bool {
 }
 
 func (h *orderHandler) canceled() bool {
-	return h.UserSetCanceled
+	return h.UserSetCanceled || h.AdminSetCanceled
 }
 
 func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
@@ -163,7 +163,7 @@ func (h *orderHandler) paymentBalanceEnough() (bool, error) {
 
 func (h *orderHandler) resolveNewState() error {
 	if h.canceled() {
-		h.newOrderState = ordertypes.OrderState_OrderStateCanceled
+		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
 		return nil
 	}
