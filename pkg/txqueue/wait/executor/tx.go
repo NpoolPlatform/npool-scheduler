@@ -35,7 +35,8 @@ type txHandler struct {
 	fromAccount      *accountmwpb.Account
 	toAccount        *accountmwpb.Account
 	transferAmount   decimal.Decimal
-	coin             *coinmwpb.Coin
+	txCoin           *coinmwpb.Coin
+	toAccountCoin    *coinmwpb.Coin
 	memo             *string
 }
 
@@ -68,22 +69,21 @@ func (h *txHandler) getAccount(ctx context.Context, accountID string) (*accountm
 	return account, nil
 }
 
-func (h *txHandler) getCoin(ctx context.Context) error {
-	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
+func (h *txHandler) getCoin(ctx context.Context, coinTypeID string) (*coinmwpb.Coin, error) {
+	coin, err := coinmwcli.GetCoin(ctx, coinTypeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if coin == nil {
 		h.newState = basetypes.TxState_TxStateFail
-		return fmt.Errorf("invalid coin")
+		return nil, fmt.Errorf("invalid coin")
 	}
-	h.coin = coin
-	return nil
+	return coin, nil
 }
 
 func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.coin.Name,
+		Name:    h.txCoin.Name,
 		Address: h.fromAccount.Address,
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	reserved, err := decimal.NewFromString(h.coin.ReservedAmount)
+	reserved, err := decimal.NewFromString(h.txCoin.ReservedAmount)
 	if err != nil {
 		return err
 	}
@@ -123,12 +123,12 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 }
 
 func (h *txHandler) checkFeeAmount(ctx context.Context) error {
-	if h.coin.ID == h.coin.FeeCoinTypeID {
+	if h.txCoin.ID == h.txCoin.FeeCoinTypeID {
 		return nil
 	}
 
 	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.coin.FeeCoinName,
+		Name:    h.txCoin.FeeCoinName,
 		Address: h.fromAccount.Address,
 	})
 	if err != nil {
@@ -176,8 +176,16 @@ func (h *txHandler) getMemo(ctx context.Context) error {
 }
 
 func (h *txHandler) checkAccountCoin() error {
-	if h.CoinTypeID != h.fromAccount.CoinTypeID || h.CoinTypeID != h.toAccount.CoinTypeID {
-		return fmt.Errorf("invalid account coin")
+	switch h.fromAccount.CoinTypeID {
+	case h.CoinTypeID:
+	default:
+		return fmt.Errorf("invalid from account coin")
+	}
+	switch h.CoinTypeID {
+	case h.toAccount.CoinTypeID:
+	case h.toAccountCoin.FeeCoinTypeID:
+	default:
+		return fmt.Errorf("invalid to account coin")
 	}
 	return nil
 }
@@ -189,6 +197,9 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 			"Tx", h,
 			"NewTxState", h.newState,
 			"TransactionExist", h.transactionExist,
+			"Coin", h.txCoin,
+			"FromAccount", h.fromAccount,
+			"ToAccount", h.toAccount,
 			"Error", *err,
 		)
 	}
@@ -206,8 +217,8 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		NewTxState:       h.newState,
 		Error:            *err,
 	}
-	if h.coin != nil {
-		persistentTx.CoinName = h.coin.Name
+	if h.txCoin != nil {
+		persistentTx.CoinName = h.txCoin.Name
 	}
 	if h.fromAccount != nil {
 		persistentTx.FromAddress = h.fromAccount.Address
@@ -233,7 +244,8 @@ func (h *txHandler) exec(ctx context.Context) error {
 	if exist, err := h.checkTransfer(ctx); err != nil || exist {
 		return err
 	}
-	if err := h.getCoin(ctx); err != nil {
+	h.txCoin, err = h.getCoin(ctx, h.CoinTypeID)
+	if err != nil {
 		return err
 	}
 	h.fromAccount, err = h.getAccount(ctx, h.FromAccountID)
@@ -241,6 +253,10 @@ func (h *txHandler) exec(ctx context.Context) error {
 		return err
 	}
 	h.toAccount, err = h.getAccount(ctx, h.ToAccountID)
+	if err != nil {
+		return err
+	}
+	h.toAccountCoin, err = h.getCoin(ctx, h.toAccount.CoinTypeID)
 	if err != nil {
 		return err
 	}
