@@ -62,7 +62,7 @@ func (p *handler) withCreateStatement(dispose *dtmcli.SagaDispose, account *type
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger1.statement.v2.Middleware/CreateStatement",
-		"ledger.middleware.ledger1.statement.v2.Middleware/DeleteStatement",
+		"",
 		&statementmwpb.CreateStatementRequest{
 			Info: req,
 		},
