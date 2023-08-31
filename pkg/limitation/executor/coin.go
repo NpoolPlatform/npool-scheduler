@@ -3,19 +3,20 @@ package executor
 import (
 	"context"
 	"fmt"
-	"time"
-
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
@@ -81,10 +82,15 @@ func (h *coinHandler) checkBalanceLimitation(ctx context.Context) (bool, error) 
 func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.userBenefitColdAccount.AccountID},
+		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
+			h.userBenefitHotAccount.AccountID,
+			h.userBenefitColdAccount.AccountID,
+		}},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreated),
+			uint32(basetypes.TxState_TxStateCreatedCheck),
 			uint32(basetypes.TxState_TxStateWait),
+			uint32(basetypes.TxState_TxStateWaitCheck),
 			uint32(basetypes.TxState_TxStateTransferring),
 		}},
 		Type: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxLimitation)},
@@ -116,21 +122,39 @@ func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 }
 
 func (h *coinHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Coin", h,
+			"HotAccount", h.userBenefitHotAccount,
+			"Amount", h.amount,
+			"Error", *err,
+		)
+	}
+
+	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		return
+	}
 	persistentCoin := &types.PersistentCoin{
-		Coin:          h.Coin,
-		FromAccountID: h.userBenefitHotAccount.AccountID,
-		FromAddress:   h.userBenefitHotAccount.Address,
-		ToAccountID:   h.userBenefitColdAccount.AccountID,
-		ToAddress:     h.userBenefitColdAccount.Address,
-		Amount:        h.amount.String(),
-		FeeAmount:     decimal.NewFromInt(0).String(),
-		Error:         *err,
+		Coin:      h.Coin,
+		Amount:    h.amount.String(),
+		FeeAmount: decimal.NewFromInt(0).String(),
+		Error:     *err,
+	}
+
+	if h.userBenefitHotAccount != nil {
+		persistentCoin.FromAccountID = h.userBenefitHotAccount.AccountID
+		persistentCoin.FromAddress = h.userBenefitHotAccount.Address
+	}
+	if h.userBenefitColdAccount != nil {
+		persistentCoin.ToAccountID = h.userBenefitColdAccount.AccountID
+		persistentCoin.ToAddress = h.userBenefitColdAccount.Address
 	}
 
 	if *err == nil {
-		h.persistent <- persistentCoin
+		asyncfeed.AsyncFeed(persistentCoin, h.persistent)
 	} else {
-		h.notif <- persistentCoin
+		asyncfeed.AsyncFeed(persistentCoin, h.notif)
 	}
 }
 
