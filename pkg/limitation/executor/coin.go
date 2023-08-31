@@ -126,6 +126,7 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Coin", h,
+			"HotAccount", h.userBenefitHotAccount,
 			"Amount", h.amount,
 			"Error", *err,
 		)
@@ -146,8 +147,8 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 		persistentCoin.FromAddress = h.userBenefitHotAccount.Address
 	}
 	if h.userBenefitColdAccount != nil {
-		persistentCoin.FromAccountID = h.userBenefitColdAccount.AccountID
-		persistentCoin.FromAddress = h.userBenefitColdAccount.Address
+		persistentCoin.ToAccountID = h.userBenefitColdAccount.AccountID
+		persistentCoin.ToAddress = h.userBenefitColdAccount.Address
 	}
 
 	if *err == nil {
