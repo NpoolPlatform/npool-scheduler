@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
@@ -40,8 +39,10 @@ func (h *handler) feedable(ctx context.Context, tx *txmwpb.Tx) (bool, error) {
 	defer h.mutex.Unlock()
 
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: tx.CoinTypeID},
-		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: tx.FromAccountID},
+		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
+			tx.FromAccountID,
+			tx.ToAccountID,
+		}},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreatedCheck),
 			uint32(basetypes.TxState_TxStateWaitCheck),
@@ -75,11 +76,13 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 			if _, ok := ignores[tx.FromAccountID]; ok {
 				continue
 			}
+			if _, ok := ignores[tx.ToAccountID]; ok {
+				continue
+			}
 			if state == basetypes.TxState_TxStateCreatedCheck {
 				exec <- tx
 			}
 			feedable, err := h.feedable(ctx, tx)
-			fmt.Printf("feedable %v, err %v, tx %v\n", feedable, err, tx)
 			if err != nil {
 				return err
 			}
@@ -90,6 +93,7 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 				return err
 			}
 			ignores[tx.FromAccountID] = struct{}{}
+			ignores[tx.ToAccountID] = struct{}{}
 		}
 
 		offset += limit
