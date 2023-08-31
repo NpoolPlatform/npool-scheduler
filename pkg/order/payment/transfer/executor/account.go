@@ -9,6 +9,7 @@ import (
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
@@ -30,15 +31,21 @@ type accountHandler struct {
 	collectAccount *pltfaccmwpb.Account
 }
 
-func (h *accountHandler) getCoin(ctx context.Context) error {
-	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
+func (h *accountHandler) getCoin(ctx context.Context, coinTypeID string) (*coinmwpb.Coin, error) {
+	coin, err := coinmwcli.GetCoin(ctx, coinTypeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if coin == nil {
-		return fmt.Errorf("invalid coin")
+		return nil, fmt.Errorf("invalid coin")
 	}
-	h.coin = coin
+	return coin, nil
+}
+
+func (h *accountHandler) checkAccountCoin() error {
+	if h.collectAccount.CoinTypeID != h.CoinTypeID {
+		return fmt.Errorf("invalid collect account coin")
+	}
 	return nil
 }
 
@@ -141,6 +148,16 @@ func (h *accountHandler) getCollectAccount(ctx context.Context) error {
 }
 
 func (h *accountHandler) final(ctx context.Context, err *error) {
+	if err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Account", h,
+			"Coin", h.coin,
+			"Amount", h.amount,
+			"CollectAccount", h.collectAccount,
+		)
+	}
+
 	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
 		return
 	}
@@ -151,9 +168,11 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		FeeAmount:        decimal.NewFromInt(0).String(),
 		PaymentAccountID: h.AccountID,
 		PaymentAddress:   h.Address,
-		CollectAccountID: h.collectAccount.AccountID,
-		CollectAddress:   h.collectAccount.Address,
 		Error:            *err,
+	}
+	if h.collectAccount != nil {
+		persistentAccount.CollectAccountID = h.collectAccount.AccountID
+		persistentAccount.CollectAddress = h.collectAccount.Address
 	}
 
 	if *err == nil {
@@ -173,10 +192,14 @@ func (h *accountHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	if err = h.getCoin(ctx); err != nil {
+	h.coin, err = h.getCoin(ctx, h.CoinTypeID)
+	if err != nil {
 		return err
 	}
-	if err := h.getCollectAccount(ctx); err != nil {
+	if err = h.getCollectAccount(ctx); err != nil {
+		return err
+	}
+	if err = h.checkAccountCoin(); err != nil {
 		return err
 	}
 	if err = accountlock.Lock(h.AccountID); err != nil {

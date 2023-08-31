@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -30,7 +29,6 @@ type coinHandler struct {
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	userBenefitColdAccount *pltfaccmwpb.Account
 	amount                 decimal.Decimal
-	feeCoin                *coinmwpb.Coin
 }
 
 func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
@@ -133,24 +131,12 @@ func (h *coinHandler) checkAccountCoin() error {
 	return nil
 }
 
-func (h *coinHandler) getFeeCoin(ctx context.Context) error {
+func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
 	if h.ID == h.FeeCoinTypeID {
 		return nil
 	}
-	coin, err := coinmwcli.GetCoin(ctx, h.FeeCoinTypeID)
-	if err != nil {
-		return err
-	}
-	if coin == nil {
-		return fmt.Errorf("invalid fee coin")
-	}
-	h.feeCoin = coin
-	return nil
-}
-
-func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.feeCoin.Name,
+		Name:    h.FeeCoinName,
 		Address: h.userBenefitHotAccount.Address,
 	})
 	if err != nil {
@@ -221,9 +207,6 @@ func (h *coinHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.checkAccountCoin(); err != nil {
-		return err
-	}
-	if err = h.getFeeCoin(ctx); err != nil {
 		return err
 	}
 	if err = h.checkFeeBalance(ctx); err != nil {
