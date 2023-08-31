@@ -3,7 +3,9 @@ package executor
 import (
 	"context"
 	"fmt"
+
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -28,6 +30,7 @@ type coinHandler struct {
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	userBenefitColdAccount *pltfaccmwpb.Account
 	amount                 decimal.Decimal
+	feeCoin                *coinmwpb.Coin
 }
 
 func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
@@ -69,7 +72,6 @@ func (h *coinHandler) checkBalanceLimitation(ctx context.Context) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-
 	if bal.Cmp(limit.Mul(decimal.NewFromInt(2))) < 0 {
 		return false, nil
 	}
@@ -121,6 +123,53 @@ func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
+func (h *coinHandler) checkAccountCoin() error {
+	if h.userBenefitHotAccount.CoinTypeID != h.ID {
+		return fmt.Errorf("invalid hot account")
+	}
+	if h.userBenefitColdAccount.CoinTypeID != h.ID {
+		return fmt.Errorf("invalid hot account")
+	}
+	return nil
+}
+
+func (h *coinHandler) getFeeCoin(ctx context.Context) error {
+	if h.ID == h.FeeCoinTypeID {
+		return nil
+	}
+	coin, err := coinmwcli.GetCoin(ctx, h.FeeCoinTypeID)
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid fee coin")
+	}
+	h.feeCoin = coin
+	return nil
+}
+
+func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
+	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    h.feeCoin.Name,
+		Address: h.userBenefitHotAccount.Address,
+	})
+	if err != nil {
+		return err
+	}
+	if balance == nil {
+		return fmt.Errorf("invalid balance")
+	}
+
+	bal, err := decimal.NewFromString(balance.BalanceStr)
+	if err != nil {
+		return err
+	}
+	if bal.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("insufficient gas")
+	}
+	return nil
+}
+
 func (h *coinHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -169,6 +218,15 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	}
 	h.userBenefitColdAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitCold)
 	if err != nil {
+		return err
+	}
+	if err = h.checkAccountCoin(); err != nil {
+		return err
+	}
+	if err = h.getFeeCoin(ctx); err != nil {
+		return err
+	}
+	if err = h.checkFeeBalance(ctx); err != nil {
 		return err
 	}
 	if yes, err = h.checkTransferring(ctx); err != nil || yes {
