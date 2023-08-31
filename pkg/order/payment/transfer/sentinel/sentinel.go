@@ -27,7 +27,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 			Active:      &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 			Locked:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			Blocked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-			AvailableAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
+			AvailableAt: &basetypes.Uint32Val{Op: cruder.LTE, Value: uint32(time.Now().Unix())},
 		}, offset, limit)
 		if err != nil {
 			return err
