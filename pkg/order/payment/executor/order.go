@@ -163,7 +163,7 @@ func (h *orderHandler) paymentBalanceEnough() (bool, error) {
 
 func (h *orderHandler) resolveNewState() error {
 	if h.canceled() {
-		h.newOrderState = ordertypes.OrderState_OrderStateCanceled
+		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
 		return nil
 	}
