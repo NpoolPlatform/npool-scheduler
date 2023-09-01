@@ -9,7 +9,7 @@ import (
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission/types"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"

@@ -21,8 +21,8 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order, exec chan interface{}) error {
-	if order.OrderState == ordertypes.OrderState_OrderStateGoodStockTransferred {
-		newState := ordertypes.OrderState_OrderStateGoodStockTransferredCheck
+	if order.OrderState == ordertypes.OrderState_OrderStateCommissionAdded {
+		newState := ordertypes.OrderState_OrderStateCommissionAddedCheck
 		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 			ID:         &order.ID,
 			OrderState: &newState,
