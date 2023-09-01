@@ -8,7 +8,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
@@ -24,7 +24,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif ch
 		return fmt.Errorf("invalid order")
 	}
 
-	state := ordertypes.OrderState_OrderStateRestoreCanceledStock
+	state := ordertypes.OrderState_OrderStatePaid
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 		ID:         &_order.ID,
 		OrderState: &state,

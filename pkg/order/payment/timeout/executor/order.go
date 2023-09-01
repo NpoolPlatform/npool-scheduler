@@ -4,7 +4,7 @@ import (
 	"context"
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/timeout/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout/types"
 )
 
 type orderHandler struct {

@@ -1,4 +1,4 @@
-package start
+package stock
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/start/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/start/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/start/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/sentinel"
 )
 
-const subsystem = "orderstart"
+const subsystem = "orderpaymentstock"
 
 var h *base.Handler
 
@@ -23,7 +23,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanInterval(time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
-		base.WithExecutorNumber(4),
 		base.WithPersistenter(persistent.NewPersistent()),
 	)
 	if err != nil || _h == nil {

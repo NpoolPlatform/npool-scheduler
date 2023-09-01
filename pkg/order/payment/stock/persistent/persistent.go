@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
+	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
+	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -23,39 +23,31 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	state := ordertypes.OrderState_OrderStateCommissionAdded
 	rollback := true
-	req := &appstockmwpb.StockReq{
-		AppID:     &order.AppID,
-		GoodID:    &order.GoodID,
-		AppGoodID: &order.AppGoodID,
-		InService: &order.Units,
-		Rollback:  &rollback,
+	req := &ordermwpb.OrderReq{
+		ID:         &order.ID,
+		OrderState: &state,
+		Rollback:   &rollback,
 	}
-
 	dispose.Add(
-		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/AddStock",
-		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
-		&appstockmwpb.AddStockRequest{
+		ordersvcname.ServiceDomain,
+		"order.middleware.order1.v1.Middleare/UpdateOrder",
+		"order.middleware.order1.v1.Middleare/UpdateOrder",
+		&ordermwpb.UpdateOrderRequest{
 			Info: req,
 		},
 	)
 }
 
-func (p *handler) withUpdateOrder(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateInService
-	req := &ordermwpb.OrderReq{
-		ID:         &order.ID,
-		OrderState: &state,
-	}
-
+func (p *handler) withCreateCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	dispose.Add(
-		ordersvcname.ServiceDomain,
-		"order.middleware.order.v1.Middleware/UpdateOrder",
+		ledgersvcname.ServiceDomain,
+		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
 		"",
-		&ordermwpb.UpdateOrderRequest{
-			Info: req,
+		&statementmwpb.CreateStatementsRequest{
+			Infos: order.LedgerStatements,
 		},
 	)
 }
@@ -71,8 +63,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif ch
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withUpdateStock(sagaDispose, _order)
-	p.withUpdateOrder(sagaDispose, _order)
+	p.withCreateCommission(sagaDispose, _order)
+	p.withUpdateOrderState(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		retry1.Retry(ctx, _order, retry)
 		return err
