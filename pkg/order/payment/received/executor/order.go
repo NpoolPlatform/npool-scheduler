@@ -3,23 +3,19 @@ package executor
 import (
 	"context"
 	"fmt"
-	"time"
 
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
@@ -27,36 +23,13 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	retry                 chan interface{}
-	persistent            chan interface{}
-	notif                 chan interface{}
-	good                  *appgoodmwpb.Good
-	paymentCoin           *coinmwpb.Coin
-	paymentAccount        *payaccmwpb.Account
-	paymentAccountBalance decimal.Decimal
-	incomingAmount        decimal.Decimal
-	transferAmount        decimal.Decimal
-	newOrderState         ordertypes.OrderState
-	newPaymentState       ordertypes.PaymentState
-}
-
-func (h *orderHandler) getGood(ctx context.Context) error {
-	if h.timeout() || h.canceled() {
-		return nil
-	}
-
-	good, err := appgoodmwcli.GetGoodOnly(ctx, &appgoodmwpb.Conds{
-		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
-		ID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.AppGoodID},
-	})
-	if err != nil {
-		return err
-	}
-	if good == nil {
-		return fmt.Errorf("invalid good")
-	}
-	return nil
+	retry          chan interface{}
+	persistent     chan interface{}
+	notif          chan interface{}
+	incomingAmount decimal.Decimal
+	transferAmount decimal.Decimal
+	paymentCoin    *coinmwpb.Coin
+	paymentAccount *payaccmwpb.Account
 }
 
 func (h *orderHandler) onlinePayment() bool {
@@ -73,17 +46,8 @@ func (h *orderHandler) payWithBalanceOnly() bool {
 	return h.PaymentType == ordertypes.PaymentType_PayWithBalanceOnly
 }
 
-func (h *orderHandler) timeout() bool {
-	const timeoutSeconds = 6 * timedef.SecondsPerHour
-	return h.CreatedAt+timeoutSeconds < uint32(time.Now().Unix())
-}
-
-func (h *orderHandler) canceled() bool {
-	return h.UserSetCanceled || h.AdminSetCanceled
-}
-
 func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return nil
 	}
 
@@ -102,10 +66,6 @@ func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
-		return nil
-	}
-
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
 		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: h.PaymentAccountID},
 		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
@@ -124,9 +84,6 @@ func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
-		return nil
-	}
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    h.paymentCoin.Name,
 		Address: h.paymentAccount.Address,
@@ -142,62 +99,47 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	h.paymentAccountBalance = bal
 	startAmount, err := decimal.NewFromString(h.PaymentStartAmount)
 	if err != nil {
 		return err
 	}
-	h.incomingAmount = h.paymentAccountBalance.Sub(startAmount)
-	return nil
-}
-
-func (h *orderHandler) paymentBalanceEnough() bool {
-	return h.incomingAmount.Sub(h.transferAmount).Cmp(decimal.NewFromInt(0)) >= 0
-}
-
-func (h *orderHandler) resolveNewState() error {
-	if h.canceled() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
-		return nil
-	}
-	if h.timeout() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTimeout
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
-		return nil
-	}
-	if !h.onlinePayment() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
-		return nil
-	}
-	if h.paymentBalanceEnough() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
-	}
+	h.incomingAmount = bal.Sub(startAmount)
 	return nil
 }
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if h.newOrderState == h.OrderState && *err == nil {
-		return
-	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
-		Error: *err,
+		Order:          h.Order,
+		IncomingAmount: h.incomingAmount.String(),
+		TransferAmount: h.transferAmount.String(),
+		Error:          *err,
 	}
-	if h.newOrderState != h.OrderState {
+	if h.incomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+		persistentOrder.IncomingExtra = fmt.Sprintf(
+			`{"PaymentID": "%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v"}`,
+			h.PaymentID,
+			h.ID,
+			h.PaymentState,
+			h.GoodID,
+		)
+	}
+	if h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+		persistentOrder.TransferExtra = fmt.Sprintf(
+			`{"PaymentID":"%v","OrderID": "%v"}`,
+			h.PaymentID,
+			h.ID,
+		)
+	}
+
+	if *err == nil {
 		h.persistent <- persistentOrder
-		return
-	} else if *err != nil {
+	} else {
 		h.notif <- persistentOrder
+		retry1.Retry(ctx, h.Order, h.retry)
 	}
-	retry1.Retry(ctx, h.Order, h.retry)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {
-	h.newOrderState = h.OrderState
-	h.newPaymentState = h.PaymentState
 
 	var err error
 	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
@@ -206,13 +148,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	if err = h.getGood(ctx); err != nil {
-		return err
-	}
 	if err = h.getPaymentCoin(ctx); err != nil {
 		return err
 	}
-
 	if err = accountlock.Lock(h.PaymentAccountID); err != nil {
 		return err
 	}
@@ -224,9 +162,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.getPaymentAccountBalance(ctx); err != nil {
-		return err
-	}
-	if err = h.resolveNewState(); err != nil {
 		return err
 	}
 	return nil
