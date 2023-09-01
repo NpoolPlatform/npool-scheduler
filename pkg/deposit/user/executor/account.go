@@ -8,6 +8,7 @@ import (
 	depositaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -26,7 +27,6 @@ type accountHandler struct {
 	outcoming  decimal.Decimal
 	amount     decimal.Decimal
 	coin       *coinmwpb.Coin
-	extra      string
 }
 
 func (h *accountHandler) getCoin(ctx context.Context) error {
@@ -76,6 +76,17 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 }
 
 func (h *accountHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Account", h,
+			"Incoming", h.incoming,
+			"Outcoming", h.outcoming,
+			"Amount", h.amount,
+			"Coin", h.coin,
+		)
+	}
+
 	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
 		return
 	}
@@ -111,6 +122,8 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	var err error
 	var locked bool
 
+	defer h.final(ctx, &err)
+
 	h.incoming, err = decimal.NewFromString(h.Incoming)
 	if err != nil {
 		return err
@@ -119,8 +132,6 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	defer h.final(ctx, &err)
 
 	if err = h.getCoin(ctx); err != nil {
 		return err

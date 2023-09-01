@@ -6,9 +6,11 @@ import (
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish/types"
 
 	"github.com/shopspring/decimal"
@@ -59,6 +61,17 @@ func (h *accountHandler) checkTransfer(ctx context.Context) error {
 }
 
 func (h *accountHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Account", h,
+			"Outcoming", h.outcoming,
+			"Coin", h.coin,
+			"TxFinished", h.txFinished,
+			"Error", *err,
+		)
+	}
+
 	if !h.txFinished && *err == nil {
 		return
 	}
@@ -71,11 +84,10 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		outcoming := h.outcoming.String()
 		persistentAccount.CollectOutcoming = &outcoming
 	}
-
 	if *err == nil {
-		h.persistent <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
 	} else {
-		h.notif <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.notif)
 	}
 }
 

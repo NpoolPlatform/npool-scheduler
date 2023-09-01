@@ -12,7 +12,6 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 
 	"github.com/google/uuid"
@@ -55,7 +54,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 			LockedBy:      &lockedBy,
 			CollectingTID: _account.CollectingTIDCandidate,
 		}); err != nil {
-			retry1.Retry(ctx, _account, retry)
 			return err
 		}
 		_account.Locked = true

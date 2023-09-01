@@ -44,6 +44,7 @@ func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner
 	go scanner.InitScan(ctx, h.exec)
 	return h
 }
+
 func (h *handler) Exec() chan interface{} {
 	return h.exec
 }
