@@ -2,6 +2,7 @@ package deposit
 
 import (
 	"context"
+	"sync"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
@@ -12,6 +13,8 @@ import (
 
 const subsystem = "deposit"
 
+var running sync.Map
+
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
@@ -21,9 +24,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		"Subsystem", subsystem,
 	)
 
-	user.Initialize(ctx, cancel)
-	finish.Initialize(ctx, cancel)
-	transfer.Initialize(ctx, cancel)
+	user.Initialize(ctx, cancel, &running)
+	finish.Initialize(ctx, cancel, &running)
+	transfer.Initialize(ctx, cancel, &running)
 }
 
 func Finalize() {
