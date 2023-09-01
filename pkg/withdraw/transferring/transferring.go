@@ -2,6 +2,7 @@ package transferring
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -15,7 +16,7 @@ const subsystem = "withdrawtransferring"
 
 var h *base.Handler
 
-func Initialize(ctx context.Context, cancel context.CancelFunc) {
+func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
 	_h, err := base.NewHandler(
 		ctx,
 		cancel,
@@ -24,6 +25,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
