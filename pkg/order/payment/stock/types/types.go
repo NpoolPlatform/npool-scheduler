@@ -1,11 +1,11 @@
 package types
 
 import (
-	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
+	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 )
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	AchievementStatements []*achievementstatementmwpb.StatementReq
+	LedgerStatements []*ledgerstatementmwpb.StatementReq
 }
