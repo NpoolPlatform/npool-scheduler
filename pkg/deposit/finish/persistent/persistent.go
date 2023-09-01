@@ -46,6 +46,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 		Locked:        &locked,
 		CollectingTID: &collectingID,
 		ScannableAt:   &scannableAt,
+		Outcoming:     _account.CollectOutcoming,
 	}); err != nil {
 		return err
 	}

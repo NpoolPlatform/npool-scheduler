@@ -11,7 +11,6 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/transfer/types"
 
 	"github.com/google/uuid"
@@ -56,7 +55,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif 
 			LockedBy:      &lockedBy,
 			CollectingTID: _account.CollectingTIDCandidate,
 		}); err != nil {
-			retry1.Retry(ctx, _account, retry)
 			return err
 		}
 		_account.Locked = true
