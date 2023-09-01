@@ -6,6 +6,7 @@ import (
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/transferring/types"
 )
@@ -16,7 +17,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif chan interface{}) error {
+func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done chan interface{}) error {
 	_tx, ok := tx.(*types.PersistentTx)
 	if !ok {
 		return fmt.Errorf("invalid tx")
@@ -30,6 +31,8 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif chan 
 	}); err != nil {
 		return err
 	}
+
+	asyncfeed.AsyncFeed(_tx, done)
 
 	return nil
 }

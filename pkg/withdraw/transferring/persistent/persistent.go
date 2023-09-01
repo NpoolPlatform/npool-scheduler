@@ -6,8 +6,9 @@ import (
 
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
 )
 
 type handler struct{}
@@ -16,7 +17,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
@@ -29,6 +30,8 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 	}); err != nil {
 		return err
 	}
+
+	asyncfeed.AsyncFeed(_withdraw, done)
 
 	return nil
 }

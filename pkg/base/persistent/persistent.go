@@ -14,21 +14,23 @@ type Persistent interface {
 }
 
 type Persistenter interface {
-	Update(context.Context, interface{}, chan interface{}, chan interface{}) error
+	Update(context.Context, interface{}, chan interface{}, chan interface{}, chan interface{}) error
 }
 
 type handler struct {
 	feeder       chan interface{}
 	notif        chan interface{}
+	done         chan interface{}
 	w            *watcher.Watcher
 	persistenter Persistenter
 	subsystem    string
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif chan interface{}, persistenter Persistenter, subsystem string) Persistent {
+func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done chan interface{}, persistenter Persistenter, subsystem string) Persistent {
 	p := &handler{
 		feeder:       make(chan interface{}),
 		notif:        notif,
+		done:         done,
 		w:            watcher.NewWatcher(),
 		persistenter: persistenter,
 		subsystem:    subsystem,
@@ -41,7 +43,7 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif chan in
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.persistenter.Update(ctx, ent, p.feeder, p.notif); err != nil {
+		if err := p.persistenter.Update(ctx, ent, p.feeder, p.notif, p.done); err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Update",

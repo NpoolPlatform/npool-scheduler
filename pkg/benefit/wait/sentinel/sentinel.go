@@ -77,3 +77,7 @@ func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
 	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec)
 }
+
+func (h *handler) ObjectID(ent interface{}) string {
+	return ent.(*goodmwpb.Good).ID
+}

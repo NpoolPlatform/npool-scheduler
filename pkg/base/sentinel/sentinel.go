@@ -19,6 +19,7 @@ type Scanner interface {
 	InitScan(context.Context, chan interface{}) error
 	Scan(context.Context, chan interface{}) error
 	TriggerScan(context.Context, interface{}, chan interface{}) error
+	ObjectID(interface{}) string
 }
 
 type handler struct {

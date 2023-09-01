@@ -11,6 +11,7 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
@@ -40,7 +41,7 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) 
 	return nil
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
@@ -79,6 +80,8 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif cha
 	}); err != nil {
 		return err
 	}
+
+	asyncfeed.AsyncFeed(_good, done)
 
 	return nil
 }

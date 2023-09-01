@@ -12,6 +12,7 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
@@ -90,7 +91,7 @@ func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) er
 	return nil
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
@@ -140,6 +141,8 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif cha
 		retry1.Retry(ctx, _good, retry)
 		return err
 	}
+
+	asyncfeed.AsyncFeed(_good, done)
 
 	return nil
 }

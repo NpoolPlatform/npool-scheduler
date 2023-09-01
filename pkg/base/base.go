@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
@@ -20,6 +21,7 @@ import (
 type Handler struct {
 	persistent     chan interface{}
 	notif          chan interface{}
+	done           chan interface{}
 	w              *watcher.Watcher
 	sentinel       sentinel.Sentinel
 	scanner        sentinel.Scanner
@@ -33,6 +35,7 @@ type Handler struct {
 	notify         notif.Notify
 	subsystem      string
 	scanInterval   time.Duration
+	running        *sync.Map
 }
 
 func (h *Handler) lockKey() string {
@@ -49,15 +52,19 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return nil, nil
 	}
+	if h.running == nil {
+		return nil, fmt.Errorf("invalid running map")
+	}
 
 	h.persistent = make(chan interface{})
 	h.notif = make(chan interface{})
+	h.done = make(chan interface{})
 
 	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval, h.subsystem)
 	for i := 0; i < h.executorNumber; i++ {
 		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer, h.subsystem))
 	}
-	h.persistenter = persistent.NewPersistent(ctx, cancel, h.notif, h.persistentor, h.subsystem)
+	h.persistenter = persistent.NewPersistent(ctx, cancel, h.notif, h.done, h.persistentor, h.subsystem)
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)
 
 	h.w = watcher.NewWatcher()
@@ -121,6 +128,12 @@ func WithNotify(notify notif.Notify) func(*Handler) {
 	}
 }
 
+func WithRunningMap(m *sync.Map) func(*Handler) {
+	return func(h *Handler) {
+		h.running = m
+	}
+}
+
 func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return
@@ -137,6 +150,9 @@ func (h *Handler) execEnt(ent interface{}) {
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
+		if _, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), true); loaded {
+			return false
+		}
 		h.execEnt(ent)
 		return false
 	case ent := <-h.persistent:
@@ -144,6 +160,9 @@ func (h *Handler) handler(ctx context.Context) bool {
 		return false
 	case ent := <-h.notif:
 		h.notifier.Feed(ent)
+		return false
+	case ent := <-h.done:
+		h.running.Delete(h.scanner.ObjectID(ent))
 		return false
 	case <-h.w.CloseChan():
 		logger.Sugar().Infow(

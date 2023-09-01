@@ -51,3 +51,7 @@ func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
 	return nil
 }
+
+func (h *handler) ObjectID(ent interface{}) string {
+	return ent.(*payaccmwpb.Account).ID
+}

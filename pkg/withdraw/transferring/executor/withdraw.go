@@ -8,7 +8,7 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
 )
 
 type withdrawHandler struct {

@@ -2,44 +2,29 @@ package withdraw
 
 import (
 	"context"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring"
 )
 
 const subsystem = "withdraw"
 
-var h *base.Handler
-
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
-	_h, err := base.NewHandler(
-		ctx,
-		cancel,
-		base.WithSubsystem(subsystem),
-		base.WithScanInterval(30*time.Second),
-		base.WithScanner(sentinel.NewSentinel()),
-		base.WithExec(executor.NewExecutor()),
-		base.WithPersistenter(persistent.NewPersistent()),
-	)
-	if err != nil || _h == nil {
-		logger.Sugar().Errorw(
-			"Initialize",
-			"Subsystem", subsystem,
-			"Error", err,
-		)
+	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	logger.Sugar().Infow(
+		"Initialize",
+		"Subsystem", subsystem,
+	)
 
-	h = _h
-	go h.Run(ctx, cancel)
+	transferring.Initialize(ctx, cancel)
 }
 
 func Finalize() {
-	if h != nil {
-		h.Finalize()
+	if b := config.SupportSubsystem(subsystem); !b {
+		return
 	}
+	transferring.Finalize()
 }
