@@ -6,12 +6,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/preexpired/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/preexpired/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/preexpired/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired/sentinel"
 )
 
-const subsystem = "orderpreexpired"
+const subsystem = "orderexpirypreexpired"
 
 var h *base.Handler
 

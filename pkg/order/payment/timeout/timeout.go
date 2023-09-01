@@ -6,12 +6,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/timeout/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/timeout/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/timeout/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout/sentinel"
 )
 
-const subsystem = "ordertimeout"
+const subsystem = "orderpaymenttimeout"
 
 var h *base.Handler
 

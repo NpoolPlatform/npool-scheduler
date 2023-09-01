@@ -56,7 +56,7 @@ func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			AppID:      &order.AppID,
 			UserID:     &order.UserID,
-			CoinTypeID: &order.CoinTypeID,
+			CoinTypeID: &order.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     &order.IncomingAmount,
@@ -69,7 +69,7 @@ func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			AppID:      &order.AppID,
 			UserID:     &order.UserID,
-			CoinTypeID: &order.CoinTypeID,
+			CoinTypeID: &order.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     &order.TransferAmount,
