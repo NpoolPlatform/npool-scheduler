@@ -52,9 +52,6 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return nil, nil
 	}
-	if h.running == nil {
-		return nil, fmt.Errorf("invalid running map")
-	}
 
 	h.persistent = make(chan interface{})
 	h.notif = make(chan interface{})
@@ -150,8 +147,10 @@ func (h *Handler) execEnt(ent interface{}) {
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
-		if _, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), true); loaded {
-			return false
+		if h.running != nil {
+			if _, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), true); loaded {
+				return false
+			}
 		}
 		h.execEnt(ent)
 		return false
@@ -162,7 +161,9 @@ func (h *Handler) handler(ctx context.Context) bool {
 		h.notifier.Feed(ent)
 		return false
 	case ent := <-h.done:
-		h.running.Delete(h.scanner.ObjectID(ent))
+		if h.running != nil {
+			h.running.Delete(h.scanner.ObjectID(ent))
+		}
 		return false
 	case <-h.w.CloseChan():
 		logger.Sugar().Infow(
