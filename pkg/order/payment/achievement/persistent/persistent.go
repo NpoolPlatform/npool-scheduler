@@ -4,17 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
-	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
-
-	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
-	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
 type handler struct{}
@@ -29,19 +24,14 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif ch
 		return fmt.Errorf("invalid order")
 	}
 
-	if _, err := achievementstatementmwcli.CreateStatements(ctx, h.AchievementStatements); err != nil {
-		retry1.Retry(ctx, retry, _order)
+	state := ordertypes.OrderState_OrderStatePaid
+	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
+		ID:         &_order.ID,
+		OrderState: &state,
+	}); err != nil {
+		retry1.Retry(ctx, _order, retry)
 		return err
 	}
-	if _, err := ledgerstatementmwcli.CreateStatements(ctx, h.LedgerStatements); err != nil {
-		retry1.Retry(ctx, retry, _order)
-		return err
-	}
-	state := ordertypes.OrderState_
-	if _, err := ordermwcli.UpdateOrderState(ctx, &ordermwpb.OrderReq {
-		ID: &_order.ID,
-
-	})
 
 	return nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/preexpired/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired/types"
 )
 
 type orderHandler struct {
