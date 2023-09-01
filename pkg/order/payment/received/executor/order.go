@@ -125,7 +125,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	if h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		persistentOrder.TransferExtra = fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID": "%v"}`,
+			`{"PaymentID":"%v","OrderID": "%v","FromTransfer":true}`,
 			h.PaymentID,
 			h.ID,
 		)
@@ -140,7 +140,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {
-
 	var err error
 	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
 		return err
