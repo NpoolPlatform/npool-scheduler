@@ -79,6 +79,10 @@ github.com/NpoolPlatform/message v0.0.0-20230901025001-d5500ac8b490 h1:w5g1zWtI7
 github.com/NpoolPlatform/message v0.0.0-20230901025001-d5500ac8b490/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/message v0.0.0-20230901030404-7d205bd70ac9 h1:OI4ZtsJNmIpeAcGRnEsehqT0HCHJtA2bWYbzPI7dFxY=
 github.com/NpoolPlatform/message v0.0.0-20230901030404-7d205bd70ac9/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20230901054834-dc39d9bfa0e6 h1:0GNY3Pc/Kg8AwAYq7YjTb/puOL99pk/TxUKTsNyy3Js=
+github.com/NpoolPlatform/message v0.0.0-20230901054834-dc39d9bfa0e6/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20230901060505-a2cbfcbab528 h1:OLgOodNf8lWX4Yarl/UtOnYpoYYitRw/21/sQfwWysQ=
+github.com/NpoolPlatform/message v0.0.0-20230901060505-a2cbfcbab528/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b h1:NnP+3SvF3YPytIGb3CWGZIpeLJJItY1Aw4jfiLzTfas=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230823015738-ac528f37c75b/go.mod h1:9EtGerqd6ZsTiCpetgL3MiFjzWeyO6i6hG7RiKyfvoc=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230824030322-a45331d35095 h1:p7MketGtON0UlRhiPjF/s38iNUCLhe25p8eRTkLZla8=
