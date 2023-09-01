@@ -19,7 +19,7 @@ var (
 	mutex sync.Mutex
 )
 
-func Initialize(ctx context.Context, cancel context.CancelFunc) {
+func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
 	_h, err := base.NewHandler(
 		ctx,
 		cancel,
@@ -28,6 +28,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanner(sentinel.NewSentinel(&mutex)),
 		base.WithExec(executor.NewExecutor(&mutex)),
 		base.WithPersistenter(persistent.NewPersistent(&mutex)),
+		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(

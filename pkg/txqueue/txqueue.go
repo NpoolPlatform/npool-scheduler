@@ -2,6 +2,7 @@ package txqueue
 
 import (
 	"context"
+	"sync"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
@@ -12,6 +13,8 @@ import (
 
 const subsystem = "txqueue"
 
+var running sync.Map
+
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
@@ -21,9 +24,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		"Subsystem", subsystem,
 	)
 
-	created.Initialize(ctx, cancel)
-	wait.Initialize(ctx, cancel)
-	transferring.Initialize(ctx, cancel)
+	created.Initialize(ctx, cancel, &running)
+	wait.Initialize(ctx, cancel, &running)
+	transferring.Initialize(ctx, cancel, &running)
 }
 
 func Finalize() {
