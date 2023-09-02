@@ -18,6 +18,7 @@ import (
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -187,10 +188,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		Error: *err,
 	}
 	if h.newOrderState != h.OrderState {
-		h.persistent <- persistentOrder
+		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
 		return
 	} else if *err != nil {
-		h.notif <- persistentOrder
+		asyncfeed.AsyncFeed(persistentOrder, h.notif)
 	}
 	retry1.Retry(ctx, h.Order, h.retry)
 }
