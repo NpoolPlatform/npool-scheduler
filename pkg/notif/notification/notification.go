@@ -1,19 +1,23 @@
-package notif
+package notification
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notif/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notif/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notif/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/sentinel"
 )
 
-const subsystem = "notif"
+const subsystem = "notification"
 
-var h *base.Handler
+var (
+	h       *base.Handler
+	running sync.Map
+)
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	_h, err := base.NewHandler(
@@ -25,6 +29,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithExec(executor.NewExecutor()),
 		base.WithExecutorNumber(4),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
