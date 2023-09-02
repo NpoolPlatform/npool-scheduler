@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
+	achievementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
+	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -25,7 +26,7 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateCancelAchievement
+	state := ordertypes.OrderState_OrderStateReturnCanceledBalance
 	rollback := true
 	req := &ordermwpb.OrderReq{
 		ID:         &order.ID,
@@ -42,34 +43,29 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	chargeBack := true
-	req := &appstockmwpb.StockReq{
-		AppID:      &order.AppID,
-		GoodID:     &order.GoodID,
-		AppGoodID:  &order.AppGoodID,
-		ChargeBack: &chargeBack,
+func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if len(order.LedgerStatements) == 0 {
+		return
 	}
-	switch order.CancelState {
-	case ordertypes.OrderState_OrderStateWaitPayment:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateCheckPayment:
-		req.Locked = &order.Units
-	case ordertypes.OrderState_OrderStatePaid:
-		req.WaitStart = &order.Units
-	case ordertypes.OrderState_OrderStateInService:
-		req.InService = &order.Units
+	for _, statement := range order.LedgerStatements {
+		req := &ledgermwpb.LedgerReq{
+			AppID:       statement.AppID,
+			UserID:      statement.UserID,
+			CoinTypeID:  statement.CoinTypeID,
+			Locked:      statement.Amount,
+			StatementID: statement.ID,
+			IOSubType:   statement.IOSubType,
+			IOExtra:     statement.IOExtra,
+		}
+		dispose.Add(
+			goodsvcname.ServiceDomain,
+			"ledger.middleware.ledger.v2.Middleware/SubBalance",
+			"ledger.middleware.ledger.v2.Middleware/AddBalance",
+			&ledgermwpb.SubBalanceRequest{
+				Info: req,
+			},
+		)
 	}
-	dispose.Add(
-		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
-		"",
-		&appstockmwpb.AddStockRequest{
-			Info: req,
-		},
-	)
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, done chan interface{}) error {
@@ -78,12 +74,17 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		return fmt.Errorf("invalid order")
 	}
 
+	if err := achievementmwcli.ExpropriateAchievement(ctx, _order.ID); err != nil {
+		retry1.Retry(ctx, _order, retry)
+		return err
+	}
+
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withUpdateStock(sagaDispose, _order)
+	p.withDeductLockedCommission(sagaDispose, _order)
 	p.withUpdateOrderState(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		retry1.Retry(ctx, _order, retry)

@@ -10,7 +10,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/canceled/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
