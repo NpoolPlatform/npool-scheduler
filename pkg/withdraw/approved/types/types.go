@@ -7,7 +7,11 @@ import (
 
 type PersistentWithdraw struct {
 	*withdrawmwpb.Withdraw
-	NewState  ledgertypes.WithdrawState
-	ChainTxID string
-	Error     error
+	NewWithdrawState        ledgertypes.WithdrawState
+	UserBenefitHotAccountID string
+	UserBenefitHotAddress   string
+	WithdrawAmount          string
+	WithdrawFeeAmount       string
+	WithdrawExtra           string
+	Error                   error
 }

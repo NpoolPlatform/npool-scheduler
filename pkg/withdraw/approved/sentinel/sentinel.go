@@ -24,7 +24,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 
 	for {
 		withdraws, _, err := withdrawmwcli.GetWithdraws(ctx, &withdrawmwpb.Conds{
-			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ledgertypes.WithdrawState_Reviewing)},
+			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ledgertypes.WithdrawState_Approved)},
 		}, offset, limit)
 		if err != nil {
 			return err

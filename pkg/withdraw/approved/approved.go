@@ -1,4 +1,4 @@
-package reviewing
+package approved
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/approved/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/approved/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/approved/sentinel"
 )
 
-const subsystem = "withdrawreviewing"
+const subsystem = "withdrawapproved"
 
 var h *base.Handler
 
