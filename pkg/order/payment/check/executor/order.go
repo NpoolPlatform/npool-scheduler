@@ -9,6 +9,7 @@ import (
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
@@ -93,10 +94,10 @@ func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
 		return err
 	}
 	if coin == nil {
-		return fmt.Errorf("invalid coin")
+		return fmt.Errorf("invalid payment coin")
 	}
 	if !coin.ForPay {
-		return fmt.Errorf("invalid payment coin")
+		return fmt.Errorf("coin not payable")
 	}
 	h.paymentCoin = coin
 	return nil
@@ -180,6 +181,22 @@ func (h *orderHandler) resolveNewState() error {
 }
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"Good", h.good,
+			"PaymentCoin", h.paymentCoin,
+			"PaymentAccount", h.paymentAccount,
+			"PaymentAccountBalance", h.paymentAccountBalance,
+			"IncomingAmount", h.incomingAmount,
+			"TransferAmount", h.transferAmount,
+			"NewOrderState", h.newOrderState,
+			"NewPaymentState", h.newPaymentState,
+			"Error", *err,
+		)
+	}
+
 	if h.newOrderState == h.OrderState && *err == nil {
 		return
 	}

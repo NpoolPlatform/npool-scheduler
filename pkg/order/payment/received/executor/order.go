@@ -7,6 +7,7 @@ import (
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -14,6 +15,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -66,6 +68,10 @@ func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
+		return nil
+	}
+
 	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
 		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: h.PaymentAccountID},
 		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
@@ -84,6 +90,10 @@ func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
+		return nil
+	}
+
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    h.paymentCoin.Name,
 		Address: h.paymentAccount.Address,
@@ -108,6 +118,19 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 }
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"Error", *err,
+			"IncomingAmount", h.incomingAmount,
+			"TransferAmount", h.transferAmount,
+			"paymentCoin", h.paymentCoin,
+			"paymentAccount", h.paymentAccount,
+			"Error", *err,
+		)
+	}
+
 	persistentOrder := &types.PersistentOrder{
 		Order:          h.Order,
 		IncomingAmount: h.incomingAmount.String(),
@@ -132,9 +155,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		h.persistent <- persistentOrder
+		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
 	} else {
-		h.notif <- persistentOrder
+		asyncfeed.AsyncFeed(persistentOrder, h.notif)
 		retry1.Retry(ctx, h.Order, h.retry)
 	}
 }
