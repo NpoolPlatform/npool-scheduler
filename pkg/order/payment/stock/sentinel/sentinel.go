@@ -10,8 +10,6 @@ import (
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	"github.com/google/uuid"
 )
 
 type handler struct{}
@@ -40,8 +38,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			ParentOrderID: &basetypes.StringVal{Op: cruder.NEQ, Value: uuid.Nil.String()},
+			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 		}, offset, limit)
 		if err != nil {
 			return err
