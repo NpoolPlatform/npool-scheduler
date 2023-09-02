@@ -26,8 +26,6 @@ func (h *orderHandler) final() {
 			`{"PaymentID":"%v","OrderID": "%v","FromBalance":true}`,
 			h.PaymentID,
 			h.ID,
-			h.PaymentState,
-			h.GoodID,
 		)
 	}
 	h.persistent <- persistentOrder
