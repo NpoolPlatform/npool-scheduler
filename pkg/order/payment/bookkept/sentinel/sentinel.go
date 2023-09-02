@@ -9,6 +9,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkept/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
@@ -58,11 +59,11 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment, exec)
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStatePaymentTransferBookKept, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment, exec)
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStatePaymentTransferBookKeptCheck, exec)
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
@@ -70,5 +71,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if order, ok := ent.(*types.PersistentOrder); ok {
+		return order.ID
+	}
 	return ent.(*ordermwpb.Order).ID
 }
