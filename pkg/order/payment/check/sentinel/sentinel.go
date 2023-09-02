@@ -10,8 +10,6 @@ import (
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	"github.com/google/uuid"
 )
 
 type handler struct{}
@@ -39,9 +37,16 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 	limit := constant.DefaultRowLimit
 
 	for {
+		// If order is PayWithParentOrder, they will done or canceled with parent order
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			ParentOrderID: &basetypes.StringVal{Op: cruder.NEQ, Value: uuid.Nil.String()},
+			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			PaymentTypes: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
+				uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+				uint32(ordertypes.PaymentType_PayWithTransferOnly),
+				uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+				uint32(ordertypes.PaymentType_PayWithOffline),
+				uint32(ordertypes.PaymentType_PayWithNoPayment),
+			}},
 		}, offset, limit)
 		if err != nil {
 			return err
