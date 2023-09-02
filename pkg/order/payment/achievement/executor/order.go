@@ -3,23 +3,70 @@ package executor
 import (
 	"context"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement/types"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
 type orderHandler struct {
 	*ordermwpb.Order
-	persistent chan interface{}
+	persistent  chan interface{}
+	notif       chan interface{}
+	childOrders []*ordermwpb.Order
 }
 
-func (h *orderHandler) final() {
-	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+func (h *orderHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"ChildOrders", h.childOrders,
+			"Error", *err,
+		)
 	}
-	h.persistent <- persistentOrder
+	persistentOrder := &types.PersistentOrder{
+		Order:       h.Order,
+		ChildOrders: h.childOrders,
+	}
+	if *err == nil {
+		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(persistentOrder, h.notif)
+	}
+}
+
+func (h *orderHandler) getChildOrders(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(orders) == 0 {
+			return nil
+		}
+		h.childOrders = append(h.childOrders, orders...)
+		offset += limit
+	}
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {
-	h.final()
+	var err error
+
+	defer h.final(ctx, &err)
+
+	if err = h.getChildOrders(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
