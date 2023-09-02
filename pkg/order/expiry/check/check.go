@@ -1,4 +1,4 @@
-package expiry
+package check
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/sentinel"
 )
 
-const subsystem = "orderexpiry"
+const subsystem = "orderexpirycheck"
 
 var h *base.Handler
 

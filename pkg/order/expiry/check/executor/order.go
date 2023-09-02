@@ -7,7 +7,7 @@ import (
 
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/types"
 )
 
 type orderHandler struct {

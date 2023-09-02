@@ -7,12 +7,12 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry"
+	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/paid"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkept"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check"
+	paymentcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received"
@@ -37,7 +37,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 
 	achievement.Initialize(ctx, cancel, &running)
 	bookkept.Initialize(ctx, cancel, &running)
-	check.Initialize(ctx, cancel, &running)
+	paymentcheck.Initialize(ctx, cancel, &running)
 	commission.Initialize(ctx, cancel, &running)
 	finish.Initialize(ctx, cancel, &running)
 	received.Initialize(ctx, cancel, &running)
@@ -47,18 +47,18 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	transfer.Initialize(ctx, cancel, &running)
 	paid.Initialize(ctx, cancel, &running)
 	finish.Initialize(ctx, cancel, &running)
-	expiry.Initialize(ctx, cancel, &running)
 	precancel.Initialize(ctx, cancel, &running)
 	preexpired.Initialize(ctx, cancel, &running)
+	expirycheck.Initialize(ctx, cancel, &running)
 }
 
 func Finalize() {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	expirycheck.Finalize()
 	preexpired.Finalize()
 	precancel.Finalize()
-	expiry.Finalize()
 	finish.Finalize()
 	paid.Finalize()
 	transfer.Finalize()
@@ -68,7 +68,7 @@ func Finalize() {
 	received.Finalize()
 	finish.Finalize()
 	commission.Finalize()
-	check.Finalize()
+	paymentcheck.Finalize()
 	bookkept.Finalize()
 	achievement.Finalize()
 }
