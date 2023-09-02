@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring"
 )
 
@@ -25,12 +26,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 
 	transferring.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
+	reviewing.Initialize(ctx, cancel, &running)
 }
 
 func Finalize() {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	reviewing.Finalize()
 	created.Finalize()
 	transferring.Finalize()
 }

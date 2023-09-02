@@ -6,9 +6,11 @@ import (
 
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
+	reviewmwpb "github.com/NpoolPlatform/message/npool/review/mw/v2/review"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing/types"
+	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
 )
 
 type handler struct{}
@@ -23,10 +25,16 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		return fmt.Errorf("invalid withdraw")
 	}
 
+	if _, err := reviewmwcli.UpdateReview(ctx, &reviewmwpb.ReviewReq{
+		ID:    &_withdraw.ReviewID,
+		State: &_withdraw.NewReviewState,
+	}); err != nil {
+		return err
+	}
+
 	if _, err := withdrawmwcli.UpdateWithdraw(ctx, &withdrawmwpb.WithdrawReq{
-		ID:                 &_withdraw.ID,
-		State:              &_withdraw.NewState,
-		ChainTransactionID: &_withdraw.ChainTxID,
+		ID:    &_withdraw.ID,
+		State: &_withdraw.NewWithdrawState,
 	}); err != nil {
 		return err
 	}
