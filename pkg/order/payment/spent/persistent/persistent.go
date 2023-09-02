@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
@@ -43,7 +44,16 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	logger.Sugar().Errorw(
+		"UpdateStock",
+		"AppID", &order.AppID,
+		"GoodID", &order.GoodID,
+		"AppGoodID", &order.AppGoodID,
+		"WaitStart", &order.Units,
+	)
+
 	req := &appstockmwpb.StockReq{
+		ID:        &order.AppGoodStockID,
 		AppID:     &order.AppID,
 		GoodID:    &order.GoodID,
 		AppGoodID: &order.AppGoodID,

@@ -12,6 +12,7 @@ import (
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
 
 	"github.com/shopspring/decimal"
@@ -100,7 +101,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		Order:            h.Order,
 		LedgerStatements: h.ledgerStatements,
 	}
-	h.persistent <- persistentOrder
+	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {
