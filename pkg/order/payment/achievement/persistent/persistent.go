@@ -9,7 +9,7 @@ import (
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
@@ -25,11 +25,24 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		return fmt.Errorf("invalid order")
 	}
 
-	state := ordertypes.OrderState_OrderStatePaid
-	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:         &_order.ID,
-		OrderState: &state,
-	}); err != nil {
+	orderState := ordertypes.OrderState_OrderStatePaid
+	paymentState := ordertypes.PaymentState_PaymentStateDone
+	reqs := []*ordermwpb.OrderReq{
+		{
+			ID:           &_order.ID,
+			OrderState:   &orderState,
+			PaymentState: &paymentState,
+		},
+	}
+	for _, child := range _order.ChildOrders {
+		reqs = append(reqs, &ordermwpb.OrderReq{
+			ID:           &child.ID,
+			OrderState:   &orderState,
+			PaymentState: &paymentState,
+		})
+	}
+
+	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {
 		retry1.Retry(ctx, _order, retry)
 		return err
 	}
