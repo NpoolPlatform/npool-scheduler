@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
+	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/prefail/types"
 )
 
 type handler struct{}
@@ -23,11 +25,12 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		return fmt.Errorf("invalid withdraw")
 	}
 
+	state := ledgertypes.WithdrawState_ReturnFailBalance
 	if _, err := withdrawmwcli.UpdateWithdraw(ctx, &withdrawmwpb.WithdrawReq{
-		ID:                 &_withdraw.ID,
-		State:              &_withdraw.NewWithdrawState,
-		ChainTransactionID: &_withdraw.ChainTxID,
+		ID:    &_withdraw.ID,
+		State: &state,
 	}); err != nil {
+		retry1.Retry(ctx, _withdraw, retry)
 		return err
 	}
 

@@ -50,7 +50,7 @@ func (h *withdrawHandler) checkWithdrawReview(ctx context.Context) error {
 	case reviewtypes.ReviewState_Approved:
 		h.newWithdrawState = ledgertypes.WithdrawState_Approved
 	case reviewtypes.ReviewState_Rejected:
-		h.newWithdrawState = ledgertypes.WithdrawState_Rejected
+		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
 	}
 	return nil
 }
