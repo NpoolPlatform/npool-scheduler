@@ -51,6 +51,8 @@ type goodHandler struct {
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	goodBenefitAccount     *gbmwpb.Account
 	benefitOrderIDs        []string
+	benefitResult          basetypes.Result
+	benefitMessage         string
 }
 
 func (h *goodHandler) getCoin(ctx context.Context) error {
