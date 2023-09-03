@@ -48,14 +48,13 @@ func (p *handler) notifyDeposit(account *types.PersistentAccount) error {
 		}
 		if account.Error == nil {
 			return publisher.Update(msgID, nil, nil, nil, p.statement(account))
-		} else {
-			req := &basetypes.MsgError{
-				Error: account.Error.Error(),
-			}
-			value, _ := json.Marshal(p.statement(account))
-			req.Value = string(value)
-			return publisher.Update(msgID, nil, nil, nil, req)
 		}
+		req := &basetypes.MsgError{
+			Error: account.Error.Error(),
+		}
+		value, _ := json.Marshal(p.statement(account)) //nolint
+		req.Value = string(value)
+		return publisher.Update(msgID, nil, nil, nil, req)
 	})
 }
 

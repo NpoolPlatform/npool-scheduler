@@ -40,7 +40,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 			return err
 		}
 		defer func() {
-			_ = accountlock.Unlock(_account.DepositAccountID)
+			_ = accountlock.Unlock(_account.DepositAccountID) //nolint
 		}()
 
 		locked := true

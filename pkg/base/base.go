@@ -140,7 +140,7 @@ func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
 
 func (h *Handler) execEnt(ent interface{}) {
 	h.executors[h.executorIndex].Feed(ent)
-	h.executorIndex += 1
+	h.executorIndex++
 	h.executorIndex %= len(h.executors)
 }
 
@@ -193,7 +193,7 @@ func (h *Handler) Finalize() {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return
 	}
-	_ = redis2.Unlock(h.lockKey())
+	_ = redis2.Unlock(h.lockKey()) //nolint
 	h.sentinel.Finalize()
 	if h.w != nil {
 		h.w.Shutdown()

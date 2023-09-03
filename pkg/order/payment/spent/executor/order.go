@@ -30,7 +30,8 @@ func (h *orderHandler) getAppGood(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *orderHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -43,13 +44,16 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		Order:          h.Order,
 		AppGoodStockID: h.appGood.AppGoodStockID,
 	}
-	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	if *err == nil {
+		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	}
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getAppGood(ctx); err != nil {
 		return err

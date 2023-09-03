@@ -17,7 +17,8 @@ type withdrawHandler struct {
 	lockedBalanceAmount decimal.Decimal
 }
 
-func (h *withdrawHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *withdrawHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -35,10 +36,11 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint
 func (h *withdrawHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	h.lockedBalanceAmount, err = decimal.NewFromString(h.Amount)
 	if err != nil {

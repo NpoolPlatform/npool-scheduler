@@ -105,7 +105,7 @@ func rpcGatewayRegister(mux *runtime.ServeMux, endpoint string, opts []grpc.Dial
 		return err
 	}
 
-	// _ = apicli.Register(mux) //nolint
+	_ = apicli.Register(mux) //nolint
 
 	return nil
 }

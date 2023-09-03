@@ -57,6 +57,7 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *txHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -81,6 +82,7 @@ func (h *txHandler) final(err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *txHandler) exec(ctx context.Context) error {
 	h.newState = h.State
 	var err error

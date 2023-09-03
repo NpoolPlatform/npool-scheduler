@@ -19,7 +19,7 @@ func (h *orderHandler) final() {
 	h.persistent <- persistentOrder
 }
 
-func (h *orderHandler) exec(ctx context.Context) error {
+func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	h.final()
 	return nil
 }

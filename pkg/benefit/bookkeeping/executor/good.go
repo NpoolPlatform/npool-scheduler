@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	// goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
+	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	// goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
+	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
@@ -26,7 +24,6 @@ type goodHandler struct {
 	persistent              chan interface{}
 	notif                   chan interface{}
 	retry                   chan interface{}
-	coin                    *coinmwpb.Coin
 	totalRewardAmount       decimal.Decimal
 	totalUnits              decimal.Decimal
 	totalOrderUnits         decimal.Decimal
@@ -53,6 +50,9 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(orders) == 0 {
+			break
+		}
 		for _, order := range orders {
 			units, err := decimal.NewFromString(order.Units)
 			if err != nil {
@@ -73,35 +73,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) getAppGoods(ctx context.Context) error {
-	appIDs := []string{}
-	appGoodIDs := []string{}
-	for appID, appGoodUnits := range h.appOrderUnits {
-		appIDs = append(appIDs, appID)
-		for appGoodID, _ := range appGoodUnits {
-			appGoodIDs = append(appGoodIDs, appGoodID)
-		}
-	}
-	goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-		AppIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: appIDs},
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		IDs:    &basetypes.StringSliceVal{Op: cruder.IN, Value: appGoodIDs},
-	}, int32(0), int32(len(appGoodIDs)))
-	if err != nil {
-		return err
-	}
-	for _, good := range goods {
-		appGoods, ok := h.goods[good.AppID]
-		if !ok {
-			appGoods = map[string]*appgoodmwpb.Good{}
-		}
-		appGoods[good.ID] = good
-		h.goods[good.AppID] = appGoods
-	}
-	return nil
-}
-
-func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
+func (h *goodHandler) calculateUnitReward() {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		goods, ok := h.goods[appID]
 		if !ok {
@@ -133,7 +105,6 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 		}
 		h.appGoodUnitRewards[appID] = unitRewards
 	}
-	return nil
 }
 
 func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
@@ -193,22 +164,21 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 }
 
 func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
-	/*
-		exist, err := goodstmwcli.ExistGoodStatement(ctx, &goodstmwpb.Conds{
-			GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-			BenefitDate: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
-		})
-		if err != nil {
-			return false, err
-		}
-		if !exist {
-			return false, nil
-		}
-		h.statementExist = true
-	*/
-	return false, nil
+	exist, err := goodstmwcli.ExistGoodStatementConds(ctx, &goodstmwpb.Conds{
+		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		BenefitDate: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
+	})
+	if err != nil {
+		return false, err
+	}
+	if !exist {
+		return false, nil
+	}
+	h.statementExist = true
+	return true, nil
 }
 
+//nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err == nil {
 		return
@@ -233,6 +203,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 
@@ -257,9 +228,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		Div(h.totalUnits)
 	h.unsoldRewardAmount = h.totalRewardAmount.
 		Sub(h.userRewardAmount)
-	if err = h.calculateUnitReward(ctx); err != nil {
-		return err
-	}
+	h.calculateUnitReward()
 	if err = h.calculateOrderRewards(ctx); err != nil {
 		return err
 	}

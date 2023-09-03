@@ -21,7 +21,8 @@ type orderHandler struct {
 	childOrders []*ordermwpb.Order
 }
 
-func (h *orderHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *orderHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -61,10 +62,11 @@ func (h *orderHandler) getChildOrders(ctx context.Context) error {
 	}
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getChildOrders(ctx); err != nil {
 		return err

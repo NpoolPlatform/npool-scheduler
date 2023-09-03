@@ -92,7 +92,8 @@ func (h *orderHandler) calculateLedgerStatements() error {
 	return nil
 }
 
-func (h *orderHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *orderHandler) final(err *error) {
 	if *err != nil {
 		return
 	}
@@ -104,10 +105,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if h.paymentAmount, err = decimal.NewFromString(h.PaymentAmount); err != nil {
 		return err

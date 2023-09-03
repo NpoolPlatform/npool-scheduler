@@ -60,7 +60,8 @@ func (h *accountHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
-func (h *accountHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *accountHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -91,10 +92,11 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *accountHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getCoin(ctx); err != nil {
 		return err

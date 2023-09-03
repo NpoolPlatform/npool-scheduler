@@ -43,8 +43,7 @@ type txHandler struct {
 func (h *txHandler) checkTransfer(ctx context.Context) (bool, error) {
 	tx, err := sphinxproxycli.GetTransaction(ctx, h.ID)
 	if err != nil {
-		switch status.Code(err) {
-		case codes.NotFound:
+		if status.Code(err) == codes.NotFound {
 			return false, nil
 		}
 		return false, err
@@ -192,6 +191,7 @@ func (h *txHandler) checkAccountCoin() error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *txHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -238,6 +238,7 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 	retry1.Retry(ctx, h.Tx, h.retry)
 }
 
+//nolint:gocritic
 func (h *txHandler) exec(ctx context.Context) error {
 	h.newState = h.State
 

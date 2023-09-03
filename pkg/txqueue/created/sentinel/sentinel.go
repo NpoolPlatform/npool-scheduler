@@ -56,6 +56,7 @@ func (h *handler) feedable(ctx context.Context, tx *txmwpb.Tx) (bool, error) {
 	return !exist, nil
 }
 
+//nolint:gocognit
 func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit

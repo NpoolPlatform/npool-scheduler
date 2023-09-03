@@ -136,6 +136,9 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(orders) == 0 {
+			break
+		}
 		for _, order := range orders {
 			units, err := decimal.NewFromString(order.Units)
 			if err != nil {
@@ -166,7 +169,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	appGoodIDs := []string{}
 	for appID, appGoodUnits := range h.appOrderUnits {
 		appIDs = append(appIDs, appID)
-		for appGoodID, _ := range appGoodUnits {
+		for appGoodID := range appGoodUnits {
 			appGoodIDs = append(appGoodIDs, appGoodID)
 		}
 	}
@@ -189,12 +192,12 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
+func (h *goodHandler) calculateTechniqueFee() {
 	if h.totalBenefitOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
+		return
 	}
 	if h.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
+		return
 	}
 
 	for appID, appGoodUnits := range h.appOrderUnits {
@@ -217,7 +220,6 @@ func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
 		}
 	}
 	h.userRewardAmount = h.userRewardAmount.Sub(h.techniqueFeeAmount)
-	return nil
 }
 
 func (h *goodHandler) getUserBenefitHotAccount(ctx context.Context) error {
@@ -257,6 +259,7 @@ func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
 		return
@@ -292,6 +295,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
 	var err error
@@ -330,9 +334,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err := h.getAppGoods(ctx); err != nil {
 		return err
 	}
-	if err = h.calculateTechniqueFee(ctx); err != nil {
-		return err
-	}
+	h.calculateTechniqueFee()
 	if err = h.getUserBenefitHotAccount(ctx); err != nil {
 		return err
 	}

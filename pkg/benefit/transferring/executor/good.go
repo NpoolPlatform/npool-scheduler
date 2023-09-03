@@ -101,7 +101,7 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) checkTransferToPlatform(ctx context.Context) error {
+func (h *goodHandler) checkTransferToPlatform() error {
 	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
 	if err != nil {
 		return err
@@ -135,6 +135,7 @@ func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 	return account, nil
 }
 
+//nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if h.newBenefitState == h.RewardState && *err == nil {
 		return
@@ -163,6 +164,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 
@@ -177,7 +179,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getCoin(ctx); err != nil {
 		return err
 	}
-	if err = h.checkTransferToPlatform(ctx); err != nil {
+	if err = h.checkTransferToPlatform(); err != nil {
 		return err
 	}
 	if !h.transferToPlatform {

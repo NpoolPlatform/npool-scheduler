@@ -20,10 +20,10 @@ type orderHandler struct {
 	notif               chan interface{}
 	lockedBalanceAmount decimal.Decimal
 	spentBalanceAmount  decimal.Decimal
-	spentBbalanceExtra  string
 }
 
-func (h *orderHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *orderHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -61,10 +61,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 }
 
-func (h *orderHandler) exec(ctx context.Context) error {
+func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	var err error
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	switch h.CancelState {
 	case ordertypes.OrderState_OrderStateWaitPayment:

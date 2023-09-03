@@ -30,7 +30,6 @@ type announcementHandler struct {
 	*ancmwpb.Announcement
 	persistent chan interface{}
 	sendStats  map[string]*ancsendmwpb.SendState
-	sendable   bool
 }
 
 func (h *announcementHandler) getSendStats(ctx context.Context, users []*usermwpb.User) error {
@@ -84,7 +83,7 @@ func (h *announcementHandler) getLang(ctx context.Context, user *usermwpb.User) 
 	return lang, nil
 }
 
-func (h *announcementHandler) emailRequest(ctx context.Context, lang *applangmwpb.Lang, user *usermwpb.User) (*sendmwpb.SendMessageRequest, error) {
+func (h *announcementHandler) emailRequest(ctx context.Context, user *usermwpb.User) (*sendmwpb.SendMessageRequest, error) {
 	req := &sendmwpb.SendMessageRequest{
 		Subject: h.Title,
 		Content: h.Content,
@@ -92,7 +91,7 @@ func (h *announcementHandler) emailRequest(ctx context.Context, lang *applangmwp
 
 	tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmwpb.Conds{
 		AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: lang.LangID},
+		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.LangID},
 		UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Announcement)},
 	})
 	if err != nil {
@@ -111,7 +110,7 @@ func (h *announcementHandler) emailRequest(ctx context.Context, lang *applangmwp
 	return req, nil
 }
 
-func (h *announcementHandler) smsRequest(ctx context.Context, lang *applangmwpb.Lang, user *usermwpb.User) (*sendmwpb.SendMessageRequest, error) {
+func (h *announcementHandler) smsRequest(ctx context.Context, user *usermwpb.User) (*sendmwpb.SendMessageRequest, error) {
 	req := &sendmwpb.SendMessageRequest{
 		Subject: h.Title,
 		Content: h.Content,
@@ -169,11 +168,11 @@ func (h *announcementHandler) unicast(ctx context.Context, user *usermwpb.User) 
 	var req *sendmwpb.SendMessageRequest
 	switch h.Channel {
 	case basetypes.NotifChannel_ChannelEmail:
-		if req, err = h.emailRequest(ctx, lang, user); err != nil {
+		if req, err = h.emailRequest(ctx, user); err != nil {
 			return err
 		}
 	case basetypes.NotifChannel_ChannelSMS:
-		if req, err = h.smsRequest(ctx, lang, user); err != nil {
+		if req, err = h.smsRequest(ctx, user); err != nil {
 			return err
 		}
 	}
@@ -260,26 +259,15 @@ func (h *announcementHandler) multicast(ctx context.Context) error {
 	}
 }
 
-func (h *announcementHandler) final() {
-	persistentAnnouncement := &types.PersistentAnnouncement{
-		Announcement: h.Announcement,
-	}
-	h.persistent <- persistentAnnouncement
-}
-
 func (h *announcementHandler) exec(ctx context.Context) error {
 	h.sendStats = map[string]*ancsendmwpb.SendState{}
-
-	var err error
-	defer h.final()
-
 	switch h.AnnouncementType {
 	case basetypes.NotifType_NotifBroadcast:
-		if err = h.broadcast(ctx); err != nil {
+		if err := h.broadcast(ctx); err != nil {
 			return err
 		}
 	case basetypes.NotifType_NotifMulticast:
-		if err = h.broadcast(ctx); err != nil {
+		if err := h.multicast(ctx); err != nil {
 			return err
 		}
 	}

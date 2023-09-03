@@ -157,29 +157,29 @@ func (h *orderHandler) paymentBalanceEnough() bool {
 	return h.incomingAmount.Sub(h.transferAmount).Cmp(decimal.NewFromInt(0)) >= 0
 }
 
-func (h *orderHandler) resolveNewState() error {
+func (h *orderHandler) resolveNewState() {
 	if h.canceled() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
-		return nil
+		return
 	}
 	if h.timeout() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTimeout
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
-		return nil
+		return
 	}
 	if !h.onlinePayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
-		return nil
+		return
 	}
 	if h.paymentBalanceEnough() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 	}
-	return nil
 }
 
+//nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -213,6 +213,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	retry1.Retry(ctx, h.Order, h.retry)
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	h.newOrderState = h.OrderState
 	h.newPaymentState = h.PaymentState
@@ -235,7 +236,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		_ = accountlock.Unlock(h.PaymentAccountID)
+		_ = accountlock.Unlock(h.PaymentAccountID) //nolint
 	}()
 
 	if err = h.getPaymentAccount(ctx); err != nil {
@@ -244,8 +245,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.getPaymentAccountBalance(ctx); err != nil {
 		return err
 	}
-	if err = h.resolveNewState(); err != nil {
-		return err
-	}
+	h.resolveNewState()
 	return nil
 }

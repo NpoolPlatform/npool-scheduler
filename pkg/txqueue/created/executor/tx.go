@@ -45,6 +45,7 @@ func (h *txHandler) checkWait(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *txHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -69,6 +70,7 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *txHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)

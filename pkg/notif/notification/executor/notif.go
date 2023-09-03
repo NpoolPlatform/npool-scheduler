@@ -151,7 +151,8 @@ func (h *notifHandler) getEventNotifs(ctx context.Context) error {
 	}
 }
 
-func (h *notifHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *notifHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -171,9 +172,10 @@ func (h *notifHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(persistentNotif, h.persistent)
 }
 
+//nolint:gocritic
 func (h *notifHandler) exec(ctx context.Context) error {
 	var err error
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getUser(ctx); err != nil {
 		return err

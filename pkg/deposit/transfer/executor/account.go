@@ -30,7 +30,6 @@ type accountHandler struct {
 	outcoming      decimal.Decimal
 	amount         decimal.Decimal
 	coin           *coinmwpb.Coin
-	feeCoin        *coinmwpb.Coin
 	collectAccount *pltfaccmwpb.Account
 }
 
@@ -140,7 +139,8 @@ func (h *accountHandler) checkFeeBalance(ctx context.Context) error {
 	return nil
 }
 
-func (h *accountHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *accountHandler) final(err *error) {
 	if *err != nil || true {
 		logger.Sugar().Infow(
 			"final",
@@ -178,6 +178,7 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *accountHandler) exec(ctx context.Context) error {
 	if h.Locked {
 		return nil
@@ -195,7 +196,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 		return err
 	}
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getCoin(ctx); err != nil {
 		return err
@@ -213,7 +214,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		_ = accountlock.Unlock(h.AccountID)
+		_ = accountlock.Unlock(h.AccountID) //nolint
 	}()
 	if locked, err = h.recheckAccountLock(ctx); err != nil || locked {
 		return err

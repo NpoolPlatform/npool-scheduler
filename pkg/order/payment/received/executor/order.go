@@ -117,6 +117,7 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -162,6 +163,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
@@ -177,7 +179,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		_ = accountlock.Unlock(h.PaymentAccountID)
+		_ = accountlock.Unlock(h.PaymentAccountID) //nolint
 	}()
 
 	if err = h.getPaymentAccount(ctx); err != nil {

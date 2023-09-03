@@ -185,7 +185,8 @@ func (h *accountHandler) checkTransferring(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func (h *accountHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *accountHandler) final(err *error) {
 	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
@@ -221,6 +222,7 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *accountHandler) exec(ctx context.Context) error {
 	if h.Locked {
 		return nil
@@ -230,7 +232,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	var executable bool
 	var yes bool
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	h.coin, err = h.getCoin(ctx, h.CoinTypeID)
 	if err != nil {
@@ -246,7 +248,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		_ = accountlock.Unlock(h.AccountID)
+		_ = accountlock.Unlock(h.AccountID) //nolint
 	}()
 	if executable, err = h.recheckAccount(ctx); err != nil || !executable {
 		return err

@@ -16,7 +16,8 @@ type goodHandler struct {
 	newUnitRewardAmount decimal.Decimal
 }
 
-func (h *goodHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *goodHandler) final(err *error) {
 	if *err == nil {
 		return
 	}
@@ -33,12 +34,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 	var rewardAmount decimal.Decimal
 	var totalUnits decimal.Decimal
 
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	rewardAmount, err = decimal.NewFromString(h.LastRewardAmount)
 	if err != nil {

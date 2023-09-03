@@ -1,3 +1,4 @@
+//nolint:dupl
 package executor
 
 import (
@@ -34,7 +35,6 @@ type coinHandler struct {
 	notif              chan interface{}
 	gasProviderAccount *accountmwpb.Account
 	feeCoin            *coinmwpb.Coin
-	persistentCoin     *types.PersistentCoin
 }
 
 func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
@@ -310,11 +310,12 @@ func (h *coinHandler) checkDepositAccount(ctx context.Context) (bool, *accountmw
 }
 
 // TODO: in case some mining product get rewards other than it native coin (native coin is fee coin)
-func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
+func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) { //nolint
 	return false, nil, decimal.NewFromInt(0), nil
 }
 
-func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
+//nolint:gocritic,interfacer
+func (h *coinHandler) final(account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
 	persistentCoin := &types.PersistentCoin{
 		Coin:          h.Coin,
 		FromAccountID: h.gasProviderAccount.ID,
@@ -353,7 +354,7 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	var feedable bool
 	var usedFor basetypes.AccountUsedFor
 
-	defer h.final(ctx, &account, &usedFor, &amount, &err)
+	defer h.final(&account, &usedFor, &amount, &err)
 
 	if feedable, account, amount, err = h.checkUserBenefitHot(ctx); err != nil || feedable {
 		usedFor = basetypes.AccountUsedFor_UserBenefitHot

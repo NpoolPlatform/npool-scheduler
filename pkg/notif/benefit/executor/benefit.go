@@ -51,7 +51,7 @@ func (h *benefitHandler) getAppGoods(ctx context.Context) error {
 	}
 }
 
-func (h *benefitHandler) generateNotifContent(ctx context.Context) error {
+func (h *benefitHandler) generateNotifContent() error {
 	h.content = "<html><head><style>table.notif-benefit {border-collapse: collapse;width: 100%;}#notif-good-benefit td,#notif-good-benefit th {border: 1px solid #dddddd;text-align: left;padding: 8px;}</style></head><table id='notif-good-benefit' class='notif-benefit'><tr><th>GoodID</th><th>GoodName</th><th>Amount</th><th>AmountPerUnit</th><th>State</th><th>Message</th><th>BenefitDate</th></tr>"
 	for _, benefit := range h.benefits {
 		good, ok := h.appGoods[benefit.GoodID]
@@ -87,7 +87,7 @@ func (h *benefitHandler) generateNotifContents() {
 	for _, appGood := range h.appGoods {
 		appIDs[appGood.AppID] = struct{}{}
 	}
-	for appID, _ := range appIDs {
+	for appID := range appIDs {
 		h.notifContents = append(h.notifContents, &types.NotifContent{
 			AppID:   appID,
 			Content: h.content,
@@ -95,7 +95,8 @@ func (h *benefitHandler) generateNotifContents() {
 	}
 }
 
-func (h *benefitHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *benefitHandler) final(err *error) {
 	persistentGoodBenefit := &types.PersistentGoodBenefit{
 		Benefits:      h.benefits,
 		NotifContents: h.notifContents,
@@ -104,20 +105,20 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(persistentGoodBenefit, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(persistentGoodBenefit, h.notif)
-
 	}
 }
 
+//nolint:gocritic
 func (h *benefitHandler) exec(ctx context.Context) error {
 	h.appGoods = map[string]*appgoodmwpb.Good{}
 
 	var err error
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	if err = h.getAppGoods(ctx); err != nil {
 		return err
 	}
-	if err = h.generateNotifContent(ctx); err != nil {
+	if err = h.generateNotifContent(); err != nil {
 		return err
 	}
 	h.generateNotifContents()

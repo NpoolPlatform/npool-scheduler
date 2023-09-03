@@ -31,7 +31,7 @@ func (h *orderHandler) final() {
 	h.persistent <- persistentOrder
 }
 
-func (h *orderHandler) exec(ctx context.Context) error {
+func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	var err error
 	if h.balanceAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
 		return err

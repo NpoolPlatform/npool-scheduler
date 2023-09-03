@@ -156,7 +156,8 @@ func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
 	return nil
 }
 
-func (h *coinHandler) final(ctx context.Context, err *error) {
+//nolint:gocritic
+func (h *coinHandler) final(err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -193,10 +194,11 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 	}
 }
 
+//nolint:gocritic
 func (h *coinHandler) exec(ctx context.Context) error {
 	var err error
 	var yes bool
-	defer h.final(ctx, &err)
+	defer h.final(&err)
 
 	h.userBenefitHotAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {

@@ -1,7 +1,6 @@
 package types
 
 import (
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 )
 

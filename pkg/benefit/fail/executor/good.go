@@ -19,7 +19,7 @@ func (h *goodHandler) final() {
 	h.persistent <- persistentGood
 }
 
-func (h *goodHandler) exec(ctx context.Context) error {
+func (h *goodHandler) exec(ctx context.Context) error { //nolint
 	h.final()
 	return nil
 }
