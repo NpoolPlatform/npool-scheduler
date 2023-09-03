@@ -87,5 +87,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 	}
 
 	asyncfeed.AsyncFeed(_account, notif)
+	asyncfeed.AsyncFeed(_account, done)
+
 	return nil
 }

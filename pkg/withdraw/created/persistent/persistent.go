@@ -84,6 +84,7 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 	}
 
 	asyncfeed.AsyncFeed(_withdraw, done)
+	asyncfeed.AsyncFeed(_withdraw, notif)
 
 	return nil
 }
