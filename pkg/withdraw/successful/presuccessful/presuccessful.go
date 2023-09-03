@@ -1,4 +1,4 @@
-package returnbalance
+package presuccessful
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/sentinel"
 )
 
-const subsystem = "withdrawfailreturnbalance"
+const subsystem = "withdrawsuccessfulpresuccessful"
 
 var h *base.Handler
 

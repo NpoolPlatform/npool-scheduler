@@ -2,14 +2,11 @@ package executor
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/types"
 
 	"github.com/shopspring/decimal"
 )
@@ -17,7 +14,6 @@ import (
 type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
 	persistent          chan interface{}
-	notif               chan interface{}
 	lockedBalanceAmount decimal.Decimal
 }
 
@@ -31,30 +27,11 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentWithdraw := &types.PersistentWithdraw{
-		Withdraw: h.Withdraw,
+		Withdraw:            h.Withdraw,
+		LockedBalanceAmount: h.lockedBalanceAmount.String(),
 	}
-	if h.lockedBalanceAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.lockedBalanceAmount.String()
-		persistentWithdraw.LockedBalanceAmount = &amount
-	}
-	if h.spentBalanceAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.spentBalanceAmount.String()
-		persistentWithdraw.SpentAmount = &amount
-		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","WithdrawID":"%v","Amount":"%v","Date":"%v","CancelWithdraw":true}`,
-			h.AppID,
-			h.UserID,
-			h.ID,
-			h.spentBalanceAmount,
-			time.Now(),
-		)
-		persistentWithdraw.SpentExtra = ioExtra
-	}
-
 	if *err == nil {
 		asyncfeed.AsyncFeed(persistentWithdraw, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(persistentWithdraw, h.notif)
 	}
 }
 

@@ -6,15 +6,12 @@ import (
 
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
-	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
-	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/types"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
@@ -28,43 +25,39 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateCanceled
+func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
+	state := ledgertypes.WithdrawState_Successful
 	rollback := true
-	req := &ordermwpb.OrderReq{
-		ID:         &order.ID,
-		OrderState: &state,
-		Rollback:   &rollback,
+	req := &withdrawmwpb.WithdrawReq{
+		ID:       &withdraw.ID,
+		State:    &state,
+		Rollback: &rollback,
 	}
 	dispose.Add(
-		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		ledgersvcname.ServiceDomain,
+		"ledger.middleware.withdraw.v2.Middleware/UpdateWithdraw",
+		"ledger.middleware.withdraw.v2.Middleware/UpdateWithdraw",
+		&withdrawmwpb.UpdateWithdrawRequest{
 			Info: req,
 		},
 	)
 }
 
-func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.LockedBalanceAmount == nil {
-		return
-	}
-
-	balance := decimal.RequireFromString(*order.LockedBalanceAmount)
+func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
+	balance := decimal.RequireFromString(withdraw.LockedBalanceAmount)
 	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return
 	}
 
 	req := &ledgermwpb.LedgerReq{
-		AppID:      &order.AppID,
-		UserID:     &order.UserID,
-		CoinTypeID: &order.PaymentCoinTypeID,
-		Spendable:  order.LockedBalanceAmount,
+		AppID:      &withdraw.AppID,
+		UserID:     &withdraw.UserID,
+		CoinTypeID: &withdraw.CoinTypeID,
+		Locked:     &withdraw.LockedBalanceAmount,
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/AddBalance",
+		"ledger.middleware.ledger.v2.Middleware/SubBalance",
 		"",
 		&ledgermwpb.SubBalanceRequest{
 			Info: req,
@@ -72,43 +65,10 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 	)
 }
 
-func (p *handler) withReturnSpent(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.SpentAmount == nil {
-		return
-	}
-
-	balance := decimal.RequireFromString(*order.SpentAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return
-	}
-
-	ioType := ledgertypes.IOType_Incoming
-	ioSubType := ledgertypes.IOSubType_OrderRevoke
-
-	req := &statementmwpb.StatementReq{
-		AppID:      &order.AppID,
-		UserID:     &order.UserID,
-		CoinTypeID: &order.PaymentCoinTypeID,
-		IOType:     &ioType,
-		IOSubType:  &ioSubType,
-		Amount:     order.SpentAmount,
-		IOExtra:    &order.SpentExtra,
-	}
-
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatement",
-		"",
-		&statementmwpb.CreateStatementRequest{
-			Info: req,
-		},
-	)
-}
-
-func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, done chan interface{}) error {
-	_order, ok := order.(*types.PersistentOrder)
+func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif, done chan interface{}) error {
+	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
-		return fmt.Errorf("invalid order")
+		return fmt.Errorf("invalid withdraw")
 	}
 
 	const timeoutSeconds = 10
@@ -116,15 +76,14 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withUpdateOrderState(sagaDispose, _order)
-	p.withReturnLockedBalance(sagaDispose, _order)
-	p.withReturnSpent(sagaDispose, _order)
+	p.withUpdateWithdrawState(sagaDispose, _withdraw)
+	p.withReturnLockedBalance(sagaDispose, _withdraw)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		retry1.Retry(ctx, _order, retry)
+		retry1.Retry(ctx, _withdraw, retry)
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_order, done)
+	asyncfeed.AsyncFeed(_withdraw, done)
 
 	return nil
 }
