@@ -13,6 +13,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement"
+	notifbenefit "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
@@ -41,6 +42,7 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
+		notifbenefit.Finalize()
 		benefit.Finalize()
 		deposit.Finalize()
 		withdraw.Finalize()
@@ -87,6 +89,7 @@ func watch(ctx context.Context, cancel context.CancelFunc) error {
 	withdraw.Initialize(ctx, cancel)
 	deposit.Initialize(ctx, cancel)
 	benefit.Initialize(ctx, cancel)
+	notifbenefit.Initialize(ctx, cancel)
 	return nil
 }
 
