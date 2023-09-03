@@ -27,11 +27,12 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
+func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw, reviewID string) {
 	state := ledgertypes.WithdrawState_Reviewing
 	req := &withdrawmwpb.WithdrawReq{
-		ID:    &withdraw.ID,
-		State: &state,
+		ID:       &withdraw.ID,
+		State:    &state,
+		ReviewID: &reviewID,
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
@@ -43,12 +44,11 @@ func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw 
 	)
 }
 
-func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
-	id := uuid.NewString()
+func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw, reviewID string) {
 	serviceName := ledgersvcname.ServiceDomain
 	objType := reviewtypes.ReviewObjectType_ObjectWithdrawal
 	req := &reviewmwpb.ReviewReq{
-		ID:         &id,
+		ID:         &reviewID,
 		AppID:      &withdraw.AppID,
 		Domain:     &serviceName,
 		ObjectType: &objType,
@@ -76,8 +76,9 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withCreateReview(sagaDispose, _withdraw)
-	p.withUpdateWithdrawState(sagaDispose, _withdraw)
+	reviewID := uuid.NewString()
+	p.withCreateReview(sagaDispose, _withdraw, reviewID)
+	p.withUpdateWithdrawState(sagaDispose, _withdraw, reviewID)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		retry1.Retry(ctx, _withdraw, retry)
 		return err
