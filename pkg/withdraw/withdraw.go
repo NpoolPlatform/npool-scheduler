@@ -9,7 +9,9 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/approved"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/prefail"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance"
+	failreturnbalance "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/prerejected"
+	rejectedreturnbalance "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/returnbalance"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring"
 )
@@ -32,14 +34,18 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	approved.Initialize(ctx, cancel, &running)
 	reviewing.Initialize(ctx, cancel, &running)
 	prefail.Initialize(ctx, cancel, &running)
-	returnbalance.Initialize(ctx, cancel, &running)
+	failreturnbalance.Initialize(ctx, cancel, &running)
+	rejectedreturnbalance.Initialize(ctx, cancel, &running)
+	prerejected.Initialize(ctx, cancel, &running)
 }
 
 func Finalize() {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	returnbalance.Finalize()
+	prerejected.Finalize()
+	rejectedreturnbalance.Finalize()
+	failreturnbalance.Finalize()
 	prefail.Finalize()
 	reviewing.Finalize()
 	approved.Finalize()

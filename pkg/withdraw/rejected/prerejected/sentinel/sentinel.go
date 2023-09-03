@@ -10,7 +10,7 @@ import (
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/prerejected/types"
 )
 
 type handler struct{}
@@ -25,7 +25,7 @@ func (h *handler) scanWithdraws(ctx context.Context, exec chan interface{}) erro
 
 	for {
 		withdraws, _, err := withdrawmwcli.GetWithdraws(ctx, &withdrawmwpb.Conds{
-			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ledgertypes.WithdrawState_ReturnFailBalance)},
+			State: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ledgertypes.WithdrawState_PreRejected)},
 		}, offset, limit)
 		if err != nil {
 			return err
