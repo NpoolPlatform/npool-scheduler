@@ -7,7 +7,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	notifbenefitpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
+	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
@@ -22,7 +22,7 @@ func NewNotif() basenotif.Notify {
 func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 	return pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		now := uint32(time.Now().Unix())
-		req := &notifbenefitpb.GoodBenefitReq{
+		req := &notifbenefitmwpb.GoodBenefitReq{
 			GoodID:      &good.ID,
 			GoodName:    &good.Title,
 			State:       &good.BenefitResult,
