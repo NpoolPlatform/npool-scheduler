@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/db"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/db/ent"
 	entpubsubmsg "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
-
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-
 	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
+	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	"github.com/google/uuid"
 )
 
@@ -53,6 +52,10 @@ func prepare(mid, body string) (req interface{}, err error) {
 	switch mid {
 	case basetypes.MsgID_DepositReceivedReq.String():
 		req, err = depositnotif.Prepare(body)
+	case basetypes.MsgID_WithdrawRequestReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_WithdrawSuccessReq.String():
+		req, err = withdrawnotif.Prepare(body)
 	default:
 		return nil, nil
 	}
@@ -112,6 +115,10 @@ func statReq(ctx context.Context, mid string, uid uuid.UUID) (bool, error) { //n
 func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bool, error) { //nolint
 	switch mid { //nolint
 	case basetypes.MsgID_DepositReceivedReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_WithdrawRequestReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_WithdrawSuccessReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
@@ -146,6 +153,10 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 	switch mid {
 	case basetypes.MsgID_DepositReceivedReq.String():
 		err = depositnotif.Apply(ctx, req)
+	case basetypes.MsgID_WithdrawRequestReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_WithdrawSuccessReq.String():
+		err = withdrawnotif.Apply(ctx, mid, req)
 	default:
 		return nil
 	}
