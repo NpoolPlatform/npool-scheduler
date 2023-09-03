@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/sentinel"
 )
@@ -24,6 +25,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithScanInterval(time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
+		base.WithNotify(notif.NewNotif()),
 		base.WithExecutorNumber(4),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),
