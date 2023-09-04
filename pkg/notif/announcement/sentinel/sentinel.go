@@ -8,6 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ancmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/announcement"
 	ancmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/announcement"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -37,7 +38,7 @@ func (h *handler) scanAnnouncement(ctx context.Context, channel basetypes.NotifC
 		}
 
 		for _, anc := range ancs {
-			exec <- anc
+			cancelablefeed.CancelableFeed(ctx, anc, exec)
 		}
 
 		offset += limit

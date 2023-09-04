@@ -10,6 +10,7 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -47,7 +48,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 				continue
 			}
 			_ = redis2.Unlock(key) // nolint
-			exec <- withdraw
+			cancelablefeed.CancelableFeed(ctx, withdraw, exec)
 		}
 
 		offset += limit

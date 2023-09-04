@@ -9,6 +9,7 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
@@ -26,14 +27,16 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedGood(ctx context.Context, good *goodmwpb.Good, exec chan interface{}) error {
-	state := goodtypes.BenefitState_BenefitCheckWait
-	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:          &good.ID,
-		RewardState: &state,
-	}); err != nil {
-		return err
+	if good.RewardState == goodtypes.BenefitState_BenefitWait {
+		state := goodtypes.BenefitState_BenefitCheckWait
+		if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
+			ID:          &good.ID,
+			RewardState: &state,
+		}); err != nil {
+			return err
+		}
 	}
-	exec <- good
+	cancelablefeed.CancelableFeed(ctx, good, exec)
 	return nil
 }
 

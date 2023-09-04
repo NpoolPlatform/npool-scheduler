@@ -7,6 +7,7 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -34,7 +35,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		}
 
 		for _, account := range accounts {
-			exec <- account
+			cancelablefeed.CancelableFeed(ctx, account, exec)
 		}
 
 		offset += limit

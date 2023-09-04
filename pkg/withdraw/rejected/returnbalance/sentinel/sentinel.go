@@ -8,6 +8,7 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/returnbalance/types"
@@ -35,7 +36,7 @@ func (h *handler) scanWithdraws(ctx context.Context, exec chan interface{}) erro
 		}
 
 		for _, withdraw := range withdraws {
-			exec <- withdraw
+			cancelablefeed.CancelableFeed(ctx, withdraw, exec)
 		}
 
 		offset += limit

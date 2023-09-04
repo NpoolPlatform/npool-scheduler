@@ -7,6 +7,7 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received/types"
@@ -29,7 +30,7 @@ func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order, exec ch
 			return err
 		}
 	}
-	exec <- order
+	cancelablefeed.CancelableFeed(ctx, order, exec)
 	return nil
 }
 

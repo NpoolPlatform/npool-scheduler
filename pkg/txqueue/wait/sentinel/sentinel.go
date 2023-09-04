@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -18,14 +19,16 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx, exec chan interface{}) error {
-	state := basetypes.TxState_TxStateWaitCheck
-	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
-		ID:    &tx.ID,
-		State: &state,
-	}); err != nil {
-		return err
+	if tx.State == basetypes.TxState_TxStateWait {
+		state := basetypes.TxState_TxStateWaitCheck
+		if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
+			ID:    &tx.ID,
+			State: &state,
+		}); err != nil {
+			return err
+		}
 	}
-	exec <- tx
+	cancelablefeed.CancelableFeed(ctx, tx, exec)
 	return nil
 }
 
@@ -49,12 +52,8 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 			if _, ok := ignores[tx.FromAccountID]; ok {
 				continue
 			}
-			if state == basetypes.TxState_TxStateWaitCheck {
-				exec <- tx
-			} else {
-				if err := h.feedTx(ctx, tx, exec); err != nil {
-					return err
-				}
+			if err := h.feedTx(ctx, tx, exec); err != nil {
+				return err
 			}
 			ignores[tx.FromAccountID] = struct{}{}
 		}

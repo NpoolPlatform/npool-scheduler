@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -33,7 +34,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		}
 
 		for _, tx := range txs {
-			exec <- tx
+			cancelablefeed.CancelableFeed(ctx, tx, exec)
 		}
 
 		offset += limit

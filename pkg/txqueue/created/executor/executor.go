@@ -3,20 +3,15 @@ package executor
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
-type handler struct {
-	mutex *sync.Mutex
-}
+type handler struct{}
 
-func NewExecutor(mutex *sync.Mutex) baseexecutor.Exec {
-	return &handler{
-		mutex: mutex,
-	}
+func NewExecutor() baseexecutor.Exec {
+	return &handler{}
 }
 
 func (e *handler) Exec(ctx context.Context, tx interface{}, retry, persistent, notif chan interface{}) error {
@@ -28,7 +23,6 @@ func (e *handler) Exec(ctx context.Context, tx interface{}, retry, persistent, n
 		Tx:         _tx,
 		persistent: persistent,
 		retry:      retry,
-		mutex:      e.mutex,
 	}
 	return h.exec(ctx)
 }

@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -18,14 +17,10 @@ type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
 	retry      chan interface{}
-	mutex      *sync.Mutex
 	newState   basetypes.TxState
 }
 
 func (h *txHandler) checkWait(ctx context.Context) error {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
 		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{h.FromAccountID, h.ToAccountID}},

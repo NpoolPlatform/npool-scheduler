@@ -7,6 +7,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	notifbenefitmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 
@@ -42,7 +43,7 @@ func (h *handler) scanGoodBenefits(ctx context.Context, exec chan interface{}) e
 		offset += limit
 	}
 	if len(benefits) > 0 {
-		exec <- benefits
+		cancelablefeed.CancelableFeed(ctx, benefits, exec)
 	}
 	return nil
 }

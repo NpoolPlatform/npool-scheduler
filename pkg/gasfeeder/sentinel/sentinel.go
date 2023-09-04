@@ -5,6 +5,7 @@ import (
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 
@@ -40,7 +41,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 			if coin.FeeCoinTypeID == coin.ID {
 				continue
 			}
-			exec <- coin
+			cancelablefeed.CancelableFeed(ctx, coin, exec)
 		}
 
 		offset += limit

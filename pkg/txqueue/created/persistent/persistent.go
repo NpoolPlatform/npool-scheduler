@@ -3,7 +3,6 @@ package persistent
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -14,14 +13,10 @@ import (
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
-type handler struct {
-	mutex *sync.Mutex
-}
+type handler struct{}
 
-func NewPersistent(mutex *sync.Mutex) basepersistent.Persistenter {
-	return &handler{
-		mutex: mutex,
-	}
+func NewPersistent() basepersistent.Persistenter {
+	return &handler{}
 }
 
 func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done chan interface{}) error {
@@ -29,9 +24,6 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done
 	if !ok {
 		return fmt.Errorf("invalid tx")
 	}
-
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 
 	state := basetypes.TxState_TxStateWait
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{

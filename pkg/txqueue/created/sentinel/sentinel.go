@@ -2,42 +2,37 @@ package sentinel
 
 import (
 	"context"
-	"sync"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
-type handler struct {
-	mutex *sync.Mutex
-}
+type handler struct{}
 
-func NewSentinel(mutex *sync.Mutex) basesentinel.Scanner {
-	return &handler{
-		mutex: mutex,
-	}
+func NewSentinel() basesentinel.Scanner {
+	return &handler{}
 }
 
 func (h *handler) feedTx(ctx context.Context, tx *txmwpb.Tx, exec chan interface{}) error {
-	state := basetypes.TxState_TxStateCreatedCheck
-	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
-		ID:    &tx.ID,
-		State: &state,
-	}); err != nil {
-		return err
+	if tx.State == basetypes.TxState_TxStateCreated {
+		state := basetypes.TxState_TxStateCreatedCheck
+		if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
+			ID:    &tx.ID,
+			State: &state,
+		}); err != nil {
+			return err
+		}
 	}
-	exec <- tx
+	cancelablefeed.CancelableFeed(ctx, tx, exec)
 	return nil
 }
 
 func (h *handler) feedable(ctx context.Context, tx *txmwpb.Tx) (bool, error) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
 	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
 		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
 			tx.FromAccountID,
@@ -79,9 +74,6 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 			}
 			if _, ok := ignores[tx.ToAccountID]; ok {
 				continue
-			}
-			if state == basetypes.TxState_TxStateCreatedCheck {
-				exec <- tx
 			}
 			feedable, err := h.feedable(ctx, tx)
 			if err != nil {

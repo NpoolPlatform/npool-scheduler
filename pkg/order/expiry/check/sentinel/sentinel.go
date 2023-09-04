@@ -7,6 +7,7 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
@@ -34,7 +35,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
-			exec <- order
+			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
 		offset += limit

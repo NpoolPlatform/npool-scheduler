@@ -14,10 +14,7 @@ import (
 
 const subsystem = "txqueuecreated"
 
-var (
-	h     *base.Handler
-	mutex sync.Mutex
-)
+var h *base.Handler
 
 func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
 	_h, err := base.NewHandler(
@@ -25,9 +22,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		cancel,
 		base.WithSubsystem(subsystem),
 		base.WithScanInterval(time.Minute),
-		base.WithScanner(sentinel.NewSentinel(&mutex)),
-		base.WithExec(executor.NewExecutor(&mutex)),
-		base.WithPersistenter(persistent.NewPersistent(&mutex)),
+		base.WithScanner(sentinel.NewSentinel()),
+		base.WithExec(executor.NewExecutor()),
+		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {

@@ -8,6 +8,7 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -20,14 +21,16 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedGood(ctx context.Context, good *goodmwpb.Good, exec chan interface{}) error {
-	state := goodtypes.BenefitState_BenefitCheckDone
-	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:          &good.ID,
-		RewardState: &state,
-	}); err != nil {
-		return err
+	if good.RewardState == goodtypes.BenefitState_BenefitFail {
+		state := goodtypes.BenefitState_BenefitCheckFail
+		if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
+			ID:          &good.ID,
+			RewardState: &state,
+		}); err != nil {
+			return err
+		}
 	}
-	exec <- good
+	cancelablefeed.CancelableFeed(ctx, good, exec)
 	return nil
 }
 
@@ -57,11 +60,11 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitDone, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitFail, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckDone, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckFail, exec)
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {

@@ -8,6 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
@@ -35,7 +36,7 @@ func (h *handler) scanNotification(ctx context.Context, channel basetypes.NotifC
 		}
 
 		for _, notif := range notifs {
-			exec <- notif
+			cancelablefeed.CancelableFeed(ctx, notif, exec)
 			time.Sleep(100 * time.Millisecond)
 		}
 
