@@ -44,9 +44,12 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 }
 
 func (e *handler) handler(ctx context.Context) bool {
+	closed := false
 	defer func() {
 		if err := recover(); err != nil {
-			close(e.w.ClosedChan())
+			if !closed {
+				close(e.w.ClosedChan())
+			}
 		}
 	}()
 	select {
@@ -62,6 +65,7 @@ func (e *handler) handler(ctx context.Context) bool {
 		return false
 	case <-e.w.CloseChan():
 		close(e.w.ClosedChan())
+		closed = true
 		return true
 	}
 }

@@ -50,9 +50,12 @@ func (h *handler) Exec() chan interface{} {
 }
 
 func (h *handler) handler(ctx context.Context) bool {
+	closed := false
 	defer func() {
 		if err := recover(); err != nil {
-			close(h.w.ClosedChan())
+			if !closed {
+				close(h.w.ClosedChan())
+			}
 		}
 	}()
 
@@ -79,6 +82,7 @@ func (h *handler) handler(ctx context.Context) bool {
 		return false
 	case <-h.w.CloseChan():
 		close(h.w.ClosedChan())
+		closed = true
 		return true
 	}
 }
