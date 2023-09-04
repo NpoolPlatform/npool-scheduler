@@ -70,7 +70,7 @@ func (e *handler) run(ctx context.Context) {
 }
 
 func (e *handler) paniced(ctx context.Context) {
-	close(e.w.CloseChan())
+	close(e.w.ClosedChan())
 }
 
 func (e *handler) Finalize(ctx context.Context) {

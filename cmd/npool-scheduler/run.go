@@ -42,27 +42,16 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 1)
 		notifbenefit.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 2)
 		benefit.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 3)
 		deposit.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 4)
 		withdraw.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 5)
 		limitation.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 6)
 		txqueue.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 7)
 		announcement.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 8)
 		notification.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 9)
 		gasfeeder.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 11)
 		order.Finalize(c.Context)
-		logger.Sugar().Infow("DDDD", "AAAAAAAAAAAAAAAAAAA", 12)
 
 		return err
 	},

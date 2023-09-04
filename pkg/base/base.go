@@ -186,7 +186,7 @@ func (h *Handler) run(ctx context.Context) {
 }
 
 func (h *Handler) paniced(ctx context.Context) {
-
+	close(h.w.ClosedChan())
 }
 
 func (h *Handler) Trigger(cond interface{}) {
