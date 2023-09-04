@@ -9,6 +9,53 @@ config:
   logdir: "./"
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
-    - order
     - gasfeeder
+    - withdraw
+    - withdrawreviewing
+    - withdrawapproved
+    - withdrawfailreturnbalance
+    - withdrawfailprefail
+    - withdrawcreated
+    - withdrawrejectedreturnbalance
+    - withdrawrejectedprerejected
+    - withdrawsuccessfulpresuccessful
+    - withdrawsuccessfulspendbalance
+    - withdrawtransferring
+    - limitation
+    - deposit
+    - deposittransfer
+    - deposituser
+    - depositfinish
+    - announcement
+    - notification
+    - notifbenefit
+    - benefit
+    - benefitbookkeeping
+    - benefitfail
+    - benefitwait
+    - benefittransferring
+    - benefitdone
+    - ordercancelachievement
+    - ordercancelreturnbalance
+    - ordercancelprecancel
+    - ordercancelrestorestock
+    - ordercancelcanceled
+    - ordercreated
+    - orderexpirycheck
+    - orderexpiryrestorestock
+    - orderexpirypreexpired
+    - order
+    - orderpaid
+    - orderpaymentachievement
+    - orderpaymenttransfer
+    - orderpaymentstock
+    - orderpaymentbookkept
+    - orderpaymentspent
+    - orderpaymenttimeout
+    - orderpaymentcommission
+    - orderpaymentcheck
+    - orderpaymentfinish
+    - orderpaymentreceived
     - txqueue
+    - txqueuecreated
+    - txqueuewait
