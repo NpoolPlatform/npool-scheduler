@@ -27,8 +27,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 
 	state := ordertypes.OrderState_OrderStatePreCancel
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:         &_order.ID,
-		OrderState: &state,
+		ID:          &_order.ID,
+		OrderState:  &state,
+		CancelState: &_order.OrderState,
 	}); err != nil {
 		retry1.Retry(ctx, _order, retry)
 		return err

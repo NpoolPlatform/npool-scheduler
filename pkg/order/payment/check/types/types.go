@@ -1,10 +1,14 @@
 package types
 
 import (
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 )
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	Error error
+	NewOrderState   ordertypes.OrderState
+	NewPaymentState ordertypes.PaymentState
+	NewCancelState  *ordertypes.OrderState
+	Error           error
 }

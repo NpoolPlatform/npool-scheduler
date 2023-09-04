@@ -201,8 +201,13 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		return
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
-		Error: *err,
+		Order:           h.Order,
+		NewOrderState:   h.newOrderState,
+		NewPaymentState: h.newPaymentState,
+		Error:           *err,
+	}
+	if h.newOrderState == ordertypes.OrderState_OrderStatePreCancel {
+		persistentOrder.NewCancelState = &h.OrderState
 	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(persistentOrder, h.persistent)

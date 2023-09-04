@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -25,11 +24,16 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		return fmt.Errorf("invalid order")
 	}
 
-	state := ordertypes.OrderState_OrderStatePaymentTransferReceived
-	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:         &_order.ID,
-		OrderState: &state,
-	}); err != nil {
+	req := &ordermwpb.OrderReq{
+		ID:           &_order.ID,
+		OrderState:   &_order.NewOrderState,
+		PaymentState: &_order.NewPaymentState,
+	}
+	if _order.NewCancelState != nil {
+		req.CancelState = _order.NewCancelState
+	}
+
+	if _, err := ordermwcli.UpdateOrder(ctx, req); err != nil {
 		retry1.Retry(ctx, _order, retry)
 		return err
 	}
