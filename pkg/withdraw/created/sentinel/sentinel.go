@@ -2,7 +2,9 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 
+	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
@@ -34,6 +36,17 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		}
 
 		for _, withdraw := range withdraws {
+			key := fmt.Sprintf(
+				"%v:%v:%v:%v",
+				basetypes.Prefix_PrefixCreateWithdraw,
+				withdraw.AppID,
+				withdraw.UserID,
+				withdraw.ID,
+			)
+			if err := redis2.TryLock(key, 0); err != nil {
+				continue
+			}
+			_ = redis2.Unlock(key) // nolint
 			exec <- withdraw
 		}
 
