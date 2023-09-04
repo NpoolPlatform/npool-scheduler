@@ -9,7 +9,7 @@ import (
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish/types"
 
@@ -52,7 +52,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_account, done)
+	cancelablefeed.CancelableFeed(ctx, _account, done)
 
 	return nil
 }

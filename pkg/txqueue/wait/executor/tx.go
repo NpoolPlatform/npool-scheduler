@@ -15,7 +15,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -230,10 +230,10 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 	}
 
 	if h.newState != h.State {
-		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentTx, h.persistent)
 		return
 	} else if *err != nil {
-		asyncfeed.AsyncFeed(persistentTx, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentTx, h.notif)
 	}
 	retry1.Retry(ctx, h.Tx, h.retry)
 }

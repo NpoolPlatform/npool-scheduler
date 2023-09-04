@@ -9,7 +9,7 @@ import (
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission/types"
 
 	"github.com/google/uuid"
@@ -80,7 +80,7 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		return
 	}
@@ -89,14 +89,14 @@ func (h *orderHandler) final(err *error) {
 		Order:                 h.Order,
 		AchievementStatements: h.achievementStatements,
 	}
-	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 }
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if h.paymentAmount, err = decimal.NewFromString(h.PaymentAmount); err != nil {
 		return err

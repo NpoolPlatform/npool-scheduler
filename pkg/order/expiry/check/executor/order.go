@@ -7,7 +7,7 @@ import (
 
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/types"
 )
 
@@ -34,17 +34,17 @@ func (h *orderHandler) expired() (bool, error) {
 	return true, nil
 }
 
-func (h *orderHandler) final() {
+func (h *orderHandler) final(ctx context.Context) {
 	persistentOrder := &types.PersistentOrder{
 		Order: h.Order,
 	}
-	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	if yes, err := h.expired(); err != nil || !yes {
 		return err
 	}
-	h.final()
+	h.final(ctx)
 	return nil
 }

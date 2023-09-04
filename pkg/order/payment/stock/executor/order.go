@@ -12,7 +12,7 @@ import (
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
 
 	"github.com/shopspring/decimal"
@@ -93,7 +93,7 @@ func (h *orderHandler) calculateLedgerStatements() error {
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		return
 	}
@@ -102,14 +102,14 @@ func (h *orderHandler) final(err *error) {
 		Order:            h.Order,
 		LedgerStatements: h.ledgerStatements,
 	}
-	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 }
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if h.paymentAmount, err = decimal.NewFromString(h.PaymentAmount); err != nil {
 		return err

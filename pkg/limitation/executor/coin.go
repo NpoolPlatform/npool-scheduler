@@ -15,7 +15,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -157,7 +157,7 @@ func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
 }
 
 //nolint:gocritic
-func (h *coinHandler) final(err *error) {
+func (h *coinHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -188,9 +188,9 @@ func (h *coinHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentCoin, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentCoin, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentCoin, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentCoin, h.notif)
 	}
 }
 
@@ -198,7 +198,7 @@ func (h *coinHandler) final(err *error) {
 func (h *coinHandler) exec(ctx context.Context) error {
 	var err error
 	var yes bool
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	h.userBenefitHotAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {

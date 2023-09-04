@@ -10,7 +10,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
 
@@ -96,15 +96,15 @@ func (h *benefitHandler) generateNotifContents() {
 }
 
 //nolint:gocritic
-func (h *benefitHandler) final(err *error) {
+func (h *benefitHandler) final(ctx context.Context, err *error) {
 	persistentGoodBenefit := &types.PersistentGoodBenefit{
 		Benefits:      h.benefits,
 		NotifContents: h.notifContents,
 	}
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentGoodBenefit, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentGoodBenefit, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentGoodBenefit, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentGoodBenefit, h.notif)
 	}
 }
 
@@ -113,7 +113,7 @@ func (h *benefitHandler) exec(ctx context.Context) error {
 	h.appGoods = map[string]*appgoodmwpb.Good{}
 
 	var err error
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.getAppGoods(ctx); err != nil {
 		return err

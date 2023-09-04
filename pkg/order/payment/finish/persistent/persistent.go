@@ -7,7 +7,7 @@ import (
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
 
@@ -45,7 +45,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_account, done)
+	cancelablefeed.CancelableFeed(ctx, _account, done)
 
 	return nil
 }

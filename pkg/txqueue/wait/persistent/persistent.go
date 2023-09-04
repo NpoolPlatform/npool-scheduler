@@ -8,7 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
@@ -61,7 +61,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_tx, done)
+	cancelablefeed.CancelableFeed(ctx, _tx, done)
 
 	return nil
 }

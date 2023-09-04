@@ -22,7 +22,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -316,7 +316,7 @@ func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.
 }
 
 //nolint:gocritic,interfacer
-func (h *coinHandler) final(account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
+func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
 	persistentCoin := &types.PersistentCoin{
 		Coin:          h.Coin,
 		FromAccountID: h.gasProviderAccount.ID,
@@ -332,9 +332,9 @@ func (h *coinHandler) final(account **accountmwpb.Account, usedFor *basetypes.Ac
 		persistentCoin.ToAddress = (*account).Address
 	}
 
-	asyncfeed.AsyncFeed(persistentCoin, h.notif)
+	cancelablefeed.CancelableFeed(ctx, persistentCoin, h.notif)
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentCoin, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentCoin, h.persistent)
 	}
 }
 
@@ -355,7 +355,7 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	var feedable bool
 	var usedFor basetypes.AccountUsedFor
 
-	defer h.final(&account, &usedFor, &amount, &err)
+	defer h.final(ctx, &account, &usedFor, &amount, &err)
 
 	if feedable, account, amount, err = h.checkUserBenefitHot(ctx); err != nil || feedable {
 		usedFor = basetypes.AccountUsedFor_UserBenefitHot

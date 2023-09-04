@@ -8,7 +8,7 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
@@ -22,7 +22,7 @@ type orderHandler struct {
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -36,9 +36,9 @@ func (h *orderHandler) final(err *error) {
 		ChildOrders: h.childOrders,
 	}
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentOrder, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
 	}
 }
 
@@ -66,7 +66,7 @@ func (h *orderHandler) getChildOrders(ctx context.Context) error {
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.getChildOrders(ctx); err != nil {
 		return err

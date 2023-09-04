@@ -10,7 +10,7 @@ import (
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
@@ -124,7 +124,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_order, done)
+	cancelablefeed.CancelableFeed(ctx, _order, done)
 
 	return nil
 }

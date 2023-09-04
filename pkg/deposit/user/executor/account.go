@@ -12,7 +12,7 @@ import (
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -76,7 +76,7 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 }
 
 //nolint:gocritic
-func (h *accountHandler) final(err *error) {
+func (h *accountHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -109,9 +109,9 @@ func (h *accountHandler) final(err *error) {
 			time.Now(),
 		)
 		persistentAccount.Extra = ioExtra
-		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentAccount, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.notif)
 	}
 }
 
@@ -124,7 +124,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	var err error
 	var locked bool
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	h.incoming, err = decimal.NewFromString(h.Incoming)
 	if err != nil {

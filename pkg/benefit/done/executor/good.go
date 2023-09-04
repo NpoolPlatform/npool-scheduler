@@ -4,7 +4,7 @@ import (
 	"context"
 
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 
 	"github.com/shopspring/decimal"
@@ -18,7 +18,7 @@ type goodHandler struct {
 }
 
 //nolint:gocritic
-func (h *goodHandler) final(err *error) {
+func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err == nil {
 		return
 	}
@@ -29,9 +29,9 @@ func (h *goodHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentGood, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentGood, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentGood, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentGood, h.notif)
 	}
 }
 
@@ -41,7 +41,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	var rewardAmount decimal.Decimal
 	var totalUnits decimal.Decimal
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	rewardAmount, err = decimal.NewFromString(h.LastRewardAmount)
 	if err != nil {

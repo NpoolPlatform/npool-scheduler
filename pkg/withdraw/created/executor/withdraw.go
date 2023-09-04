@@ -17,7 +17,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -143,7 +143,7 @@ func (h *withdrawHandler) resolveReviewTrigger() {
 }
 
 //nolint:gocritic
-func (h *withdrawHandler) final(err *error) {
+func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -158,9 +158,9 @@ func (h *withdrawHandler) final(err *error) {
 		Error:         *err,
 	}
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentWithdraw, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentWithdraw, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.notif)
 	}
 }
 
@@ -169,7 +169,7 @@ func (h *withdrawHandler) exec(ctx context.Context) error {
 	h.newWithdrawState = h.State
 
 	var err error
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	h.withdrawAmount, err = decimal.NewFromString(h.Amount)
 	if err != nil {

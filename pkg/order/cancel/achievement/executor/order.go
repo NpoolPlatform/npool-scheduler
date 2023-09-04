@@ -13,7 +13,7 @@ import (
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement/types"
 
@@ -74,7 +74,7 @@ func (h *orderHandler) toLedgerStatements() {
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -89,9 +89,9 @@ func (h *orderHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentOrder, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
 	}
 }
 
@@ -99,7 +99,7 @@ func (h *orderHandler) final(err *error) {
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.getOrderAchievement(ctx); err != nil {
 		return err

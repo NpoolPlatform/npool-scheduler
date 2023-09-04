@@ -6,7 +6,7 @@ import (
 
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/types"
 	sendmwcli "github.com/NpoolPlatform/third-middleware/pkg/client/send"
@@ -24,7 +24,7 @@ func (p *handler) Update(ctx context.Context, notif interface{}, retry, notif1, 
 		return fmt.Errorf("invalid notif")
 	}
 
-	defer asyncfeed.AsyncFeed(_notif, done)
+	defer cancelablefeed.CancelableFeed(ctx, _notif, done)
 
 	if err := sendmwcli.SendMessage(ctx, _notif.MessageRequest); err != nil {
 		return err

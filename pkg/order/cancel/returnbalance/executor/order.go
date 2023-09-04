@@ -8,7 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
 
 	"github.com/shopspring/decimal"
@@ -23,7 +23,7 @@ type orderHandler struct {
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -55,16 +55,16 @@ func (h *orderHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentOrder, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
 	}
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	switch h.CancelState {
 	case ordertypes.OrderState_OrderStateWaitPayment:

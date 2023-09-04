@@ -18,7 +18,7 @@ import (
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	emailtmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/email"
 	smstmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/sms"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/types"
 )
@@ -152,7 +152,7 @@ func (h *notifHandler) getEventNotifs(ctx context.Context) error {
 }
 
 //nolint:gocritic
-func (h *notifHandler) final(err *error) {
+func (h *notifHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -169,13 +169,13 @@ func (h *notifHandler) final(err *error) {
 		MessageRequest: h.messageRequest,
 		EventNotifs:    h.eventNotifs,
 	}
-	asyncfeed.AsyncFeed(persistentNotif, h.persistent)
+	cancelablefeed.CancelableFeed(ctx, persistentNotif, h.persistent)
 }
 
 //nolint:gocritic
 func (h *notifHandler) exec(ctx context.Context) error {
 	var err error
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.getUser(ctx); err != nil {
 		return err

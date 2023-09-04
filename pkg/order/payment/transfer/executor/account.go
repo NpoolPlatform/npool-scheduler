@@ -19,7 +19,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -186,7 +186,7 @@ func (h *accountHandler) checkTransferring(ctx context.Context) (bool, error) {
 }
 
 //nolint:gocritic
-func (h *accountHandler) final(err *error) {
+func (h *accountHandler) final(ctx context.Context, err *error) {
 	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
@@ -216,9 +216,9 @@ func (h *accountHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.persistent)
 	} else {
-		asyncfeed.AsyncFeed(persistentAccount, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.notif)
 	}
 }
 
@@ -232,7 +232,7 @@ func (h *accountHandler) exec(ctx context.Context) error {
 	var executable bool
 	var yes bool
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	h.coin, err = h.getCoin(ctx, h.CoinTypeID)
 	if err != nil {

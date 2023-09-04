@@ -10,7 +10,7 @@ import (
 	tmplmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	notifbenefitmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
@@ -28,7 +28,7 @@ func (p *handler) Update(ctx context.Context, benefit interface{}, retry, notif,
 		return fmt.Errorf("invalid benefit")
 	}
 
-	defer asyncfeed.AsyncFeed(_benefit, done)
+	defer cancelablefeed.CancelableFeed(ctx, _benefit, done)
 
 	if !_benefit.Generated {
 		for _, content := range _benefit.NotifContents {

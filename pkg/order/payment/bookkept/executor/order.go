@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkept/types"
 
 	"github.com/shopspring/decimal"
@@ -17,7 +17,7 @@ type orderHandler struct {
 	balanceAmount decimal.Decimal
 }
 
-func (h *orderHandler) final() {
+func (h *orderHandler) final(ctx context.Context) {
 	persistentOrder := &types.PersistentOrder{
 		Order:         h.Order,
 		BalanceAmount: h.balanceAmount.String(),
@@ -29,7 +29,7 @@ func (h *orderHandler) final() {
 			h.ID,
 		)
 	}
-	asyncfeed.AsyncFeed(persistentOrder, h.persistent)
+	cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
@@ -37,6 +37,6 @@ func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	if h.balanceAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
 		return err
 	}
-	h.final()
+	h.final(ctx)
 	return nil
 }

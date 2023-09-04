@@ -8,7 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/transferring/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -58,7 +58,7 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 }
 
 //nolint:gocritic
-func (h *txHandler) final(err *error) {
+func (h *txHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -78,7 +78,7 @@ func (h *txHandler) final(err *error) {
 		TxCID:      h.txCID,
 	}
 	if *err == nil {
-		asyncfeed.AsyncFeed(persistentTx, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentTx, h.persistent)
 	}
 }
 
@@ -87,7 +87,7 @@ func (h *txHandler) exec(ctx context.Context) error {
 	h.newState = h.State
 	var err error
 
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.checkTransfer(ctx); err != nil {
 		return err

@@ -9,7 +9,7 @@ import (
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
 
@@ -86,8 +86,8 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 		return err
 	}
 
-	asyncfeed.AsyncFeed(_account, notif)
-	asyncfeed.AsyncFeed(_account, done)
+	cancelablefeed.CancelableFeed(ctx, _account, notif)
+	cancelablefeed.CancelableFeed(ctx, _account, done)
 
 	return nil
 }

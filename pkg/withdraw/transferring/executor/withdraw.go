@@ -9,7 +9,7 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
 )
 
@@ -41,7 +41,7 @@ func (h *withdrawHandler) checkTransfer(ctx context.Context) error {
 }
 
 //nolint:gocritic
-func (h *withdrawHandler) final(err *error) {
+func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -61,10 +61,10 @@ func (h *withdrawHandler) final(err *error) {
 		Error:            *err,
 	}
 	if h.newWithdrawState != h.State {
-		asyncfeed.AsyncFeed(persistentWithdraw, h.persistent)
+		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.persistent)
 	}
 	if *err != nil {
-		asyncfeed.AsyncFeed(persistentWithdraw, h.notif)
+		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.notif)
 	}
 }
 
@@ -73,7 +73,7 @@ func (h *withdrawHandler) exec(ctx context.Context) error {
 	h.newWithdrawState = h.State
 
 	var err error
-	defer h.final(&err)
+	defer h.final(ctx, &err)
 
 	if err = h.checkTransfer(ctx); err != nil {
 		return err
