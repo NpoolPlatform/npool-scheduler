@@ -22,6 +22,7 @@ import (
 	ancusermwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/announcement/user"
 	emailtmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/email"
 	smstmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/sms"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement/types"
 )
@@ -177,10 +178,10 @@ func (h *announcementHandler) unicast(ctx context.Context, user *usermwpb.User) 
 		}
 	}
 
-	h.persistent <- &types.PersistentAnnouncement{
+	asyncfeed.AsyncFeed(&types.PersistentAnnouncement{
 		Announcement:   h.Announcement,
 		MessageRequest: req,
-	}
+	}, h.persistent)
 
 	return nil
 }

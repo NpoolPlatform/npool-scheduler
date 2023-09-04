@@ -41,6 +41,11 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done c
 }
 
 func (p *handler) handler(ctx context.Context) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			close(p.w.ClosedChan())
+		}
+	}()
 	select {
 	case ent := <-p.feeder:
 		if err := p.persistenter.Update(ctx, ent, p.feeder, p.notif, p.done); err != nil {

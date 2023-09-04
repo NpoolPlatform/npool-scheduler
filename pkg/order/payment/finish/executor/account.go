@@ -9,6 +9,7 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
 
 	"github.com/google/uuid"
@@ -75,9 +76,9 @@ func (h *accountHandler) final(err *error) {
 	}
 
 	if h.txFinished {
-		h.persistent <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.persistent)
 	} else {
-		h.notif <- persistentAccount
+		asyncfeed.AsyncFeed(persistentAccount, h.notif)
 	}
 }
 

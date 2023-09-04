@@ -22,6 +22,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -331,9 +332,9 @@ func (h *coinHandler) final(account **accountmwpb.Account, usedFor *basetypes.Ac
 		persistentCoin.ToAddress = (*account).Address
 	}
 
-	h.notif <- persistentCoin
+	asyncfeed.AsyncFeed(persistentCoin, h.notif)
 	if *err == nil {
-		h.persistent <- persistentCoin
+		asyncfeed.AsyncFeed(persistentCoin, h.persistent)
 	}
 }
 

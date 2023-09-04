@@ -50,6 +50,12 @@ func (h *handler) Exec() chan interface{} {
 }
 
 func (h *handler) handler(ctx context.Context) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			close(h.w.ClosedChan())
+		}
+	}()
+
 	select {
 	case <-time.After(h.scanInterval):
 		if err := h.scanner.Scan(ctx, h.exec); err != nil {

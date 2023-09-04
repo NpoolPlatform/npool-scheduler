@@ -4,6 +4,7 @@ import (
 	"context"
 
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 )
 
@@ -16,7 +17,7 @@ func (h *goodHandler) final() {
 	persistentGood := &types.PersistentGood{
 		Good: h.Good,
 	}
-	h.persistent <- persistentGood
+	asyncfeed.AsyncFeed(persistentGood, h.persistent)
 }
 
 func (h *goodHandler) exec(ctx context.Context) error { //nolint

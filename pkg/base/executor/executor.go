@@ -44,6 +44,11 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 }
 
 func (e *handler) handler(ctx context.Context) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			close(e.w.ClosedChan())
+		}
+	}()
 	select {
 	case ent := <-e.feeder:
 		if err := e.exec.Exec(ctx, ent, e.feeder, e.persistent, e.notif); err != nil {

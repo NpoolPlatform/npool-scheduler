@@ -19,6 +19,7 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
@@ -288,10 +289,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		h.persistent <- persistentGood
+		asyncfeed.AsyncFeed(persistentGood, h.persistent)
 	} else {
 		retry1.Retry(ctx, h.Good, h.retry)
-		h.notif <- persistentGood
+		asyncfeed.AsyncFeed(persistentGood, h.notif)
 	}
 }
 

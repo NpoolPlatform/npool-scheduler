@@ -4,6 +4,7 @@ import (
 	"context"
 
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 
 	"github.com/shopspring/decimal"
@@ -28,9 +29,9 @@ func (h *goodHandler) final(err *error) {
 	}
 
 	if *err == nil {
-		h.persistent <- persistentGood
+		asyncfeed.AsyncFeed(persistentGood, h.persistent)
 	} else {
-		h.notif <- persistentGood
+		asyncfeed.AsyncFeed(persistentGood, h.notif)
 	}
 }
 

@@ -37,6 +37,11 @@ func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify, sub
 }
 
 func (p *handler) handler(ctx context.Context) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			close(p.w.ClosedChan())
+		}
+	}()
 	select {
 	case ent := <-p.feeder:
 		if p.notify == nil {
