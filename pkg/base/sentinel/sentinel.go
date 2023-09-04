@@ -12,7 +12,7 @@ import (
 type Sentinel interface {
 	Exec() chan interface{}
 	Trigger(interface{})
-	Finalize()
+	Finalize(ctx context.Context)
 }
 
 type Scanner interface {
@@ -40,7 +40,7 @@ func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner
 		scanInterval: scanInterval,
 		subsystem:    subsystem,
 	}
-	go action.Watch(ctx, cancel, h.run)
+	go action.Watch(ctx, cancel, h.run, h.paniced)
 	go scanner.InitScan(ctx, h.exec) //nolint
 	return h
 }
@@ -50,15 +50,6 @@ func (h *handler) Exec() chan interface{} {
 }
 
 func (h *handler) handler(ctx context.Context) bool {
-	closed := false
-	defer func() {
-		if err := recover(); err != nil {
-			if !closed {
-				close(h.w.ClosedChan())
-			}
-		}
-	}()
-
 	select {
 	case <-time.After(h.scanInterval):
 		if err := h.scanner.Scan(ctx, h.exec); err != nil {
@@ -82,7 +73,6 @@ func (h *handler) handler(ctx context.Context) bool {
 		return false
 	case <-h.w.CloseChan():
 		close(h.w.ClosedChan())
-		closed = true
 		return true
 	}
 }
@@ -95,12 +85,16 @@ func (h *handler) run(ctx context.Context) {
 	}
 }
 
+func (h *handler) paniced(ctx context.Context) {
+	close(h.w.CloseChan())
+}
+
 func (h *handler) Trigger(cond interface{}) {
 	h.trigger <- cond
 }
 
-func (h *handler) Finalize() {
+func (h *handler) Finalize(ctx context.Context) {
 	if h.w != nil {
-		h.w.Shutdown()
+		h.w.Shutdown(ctx)
 	}
 }

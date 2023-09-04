@@ -29,11 +29,11 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	transferring.Initialize(ctx, cancel, &running)
 }
 
-func Finalize() {
+func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	transferring.Finalize()
-	wait.Finalize()
-	created.Finalize()
+	transferring.Finalize(ctx)
+	wait.Finalize(ctx)
+	created.Finalize(ctx)
 }

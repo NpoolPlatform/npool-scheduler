@@ -10,7 +10,7 @@ import (
 
 type Notif interface {
 	Feed(interface{})
-	Finalize()
+	Finalize(ctx context.Context)
 }
 
 type Notify interface {
@@ -32,19 +32,11 @@ func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify, sub
 		subsystem: subsystem,
 	}
 
-	go action.Watch(ctx, cancel, p.run)
+	go action.Watch(ctx, cancel, p.run, p.paniced)
 	return p
 }
 
 func (p *handler) handler(ctx context.Context) bool {
-	closed := false
-	defer func() {
-		if err := recover(); err != nil {
-			if !closed {
-				close(p.w.ClosedChan())
-			}
-		}
-	}()
 	select {
 	case ent := <-p.feeder:
 		if p.notify == nil {
@@ -61,7 +53,6 @@ func (p *handler) handler(ctx context.Context) bool {
 		return false
 	case <-p.w.CloseChan():
 		close(p.w.ClosedChan())
-		closed = true
 		return true
 	}
 }
@@ -74,9 +65,13 @@ func (p *handler) run(ctx context.Context) {
 	}
 }
 
-func (p *handler) Finalize() {
+func (p *handler) paniced(ctx context.Context) {
+	close(p.w.CloseChan())
+}
+
+func (p *handler) Finalize(ctx context.Context) {
 	if p != nil && p.w != nil {
-		p.w.Shutdown()
+		p.w.Shutdown(ctx)
 	}
 }
 

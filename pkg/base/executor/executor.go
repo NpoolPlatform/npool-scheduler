@@ -10,7 +10,7 @@ import (
 
 type Executor interface {
 	Feed(interface{})
-	Finalize()
+	Finalize(ctx context.Context)
 	Notif() chan interface{}
 	Persistent() chan interface{}
 	Feeder() chan interface{}
@@ -39,19 +39,11 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 		subsystem:  subsystem,
 	}
 
-	go action.Watch(ctx, cancel, e.run)
+	go action.Watch(ctx, cancel, e.run, e.paniced)
 	return e
 }
 
 func (e *handler) handler(ctx context.Context) bool {
-	closed := false
-	defer func() {
-		if err := recover(); err != nil {
-			if !closed {
-				close(e.w.ClosedChan())
-			}
-		}
-	}()
 	select {
 	case ent := <-e.feeder:
 		if err := e.exec.Exec(ctx, ent, e.feeder, e.persistent, e.notif); err != nil {
@@ -65,7 +57,6 @@ func (e *handler) handler(ctx context.Context) bool {
 		return false
 	case <-e.w.CloseChan():
 		close(e.w.ClosedChan())
-		closed = true
 		return true
 	}
 }
@@ -78,9 +69,13 @@ func (e *handler) run(ctx context.Context) {
 	}
 }
 
-func (e *handler) Finalize() {
+func (e *handler) paniced(ctx context.Context) {
+	close(e.w.CloseChan())
+}
+
+func (e *handler) Finalize(ctx context.Context) {
 	if e != nil && e.w != nil {
-		e.w.Shutdown()
+		e.w.Shutdown(ctx)
 	}
 }
 

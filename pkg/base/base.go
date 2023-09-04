@@ -135,7 +135,7 @@ func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return
 	}
-	action.Watch(ctx, cancel, h.run)
+	action.Watch(ctx, cancel, h.run, h.paniced)
 }
 
 func (h *Handler) execEnt(ent interface{}) {
@@ -185,24 +185,28 @@ func (h *Handler) run(ctx context.Context) {
 	}
 }
 
+func (h *Handler) paniced(ctx context.Context) {
+
+}
+
 func (h *Handler) Trigger(cond interface{}) {
 	h.sentinel.Trigger(cond)
 }
 
-func (h *Handler) Finalize() {
+func (h *Handler) Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return
 	}
 	_ = redis2.Unlock(h.lockKey()) //nolint
-	h.sentinel.Finalize()
+	h.sentinel.Finalize(ctx)
 	if h.w != nil {
-		h.w.Shutdown()
+		h.w.Shutdown(ctx)
 	}
 	for _, e := range h.executors {
-		e.Finalize()
+		e.Finalize(ctx)
 	}
-	h.persistenter.Finalize()
-	h.notifier.Finalize()
+	h.persistenter.Finalize(ctx)
+	h.notifier.Finalize(ctx)
 	logger.Sugar().Infow(
 		"Finalize",
 		"Subsystem", h.subsystem,

@@ -39,8 +39,8 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	go h.Run(ctx, cancel)
 }
 
-func Finalize() {
+func Finalize(ctx context.Context) {
 	if h != nil {
-		h.Finalize()
+		h.Finalize(ctx)
 	}
 }

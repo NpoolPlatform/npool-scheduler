@@ -43,18 +43,18 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	spendbalance.Initialize(ctx, cancel, &running)
 }
 
-func Finalize() {
+func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	spendbalance.Finalize()
-	presuccessful.Finalize()
-	prerejected.Finalize()
-	rejectedreturnbalance.Finalize()
-	failreturnbalance.Finalize()
-	prefail.Finalize()
-	reviewing.Finalize()
-	approved.Finalize()
-	created.Finalize()
-	transferring.Finalize()
+	spendbalance.Finalize(ctx)
+	presuccessful.Finalize(ctx)
+	prerejected.Finalize(ctx)
+	rejectedreturnbalance.Finalize(ctx)
+	failreturnbalance.Finalize(ctx)
+	prefail.Finalize(ctx)
+	reviewing.Finalize(ctx)
+	approved.Finalize(ctx)
+	created.Finalize(ctx)
+	transferring.Finalize(ctx)
 }

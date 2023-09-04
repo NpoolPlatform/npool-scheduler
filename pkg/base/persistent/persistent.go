@@ -10,7 +10,7 @@ import (
 
 type Persistent interface {
 	Feed(interface{})
-	Finalize()
+	Finalize(ctx context.Context)
 }
 
 type Persistenter interface {
@@ -36,19 +36,11 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done c
 		subsystem:    subsystem,
 	}
 
-	go action.Watch(ctx, cancel, p.run)
+	go action.Watch(ctx, cancel, p.run, p.paniced)
 	return p
 }
 
 func (p *handler) handler(ctx context.Context) bool {
-	closed := false
-	defer func() {
-		if err := recover(); err != nil {
-			if !closed {
-				close(p.w.ClosedChan())
-			}
-		}
-	}()
 	select {
 	case ent := <-p.feeder:
 		if err := p.persistenter.Update(ctx, ent, p.feeder, p.notif, p.done); err != nil {
@@ -62,7 +54,6 @@ func (p *handler) handler(ctx context.Context) bool {
 		return false
 	case <-p.w.CloseChan():
 		close(p.w.ClosedChan())
-		closed = true
 		return true
 	}
 }
@@ -75,9 +66,13 @@ func (p *handler) run(ctx context.Context) {
 	}
 }
 
-func (p *handler) Finalize() {
+func (p *handler) paniced(ctx context.Context) {
+	close(p.w.ClosedChan())
+}
+
+func (p *handler) Finalize(ctx context.Context) {
 	if p != nil && p.w != nil {
-		p.w.Shutdown()
+		p.w.Shutdown(ctx)
 	}
 }
 

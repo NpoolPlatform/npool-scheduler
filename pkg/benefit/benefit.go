@@ -33,13 +33,13 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	bookkeeping.Initialize(ctx, cancel, &running)
 }
 
-func Finalize() {
+func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	bookkeeping.Finalize()
-	transferring.Finalize()
-	done.Finalize()
-	fail.Finalize()
-	wait.Finalize()
+	bookkeeping.Finalize(ctx)
+	transferring.Finalize(ctx)
+	done.Finalize(ctx)
+	fail.Finalize(ctx)
+	wait.Finalize(ctx)
 }
