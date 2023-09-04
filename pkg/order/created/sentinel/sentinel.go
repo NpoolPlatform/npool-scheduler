@@ -2,7 +2,9 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 
+	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -34,6 +36,11 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
+			key := fmt.Sprintf("%v:%v:%v:%v", basetypes.Prefix_PrefixCreateOrder, order.AppID, order.UserID, order.ID)
+			if err := redis2.TryLock(key, 0); err != nil {
+				continue
+			}
+			_ = redis2.Unlock(key) //nolint
 			exec <- order
 		}
 
