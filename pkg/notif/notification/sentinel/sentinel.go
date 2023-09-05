@@ -62,8 +62,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
-	if order, ok := ent.(*types.PersistentNotif); ok {
-		return order.ID
+	if notif, ok := ent.(*types.PersistentNotif); ok {
+		return notif.ID
 	}
 	return ent.(*notifmwpb.Notif).ID
 }

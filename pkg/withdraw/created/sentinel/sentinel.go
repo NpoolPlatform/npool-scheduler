@@ -13,6 +13,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created/types"
 )
 
 type handler struct{}
@@ -64,5 +65,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if withdraw, ok := ent.(*types.PersistentWithdraw); ok {
+		return withdraw.ID
+	}
 	return ent.(*withdrawmwpb.Withdraw).ID
 }

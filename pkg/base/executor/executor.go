@@ -6,11 +6,12 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 )
 
 type Executor interface {
-	Feed(interface{})
-	Finalize(ctx context.Context)
+	Feed(context.Context, interface{})
+	Finalize(context.Context)
 	Notif() chan interface{}
 	Persistent() chan interface{}
 	Feeder() chan interface{}
@@ -79,8 +80,8 @@ func (e *handler) Finalize(ctx context.Context) {
 	}
 }
 
-func (e *handler) Feed(ent interface{}) {
-	e.feeder <- ent
+func (e *handler) Feed(ctx context.Context, ent interface{}) {
+	cancelablefeed.CancelableFeed(ctx, ent, e.feeder)
 }
 
 func (e *handler) Persistent() chan interface{} {

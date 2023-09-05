@@ -138,8 +138,8 @@ func (h *Handler) Run(ctx context.Context, cancel context.CancelFunc) {
 	action.Watch(ctx, cancel, h.run, h.paniced)
 }
 
-func (h *Handler) execEnt(ent interface{}) {
-	h.executors[h.executorIndex].Feed(ent)
+func (h *Handler) execEnt(ctx context.Context, ent interface{}) {
+	h.executors[h.executorIndex].Feed(ctx, ent)
 	h.executorIndex++
 	h.executorIndex %= len(h.executors)
 }
@@ -152,13 +152,13 @@ func (h *Handler) handler(ctx context.Context) bool {
 				return false
 			}
 		}
-		h.execEnt(ent)
+		h.execEnt(ctx, ent)
 		return false
 	case ent := <-h.persistent:
-		h.persistenter.Feed(ent)
+		h.persistenter.Feed(ctx, ent)
 		return false
 	case ent := <-h.notif:
-		h.notifier.Feed(ent)
+		h.notifier.Feed(ctx, ent)
 		return false
 	case ent := <-h.done:
 		if h.running != nil {

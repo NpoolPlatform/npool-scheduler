@@ -6,11 +6,12 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
+	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 )
 
 type Persistent interface {
-	Feed(interface{})
-	Finalize(ctx context.Context)
+	Feed(context.Context, interface{})
+	Finalize(context.Context)
 }
 
 type Persistenter interface {
@@ -76,6 +77,6 @@ func (p *handler) Finalize(ctx context.Context) {
 	}
 }
 
-func (p *handler) Feed(ent interface{}) {
-	p.feeder <- ent
+func (p *handler) Feed(ctx context.Context, ent interface{}) {
+	cancelablefeed.CancelableFeed(ctx, ent, p.feeder)
 }
