@@ -10,9 +10,9 @@ import (
 	depositaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/deposit"
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	accountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/account"
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
@@ -35,12 +35,11 @@ type coinHandler struct {
 	persistent         chan interface{}
 	notif              chan interface{}
 	gasProviderAccount *accountmwpb.Account
-	feeCoin            *coinmwpb.Coin
 }
 
-func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
+func (h *coinHandler) getPlatformAccount(ctx context.Context, coinTypeID string, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
 	account, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: coinTypeID},
 		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(usedFor)},
 		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
@@ -57,7 +56,7 @@ func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 }
 
 func (h *coinHandler) getGasProvider(ctx context.Context) error {
-	account, err := h.getPlatformAccount(ctx, basetypes.AccountUsedFor_GasProvider)
+	account, err := h.getPlatformAccount(ctx, h.FeeCoinTypeID, basetypes.AccountUsedFor_GasProvider)
 	if err != nil {
 		return err
 	}
@@ -109,21 +108,9 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	return false, nil
 }
 
-func (h *coinHandler) getFeeCoin(ctx context.Context) error {
-	coin, err := coinmwcli.GetCoin(ctx, h.FeeCoinTypeID)
-	if err != nil {
-		return err
-	}
-	if coin == nil {
-		return fmt.Errorf("invalid feecoin")
-	}
-	h.feeCoin = coin
-	return nil
-}
-
 func (h *coinHandler) enough(ctx context.Context, account *accountmwpb.Account, amount decimal.Decimal) (bool, error) {
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.feeCoin.Name,
+		Name:    h.FeeCoinName,
 		Address: account.Address,
 	})
 	if err != nil {
@@ -137,14 +124,36 @@ func (h *coinHandler) enough(ctx context.Context, account *accountmwpb.Account, 
 	if err != nil {
 		return false, err
 	}
+	logger.Sugar().Debugw(
+		"enough",
+		"Account", account,
+		"Amount", amount,
+		"Balance", bal,
+	)
 	return bal.Cmp(amount) >= 0, nil
 }
 
 func (h *coinHandler) feedable(ctx context.Context, account *accountmwpb.Account, amount, low decimal.Decimal) (bool, error) {
 	if enough, err := h.enough(ctx, account, low); err != nil || enough {
+		logger.Sugar().Debugw(
+			"feedable",
+			"Account", account,
+			"Amount", amount,
+			"Low", low,
+			"Enough", enough,
+			"Error", err,
+		)
 		return false, err
 	}
 	if feeding, err := h.feeding(ctx, account); err != nil || feeding {
+		logger.Sugar().Debugw(
+			"feedable",
+			"Account", account,
+			"Amount", amount,
+			"Low", low,
+			"Feeding", feeding,
+			"Error", err,
+		)
 		return false, err
 	}
 
@@ -168,6 +177,15 @@ func (h *coinHandler) feedable(ctx context.Context, account *accountmwpb.Account
 		return false, err
 	}
 	if bal.Cmp(reserved) <= 0 {
+		logger.Sugar().Debugw(
+			"feedable",
+			"Account", account,
+			"Amount", amount,
+			"Low", low,
+			"Reserved", reserved,
+			"Balance", bal,
+			"Error", err,
+		)
 		return false, nil
 	}
 
@@ -182,7 +200,7 @@ func (h *coinHandler) feedable(ctx context.Context, account *accountmwpb.Account
 }
 
 func (h *coinHandler) checkUserBenefitHot(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	account, err := h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
+	account, err := h.getPlatformAccount(ctx, h.ID, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {
 		return false, nil, decimal.NewFromInt(0), err
 	}
@@ -316,20 +334,36 @@ func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.
 }
 
 //nolint:gocritic,interfacer
-func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, err *error) {
+func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, feedable *bool, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Coin", h.Coin,
+			"GasProvider", h.gasProviderAccount,
+			"Amount", amount,
+			"UsedFor", *usedFor,
+			"Account", *account,
+			"Feedable", *feedable,
+			"Error", *err,
+		)
+	}
+
 	persistentCoin := &types.PersistentCoin{
-		Coin:          h.Coin,
-		FromAccountID: h.gasProviderAccount.ID,
-		FromAddress:   h.gasProviderAccount.Address,
-		Amount:        amount.String(),
-		FeeAmount:     decimal.NewFromInt(0).String(),
-		UsedFor:       *usedFor,
-		Extra:         fmt.Sprintf(`{"Coin":"%v","FeeCoin":"%v","Type":"%v"}`, h.Name, h.feeCoin.Name, *usedFor),
-		Error:         *err,
+		Coin:      h.Coin,
+		Amount:    amount.String(),
+		FeeAmount: decimal.NewFromInt(0).String(),
+		UsedFor:   *usedFor,
+		Extra:     fmt.Sprintf(`{"Coin":"%v","FeeCoin":"%v","Type":"%v"}`, h.Name, h.FeeCoinName, *usedFor),
+		Feedable:  *feedable,
+		Error:     *err,
 	}
 	if *account != nil {
 		persistentCoin.ToAccountID = (*account).ID
 		persistentCoin.ToAddress = (*account).Address
+	}
+	if h.gasProviderAccount != nil {
+		persistentCoin.FromAccountID = h.gasProviderAccount.ID
+		persistentCoin.FromAddress = h.gasProviderAccount.Address
 	}
 
 	asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
@@ -339,24 +373,21 @@ func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, 
 }
 
 func (h *coinHandler) exec(ctx context.Context) error {
-	if err := h.getGasProvider(ctx); err != nil {
-		return err
-	}
-	if feeding, err := h.feeding(ctx, h.gasProviderAccount); err != nil || feeding {
-		return err
-	}
-	if err := h.getFeeCoin(ctx); err != nil {
-		return err
-	}
-
 	var err error
 	var account *accountmwpb.Account
 	var amount decimal.Decimal
 	var feedable bool
 	var usedFor basetypes.AccountUsedFor
+	var feeding bool
 
-	defer h.final(ctx, &account, &usedFor, &amount, &err)
+	defer h.final(ctx, &account, &usedFor, &amount, &feedable, &err)
 
+	if err = h.getGasProvider(ctx); err != nil {
+		return err
+	}
+	if feeding, err = h.feeding(ctx, h.gasProviderAccount); err != nil || feeding {
+		return err
+	}
 	if feedable, account, amount, err = h.checkUserBenefitHot(ctx); err != nil || feedable {
 		usedFor = basetypes.AccountUsedFor_UserBenefitHot
 		return err
