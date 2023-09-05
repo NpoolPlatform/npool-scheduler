@@ -36,7 +36,7 @@ func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw 
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/UpdateWithdraw",
+		"ledger.middleware.withdraw.v2.Middleware/UpdateWithdraw",
 		"",
 		&withdrawmwpb.UpdateWithdrawRequest{
 			Info: req,

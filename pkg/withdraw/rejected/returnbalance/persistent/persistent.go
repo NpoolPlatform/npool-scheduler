@@ -57,7 +57,7 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, withdraw 
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/AddBalance",
+		"ledger.middleware.withdraw.v2.Middleware/AddBalance",
 		"",
 		&ledgermwpb.SubBalanceRequest{
 			Info: req,

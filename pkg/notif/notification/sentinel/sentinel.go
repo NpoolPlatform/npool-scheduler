@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
