@@ -22,6 +22,7 @@ import (
 	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -40,16 +41,21 @@ type withdrawHandler struct {
 	autoReviewThresholdAmount decimal.Decimal
 	coinReservedAmount        decimal.Decimal
 	lowFeeAmount              decimal.Decimal
+	needUpdateReview          bool
 }
 
 func (h *withdrawHandler) checkWithdrawReview(ctx context.Context) error {
+	if _, err := uuid.Parse(h.ReviewID); err != nil {
+		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+		return err
+	}
 	review, err := reviewmwcli.GetReview(ctx, h.ReviewID)
 	if err != nil {
 		return err
 	}
 	if review == nil {
 		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
-		return nil
+		return fmt.Errorf("invalid review")
 	}
 	switch review.State {
 	case reviewtypes.ReviewState_Approved:
@@ -57,6 +63,7 @@ func (h *withdrawHandler) checkWithdrawReview(ctx context.Context) error {
 	case reviewtypes.ReviewState_Rejected:
 		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
 	}
+	h.needUpdateReview = true
 	return nil
 }
 
@@ -159,7 +166,7 @@ func (h *withdrawHandler) checkWithdrawReviewState() error {
 
 //nolint:gocritic
 func (h *withdrawHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
+	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
 			"Withdraw", h.Withdraw,
@@ -176,12 +183,14 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		Withdraw:         h.Withdraw,
 		NewWithdrawState: h.newWithdrawState,
 		NewReviewState:   h.newReviewState,
+		NeedUpdateReview: h.needUpdateReview,
 		Error:            *err,
 	}
 
-	if *err == nil {
+	if h.newWithdrawState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
-	} else {
+	}
+	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
 }

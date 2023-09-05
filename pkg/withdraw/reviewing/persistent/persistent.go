@@ -25,11 +25,15 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		return fmt.Errorf("invalid withdraw")
 	}
 
-	if _, err := reviewmwcli.UpdateReview(ctx, &reviewmwpb.ReviewReq{
-		ID:    &_withdraw.ReviewID,
-		State: &_withdraw.NewReviewState,
-	}); err != nil {
-		return err
+	defer asyncfeed.AsyncFeed(ctx, _withdraw, done)
+
+	if _withdraw.NeedUpdateReview {
+		if _, err := reviewmwcli.UpdateReview(ctx, &reviewmwpb.ReviewReq{
+			ID:    &_withdraw.ReviewID,
+			State: &_withdraw.NewReviewState,
+		}); err != nil {
+			return err
+		}
 	}
 
 	if _, err := withdrawmwcli.UpdateWithdraw(ctx, &withdrawmwpb.WithdrawReq{
@@ -38,8 +42,6 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	return nil
 }
