@@ -12,7 +12,7 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
@@ -142,7 +142,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _good, done)
+	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

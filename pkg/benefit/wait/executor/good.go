@@ -19,7 +19,7 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
@@ -289,10 +289,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 	} else {
 		retry1.Retry(ctx, h.Good, h.retry)
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 }
 

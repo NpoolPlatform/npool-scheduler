@@ -8,7 +8,7 @@ import (
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/spent/types"
 )
 
@@ -45,7 +45,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		AppGoodStockID: h.appGood.AppGoodStockID,
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	}
 }
 

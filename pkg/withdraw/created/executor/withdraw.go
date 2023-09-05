@@ -17,7 +17,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -158,9 +158,9 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		Error:         *err,
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
 }
 

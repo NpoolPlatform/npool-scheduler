@@ -8,7 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
 
 	"github.com/shopspring/decimal"
@@ -55,9 +55,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	}
 }
 

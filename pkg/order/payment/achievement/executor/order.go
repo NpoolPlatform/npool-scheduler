@@ -8,7 +8,7 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
@@ -36,9 +36,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		ChildOrders: h.childOrders,
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	}
 }
 

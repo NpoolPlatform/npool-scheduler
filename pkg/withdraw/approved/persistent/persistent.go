@@ -10,7 +10,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/approved/types"
 
@@ -56,7 +56,7 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		}
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _withdraw, done)
+	asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/transferring/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -78,7 +78,7 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		TxCID:      h.txCID,
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentTx, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
 	}
 }
 

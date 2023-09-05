@@ -9,7 +9,7 @@ import (
 	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	reviewmwpb "github.com/NpoolPlatform/message/npool/review/mw/v2/review"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created/types"
@@ -84,8 +84,8 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _withdraw, done)
-	cancelablefeed.CancelableFeed(ctx, _withdraw, notif)
+	asyncfeed.AsyncFeed(ctx, _withdraw, done)
+	asyncfeed.AsyncFeed(ctx, _withdraw, notif)
 
 	return nil
 }

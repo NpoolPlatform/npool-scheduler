@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkept/types"
 
 	"github.com/shopspring/decimal"
@@ -29,7 +29,7 @@ func (h *orderHandler) final(ctx context.Context) {
 			h.ID,
 		)
 	}
-	cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint

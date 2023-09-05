@@ -9,7 +9,7 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/transferring/types"
 )
 
@@ -61,10 +61,10 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		Error:            *err,
 	}
 	if h.newWithdrawState != h.State {
-		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 	}
 	if *err != nil {
-		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
 }
 

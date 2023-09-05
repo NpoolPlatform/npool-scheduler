@@ -19,7 +19,7 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -216,9 +216,9 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
 	}
 }
 

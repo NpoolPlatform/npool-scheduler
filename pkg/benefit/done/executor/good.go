@@ -4,7 +4,7 @@ import (
 	"context"
 
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 
 	"github.com/shopspring/decimal"
@@ -29,9 +29,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 }
 

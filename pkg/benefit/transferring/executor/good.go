@@ -14,7 +14,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring/types"
 
@@ -158,10 +158,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 	} else {
 		retry1.Retry(ctx, h.Good, h.retry)
-		cancelablefeed.CancelableFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 }
 

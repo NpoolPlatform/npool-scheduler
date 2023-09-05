@@ -13,7 +13,7 @@ import (
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement/types"
 
@@ -89,9 +89,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	}
 }
 

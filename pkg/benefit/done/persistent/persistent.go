@@ -7,7 +7,7 @@ import (
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 )
@@ -32,7 +32,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _good, done)
+	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

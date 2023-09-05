@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
@@ -11,6 +12,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/types"
 )
 
 type handler struct{}
@@ -36,7 +38,9 @@ func (h *handler) scanNotification(ctx context.Context, channel basetypes.NotifC
 		}
 
 		for _, notif := range notifs {
+			logger.Sugar().Infow("scanNotification", "Notif", notif, "State", "Start")
 			cancelablefeed.CancelableFeed(ctx, notif, exec)
+			logger.Sugar().Infow("scanNotification", "Notif", notif, "State", "Done")
 			time.Sleep(100 * time.Millisecond)
 		}
 
@@ -61,5 +65,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if order, ok := ent.(*types.PersistentNotif); ok {
+		return order.ID
+	}
 	return ent.(*notifmwpb.Notif).ID
 }

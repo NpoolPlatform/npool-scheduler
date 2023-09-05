@@ -10,7 +10,7 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 
@@ -72,7 +72,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _account, done)
+	asyncfeed.AsyncFeed(ctx, _account, done)
 
 	return nil
 }

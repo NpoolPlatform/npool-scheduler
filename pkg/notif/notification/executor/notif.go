@@ -18,7 +18,7 @@ import (
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	emailtmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/email"
 	smstmplmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/template/sms"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification/types"
 )
@@ -169,7 +169,9 @@ func (h *notifHandler) final(ctx context.Context, err *error) {
 		MessageRequest: h.messageRequest,
 		EventNotifs:    h.eventNotifs,
 	}
-	cancelablefeed.CancelableFeed(ctx, persistentNotif, h.persistent)
+	logger.Sugar().Infow("final", "Notif", persistentNotif, "State", "Start")
+	asyncfeed.AsyncFeed(ctx, persistentNotif, h.persistent)
+	logger.Sugar().Infow("final", "Notif", persistentNotif, "State", "Done")
 }
 
 //nolint:gocritic

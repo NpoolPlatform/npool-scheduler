@@ -10,7 +10,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
 
@@ -102,9 +102,9 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 		NotifContents: h.notifContents,
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentGoodBenefit, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentGoodBenefit, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.notif)
 	}
 }
 

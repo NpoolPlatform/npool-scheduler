@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
@@ -38,7 +38,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, retry, notif, d
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _order, done)
+	asyncfeed.AsyncFeed(ctx, _order, done)
 
 	return nil
 }

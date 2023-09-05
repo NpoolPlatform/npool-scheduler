@@ -19,7 +19,7 @@ import (
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -210,10 +210,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		persistentOrder.NewCancelState = &h.OrderState
 	}
 	if h.newOrderState != h.OrderState {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	} else if *err != nil {
-		cancelablefeed.CancelableFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	}
 	retry1.Retry(ctx, h.Order, h.retry)
 }

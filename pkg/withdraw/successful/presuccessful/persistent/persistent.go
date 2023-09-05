@@ -7,7 +7,7 @@ import (
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/types"
@@ -34,7 +34,7 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _withdraw, done)
+	asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	return nil
 }

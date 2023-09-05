@@ -7,7 +7,7 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
 )
@@ -37,7 +37,7 @@ func (p *handler) Update(ctx context.Context, coin interface{}, retry, notif, do
 		return err
 	}
 
-	cancelablefeed.CancelableFeed(ctx, _coin, done)
+	asyncfeed.AsyncFeed(ctx, _coin, done)
 
 	return nil
 }

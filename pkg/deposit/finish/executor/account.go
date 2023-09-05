@@ -10,7 +10,7 @@ import (
 	depositaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/deposit"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish/types"
 
 	"github.com/shopspring/decimal"
@@ -86,9 +86,9 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		persistentAccount.CollectOutcoming = &outcoming
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
 	} else {
-		cancelablefeed.CancelableFeed(ctx, persistentAccount, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
 	}
 }
 

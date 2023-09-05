@@ -5,7 +5,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance/types"
 
 	"github.com/shopspring/decimal"
@@ -32,7 +32,7 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		LockedBalanceAmount: h.lockedBalanceAmount.String(),
 	}
 	if *err == nil {
-		cancelablefeed.CancelableFeed(ctx, persistentWithdraw, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 	}
 }
 
