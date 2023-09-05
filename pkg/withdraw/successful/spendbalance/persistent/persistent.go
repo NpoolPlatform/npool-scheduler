@@ -29,9 +29,10 @@ func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw 
 	state := ledgertypes.WithdrawState_Successful
 	rollback := true
 	req := &withdrawmwpb.WithdrawReq{
-		ID:       &withdraw.ID,
-		State:    &state,
-		Rollback: &rollback,
+		ID:        &withdraw.ID,
+		State:     &state,
+		Rollback:  &rollback,
+		FeeAmount: &withdraw.WithdrawFeeAmount,
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
@@ -57,7 +58,7 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, withdraw 
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.withdraw.v2.Middleware/SubBalance",
+		"ledger.middleware.ledger.v2.Middleware/SubBalance",
 		"",
 		&ledgermwpb.SubBalanceRequest{
 			Info: req,

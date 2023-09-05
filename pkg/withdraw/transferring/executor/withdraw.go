@@ -22,7 +22,7 @@ type withdrawHandler struct {
 }
 
 func (h *withdrawHandler) checkTransfer(ctx context.Context) error {
-	tx, err := txmwcli.GetTx(ctx, h.ReviewID)
+	tx, err := txmwcli.GetTx(ctx, h.PlatformTransactionID)
 	if err != nil {
 		return err
 	}
