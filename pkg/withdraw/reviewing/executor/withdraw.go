@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
 	appcoinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/app/coin"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -56,6 +58,24 @@ func (h *withdrawHandler) checkWithdrawReview(ctx context.Context) error {
 		h.newWithdrawState = ledgertypes.WithdrawState_Approved
 	case reviewtypes.ReviewState_Rejected:
 		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+	}
+	return nil
+}
+
+func (h *withdrawHandler) checkWithdrawAccount(ctx context.Context) error {
+	exist, err := useraccmwcli.ExistAccountConds(ctx, &useraccmwpb.Conds{
+		AppID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+		UserID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.UserID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
+		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AccountID},
+		Address:    &basetypes.StringVal{Op: cruder.EQ, Value: h.Address},
+	})
+	if err != nil {
+		return err
+	}
+	if !exist {
+		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+		return fmt.Errorf("invalid account")
 	}
 	return nil
 }
@@ -198,6 +218,9 @@ func (h *withdrawHandler) exec(ctx context.Context) error {
 	}
 	h.withdrawAmount, err = decimal.NewFromString(h.Amount)
 	if err != nil {
+		return err
+	}
+	if err = h.checkWithdrawAccount(ctx); err != nil {
 		return err
 	}
 	if err = h.getAppCoin(ctx); err != nil {
