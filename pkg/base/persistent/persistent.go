@@ -6,6 +6,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/watcher"
+	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 )
 
@@ -15,7 +16,7 @@ type Persistent interface {
 }
 
 type Persistenter interface {
-	Update(context.Context, interface{}, chan interface{}, chan interface{}, chan interface{}) error
+	Update(context.Context, interface{}, chan interface{}, chan interface{}) (bool, error)
 }
 
 type handler struct {
@@ -44,13 +45,17 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done c
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.persistenter.Update(ctx, ent, p.feeder, p.notif, p.done); err != nil {
+		done, err := p.persistenter.Update(ctx, ent, p.feeder, p.notif)
+		if err != nil {
 			logger.Sugar().Infow(
 				"handler",
 				"State", "Update",
 				"Subsystem", p.subsystem,
 				"Error", err,
 			)
+		}
+		if done || err == nil {
+			asyncfeed.AsyncFeed(ctx, ent, p.done)
 		}
 		return false
 	case <-p.w.CloseChan():

@@ -25,16 +25,18 @@ type handler struct {
 	persistent chan interface{}
 	notif      chan interface{}
 	feeder     chan interface{}
+	done       chan interface{}
 	exec       Exec
 	w          *watcher.Watcher
 	subsystem  string
 }
 
-func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif chan interface{}, exec Exec, subsystem string) Executor {
+func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif, done chan interface{}, exec Exec, subsystem string) Executor {
 	e := &handler{
 		feeder:     make(chan interface{}),
 		persistent: persistent,
 		notif:      notif,
+		done:       done,
 		w:          watcher.NewWatcher(),
 		exec:       exec,
 		subsystem:  subsystem,
@@ -54,6 +56,7 @@ func (e *handler) handler(ctx context.Context) bool {
 				"Subsystem", e.subsystem,
 				"Error", err,
 			)
+			asyncfeed.AsyncFeed(ent, e.done)
 		}
 		return false
 	case <-e.w.CloseChan():
