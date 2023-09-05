@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
+	useraccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/user"
 	appcoinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/app/coin"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	useraccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/user"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -22,6 +24,7 @@ import (
 	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -40,22 +43,45 @@ type withdrawHandler struct {
 	autoReviewThresholdAmount decimal.Decimal
 	coinReservedAmount        decimal.Decimal
 	lowFeeAmount              decimal.Decimal
+	needUpdateReview          bool
 }
 
 func (h *withdrawHandler) checkWithdrawReview(ctx context.Context) error {
+	if _, err := uuid.Parse(h.ReviewID); err != nil {
+		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+		return err
+	}
 	review, err := reviewmwcli.GetReview(ctx, h.ReviewID)
 	if err != nil {
 		return err
 	}
 	if review == nil {
 		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
-		return nil
+		return fmt.Errorf("invalid review")
 	}
 	switch review.State {
 	case reviewtypes.ReviewState_Approved:
 		h.newWithdrawState = ledgertypes.WithdrawState_Approved
 	case reviewtypes.ReviewState_Rejected:
 		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+	}
+	return nil
+}
+
+func (h *withdrawHandler) checkWithdrawAccount(ctx context.Context) error {
+	exist, err := useraccmwcli.ExistAccountConds(ctx, &useraccmwpb.Conds{
+		AppID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+		UserID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.UserID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
+		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AccountID},
+		Address:    &basetypes.StringVal{Op: cruder.EQ, Value: h.Address},
+	})
+	if err != nil {
+		return err
+	}
+	if !exist {
+		h.newWithdrawState = ledgertypes.WithdrawState_PreRejected
+		return fmt.Errorf("invalid account")
 	}
 	return nil
 }
@@ -154,12 +180,13 @@ func (h *withdrawHandler) checkWithdrawReviewState() error {
 	}
 	h.newWithdrawState = ledgertypes.WithdrawState_Approved
 	h.newReviewState = reviewtypes.ReviewState_Approved
+	h.needUpdateReview = true
 	return nil
 }
 
 //nolint:gocritic
 func (h *withdrawHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
+	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
 			"Withdraw", h.Withdraw,
@@ -176,12 +203,14 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		Withdraw:         h.Withdraw,
 		NewWithdrawState: h.newWithdrawState,
 		NewReviewState:   h.newReviewState,
+		NeedUpdateReview: h.needUpdateReview,
 		Error:            *err,
 	}
 
-	if *err == nil {
+	if h.newWithdrawState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
-	} else {
+	}
+	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
 }
@@ -198,6 +227,9 @@ func (h *withdrawHandler) exec(ctx context.Context) error {
 	}
 	h.withdrawAmount, err = decimal.NewFromString(h.Amount)
 	if err != nil {
+		return err
+	}
+	if err = h.checkWithdrawAccount(ctx); err != nil {
 		return err
 	}
 	if err = h.getAppCoin(ctx); err != nil {

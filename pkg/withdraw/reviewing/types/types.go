@@ -10,5 +10,6 @@ type PersistentWithdraw struct {
 	*withdrawmwpb.Withdraw
 	NewWithdrawState ledgertypes.WithdrawState
 	NewReviewState   reviewtypes.ReviewState
+	NeedUpdateReview bool
 	Error            error
 }
