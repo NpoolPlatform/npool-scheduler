@@ -38,9 +38,7 @@ func (h *handler) scanNotification(ctx context.Context, channel basetypes.NotifC
 		}
 
 		for _, notif := range notifs {
-			logger.Sugar().Infow("scanNotification", "Notif", notif, "State", "Start")
 			cancelablefeed.CancelableFeed(ctx, notif, exec)
-			logger.Sugar().Infow("scanNotification", "Notif", notif, "State", "Done")
 			time.Sleep(100 * time.Millisecond)
 		}
 
