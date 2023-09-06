@@ -29,21 +29,20 @@ import (
 
 type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
-	persistent                chan interface{}
-	notif                     chan interface{}
-	done                      chan interface{}
-	withdrawAmount            decimal.Decimal
-	feeAmount                 decimal.Decimal
-	newWithdrawState          ledgertypes.WithdrawState
-	withdrawAccount           *useraccmwpb.Account
-	userBenefitHotAccount     *pltfaccmwpb.Account
-	userBenefitHotBalance     decimal.Decimal
-	userBenefitHotFeeBalance  decimal.Decimal
-	appCoin                   *appcoinmwpb.Coin
-	feeCoin                   *coinmwpb.Coin
-	autoReviewThresholdAmount decimal.Decimal
-	coinReservedAmount        decimal.Decimal
-	lowFeeAmount              decimal.Decimal
+	persistent               chan interface{}
+	notif                    chan interface{}
+	done                     chan interface{}
+	withdrawAmount           decimal.Decimal
+	feeAmount                decimal.Decimal
+	newWithdrawState         ledgertypes.WithdrawState
+	withdrawAccount          *useraccmwpb.Account
+	userBenefitHotAccount    *pltfaccmwpb.Account
+	userBenefitHotBalance    decimal.Decimal
+	userBenefitHotFeeBalance decimal.Decimal
+	appCoin                  *appcoinmwpb.Coin
+	feeCoin                  *coinmwpb.Coin
+	coinReservedAmount       decimal.Decimal
+	lowFeeAmount             decimal.Decimal
 }
 
 func (h *withdrawHandler) getAppCoin(ctx context.Context) error {
@@ -135,9 +134,6 @@ func (h *withdrawHandler) checkWithdrawReviewState() error {
 	if h.userBenefitHotFeeBalance.Cmp(h.lowFeeAmount) < 0 {
 		return fmt.Errorf("insufficient gas")
 	}
-	if h.autoReviewThresholdAmount.Cmp(h.withdrawAmount) < 0 {
-		return nil
-	}
 	h.newWithdrawState = ledgertypes.WithdrawState_Transferring
 	return nil
 }
@@ -204,6 +200,17 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Withdraw", h.Withdraw,
+			"WithdrwaAmount", h.withdrawAmount,
+			"FeeAmount", h.feeAmount,
+			"NewWitdrawState", h.newWithdrawState,
+			"WithdrwaAmount", h.withdrawAccount,
+			"UserBenefitHotAccount", h.userBenefitHotAccount,
+			"UserBenefitHotBalance", h.userBenefitHotBalance,
+			"UserBenefitHotFeeBalance", h.userBenefitHotFeeBalance,
+			"AppCoin", h.appCoin,
+			"FeeCoin", h.feeCoin,
+			"CoinReservedAmount", h.coinReservedAmount,
+			"LowFeeAmount", h.lowFeeAmount,
 			"Error", *err,
 		)
 	}
@@ -227,6 +234,10 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		)
 		persistentWithdraw.WithdrawExtra = withdrawExtra
 	}
+	if h.newWithdrawState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 		return
@@ -248,10 +259,6 @@ func (h *withdrawHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.getFeeCoin(ctx); err != nil {
-		return err
-	}
-	h.autoReviewThresholdAmount, err = decimal.NewFromString(h.appCoin.WithdrawAutoReviewAmount)
-	if err != nil {
 		return err
 	}
 	h.coinReservedAmount, err = decimal.NewFromString(h.appCoin.ReservedAmount)
