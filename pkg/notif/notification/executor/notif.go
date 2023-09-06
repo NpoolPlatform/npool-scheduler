@@ -3,6 +3,8 @@ package executor
 import (
 	"context"
 	"fmt"
+	"net/mail"
+	"regexp"
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	applangmwcli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
@@ -89,6 +91,10 @@ func (h *notifHandler) generateEmailMessage(ctx context.Context) error {
 		return fmt.Errorf("invalid template")
 	}
 
+	if _, err := mail.ParseAddress(h.user.EmailAddress); err != nil {
+		return nil
+	}
+
 	h.messageRequest.From = tmpl.Sender
 	h.messageRequest.To = h.user.EmailAddress
 	h.messageRequest.ToCCs = tmpl.CCTos
@@ -108,6 +114,16 @@ func (h *notifHandler) generateSMSMessage(ctx context.Context) error {
 	}
 	if tmpl == nil {
 		return fmt.Errorf("invalid template")
+	}
+
+	re := regexp.MustCompile(
+		`^(?:(?:\(?(?:00|\+)([1-4]\d\d|[1-9]\d?)\)?)?[` +
+			`\-\.\ \\\/]?)?((?:\(?\d{1,}\)?[\-\.\ \\\/]?)` +
+			`{0,})(?:[\-\.\ \\\/]?(?:#|ext\.?|extension|x)` +
+			`[\-\.\ \\\/]?(\d+))?$`,
+	)
+	if !re.MatchString(h.user.PhoneNO) {
+		return nil
 	}
 
 	h.messageRequest.To = h.user.PhoneNO

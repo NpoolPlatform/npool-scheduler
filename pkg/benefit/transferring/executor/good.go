@@ -8,6 +8,7 @@ import (
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
@@ -33,8 +34,15 @@ type goodHandler struct {
 	transferToPlatform    bool
 	userBenefitHotAccount *pltfaccmwpb.Account
 	platformColdAccount   *pltfaccmwpb.Account
+	benefitResult         basetypes.Result
+	benefitMessage        string
 	txExtra               string
 }
+
+const (
+	errorInvalidTx = "Invalid transaction"
+	errorTxFail    = "Transaction fail"
+)
 
 func (h *goodHandler) getCoin(ctx context.Context) error {
 	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
@@ -54,6 +62,8 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 		return err
 	}
 	if tx == nil {
+		h.benefitResult = basetypes.Result_Fail
+		h.benefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, h.RewardTID)
 		h.newBenefitState = goodtypes.BenefitState_BenefitFail
 		return nil
 	}
@@ -66,6 +76,8 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 	case basetypes.TxState_TxStateTransferring:
 		return nil
 	case basetypes.TxState_TxStateFail:
+		h.benefitResult = basetypes.Result_Fail
+		h.benefitMessage = fmt.Sprintf("%v (%v)", errorTxFail, h.RewardTID)
 		h.newBenefitState = goodtypes.BenefitState_BenefitFail
 	case basetypes.TxState_TxStateSuccessful:
 		h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
@@ -137,24 +149,47 @@ func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Good", h.Good,
+			"ToPlatformAmount", h.toPlatformAmount,
+			"NewBenefitState", h.newBenefitState,
+			"NextStartAmount", h.nextStartRewardAmount,
+			"Extra", h.txExtra,
+			"UserBenefitHotAccount", h.userBenefitHotAccount,
+			"PlatformColdAccount", h.platformColdAccount,
+			"BenefitResult", h.benefitResult,
+			"BenefitMessage", h.benefitMessage,
+			"Error", *err,
+		)
+	}
 	persistentGood := &types.PersistentGood{
-		Good:                    h.Good,
-		TransferToPlatform:      h.transferToPlatform,
-		ToPlatformAmount:        h.toPlatformAmount.String(),
-		NewBenefitState:         h.newBenefitState,
-		UserBenefitHotAccountID: h.userBenefitHotAccount.AccountID,
-		UserBenefitHotAddress:   h.userBenefitHotAccount.Address,
-		PlatformColdAccountID:   h.platformColdAccount.AccountID,
-		PlatformColdAddress:     h.platformColdAccount.Address,
-		FeeAmount:               decimal.NewFromInt(0).String(),
-		NextStartAmount:         h.nextStartRewardAmount.String(),
-		Extra:                   h.txExtra,
-		Error:                   *err,
+		Good:               h.Good,
+		TransferToPlatform: h.transferToPlatform,
+		ToPlatformAmount:   h.toPlatformAmount.String(),
+		NewBenefitState:    h.newBenefitState,
+		FeeAmount:          decimal.NewFromInt(0).String(),
+		NextStartAmount:    h.nextStartRewardAmount.String(),
+		Extra:              h.txExtra,
+		Error:              *err,
+	}
+	if h.userBenefitHotAccount != nil {
+		persistentGood.UserBenefitHotAccountID = h.userBenefitHotAccount.AccountID
+		persistentGood.UserBenefitHotAddress = h.userBenefitHotAccount.Address
+	}
+	if h.platformColdAccount != nil {
+		persistentGood.PlatformColdAccountID = h.platformColdAccount.AccountID
+		persistentGood.PlatformColdAddress = h.platformColdAccount.Address
 	}
 
 	if h.newBenefitState == h.RewardState && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
+	}
+	if h.newBenefitState == goodtypes.BenefitState_BenefitFail {
+		persistentGood.BenefitResult = h.benefitResult
+		persistentGood.BenefitMessage = h.benefitMessage
 	}
 	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
@@ -170,8 +205,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
+	h.newBenefitState = h.RewardState
 	var err error
-
 	defer h.final(ctx, &err)
 
 	if err = h.checkTransfer(ctx); err != nil {

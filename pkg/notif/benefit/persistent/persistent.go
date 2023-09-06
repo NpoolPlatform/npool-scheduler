@@ -29,27 +29,24 @@ func (p *handler) Update(ctx context.Context, benefit interface{}, notif, done c
 
 	defer asyncfeed.AsyncFeed(ctx, _benefit, done)
 
-	if !_benefit.Generated {
-		for _, content := range _benefit.NotifContents {
-			if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
-				AppID:     content.AppID,
-				EventType: basetypes.UsedFor_GoodBenefit1,
-				NotifType: basetypes.NotifType_NotifMulticast,
-				Vars: &tmplmwpb.TemplateVars{
-					Message: &content.Content,
-				},
-			}); err != nil {
-				return err
-			}
+	for _, content := range _benefit.NotifContents {
+		if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
+			AppID:     content.AppID,
+			EventType: basetypes.UsedFor_GoodBenefit1,
+			NotifType: basetypes.NotifType_NotifMulticast,
+			Vars: &tmplmwpb.TemplateVars{
+				Message: &content.Content,
+			},
+		}); err != nil {
+			return err
 		}
 	}
 
-	_benefit.Generated = true
-
+	generated := true
 	for _, benefit := range _benefit.Benefits {
 		if _, err := notifbenefitmwcli.UpdateGoodBenefit(ctx, &notifbenefitmwpb.GoodBenefitReq{
 			ID:        &benefit.ID,
-			Generated: &_benefit.Generated,
+			Generated: &generated,
 		}); err != nil {
 			return err
 		}

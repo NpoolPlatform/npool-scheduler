@@ -5,7 +5,7 @@ import (
 
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/fail/types"
 )
 
 type goodHandler struct {

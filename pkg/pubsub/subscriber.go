@@ -143,18 +143,6 @@ func stat(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bool,
 //   error   reason of error, if nil, means the message should be acked
 //nolint
 func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (err error) {
-	defer func() {
-		if err != nil {
-			logger.Sugar().Warnw(
-				"process",
-				"MID", mid,
-				"UID", uid,
-				"Req", req,
-				"Error", err,
-			)
-		}
-	}()
-
 	switch mid {
 	case basetypes.MsgID_DepositReceivedReq.String():
 		err = depositnotif.Apply(ctx, req)
@@ -167,8 +155,7 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 	default:
 		return nil
 	}
-
-	return nil
+	return err
 }
 
 // No matter what handler return, the message will be acked, unless handler halt
@@ -177,12 +164,12 @@ func handler(ctx context.Context, msg *pubsub.Msg) (err error) {
 	var req interface{}
 	var appliable bool
 
-	defer func() {
+	defer func(req *interface{}, appliable *bool) {
 		msg.Ack()
-		if req != nil && appliable {
+		if *req != nil && *appliable {
 			_ = finish(ctx, msg, err) //nolint
 		}
-	}()
+	}(&req, &appliable)
 
 	req, err = prepare(msg.MID, msg.Body)
 	if err != nil {

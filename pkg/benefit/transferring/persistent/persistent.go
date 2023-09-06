@@ -6,6 +6,7 @@ import (
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
@@ -27,6 +28,10 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
+	if _good.NewBenefitState == goodtypes.BenefitState_BenefitFail {
+		asyncfeed.AsyncFeed(ctx, _good, notif)
+	}
 
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:          &_good.ID,

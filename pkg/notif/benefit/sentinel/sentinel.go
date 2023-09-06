@@ -36,7 +36,7 @@ func (h *handler) scanGoodBenefits(ctx context.Context, exec chan interface{}) e
 		if err != nil {
 			return err
 		}
-		if len(benefits) == 0 {
+		if len(_benefits) == 0 {
 			break
 		}
 		benefits = append(benefits, _benefits...)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -182,6 +183,16 @@ func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Good", h.Good,
+			"TotalRewardAmount", h.totalRewardAmount,
+			"UserRewardAmount", h.userRewardAmount,
+			"UnsoldRewardAmount", h.unsoldRewardAmount,
+			"Error", *err,
+		)
+	}
 	persistentGood := &types.PersistentGood{
 		Good:               h.Good,
 		TotalRewardAmount:  h.totalRewardAmount.String(),

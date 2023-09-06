@@ -12,5 +12,4 @@ type NotifContent struct {
 type PersistentGoodBenefit struct {
 	Benefits      []*notifbenefitmwpb.GoodBenefit
 	NotifContents []*NotifContent
-	Generated     bool
 }

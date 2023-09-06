@@ -44,6 +44,7 @@ func (p *handler) Notify(ctx context.Context, good interface{}, retry chan inter
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
+
 	if err := p.notifyGoodBenefit(_good); err != nil {
 		retry1.Retry(ctx, _good, retry)
 		return err

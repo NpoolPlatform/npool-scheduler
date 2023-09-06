@@ -12,6 +12,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
@@ -82,5 +83,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if good, ok := ent.(*types.PersistentGood); ok {
+		return good.ID
+	}
 	return ent.(*goodmwpb.Good).ID
 }

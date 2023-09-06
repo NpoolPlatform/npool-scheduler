@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -98,6 +99,13 @@ func (h *benefitHandler) generateNotifContents() {
 
 //nolint:gocritic
 func (h *benefitHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"GoodBenefits", h.benefits,
+			"Error", *err,
+		)
+	}
 	persistentGoodBenefit := &types.PersistentGoodBenefit{
 		Benefits:      h.benefits,
 		NotifContents: h.notifContents,
