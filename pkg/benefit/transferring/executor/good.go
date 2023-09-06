@@ -157,6 +157,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		return
 	}
 	if *err != nil {
+		persistentGood.BenefitResult = basetypes.Result_Fail
+		persistentGood.BenefitMessage = (*err).Error()
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 	if h.newBenefitState != h.RewardState {
