@@ -7,4 +7,5 @@ import (
 type PersistentWithdraw struct {
 	*withdrawmwpb.Withdraw
 	LockedBalanceAmount string
+	WithdrawFeeAmount   string
 }

@@ -2,6 +2,7 @@ package gasfeeder
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -13,7 +14,10 @@ import (
 
 const subsystem = "gasfeeder"
 
-var h *base.Handler
+var (
+	h       *base.Handler
+	running sync.Map
+)
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	_h, err := base.NewHandler(
@@ -24,6 +28,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
