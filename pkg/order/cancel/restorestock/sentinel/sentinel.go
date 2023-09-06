@@ -59,6 +59,9 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+	if err := h.scanOrders(ctx, ordertypes.OrderState_OrderStateRestoreCanceledStockCheck, exec); err != nil {
+		return err
+	}
 	return h.scanOrders(ctx, ordertypes.OrderState_OrderStateRestoreCanceledStock, exec)
 }
 

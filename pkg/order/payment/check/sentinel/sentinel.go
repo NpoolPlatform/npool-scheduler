@@ -68,6 +68,9 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment, exec); err != nil {
+		return err
+	}
 	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment, exec)
 }
 

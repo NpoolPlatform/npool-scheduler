@@ -60,6 +60,9 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
+	if err := h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckDone, exec); err != nil {
+		return err
+	}
 	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitDone, exec)
 }
 

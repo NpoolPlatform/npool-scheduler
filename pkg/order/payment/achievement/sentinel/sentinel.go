@@ -21,8 +21,8 @@ func NewSentinel() basesentinel.Scanner {
 }
 
 func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order, exec chan interface{}) error {
-	if order.OrderState == ordertypes.OrderState_OrderStateCommissionAdded {
-		newState := ordertypes.OrderState_OrderStateCommissionAddedCheck
+	if order.OrderState == ordertypes.OrderState_OrderStateAchievementBookKept {
+		newState := ordertypes.OrderState_OrderStateAchievementBookKeptCheck
 		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 			ID:         &order.ID,
 			OrderState: &newState,
@@ -60,11 +60,14 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateWaitPayment, exec)
+	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateAchievementBookKeptCheck, exec); err != nil {
+		return err
+	}
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateAchievementBookKept, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateCheckPayment, exec)
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateAchievementBookKeptCheck, exec)
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
