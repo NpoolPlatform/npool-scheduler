@@ -11,7 +11,6 @@ import (
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring/types"
 )
 
@@ -21,17 +20,18 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
+	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:          &_good.ID,
 		RewardState: &_good.NewBenefitState,
 	}); err != nil {
-		retry1.Retry(ctx, _good, retry)
 		return err
 	}
 
@@ -51,8 +51,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

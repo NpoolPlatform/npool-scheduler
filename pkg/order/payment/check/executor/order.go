@@ -20,7 +20,6 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -29,9 +28,9 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	retry                 chan interface{}
 	persistent            chan interface{}
 	notif                 chan interface{}
+	done                  chan interface{}
 	good                  *appgoodmwpb.Good
 	paymentCoin           *coinmwpb.Coin
 	paymentAccount        *payaccmwpb.Account
@@ -197,9 +196,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	if h.newOrderState == h.OrderState && *err == nil {
-		return
-	}
 	persistentOrder := &types.PersistentOrder{
 		Order:           h.Order,
 		NewOrderState:   h.newOrderState,
@@ -209,13 +205,18 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if h.newOrderState == ordertypes.OrderState_OrderStatePreCancel {
 		persistentOrder.NewCancelState = &h.OrderState
 	}
+	if h.newOrderState == h.OrderState && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+		return
+	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
-	} else if *err != nil {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	}
-	retry1.Retry(ctx, h.Order, h.retry)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 //nolint:gocritic

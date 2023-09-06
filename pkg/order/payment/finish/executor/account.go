@@ -18,7 +18,7 @@ import (
 type accountHandler struct {
 	*payaccmwpb.Account
 	persistent chan interface{}
-	notif      chan interface{}
+	done       chan interface{}
 	coin       *coinmwpb.Coin
 	txFinished bool
 }
@@ -66,20 +66,20 @@ func (h *accountHandler) checkTransfer(ctx context.Context) error {
 
 //nolint:gocritic
 func (h *accountHandler) final(ctx context.Context, err *error) {
-	if !h.txFinished && *err == nil {
-		return
-	}
-
 	persistentAccount := &types.PersistentAccount{
 		Account: h.Account,
 		Error:   *err,
 	}
 
+	if !h.txFinished && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
+		return
+	}
 	if h.txFinished {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
 
 //nolint:gocritic

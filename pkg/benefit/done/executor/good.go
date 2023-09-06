@@ -14,15 +14,12 @@ type goodHandler struct {
 	*goodmwpb.Good
 	persistent          chan interface{}
 	notif               chan interface{}
+	done                chan interface{}
 	newUnitRewardAmount decimal.Decimal
 }
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if *err == nil {
-		return
-	}
-
 	persistentGood := &types.PersistentGood{
 		Good:                h.Good,
 		NewUnitRewardAmount: h.newUnitRewardAmount.String(),
@@ -32,6 +29,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 	}
 }
 

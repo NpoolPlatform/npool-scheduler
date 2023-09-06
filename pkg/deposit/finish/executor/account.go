@@ -20,6 +20,7 @@ type accountHandler struct {
 	*depositaccmwpb.Account
 	persistent chan interface{}
 	notif      chan interface{}
+	done       chan interface{}
 	coin       *coinmwpb.Coin
 	outcoming  decimal.Decimal
 	txFinished bool
@@ -89,6 +90,7 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 	}
 }
 

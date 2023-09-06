@@ -14,6 +14,7 @@ import (
 type orderHandler struct {
 	*ordermwpb.Order
 	persistent chan interface{}
+	done       chan interface{}
 }
 
 func (h *orderHandler) expired() (bool, error) {
@@ -41,8 +42,9 @@ func (h *orderHandler) final(ctx context.Context) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }
 
-func (h *orderHandler) exec(ctx context.Context) error { //nolint
+func (h *orderHandler) exec(ctx context.Context) error {
 	if yes, err := h.expired(); err != nil || !yes {
+		asyncfeed.AsyncFeed(ctx, h.Order, h.done)
 		return err
 	}
 	h.final(ctx)

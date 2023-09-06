@@ -19,6 +19,7 @@ import (
 type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
+	done       chan interface{}
 	newState   basetypes.TxState
 	txExtra    string
 	txCID      *string
@@ -79,7 +80,9 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 }
 
 //nolint:gocritic

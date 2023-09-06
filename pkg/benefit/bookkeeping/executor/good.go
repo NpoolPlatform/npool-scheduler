@@ -12,7 +12,6 @@ import (
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
@@ -24,7 +23,7 @@ type goodHandler struct {
 	*goodmwpb.Good
 	persistent              chan interface{}
 	notif                   chan interface{}
-	retry                   chan interface{}
+	done                    chan interface{}
 	totalRewardAmount       decimal.Decimal
 	totalUnits              decimal.Decimal
 	totalOrderUnits         decimal.Decimal
@@ -181,10 +180,6 @@ func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if *err == nil {
-		return
-	}
-
 	persistentGood := &types.PersistentGood{
 		Good:               h.Good,
 		TotalRewardAmount:  h.totalRewardAmount.String(),
@@ -199,8 +194,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 	} else {
-		retry1.Retry(ctx, h.Good, h.retry)
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 	}
 }
 

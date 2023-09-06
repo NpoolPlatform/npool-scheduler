@@ -18,6 +18,7 @@ type orderHandler struct {
 	*ordermwpb.Order
 	persistent  chan interface{}
 	notif       chan interface{}
+	done        chan interface{}
 	childOrders []*ordermwpb.Order
 }
 
@@ -39,6 +40,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 	}
 }
 

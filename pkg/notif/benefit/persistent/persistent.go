@@ -12,7 +12,6 @@ import (
 	notifbenefitmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
 )
 
@@ -22,7 +21,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, benefit interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, benefit interface{}, notif, done chan interface{}) error {
 	_benefit, ok := benefit.(*types.PersistentGoodBenefit)
 	if !ok {
 		return fmt.Errorf("invalid benefit")
@@ -40,7 +39,6 @@ func (p *handler) Update(ctx context.Context, benefit interface{}, retry, notif,
 					Message: &content.Content,
 				},
 			}); err != nil {
-				retry1.Retry(ctx, _benefit, retry)
 				return err
 			}
 		}
@@ -53,7 +51,6 @@ func (p *handler) Update(ctx context.Context, benefit interface{}, retry, notif,
 			ID:        &benefit.ID,
 			Generated: &_benefit.Generated,
 		}); err != nil {
-			retry1.Retry(ctx, _benefit, retry)
 			return err
 		}
 	}

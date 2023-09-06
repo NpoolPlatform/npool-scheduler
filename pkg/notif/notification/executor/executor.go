@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, notif interface{}, retry, persistent, notif1 chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, notif interface{}, persistent, notif1, done chan interface{}) error {
 	_notif, ok := notif.(*notifmwpb.Notif)
 	if !ok {
 		return fmt.Errorf("invalid notif")
@@ -22,6 +22,7 @@ func (e *handler) Exec(ctx context.Context, notif interface{}, retry, persistent
 	h := &notifHandler{
 		Notif:      _notif,
 		persistent: persistent,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

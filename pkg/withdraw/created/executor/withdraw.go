@@ -28,6 +28,7 @@ type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
 	persistent                chan interface{}
 	notif                     chan interface{}
+	done                      chan interface{}
 	withdrawAmount            decimal.Decimal
 	newWithdrawState          ledgertypes.WithdrawState
 	reviewTrigger             reviewtypes.ReviewTriggerType
@@ -159,8 +160,10 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
+		return
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 	}
 }
 

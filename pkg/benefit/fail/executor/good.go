@@ -20,7 +20,7 @@ func (h *goodHandler) final(ctx context.Context) {
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 }
 
-func (h *goodHandler) exec(ctx context.Context) error { //nolint
+func (h *goodHandler) exec(ctx context.Context) error {
 	h.final(ctx)
 	return nil
 }

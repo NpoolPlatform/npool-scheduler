@@ -14,7 +14,6 @@ import (
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -91,15 +90,16 @@ func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) er
 	return nil
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
+	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
 	if _good.StatementExist {
 		if err := p.updateGood(ctx, _good); err != nil {
-			retry1.Retry(ctx, _good, retry)
 			return err
 		}
 		return nil
@@ -114,12 +114,10 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 			TechniqueServiceFeeAmount: &_good.TechniqueFeeAmount,
 			BenefitDate:               &_good.LastRewardAt,
 		}); err != nil {
-			retry1.Retry(ctx, _good, retry)
 			return err
 		}
 		_good.StatementExist = true
 		if err := p.updateGood(ctx, _good); err != nil {
-			retry1.Retry(ctx, _good, retry)
 			return err
 		}
 		return nil
@@ -133,16 +131,12 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 	p.withCreateGoodLedgerStatement(sagaDispose, _good)
 	p.withCreateLedgerStatements(sagaDispose, _good)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		retry1.Retry(ctx, _good, retry)
 		return err
 	}
 	_good.StatementExist = true
 	if err := p.updateGood(ctx, _good); err != nil {
-		retry1.Retry(ctx, _good, retry)
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

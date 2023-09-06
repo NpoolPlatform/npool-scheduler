@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -19,17 +18,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, notif interface{}, retry, notif1, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, notif interface{}, notif1, done chan interface{}) error {
 	_notif, ok := notif.(*types.PersistentNotif)
 	if !ok {
 		return fmt.Errorf("invalid notif")
 	}
 
-	defer func() {
-		logger.Sugar().Infow("Update", "Notif", _notif, "State", "Start")
-		asyncfeed.AsyncFeed(ctx, _notif, done)
-		logger.Sugar().Infow("Update", "Notif", _notif, "State", "Done")
-	}()
+	defer asyncfeed.AsyncFeed(ctx, _notif, done)
 
 	if err := sendmwcli.SendMessage(ctx, _notif.MessageRequest); err != nil {
 		return err

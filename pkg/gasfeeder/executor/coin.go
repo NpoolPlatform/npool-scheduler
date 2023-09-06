@@ -34,6 +34,7 @@ type coinHandler struct {
 	*coinmwpb.Coin
 	persistent         chan interface{}
 	notif              chan interface{}
+	done               chan interface{}
 	gasProviderAccount *accountmwpb.Account
 	feeCoin            *coinmwpb.Coin
 }
@@ -335,10 +336,20 @@ func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, 
 	asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.persistent)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 }
 
 func (h *coinHandler) exec(ctx context.Context) error {
+	var err error
+	var account *accountmwpb.Account
+	var amount decimal.Decimal
+	var feedable bool
+	var usedFor basetypes.AccountUsedFor
+
+	defer h.final(ctx, &account, &usedFor, &amount, &err)
+
 	if err := h.getGasProvider(ctx); err != nil {
 		return err
 	}
@@ -348,14 +359,6 @@ func (h *coinHandler) exec(ctx context.Context) error {
 	if err := h.getFeeCoin(ctx); err != nil {
 		return err
 	}
-
-	var err error
-	var account *accountmwpb.Account
-	var amount decimal.Decimal
-	var feedable bool
-	var usedFor basetypes.AccountUsedFor
-
-	defer h.final(ctx, &account, &usedFor, &amount, &err)
 
 	if feedable, account, amount, err = h.checkUserBenefitHot(ctx); err != nil || feedable {
 		usedFor = basetypes.AccountUsedFor_UserBenefitHot

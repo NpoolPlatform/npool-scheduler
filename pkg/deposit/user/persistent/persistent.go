@@ -69,11 +69,13 @@ func (p *handler) withCreateStatement(dispose *dtmcli.SagaDispose, account *type
 	)
 }
 
-func (p *handler) Update(ctx context.Context, account interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _account, done)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -87,7 +89,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 	}
 
 	asyncfeed.AsyncFeed(ctx, _account, notif)
-	asyncfeed.AsyncFeed(ctx, _account, done)
 
 	return nil
 }

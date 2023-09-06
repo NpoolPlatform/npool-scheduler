@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, order interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif, done chan interface{}) error {
 	_order, ok := order.(*ordermwpb.Order)
 	if !ok {
 		return fmt.Errorf("invalid order")
@@ -22,9 +22,9 @@ func (e *handler) Exec(ctx context.Context, order interface{}, retry, persistent
 
 	h := &orderHandler{
 		Order:      _order,
-		retry:      retry,
 		persistent: persistent,
 		notif:      notif,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

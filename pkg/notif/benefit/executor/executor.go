@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, benefits interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, benefits interface{}, persistent, notif, done chan interface{}) error {
 	_benefits, ok := benefits.([]*notifbenefitmwpb.GoodBenefit)
 	if !ok {
 		return fmt.Errorf("invalid goodbenefit")
@@ -22,6 +22,8 @@ func (e *handler) Exec(ctx context.Context, benefits interface{}, retry, persist
 	h := &benefitHandler{
 		benefits:   _benefits,
 		persistent: persistent,
+		notif:      notif,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

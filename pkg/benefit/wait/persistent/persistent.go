@@ -13,7 +13,6 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
@@ -41,30 +40,26 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) 
 	return nil
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
+	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
 	if err := p.updateOrders(ctx, _good); err != nil {
-		retry1.Retry(ctx, _good, retry)
 		return err
 	}
 
-	if _good.RewardTID == nil {
-		id := uuid.NewString()
-		_good.RewardTID = &id
-	}
-
+	id := uuid.NewString()
 	state := goodtypes.BenefitState_BenefitTransferring
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:          &_good.ID,
-		RewardTID:   _good.RewardTID,
+		RewardTID:   &id,
 		RewardAt:    &_good.BenefitTimestamp,
 		RewardState: &state,
 	}); err != nil {
-		retry1.Retry(ctx, _good, retry)
 		return err
 	}
 
@@ -80,8 +75,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

@@ -23,6 +23,7 @@ type accountHandler struct {
 	*depositaccmwpb.Account
 	persistent chan interface{}
 	notif      chan interface{}
+	done       chan interface{}
 	incoming   decimal.Decimal
 	outcoming  decimal.Decimal
 	amount     decimal.Decimal
@@ -88,16 +89,16 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
-		return
-	}
-
 	persistentAccount := &types.PersistentAccount{
 		Account:       h.Account,
 		DepositAmount: h.amount.String(),
 		Error:         *err,
 	}
 
+	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
+		return
+	}
 	if *err == nil {
 		ioExtra := fmt.Sprintf(
 			`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
@@ -110,14 +111,16 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		)
 		persistentAccount.Extra = ioExtra
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
 
 //nolint:gocritic
 func (h *accountHandler) exec(ctx context.Context) error {
 	if h.Locked {
+		asyncfeed.AsyncFeed(ctx, h.Account, h.done)
 		return nil
 	}
 

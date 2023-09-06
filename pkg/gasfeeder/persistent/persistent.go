@@ -18,11 +18,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, coin interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, coin interface{}, notif, done chan interface{}) error {
 	_coin, ok := coin.(*types.PersistentCoin)
 	if !ok {
 		return fmt.Errorf("invalid coin")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _coin, done)
 
 	txType := basetypes.TxType_TxFeedGas
 	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
@@ -36,8 +38,6 @@ func (p *handler) Update(ctx context.Context, coin interface{}, retry, notif, do
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _coin, done)
 
 	return nil
 }

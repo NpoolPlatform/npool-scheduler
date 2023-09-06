@@ -24,41 +24,40 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 // Here we could not use dtm to create transfer
-func (p *handler) Update(ctx context.Context, account interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _account, done)
 
 	if _account.CollectingTIDCandidate == nil {
 		collectingTID := uuid.NewString()
 		_account.CollectingTIDCandidate = &collectingTID
 	}
 
-	if !_account.Locked {
-		if err := accountlock.Lock(_account.DepositAccountID); err != nil {
-			return err
-		}
-		defer func() {
-			_ = accountlock.Unlock(_account.DepositAccountID) //nolint
-		}()
+	if err := accountlock.Lock(_account.DepositAccountID); err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(_account.DepositAccountID) //nolint
+	}()
 
-		locked := true
-		lockedBy := basetypes.AccountLockedBy_Collecting
+	locked := true
+	lockedBy := basetypes.AccountLockedBy_Collecting
 
-		if _, err := depositaccmwcli.UpdateAccount(ctx, &depositaccmwpb.AccountReq{
-			ID:            &_account.ID,
-			AppID:         &_account.AppID,
-			UserID:        &_account.UserID,
-			CoinTypeID:    &_account.CoinTypeID,
-			AccountID:     &_account.DepositAccountID,
-			Locked:        &locked,
-			LockedBy:      &lockedBy,
-			CollectingTID: _account.CollectingTIDCandidate,
-		}); err != nil {
-			return err
-		}
-		_account.Locked = true
+	if _, err := depositaccmwcli.UpdateAccount(ctx, &depositaccmwpb.AccountReq{
+		ID:            &_account.ID,
+		AppID:         &_account.AppID,
+		UserID:        &_account.UserID,
+		CoinTypeID:    &_account.CoinTypeID,
+		AccountID:     &_account.DepositAccountID,
+		Locked:        &locked,
+		LockedBy:      &lockedBy,
+		CollectingTID: _account.CollectingTIDCandidate,
+	}); err != nil {
+		return err
 	}
 
 	txType := basetypes.TxType_TxPaymentCollect
@@ -73,8 +72,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _account, done)
 
 	return nil
 }

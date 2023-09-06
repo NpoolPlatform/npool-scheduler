@@ -11,7 +11,6 @@ import (
 	reviewmwpb "github.com/NpoolPlatform/message/npool/review/mw/v2/review"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/created/types"
 	reviewsvcname "github.com/NpoolPlatform/review-middleware/pkg/servicename"
 
@@ -65,11 +64,13 @@ func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.
 	)
 }
 
-func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -80,11 +81,9 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 	p.withCreateReview(sagaDispose, _withdraw, reviewID)
 	p.withUpdateWithdrawState(sagaDispose, _withdraw, reviewID)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		retry1.Retry(ctx, _withdraw, retry)
 		return err
 	}
 
-	asyncfeed.AsyncFeed(ctx, _withdraw, done)
 	asyncfeed.AsyncFeed(ctx, _withdraw, notif)
 
 	return nil

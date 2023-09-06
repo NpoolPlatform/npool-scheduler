@@ -30,6 +30,7 @@ import (
 type announcementHandler struct {
 	*ancmwpb.Announcement
 	persistent chan interface{}
+	done       chan interface{}
 	sendStats  map[string]*ancsendmwpb.SendState
 }
 
@@ -262,6 +263,9 @@ func (h *announcementHandler) multicast(ctx context.Context) error {
 
 func (h *announcementHandler) exec(ctx context.Context) error {
 	h.sendStats = map[string]*ancsendmwpb.SendState{}
+
+	defer asyncfeed.AsyncFeed(ctx, h.Announcement, h.done)
+
 	switch h.AnnouncementType {
 	case basetypes.NotifType_NotifBroadcast:
 		if err := h.broadcast(ctx); err != nil {

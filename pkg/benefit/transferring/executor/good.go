@@ -15,7 +15,6 @@ import (
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring/types"
 
 	"github.com/shopspring/decimal"
@@ -25,7 +24,7 @@ type goodHandler struct {
 	*goodmwpb.Good
 	persistent            chan interface{}
 	notif                 chan interface{}
-	retry                 chan interface{}
+	done                  chan interface{}
 	coin                  *coinmwpb.Coin
 	newBenefitState       goodtypes.BenefitState
 	toPlatformAmount      decimal.Decimal
@@ -138,10 +137,6 @@ func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if h.newBenefitState == h.RewardState && *err == nil {
-		return
-	}
-
 	persistentGood := &types.PersistentGood{
 		Good:                    h.Good,
 		TransferToPlatform:      h.transferToPlatform,
@@ -157,12 +152,16 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error:                   *err,
 	}
 
+	if h.newBenefitState == h.RewardState && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-	} else {
-		retry1.Retry(ctx, h.Good, h.retry)
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic

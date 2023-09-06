@@ -22,11 +22,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, account interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _account, done)
 
 	if err := accountlock.Lock(_account.AccountID); err != nil {
 		return err
@@ -51,8 +53,6 @@ func (p *handler) Update(ctx context.Context, account interface{}, retry, notif,
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _account, done)
 
 	return nil
 }

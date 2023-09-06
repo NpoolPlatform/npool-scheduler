@@ -64,7 +64,10 @@ func (h *handler) scanTxs(ctx context.Context, state basetypes.TxState, exec cha
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanTxs(ctx, basetypes.TxState_TxStateWait, exec)
+	if err := h.scanTxs(ctx, basetypes.TxState_TxStateWait, exec); err != nil {
+		return err
+	}
+	return h.scanTxs(ctx, basetypes.TxState_TxStateWaitCheck, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

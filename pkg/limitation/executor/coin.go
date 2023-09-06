@@ -26,6 +26,7 @@ type coinHandler struct {
 	*coinmwpb.Coin
 	persistent             chan interface{}
 	notif                  chan interface{}
+	done                   chan interface{}
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	userBenefitColdAccount *pltfaccmwpb.Account
 	amount                 decimal.Decimal
@@ -168,9 +169,6 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
-		return
-	}
 	persistentCoin := &types.PersistentCoin{
 		Coin:      h.Coin,
 		Amount:    h.amount.String(),
@@ -187,11 +185,16 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 		persistentCoin.ToAddress = h.userBenefitColdAccount.Address
 	}
 
+	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 }
 
 //nolint:gocritic

@@ -16,7 +16,6 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -27,9 +26,9 @@ import (
 
 type txHandler struct {
 	*txmwpb.Tx
-	retry            chan interface{}
 	persistent       chan interface{}
 	notif            chan interface{}
+	done             chan interface{}
 	newState         basetypes.TxState
 	transactionExist bool
 	fromAccount      *accountmwpb.Account
@@ -205,10 +204,6 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if h.newState == h.State && *err == nil {
-		retry1.Retry(ctx, h.Tx, h.retry)
-		return
-	}
 
 	persistentTx := &types.PersistentTx{
 		Tx:               h.Tx,
@@ -229,13 +224,17 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		persistentTx.ToAddress = h.toAccount.Address
 	}
 
+	if h.newState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
+		return
+	}
 	if h.newState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
 		return
 	} else if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 	}
-	retry1.Retry(ctx, h.Tx, h.retry)
 }
 
 //nolint:gocritic

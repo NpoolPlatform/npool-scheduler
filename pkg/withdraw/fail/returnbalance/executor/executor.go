@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, withdraw interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, withdraw interface{}, persistent, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*withdrawmwpb.Withdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
@@ -23,6 +23,7 @@ func (e *handler) Exec(ctx context.Context, withdraw interface{}, retry, persist
 	h := &withdrawHandler{
 		Withdraw:   _withdraw,
 		persistent: persistent,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

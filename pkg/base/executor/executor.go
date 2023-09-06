@@ -49,14 +49,13 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 func (e *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-e.feeder:
-		if err := e.exec.Exec(ctx, ent, e.feeder, e.persistent, e.notif); err != nil {
+		if err := e.exec.Exec(ctx, ent, e.persistent, e.notif, e.done); err != nil {
 			logger.Sugar().Errorw(
 				"handler",
 				"State", "Exec",
 				"Subsystem", e.subsystem,
 				"Error", err,
 			)
-			asyncfeed.AsyncFeed(ent, e.done)
 		}
 		return false
 	case <-e.w.CloseChan():

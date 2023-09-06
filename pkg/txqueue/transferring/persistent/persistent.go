@@ -17,11 +17,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, tx interface{}, notif, done chan interface{}) error {
 	_tx, ok := tx.(*types.PersistentTx)
 	if !ok {
 		return fmt.Errorf("invalid tx")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _tx, done)
 
 	if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 		ID:        &_tx.ID,
@@ -31,8 +33,6 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _tx, done)
 
 	return nil
 }

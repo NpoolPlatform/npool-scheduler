@@ -32,6 +32,7 @@ type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
 	persistent                chan interface{}
 	notif                     chan interface{}
+	done                      chan interface{}
 	withdrawAmount            decimal.Decimal
 	newWithdrawState          ledgertypes.WithdrawState
 	newReviewState            reviewtypes.ReviewState
@@ -195,9 +196,6 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if h.newWithdrawState == h.State && *err == nil {
-		return
-	}
 
 	persistentWithdraw := &types.PersistentWithdraw{
 		Withdraw:         h.Withdraw,
@@ -207,12 +205,18 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		Error:            *err,
 	}
 
-	if h.newWithdrawState != h.State {
-		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
+	if h.newWithdrawState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
+		return
 	}
 	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
+	if h.newWithdrawState != h.State {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
 //nolint:gocritic

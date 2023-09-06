@@ -19,7 +19,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
@@ -35,7 +35,6 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 			return err
 		}
 	}
-
 	if _, err := withdrawmwcli.UpdateWithdraw(ctx, &withdrawmwpb.WithdrawReq{
 		ID:    &_withdraw.ID,
 		State: &_withdraw.NewWithdrawState,

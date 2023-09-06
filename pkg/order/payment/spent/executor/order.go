@@ -14,8 +14,9 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	appGood    *appgoodmwpb.Good
 	persistent chan interface{}
+	done       chan interface{}
+	appGood    *appgoodmwpb.Good
 }
 
 func (h *orderHandler) getAppGood(ctx context.Context) error {
@@ -46,7 +47,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 //nolint:gocritic

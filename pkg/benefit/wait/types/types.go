@@ -15,7 +15,6 @@ type PersistentGood struct {
 	TodayRewardAmount       string
 	FeeAmount               string
 	BenefitTimestamp        uint32
-	RewardTID               *string
 	Extra                   string
 	BenefitResult           basetypes.Result
 	BenefitMessage          string

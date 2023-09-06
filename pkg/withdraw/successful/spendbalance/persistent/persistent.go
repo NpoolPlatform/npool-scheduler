@@ -10,7 +10,6 @@ import (
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/types"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -65,11 +64,13 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, withdraw 
 	)
 }
 
-func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -79,11 +80,9 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, retry, notif
 	p.withUpdateWithdrawState(sagaDispose, _withdraw)
 	p.withReturnLockedBalance(sagaDispose, _withdraw)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		retry1.Retry(ctx, _withdraw, retry)
 		return err
 	}
 
-	asyncfeed.AsyncFeed(ctx, _withdraw, done)
 	asyncfeed.AsyncFeed(ctx, _withdraw, notif)
 
 	return nil

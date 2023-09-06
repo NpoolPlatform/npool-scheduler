@@ -14,6 +14,7 @@ import (
 type orderHandler struct {
 	*ordermwpb.Order
 	persistent chan interface{}
+	done       chan interface{}
 }
 
 func (h *orderHandler) startable() (bool, error) {
@@ -43,6 +44,7 @@ func (h *orderHandler) final(ctx context.Context) {
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	if yes, err := h.startable(); err != nil || yes {
+		asyncfeed.AsyncFeed(ctx, h.Order, h.done)
 		return err
 	}
 	h.final(ctx)

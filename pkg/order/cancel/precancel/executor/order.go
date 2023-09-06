@@ -20,7 +20,7 @@ func (h *orderHandler) final(ctx context.Context) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }
 
-func (h *orderHandler) exec(ctx context.Context) error { //nolint
+func (h *orderHandler) exec(ctx context.Context) error {
 	h.final(ctx)
 	return nil
 }

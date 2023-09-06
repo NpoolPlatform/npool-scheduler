@@ -59,7 +59,7 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 
 	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval, h.subsystem)
 	for i := 0; i < h.executorNumber; i++ {
-		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.execer, h.subsystem))
+		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.done, h.execer, h.subsystem))
 	}
 	h.persistenter = persistent.NewPersistent(ctx, cancel, h.notif, h.done, h.persistentor, h.subsystem)
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)

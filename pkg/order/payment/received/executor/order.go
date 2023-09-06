@@ -16,7 +16,6 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -25,7 +24,7 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	retry          chan interface{}
+	done           chan interface{}
 	persistent     chan interface{}
 	notif          chan interface{}
 	incomingAmount decimal.Decimal
@@ -159,7 +158,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
-		retry1.Retry(ctx, h.Order, h.retry)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 	}
 }
 

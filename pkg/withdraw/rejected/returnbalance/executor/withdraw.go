@@ -14,6 +14,7 @@ import (
 type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
 	persistent          chan interface{}
+	done                chan interface{}
 	lockedBalanceAmount decimal.Decimal
 }
 
@@ -33,7 +34,9 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
 //nolint

@@ -30,6 +30,7 @@ type accountHandler struct {
 	*payaccmwpb.Account
 	persistent     chan interface{}
 	notif          chan interface{}
+	done           chan interface{}
 	amount         decimal.Decimal
 	coin           *coinmwpb.Coin
 	collectAccount *pltfaccmwpb.Account
@@ -198,10 +199,6 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
-		return
-	}
-
 	persistentAccount := &types.PersistentAccount{
 		Account:          h.Account,
 		CollectAmount:    h.amount.String(),
@@ -215,10 +212,15 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		persistentAccount.CollectAddress = h.collectAccount.Address
 	}
 
+	if h.amount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 	}
 }
 

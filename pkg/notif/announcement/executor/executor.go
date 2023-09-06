@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, announcement interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, announcement interface{}, persistent, notif, done chan interface{}) error {
 	_announcement, ok := announcement.(*ancmwpb.Announcement)
 	if !ok {
 		return fmt.Errorf("invalid announcement")
@@ -23,6 +23,7 @@ func (e *handler) Exec(ctx context.Context, announcement interface{}, retry, per
 	h := &announcementHandler{
 		Announcement: _announcement,
 		persistent:   persistent,
+		done:         done,
 	}
 	return h.exec(ctx)
 }

@@ -9,14 +9,13 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/created/types"
 )
 
 type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
-	retry      chan interface{}
+	done       chan interface{}
 	newState   basetypes.TxState
 }
 
@@ -50,19 +49,18 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if h.newState == h.State && *err == nil {
-		retry1.Retry(ctx, h.Tx, h.retry)
-		return
-	}
-
 	persistentTx := &types.PersistentTx{
 		Tx: h.Tx,
 	}
+	if h.newState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
-	} else {
-		retry1.Retry(ctx, h.Tx, h.retry)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 }
 
 //nolint:gocritic

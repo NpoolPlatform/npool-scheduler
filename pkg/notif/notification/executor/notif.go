@@ -26,6 +26,7 @@ import (
 type notifHandler struct {
 	*notifmwpb.Notif
 	persistent     chan interface{}
+	done           chan interface{}
 	notifiable     bool
 	eventNotifs    []*notifmwpb.Notif
 	user           *usermwpb.User
@@ -160,18 +161,17 @@ func (h *notifHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if !h.notifiable {
-		return
-	}
 
 	persistentNotif := &types.PersistentNotif{
 		Notif:          h.Notif,
 		MessageRequest: h.messageRequest,
 		EventNotifs:    h.eventNotifs,
 	}
-	logger.Sugar().Infow("final", "Notif", persistentNotif, "State", "Start")
-	asyncfeed.AsyncFeed(ctx, persistentNotif, h.persistent)
-	logger.Sugar().Infow("final", "Notif", persistentNotif, "State", "Done")
+	if h.notifiable {
+		asyncfeed.AsyncFeed(ctx, persistentNotif, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentNotif, h.done)
 }
 
 //nolint:gocritic

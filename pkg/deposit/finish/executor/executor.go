@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, account interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, account interface{}, persistent, notif, done chan interface{}) error {
 	_account, ok := account.(*depositaccmwpb.Account)
 	if !ok {
 		return fmt.Errorf("invalid account")
@@ -24,6 +24,7 @@ func (e *handler) Exec(ctx context.Context, account interface{}, retry, persiste
 		Account:    _account,
 		persistent: persistent,
 		notif:      notif,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

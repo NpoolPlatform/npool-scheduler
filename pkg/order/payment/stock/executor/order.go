@@ -21,6 +21,7 @@ import (
 type orderHandler struct {
 	*ordermwpb.Order
 	persistent       chan interface{}
+	done             chan interface{}
 	paymentAmount    decimal.Decimal
 	statements       []*achievementstatementmwpb.Statement
 	ledgerStatements []*ledgerstatementmwpb.StatementReq
@@ -94,13 +95,13 @@ func (h *orderHandler) calculateLedgerStatements() error {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
-		return
-	}
-
 	persistentOrder := &types.PersistentOrder{
 		Order:            h.Order,
 		LedgerStatements: h.ledgerStatements,
+	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+		return
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }

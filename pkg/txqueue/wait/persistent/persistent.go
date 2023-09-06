@@ -10,7 +10,6 @@ import (
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/txqueue/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 )
@@ -21,18 +20,19 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, tx interface{}, notif, done chan interface{}) error {
 	_tx, ok := tx.(*types.PersistentTx)
 	if !ok {
 		return fmt.Errorf("invalid tx")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _tx, done)
 
 	if _tx.NewTxState != basetypes.TxState_TxStateTransferring {
 		if _, err := txmwcli.UpdateTx(ctx, &txmwpb.TxReq{
 			ID:    &_tx.ID,
 			State: &_tx.NewTxState,
 		}); err != nil {
-			retry1.Retry(ctx, _tx, retry)
 			return err
 		}
 		return nil
@@ -47,7 +47,6 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done
 			Memo:          _tx.AccountMemo,
 			To:            _tx.ToAddress,
 		}); err != nil {
-			retry1.Retry(ctx, _tx, retry)
 			return err
 		}
 	}
@@ -57,11 +56,8 @@ func (p *handler) Update(ctx context.Context, tx interface{}, retry, notif, done
 		ID:    &_tx.ID,
 		State: &_tx.NewTxState,
 	}); err != nil {
-		retry1.Retry(ctx, _tx, retry)
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _tx, done)
 
 	return nil
 }

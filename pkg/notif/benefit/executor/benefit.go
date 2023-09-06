@@ -21,6 +21,7 @@ type benefitHandler struct {
 	benefits      []*notifbenefitmwpb.GoodBenefit
 	persistent    chan interface{}
 	notif         chan interface{}
+	done          chan interface{}
 	notifContents []*types.NotifContent
 	content       string
 	appGoods      map[string]*appgoodmwpb.Good
@@ -105,6 +106,7 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.done)
 	}
 }
 

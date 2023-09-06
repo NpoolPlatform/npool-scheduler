@@ -18,11 +18,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
+
+	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
 	state := goodtypes.BenefitState_BenefitWait
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
@@ -31,8 +33,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, retry, notif, do
 	}); err != nil {
 		return err
 	}
-
-	asyncfeed.AsyncFeed(ctx, _good, done)
 
 	return nil
 }

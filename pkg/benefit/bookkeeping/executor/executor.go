@@ -14,7 +14,7 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, good interface{}, retry, persistent, notif chan interface{}) error {
+func (e *handler) Exec(ctx context.Context, good interface{}, persistent, notif, done chan interface{}) error {
 	_good, ok := good.(*goodmwpb.Good)
 	if !ok {
 		return fmt.Errorf("invalid good")
@@ -24,7 +24,7 @@ func (e *handler) Exec(ctx context.Context, good interface{}, retry, persistent,
 		Good:       _good,
 		persistent: persistent,
 		notif:      notif,
-		retry:      retry,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

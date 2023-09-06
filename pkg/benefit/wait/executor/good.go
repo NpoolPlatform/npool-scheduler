@@ -20,7 +20,6 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
@@ -35,7 +34,7 @@ type goodHandler struct {
 	*common.Handler
 	persistent             chan interface{}
 	notif                  chan interface{}
-	retry                  chan interface{}
+	done                   chan interface{}
 	totalUnits             decimal.Decimal
 	benefitBalance         decimal.Decimal
 	reservedAmount         decimal.Decimal
@@ -262,10 +261,6 @@ func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
-		return
-	}
-
 	txExtra := fmt.Sprintf(
 		`{"GoodID":"%v","Reward":"%v","UserReward":"%v","PlatformReward":"%v","TechniqueServiceFee":"%v"}`,
 		h.ID,
@@ -288,18 +283,24 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error:                   *err,
 	}
 
+	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+		return
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-	} else {
-		retry1.Retry(ctx, h.Good, h.retry)
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
 	var err error
+
+	defer h.final(ctx, &err)
 
 	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)
 	if err != nil {
@@ -312,8 +313,6 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	defer h.final(ctx, &err)
 
 	if err = h.getCoin(ctx); err != nil {
 		return err

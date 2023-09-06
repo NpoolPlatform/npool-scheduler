@@ -17,6 +17,7 @@ type withdrawHandler struct {
 	*withdrawmwpb.Withdraw
 	persistent       chan interface{}
 	notif            chan interface{}
+	done             chan interface{}
 	newWithdrawState ledgertypes.WithdrawState
 	chainTxID        string
 }
@@ -51,21 +52,24 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if h.newWithdrawState == h.State && *err == nil {
-		return
-	}
 	persistentWithdraw := &types.PersistentWithdraw{
 		Withdraw:         h.Withdraw,
 		NewWithdrawState: h.newWithdrawState,
 		ChainTxID:        h.chainTxID,
 		Error:            *err,
 	}
-	if h.newWithdrawState != h.State {
-		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
-	}
 	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
+	if h.newWithdrawState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
+		return
+	}
+	if h.newWithdrawState != h.State {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
 //nolint:gocritic

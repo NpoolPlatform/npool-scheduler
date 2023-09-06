@@ -19,6 +19,8 @@ import (
 type orderHandler struct {
 	*ordermwpb.Order
 	persistent            chan interface{}
+	notif                 chan interface{}
+	done                  chan interface{}
 	achievementStatements []*achievementstatementmwpb.StatementReq
 	paymentAmount         decimal.Decimal
 }
@@ -81,15 +83,16 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
-		return
-	}
-
 	persistentOrder := &types.PersistentOrder{
 		Order:                 h.Order,
 		AchievementStatements: h.achievementStatements,
 	}
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	if *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 //nolint:gocritic
