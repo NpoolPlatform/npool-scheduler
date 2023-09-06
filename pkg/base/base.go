@@ -52,6 +52,9 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return nil, nil
 	}
+	if h.running == nil {
+		return nil, fmt.Errorf("invalid running map")
+	}
 
 	h.persistent = make(chan interface{})
 	h.notif = make(chan interface{})
