@@ -55,6 +55,20 @@ type goodHandler struct {
 	benefitMessage         string
 }
 
+const (
+	resultNotMining  = "Mining not start"
+	resultZeroReward = "Mining reward is zero"
+)
+
+func (h *goodHandler) checkBenefitable() (bool, error) {
+	if h.StartAt <= uint32(time.Now().Unix()) {
+		h.benefitResult = basetypes.Result_Fail
+		h.benefitMessage = resultNotMining
+		return false, nil
+	}
+	return true, nil
+}
+
 func (h *goodHandler) getCoin(ctx context.Context) error {
 	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
 	if err != nil {
@@ -283,7 +297,15 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error:                   *err,
 	}
 
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	if *err != nil {
+		persistentGood.BenefitResult = basetypes.Result_Fail
+		persistentGood.BenefitMessage = (*err).Error()
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	} else if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		persistentGood.BenefitResult = basetypes.Result_Success
+		persistentGood.BenefitMessage = resultZeroReward
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	}
 	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
@@ -309,7 +331,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	if benefitable, err := h.checkBenefitable(); err != nil || !benefitable {
+		return err
+	}
 	if err = h.getCoin(ctx); err != nil {
 		return err
 	}
