@@ -156,11 +156,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	if *err == nil {
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	}
+	if h.newBenefitState != h.RewardState {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 

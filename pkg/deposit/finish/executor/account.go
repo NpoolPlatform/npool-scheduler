@@ -74,10 +74,6 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	if !h.txFinished && *err == nil {
-		return
-	}
-
 	persistentAccount := &types.PersistentAccount{
 		Account: h.Account,
 		Error:   *err,
@@ -86,12 +82,17 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		outcoming := h.outcoming.String()
 		persistentAccount.CollectOutcoming = &outcoming
 	}
-	if *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+	if !h.txFinished && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
+		return
 	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+	}
+	if h.txFinished {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
+	}
+	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
 
 //nolint:gocritic

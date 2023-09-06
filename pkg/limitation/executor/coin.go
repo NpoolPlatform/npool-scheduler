@@ -182,11 +182,13 @@ func (h *coinHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 		return
 	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 }
 

@@ -58,12 +58,12 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		ChainTxID:        h.chainTxID,
 		Error:            *err,
 	}
-	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
-	}
 	if h.newWithdrawState == h.State && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 		return
+	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	}
 	if h.newWithdrawState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)

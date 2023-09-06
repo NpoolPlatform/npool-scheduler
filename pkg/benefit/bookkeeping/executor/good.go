@@ -193,10 +193,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic

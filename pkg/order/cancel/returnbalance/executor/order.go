@@ -57,10 +57,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint

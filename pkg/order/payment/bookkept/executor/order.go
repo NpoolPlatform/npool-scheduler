@@ -14,6 +14,7 @@ import (
 type orderHandler struct {
 	*ordermwpb.Order
 	persistent    chan interface{}
+	done          chan interface{}
 	balanceAmount decimal.Decimal
 }
 
@@ -35,6 +36,7 @@ func (h *orderHandler) final(ctx context.Context) {
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	var err error
 	if h.balanceAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
+		asyncfeed.AsyncFeed(ctx, h.Order, h.done)
 		return err
 	}
 	h.final(ctx)

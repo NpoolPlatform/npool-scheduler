@@ -104,10 +104,10 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.persistent)
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.done)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentGoodBenefit, h.done)
 }
 
 //nolint:gocritic

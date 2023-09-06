@@ -99,7 +99,10 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 		return
 	}
-	if *err == nil {
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
+	}
+	if h.amount.Cmp(decimal.NewFromInt(0)) > 0 {
 		ioExtra := fmt.Sprintf(
 			`{"AppID":"%v","UserID":"%v","AccountID":"%v","CoinName":"%v","Address":"%v","Date":"%v"}`,
 			h.AppID,
@@ -113,7 +116,6 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
 

@@ -228,13 +228,14 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 		return
 	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.notif)
+	}
 	if h.newState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
 		return
-	} else if *err != nil {
-		asyncfeed.AsyncFeed(ctx, persistentTx, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 	}
+	asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
 }
 
 //nolint:gocritic

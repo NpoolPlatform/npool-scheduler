@@ -209,12 +209,14 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 		return
 	}
-	if *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
-	} else {
+	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 	}
+	if h.amount.Cmp(decimal.NewFromInt(0)) > 0 {
+		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
 
 //nolint:gocritic

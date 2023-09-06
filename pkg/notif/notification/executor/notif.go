@@ -167,6 +167,7 @@ func (h *notifHandler) final(ctx context.Context, err *error) {
 		MessageRequest: h.messageRequest,
 		EventNotifs:    h.eventNotifs,
 	}
+	// TODO: We don't know how to process err here
 	if h.notifiable {
 		asyncfeed.AsyncFeed(ctx, persistentNotif, h.persistent)
 		return

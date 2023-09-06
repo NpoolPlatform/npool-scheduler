@@ -238,11 +238,13 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 		return
 	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 

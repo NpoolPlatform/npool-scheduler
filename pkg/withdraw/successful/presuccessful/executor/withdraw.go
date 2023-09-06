@@ -20,7 +20,7 @@ func (h *withdrawHandler) final(ctx context.Context) {
 	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 }
 
-func (h *withdrawHandler) exec(ctx context.Context) error { //nolint
+func (h *withdrawHandler) exec(ctx context.Context) error {
 	h.final(ctx)
 	return nil
 }

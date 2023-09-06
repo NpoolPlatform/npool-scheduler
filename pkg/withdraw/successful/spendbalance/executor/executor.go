@@ -23,6 +23,7 @@ func (e *handler) Exec(ctx context.Context, withdraw interface{}, persistent, no
 	h := &withdrawHandler{
 		Withdraw:   _withdraw,
 		persistent: persistent,
+		notif:      notif,
 		done:       done,
 	}
 	return h.exec(ctx)

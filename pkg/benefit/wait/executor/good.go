@@ -283,15 +283,11 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error:                   *err,
 	}
 
-	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 && *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
-		return
-	}
-	if *err == nil {
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 

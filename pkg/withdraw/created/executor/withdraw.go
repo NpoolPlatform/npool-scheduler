@@ -10,7 +10,6 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
-	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appcoinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/app/coin"
@@ -30,7 +29,6 @@ type withdrawHandler struct {
 	notif                     chan interface{}
 	done                      chan interface{}
 	withdrawAmount            decimal.Decimal
-	newWithdrawState          ledgertypes.WithdrawState
 	reviewTrigger             reviewtypes.ReviewTriggerType
 	userBenefitHotAccount     *pltfaccmwpb.Account
 	userBenefitHotBalance     decimal.Decimal
@@ -168,8 +166,6 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *withdrawHandler) exec(ctx context.Context) error {
-	h.newWithdrawState = h.State
-
 	var err error
 	defer h.final(ctx, &err)
 

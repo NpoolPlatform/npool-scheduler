@@ -384,11 +384,13 @@ func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, 
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 		return
 	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
+	}
 	if *feedable {
 		asyncfeed.AsyncFeed(ctx, persistentCoin, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentCoin, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 }
 
