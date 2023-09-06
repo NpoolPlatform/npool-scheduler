@@ -66,7 +66,7 @@ func (p *handler) run(ctx context.Context) {
 	}
 }
 
-func (p *handler) paniced(ctx context.Context) {
+func (p *handler) paniced(ctx context.Context) { //nolint
 	close(p.w.ClosedChan())
 }
 

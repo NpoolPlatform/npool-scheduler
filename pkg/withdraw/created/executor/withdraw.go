@@ -161,10 +161,9 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 		return
-	} else {
-		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 	}
+	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
 //nolint:gocritic

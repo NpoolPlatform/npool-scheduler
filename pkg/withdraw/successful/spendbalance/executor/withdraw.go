@@ -60,7 +60,8 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
-func (h *withdrawHandler) exec(ctx context.Context) error { //nolint
+//nolint:gocritic
+func (h *withdrawHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)

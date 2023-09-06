@@ -375,6 +375,7 @@ func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, 
 	asyncfeed.AsyncFeed(ctx, persistentCoin, h.done)
 }
 
+//nolint:gocritic
 func (h *coinHandler) exec(ctx context.Context) error {
 	var err error
 	var account *accountmwpb.Account
