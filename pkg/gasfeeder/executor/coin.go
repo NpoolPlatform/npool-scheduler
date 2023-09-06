@@ -348,7 +348,7 @@ func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.
 
 //nolint:gocritic,interfacer
 func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, feedable *bool, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Coin", h.Coin,
