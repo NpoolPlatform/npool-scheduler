@@ -91,6 +91,7 @@ func (h *accountHandler) final(ctx context.Context, err *error) {
 	}
 	if h.txFinished {
 		asyncfeed.AsyncFeed(ctx, persistentAccount, h.persistent)
+		return
 	}
 	asyncfeed.AsyncFeed(ctx, persistentAccount, h.done)
 }
