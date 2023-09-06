@@ -4,65 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
+	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
-	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance/types"
-
-	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
-	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
-
-	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
-}
-
-func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
-	state := ledgertypes.WithdrawState_Successful
-	rollback := true
-	req := &withdrawmwpb.WithdrawReq{
-		ID:        &withdraw.ID,
-		State:     &state,
-		Rollback:  &rollback,
-		FeeAmount: &withdraw.WithdrawFeeAmount,
-	}
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.withdraw.v2.Middleware/UpdateWithdraw",
-		"ledger.middleware.withdraw.v2.Middleware/UpdateWithdraw",
-		&withdrawmwpb.UpdateWithdrawRequest{
-			Info: req,
-		},
-	)
-}
-
-func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
-	balance := decimal.RequireFromString(withdraw.LockedBalanceAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return
-	}
-
-	req := &ledgermwpb.LedgerReq{
-		AppID:      &withdraw.AppID,
-		UserID:     &withdraw.UserID,
-		CoinTypeID: &withdraw.CoinTypeID,
-		Locked:     &withdraw.LockedBalanceAmount,
-	}
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/SubBalance",
-		"",
-		&ledgermwpb.SubBalanceRequest{
-			Info: req,
-		},
-	)
 }
 
 func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
@@ -73,14 +26,12 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done 
 
 	defer asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
-	const timeoutSeconds = 10
-	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
-		WaitResult:     true,
-		RequestTimeout: timeoutSeconds,
-	})
-	p.withUpdateWithdrawState(sagaDispose, _withdraw)
-	p.withReturnLockedBalance(sagaDispose, _withdraw)
-	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
+	state := ledgertypes.WithdrawState_Successful
+	if _, err := withdrawmwcli.UpdateWithdraw(ctx, &withdrawmwpb.WithdrawReq{
+		ID:        &_withdraw.ID,
+		State:     &state,
+		FeeAmount: &_withdraw.WithdrawFeeAmount,
+	}); err != nil {
 		return err
 	}
 

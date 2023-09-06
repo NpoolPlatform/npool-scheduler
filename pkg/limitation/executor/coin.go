@@ -81,7 +81,7 @@ func (h *coinHandler) checkBalanceLimitation(ctx context.Context) (bool, error) 
 }
 
 func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
-	exist, err := txmwcli.ExistTxConds(ctx, &txmwpb.Conds{
+	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
 		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
 		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
 			h.userBenefitHotAccount.AccountID,
@@ -93,28 +93,21 @@ func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 			uint32(basetypes.TxState_TxStateWait),
 			uint32(basetypes.TxState_TxStateWaitCheck),
 			uint32(basetypes.TxState_TxStateTransferring),
+			uint32(basetypes.TxState_TxStateSuccessful),
 		}},
 		Type: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxLimitation)},
-	})
-	if err != nil {
-		return false, err
-	}
-	if exist {
-		return true, nil
-	}
-
-	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		AccountID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.userBenefitColdAccount.AccountID},
-		State:      &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxState_TxStateSuccessful)},
-		Type:       &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxLimitation)},
 	}, int32(0), int32(1))
 	if err != nil {
 		return false, err
 	}
 	if len(txs) == 0 {
-		return false, nil
+		return true, nil
 	}
+
+	if txs[0].State != basetypes.TxState_TxStateSuccessful {
+		return true, nil
+	}
+
 	const coolDown = timedef.SecondsPerHour
 	if txs[0].CreatedAt+coolDown > uint32(time.Now().Unix()) {
 		return true, nil

@@ -19,6 +19,7 @@ import (
 type txHandler struct {
 	*txmwpb.Tx
 	persistent chan interface{}
+	notif      chan interface{}
 	done       chan interface{}
 	newState   basetypes.TxState
 	txExtra    string
@@ -68,9 +69,6 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 			"Error", *err,
 		)
 	}
-	if h.newState == h.State && *err == nil {
-		return
-	}
 
 	persistentTx := &types.PersistentTx{
 		Tx:         h.Tx,
@@ -78,7 +76,14 @@ func (h *txHandler) final(ctx context.Context, err *error) {
 		TxExtra:    h.txExtra,
 		TxCID:      h.txCID,
 	}
-	if *err == nil {
+	if h.newState == h.State && *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.done)
+		return
+	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentTx, h.notif)
+	}
+	if h.newState != h.State {
 		asyncfeed.AsyncFeed(ctx, persistentTx, h.persistent)
 		return
 	}

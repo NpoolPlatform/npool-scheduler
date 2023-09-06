@@ -22,6 +22,7 @@ func (e *handler) Exec(ctx context.Context, tx interface{}, persistent, notif, d
 	h := &txHandler{
 		Tx:         _tx,
 		persistent: persistent,
+		notif:      notif,
 		done:       done,
 	}
 	return h.exec(ctx)
