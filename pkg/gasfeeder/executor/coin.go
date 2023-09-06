@@ -81,7 +81,7 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
 		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: account.ID},
 		Type:      &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxFeedGas)},
-		States: &basetypes.Uint32SliceVal{Op: cruder.EQ, Value: []uint32{
+		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreated),
 			uint32(basetypes.TxState_TxStateCreatedCheck),
 			uint32(basetypes.TxState_TxStateWait),
@@ -98,21 +98,11 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	}
 
 	if txs[0].State != basetypes.TxState_TxStateSuccessful {
-		logger.Sugar().Infow(
-			"feeding",
-			"Account", account,
-			"State", "Feeding",
-		)
 		return true, nil
 	}
 
 	const coolDown = uint32(10 * timedef.SecondsPerMinute)
 	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
-		logger.Sugar().Infow(
-			"feeding",
-			"Account", account,
-			"State", "Feeding",
-		)
 		return true, nil
 	}
 
