@@ -15,6 +15,5 @@ type PersistentCoin struct {
 	FeeAmount     string
 	Extra         string
 	UsedFor       basetypes.AccountUsedFor
-	Feedable      bool
 	Error         error
 }

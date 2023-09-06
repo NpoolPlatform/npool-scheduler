@@ -26,19 +26,17 @@ func (p *handler) Update(ctx context.Context, coin interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _coin, done)
 
-	if _coin.Feedable {
-		txType := basetypes.TxType_TxFeedGas
-		if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-			CoinTypeID:    &_coin.FeeCoinTypeID,
-			FromAccountID: &_coin.FromAccountID,
-			ToAccountID:   &_coin.ToAccountID,
-			Amount:        &_coin.Amount,
-			FeeAmount:     &_coin.FeeAmount,
-			Extra:         &_coin.Extra,
-			Type:          &txType,
-		}); err != nil {
-			return err
-		}
+	txType := basetypes.TxType_TxFeedGas
+	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
+		CoinTypeID:    &_coin.FeeCoinTypeID,
+		FromAccountID: &_coin.FromAccountID,
+		ToAccountID:   &_coin.ToAccountID,
+		Amount:        &_coin.Amount,
+		FeeAmount:     &_coin.FeeAmount,
+		Extra:         &_coin.Extra,
+		Type:          &txType,
+	}); err != nil {
+		return err
 	}
 
 	return nil
