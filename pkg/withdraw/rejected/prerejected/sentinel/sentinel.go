@@ -3,6 +3,7 @@ package sentinel
 import (
 	"context"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	withdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
@@ -36,6 +37,7 @@ func (h *handler) scanWithdraws(ctx context.Context, exec chan interface{}) erro
 		}
 
 		for _, withdraw := range withdraws {
+			logger.Sugar().Infow("scanWithdraws", "Withdraw", withdraw)
 			cancelablefeed.CancelableFeed(ctx, withdraw, exec)
 		}
 

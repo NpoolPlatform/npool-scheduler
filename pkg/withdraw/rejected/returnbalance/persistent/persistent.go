@@ -25,7 +25,7 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw) {
-	state := ledgertypes.WithdrawState_TransactionFail
+	state := ledgertypes.WithdrawState_Rejected
 	rollback := true
 	req := &withdrawmwpb.WithdrawReq{
 		ID:       &withdraw.ID,
