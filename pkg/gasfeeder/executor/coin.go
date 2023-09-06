@@ -81,7 +81,7 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
 		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: account.ID},
 		Type:      &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxFeedGas)},
-		States: &basetypes.Uint32SliceVal{Op: cruder.EQ, Value: []uint32{
+		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreated),
 			uint32(basetypes.TxState_TxStateCreatedCheck),
 			uint32(basetypes.TxState_TxStateWait),
@@ -98,9 +98,10 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	}
 
 	if txs[0].State != basetypes.TxState_TxStateSuccessful {
-		logger.Sugar().Infow(
+		logger.Sugar().Debugw(
 			"feeding",
 			"Account", account,
+			"Txs", txs,
 			"State", "Feeding",
 		)
 		return true, nil
@@ -108,9 +109,10 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 
 	const coolDown = uint32(10 * timedef.SecondsPerMinute)
 	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
-		logger.Sugar().Infow(
+		logger.Sugar().Debugw(
 			"feeding",
 			"Account", account,
+			"Txs", txs,
 			"State", "Feeding",
 		)
 		return true, nil
@@ -244,8 +246,6 @@ func (h *coinHandler) checkUserBenefitHot(ctx context.Context) (bool, *accountmw
 }
 
 func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	return false, nil, decimal.NewFromInt(0), nil
-
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -294,8 +294,6 @@ func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmw
 }
 
 func (h *coinHandler) checkDepositAccount(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	return false, nil, decimal.NewFromInt(0), nil
-
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -350,7 +348,7 @@ func (h *coinHandler) checkGoodBenefit(ctx context.Context) (bool, *accountmwpb.
 
 //nolint:gocritic,interfacer
 func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, usedFor *basetypes.AccountUsedFor, amount *decimal.Decimal, feedable *bool, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Coin", h.Coin,
