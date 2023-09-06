@@ -36,6 +36,8 @@ type goodHandler struct {
 	totalTechniqueFeeAmount decimal.Decimal
 	orderRewards            []*types.OrderReward
 	statementExist          bool
+	benefitResult           basetypes.Result
+	benefitMessage          string
 }
 
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
@@ -195,6 +197,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
+
+	persistentGood.BenefitResult = basetypes.Result_Fail
+	persistentGood.BenefitMessage = (*err).Error()
+
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
