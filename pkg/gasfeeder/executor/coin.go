@@ -98,11 +98,23 @@ func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account)
 	}
 
 	if txs[0].State != basetypes.TxState_TxStateSuccessful {
+		logger.Sugar().Debugw(
+			"feeding",
+			"Account", account,
+			"Txs", txs,
+			"State", "Feeding",
+		)
 		return true, nil
 	}
 
 	const coolDown = uint32(10 * timedef.SecondsPerMinute)
 	if txs[0].UpdatedAt+coolDown > uint32(time.Now().Unix()) {
+		logger.Sugar().Debugw(
+			"feeding",
+			"Account", account,
+			"Txs", txs,
+			"State", "Feeding",
+		)
 		return true, nil
 	}
 
@@ -234,8 +246,6 @@ func (h *coinHandler) checkUserBenefitHot(ctx context.Context) (bool, *accountmw
 }
 
 func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	return false, nil, decimal.NewFromInt(0), nil
-
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -284,8 +294,6 @@ func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmw
 }
 
 func (h *coinHandler) checkDepositAccount(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	return false, nil, decimal.NewFromInt(0), nil
-
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
