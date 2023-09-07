@@ -316,6 +316,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
+	h.benefitResult = basetypes.Result_Success
+
 	var err error
 
 	defer h.final(ctx, &err)

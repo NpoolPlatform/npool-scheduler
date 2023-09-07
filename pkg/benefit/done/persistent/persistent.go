@@ -25,6 +25,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
+	asyncfeed.AsyncFeed(ctx, _good, notif)
 
 	state := goodtypes.BenefitState_BenefitWait
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{

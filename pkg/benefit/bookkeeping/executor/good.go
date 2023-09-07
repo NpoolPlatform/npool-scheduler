@@ -37,8 +37,6 @@ type goodHandler struct {
 	totalTechniqueFeeAmount decimal.Decimal
 	orderRewards            []*types.OrderReward
 	statementExist          bool
-	benefitResult           basetypes.Result
-	benefitMessage          string
 }
 
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
