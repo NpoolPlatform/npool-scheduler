@@ -356,12 +356,12 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		persistentGood.BenefitResult = basetypes.Result_Fail
 		persistentGood.BenefitMessage = (*err).Error()
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+		return
 	}
 	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic
@@ -418,7 +418,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	}
 	h.calculateTechniqueFee()
 	if err = h.checkTransferrable(); err != nil {
-		return nil
+		return err
 	}
 
 	return nil
