@@ -30,7 +30,6 @@ type goodHandler struct {
 	newBenefitState       goodtypes.BenefitState
 	toPlatformAmount      decimal.Decimal
 	techniqueFee          decimal.Decimal
-	nextStartRewardAmount decimal.Decimal
 	transferToPlatform    bool
 	userBenefitHotAccount *pltfaccmwpb.Account
 	platformColdAccount   *pltfaccmwpb.Account
@@ -98,18 +97,7 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 		h.toPlatformAmount = _p.PlatformReward.Add(_p.TechniqueServiceFee)
 		h.techniqueFee = _p.TechniqueServiceFee
 	}
-
-	nextStart, err := decimal.NewFromString(h.NextRewardStartAmount)
-	if err != nil {
-		return err
-	}
-	amount, err := decimal.NewFromString(tx.Amount)
-	if err != nil {
-		return err
-	}
-	h.nextStartRewardAmount = nextStart.Sub(amount)
 	h.txExtra = tx.Extra
-
 	return nil
 }
 
@@ -147,6 +135,25 @@ func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 	return account, nil
 }
 
+func (h *goodHandler) checkTransferred() (bool, error) {
+	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
+	if err != nil {
+		return false, err
+	}
+	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return false, fmt.Errorf("invalid leasttransferamount")
+	}
+	todayRewardAmount, err := decimal.NewFromString(h.LastRewardAmount)
+	if err != nil {
+		return false, err
+	}
+	if todayRewardAmount.Cmp(least) <= 0 {
+		h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
+		return false, nil
+	}
+	return true, nil
+}
+
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -155,7 +162,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"Good", h.Good,
 			"ToPlatformAmount", h.toPlatformAmount,
 			"NewBenefitState", h.newBenefitState,
-			"NextStartAmount", h.nextStartRewardAmount,
 			"Extra", h.txExtra,
 			"UserBenefitHotAccount", h.userBenefitHotAccount,
 			"PlatformColdAccount", h.platformColdAccount,
@@ -170,7 +176,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		ToPlatformAmount:   h.toPlatformAmount.String(),
 		NewBenefitState:    h.newBenefitState,
 		FeeAmount:          decimal.NewFromInt(0).String(),
-		NextStartAmount:    h.nextStartRewardAmount.String(),
 		Extra:              h.txExtra,
 		Error:              *err,
 	}
@@ -207,30 +212,34 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 func (h *goodHandler) exec(ctx context.Context) error {
 	h.newBenefitState = h.RewardState
 	h.benefitResult = basetypes.Result_Success
+
 	var err error
+	var transferred bool
 	defer h.final(ctx, &err)
 
+	h.userBenefitHotAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
+	if err != nil {
+		err = fmt.Errorf("%v (%v)", err, basetypes.AccountUsedFor_UserBenefitHot)
+		return err
+	}
+	h.platformColdAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_PlatformBenefitCold)
+	if err != nil {
+		err = fmt.Errorf("%v (%v)", err, basetypes.AccountUsedFor_PlatformBenefitCold)
+		return err
+	}
+	if err = h.getCoin(ctx); err != nil {
+		return err
+	}
+	if transferred, err = h.checkTransferred(); err != nil || !transferred {
+		return err
+	}
 	if err = h.checkTransfer(ctx); err != nil {
 		return err
 	}
 	if h.newBenefitState == goodtypes.BenefitState_BenefitFail {
 		return nil
 	}
-	if err = h.getCoin(ctx); err != nil {
-		return err
-	}
 	if err = h.checkTransferToPlatform(); err != nil {
-		return err
-	}
-	if !h.transferToPlatform {
-		return nil
-	}
-	h.userBenefitHotAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
-	if err != nil {
-		return err
-	}
-	h.platformColdAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_PlatformBenefitCold)
-	if err != nil {
 		return err
 	}
 

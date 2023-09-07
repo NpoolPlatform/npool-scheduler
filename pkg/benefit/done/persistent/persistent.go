@@ -29,8 +29,9 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	state := goodtypes.BenefitState_BenefitWait
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:          &_good.ID,
-		RewardState: &state,
+		ID:                    &_good.ID,
+		RewardState:           &state,
+		NextRewardStartAmount: &_good.NextStartRewardAmount,
 	}); err != nil {
 		return err
 	}

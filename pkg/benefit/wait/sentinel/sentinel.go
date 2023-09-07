@@ -57,6 +57,9 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 		}
 
 		for _, good := range goods {
+			if good.ID != "55e2b420-fc00-479f-9159-6fce48df83f8" {
+				continue
+			}
 			if err := h.feedGood(ctx, good, exec); err != nil {
 				return err
 			}
@@ -71,7 +74,10 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		return nil
 	}
 	h.CalculateNextBenefitAt()
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec)
+	if err := h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec); err != nil {
+		return err
+	}
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckWait, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

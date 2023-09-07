@@ -51,6 +51,9 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 		}
 
 		for _, good := range goods {
+			if good.ID != "55e2b420-fc00-479f-9159-6fce48df83f8" {
+				continue
+			}
 			if err := h.feedGood(ctx, good, exec); err != nil {
 				return err
 			}

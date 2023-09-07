@@ -55,12 +55,19 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	id := uuid.NewString()
 	state := goodtypes.BenefitState_BenefitTransferring
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:          &_good.ID,
-		RewardTID:   &id,
-		RewardAt:    &_good.BenefitTimestamp,
-		RewardState: &state,
+		ID:                    &_good.ID,
+		RewardTID:             &id,
+		RewardAt:              &_good.BenefitTimestamp,
+		RewardState:           &state,
+		RewardAmount:          &_good.TodayRewardAmount,
+		UnitRewardAmount:      &_good.TodayUnitRewardAmount,
+		NextRewardStartAmount: &_good.NextStartRewardAmount,
 	}); err != nil {
 		return err
+	}
+
+	if !_good.Transferrable {
+		return nil
 	}
 
 	txType := basetypes.TxType_TxUserBenefit
