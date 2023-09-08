@@ -47,6 +47,11 @@ func (h *txHandler) checkTransfer(ctx context.Context) error {
 	switch tx.TransactionState {
 	case sphinxproxypb.TransactionState_TransactionStateFail:
 		h.newState = basetypes.TxState_TxStateFail
+		h.txCID = &tx.CID
+		if tx.CID == "" {
+			txCID := "(fail without CID)"
+			h.txCID = &txCID
+		}
 	case sphinxproxypb.TransactionState_TransactionStateDone:
 		h.newState = basetypes.TxState_TxStateSuccessful
 		h.txCID = &tx.CID
