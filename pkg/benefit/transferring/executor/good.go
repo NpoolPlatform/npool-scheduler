@@ -78,7 +78,7 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 		return nil
 	case basetypes.TxState_TxStateFail:
 		h.benefitResult = basetypes.Result_Fail
-		h.benefitMessage = fmt.Sprintf("%v (%v)", errorTxFail, h.RewardTID)
+		h.benefitMessage = fmt.Sprintf("%v %v@%v(%v)", errorTxFail, tx.ChainTxID, h.LastRewardAt, h.RewardTID)
 		h.newBenefitState = goodtypes.BenefitState_BenefitFail
 	case basetypes.TxState_TxStateSuccessful:
 		h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
