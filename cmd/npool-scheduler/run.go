@@ -6,19 +6,10 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/action"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/db"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement"
-	notifbenefit "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/pubsub"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/scheduler"
 
 	apicli "github.com/NpoolPlatform/basal-middleware/pkg/client/api"
 	"github.com/NpoolPlatform/npool-scheduler/api"
@@ -42,16 +33,7 @@ var runCmd = &cli.Command{
 			watch,
 		)
 
-		notifbenefit.Finalize(c.Context)
-		benefit.Finalize(c.Context)
-		deposit.Finalize(c.Context)
-		withdraw.Finalize(c.Context)
-		limitation.Finalize(c.Context)
-		txqueue.Finalize(c.Context)
-		announcement.Finalize(c.Context)
-		notification.Finalize(c.Context)
-		gasfeeder.Finalize(c.Context)
-		order.Finalize(c.Context)
+		scheduler.Finalize(c.Context)
 
 		return err
 	},
@@ -80,16 +62,7 @@ func shutdown(ctx context.Context) {
 
 func watch(ctx context.Context, cancel context.CancelFunc) error {
 	go shutdown(ctx)
-	order.Initialize(ctx, cancel)
-	gasfeeder.Initialize(ctx, cancel)
-	announcement.Initialize(ctx, cancel)
-	notification.Initialize(ctx, cancel)
-	txqueue.Initialize(ctx, cancel)
-	limitation.Initialize(ctx, cancel)
-	withdraw.Initialize(ctx, cancel)
-	deposit.Initialize(ctx, cancel)
-	benefit.Initialize(ctx, cancel)
-	notifbenefit.Initialize(ctx, cancel)
+	scheduler.Initialize(ctx, cancel)
 	return nil
 }
 
