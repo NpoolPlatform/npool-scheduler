@@ -59,6 +59,7 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 		AppID:      &order.AppID,
 		UserID:     &order.UserID,
 		CoinTypeID: &order.PaymentCoinTypeID,
+		LockID:     &order.LedgerLockID,
 		Spendable:  order.LockedBalanceAmount,
 	}
 	dispose.Add(
