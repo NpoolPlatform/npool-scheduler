@@ -52,7 +52,7 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 		goodsvcname.ServiceDomain,
 		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
 		"",
-		&appstockmwpb.AddStockRequest{
+		&appstockmwpb.SubStockRequest{
 			Info: req,
 		},
 	)

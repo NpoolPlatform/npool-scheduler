@@ -57,6 +57,7 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 		GoodID:    &order.GoodID,
 		AppGoodID: &order.AppGoodID,
 		WaitStart: &order.Units,
+		LockID:    &order.AppGoodStockLockID,
 	}
 	dispose.Add(
 		goodsvcname.ServiceDomain,
