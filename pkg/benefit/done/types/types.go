@@ -8,4 +8,5 @@ type PersistentGood struct {
 	*goodmwpb.Good
 	NextStartRewardAmount string
 	BenefitOrderIDs       []string
+	BenefitMessage        string
 }

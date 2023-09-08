@@ -15,8 +15,10 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring/types"
+	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
@@ -101,7 +103,7 @@ func (h *goodHandler) checkTransfer(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) checkTransferToPlatform() error {
+func (h *goodHandler) checkTransferToPlatform(ctx context.Context) error {
 	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
 	if err != nil {
 		return err
@@ -113,6 +115,30 @@ func (h *goodHandler) checkTransferToPlatform() error {
 	if h.toPlatformAmount.Cmp(least) <= 0 {
 		return nil
 	}
+
+	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    h.coin.Name,
+		Address: h.userBenefitHotAccount.Address,
+	})
+	if err != nil {
+		return fmt.Errorf("fail check transfer amount (%v)", err)
+	}
+	if bal == nil {
+		return fmt.Errorf("invalid balance")
+	}
+
+	balance, err := decimal.NewFromString(bal.BalanceStr)
+	if err != nil {
+		return err
+	}
+	reserved, err := decimal.NewFromString(h.coin.ReservedAmount)
+	if err != nil {
+		return err
+	}
+	if balance.Cmp(h.toPlatformAmount.Add(reserved)) < 0 {
+		return nil
+	}
+
 	h.transferToPlatform = true
 	return nil
 }
@@ -239,7 +265,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if h.newBenefitState == goodtypes.BenefitState_BenefitFail {
 		return nil
 	}
-	if err = h.checkTransferToPlatform(); err != nil {
+	if err = h.checkTransferToPlatform(ctx); err != nil {
 		return err
 	}
 

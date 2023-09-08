@@ -90,11 +90,18 @@ func (h *benefitHandler) generateHTMLHeader() {
 }
 
 //nolint
-func (h *benefitHandler) generateTableHeader(goodTypeName string) {
+func (h *benefitHandler) generateTableHeader(goodTypeName string, appGood bool) {
 	h.content += "<tr>"
-	h.content += fmt.Sprintf(`<th colspan="7">%v</th>`, goodTypeName)
+	if appGood {
+		h.content += fmt.Sprintf(`<th colspan="8">%v</th>`, goodTypeName)
+	} else {
+		h.content += fmt.Sprintf(`<th colspan="7">%v</th>`, goodTypeName)
+	}
 	h.content += "</tr>"
 	h.content += "<tr>"
+	if appGood {
+		h.content += "<th>AppGoodID</th>"
+	}
 	h.content += "<th>GoodID</th>"
 	h.content += "<th>GoodName</th>"
 	h.content += "<th>Amount</th>"
@@ -106,7 +113,7 @@ func (h *benefitHandler) generateTableHeader(goodTypeName string) {
 }
 
 func (h *benefitHandler) generateGoodNotifContent() error {
-	h.generateTableHeader("Platform Products")
+	h.generateTableHeader("Platform Products", false)
 	for _, benefit := range h.benefits {
 		tm := time.Unix(int64(benefit.BenefitDate), 0)
 		good, ok := h.goods[benefit.GoodID]
@@ -138,7 +145,7 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 
 //nolint:gocognit
 func (h *benefitHandler) generateAppGoodNotifContent() error {
-	h.generateTableHeader("Application Products")
+	h.generateTableHeader("Application Products", true)
 	for _, benefit := range h.benefits {
 		tm := time.Unix(int64(benefit.BenefitDate), 0)
 		appGoods, ok := h.appGoods[benefit.GoodID]
@@ -171,8 +178,9 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 			}
 
 			h.content += fmt.Sprintf(
-				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
+				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				appGoodID,
+				appGood.GoodID,
 				appGood.GoodName,
 				amount.Mul(appGoodInService).Div(goodInService),
 				amount.Div(total),
