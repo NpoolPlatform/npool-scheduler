@@ -7,9 +7,11 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
@@ -25,7 +27,25 @@ type benefitHandler struct {
 	done          chan interface{}
 	notifContents []*types.NotifContent
 	content       string
-	appGoods      map[string]*appgoodmwpb.Good
+	appGoods      map[string]map[string]*appgoodmwpb.Good
+	goods         map[string]*goodmwpb.Good
+}
+
+func (h *benefitHandler) getGoods(ctx context.Context) error {
+	goodIDs := []string{}
+	for _, benefit := range h.benefits {
+		goodIDs = append(goodIDs, benefit.GoodID)
+	}
+	goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
+		IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
+	}, int32(0), int32(len(goodIDs)))
+	if err != nil {
+		return err
+	}
+	for _, good := range goods {
+		h.goods[good.ID] = good
+	}
+	return nil
 }
 
 func (h *benefitHandler) getAppGoods(ctx context.Context) error {
@@ -47,19 +67,58 @@ func (h *benefitHandler) getAppGoods(ctx context.Context) error {
 			return nil
 		}
 		for _, good := range goods {
-			h.appGoods[good.GoodID] = good
+			appGoods, ok := h.appGoods[good.GoodID]
+			if !ok {
+				appGoods = map[string]*appgoodmwpb.Good{}
+			}
+			appGoods[good.ID] = good
+			h.appGoods[good.GoodID] = appGoods
 		}
 		offset += limit
 	}
 }
 
-func (h *benefitHandler) generateNotifContent() error {
-	h.content = "<html><head><style>table.notif-benefit {border-collapse: collapse;width: 100%;}#notif-good-benefit td,#notif-good-benefit th {border: 1px solid #dddddd;text-align: left;padding: 8px;}</style></head><table id='notif-good-benefit' class='notif-benefit'><tr><th>GoodID</th><th>GoodName</th><th>Amount</th><th>AmountPerUnit</th><th>State</th><th>Message</th><th>BenefitDate</th></tr>"
+func (h *benefitHandler) generateHTMLHeader() {
+	h.content += "<html>"
+	h.content += "<head>"
+	h.content += "<style>"
+	h.content += "table.notif-benefit {border-collapse: collapse;width: 100%;}"
+	h.content += "#notif-good-benefit td,#notif-good-benefit th {border: 1px solid #dddddd;text-align: left;padding: 8px;}"
+	h.content += "</style>"
+	h.content += "</head>"
+	h.content += "<table id='notif-good-benefit' class='notif-benefit'>"
+}
+
+func (h *benefitHandler) generateTableHeader(goodTypeName string) {
+	h.content += "<tr>"
+	h.content += fmt.Sprintf("<th>%v</th>", goodTypeName)
+	h.content += "<th></th>"
+	h.content += "<th></th>"
+	h.content += "<th></th>"
+	h.content += "<th></th>"
+	h.content += "<th></th>"
+	h.content += "<th></th>"
+	h.content += "</tr>"
+	h.content += "<tr>"
+	h.content += "<th>GoodID</th>"
+	h.content += "<th>GoodName</th>"
+	h.content += "<th>Amount</th>"
+	h.content += "<th>AmountPerUnit</th>"
+	h.content += "<th>State</th>"
+	h.content += "<th>Message</th>"
+	h.content += "<th>BenefitDate</th>"
+	h.content += "</tr>"
+}
+
+func (h *benefitHandler) generateGoodNotifContent() error {
+	h.generateTableHeader("Platform Products")
 	for _, benefit := range h.benefits {
-		good, ok := h.appGoods[benefit.GoodID]
+		tm := time.Unix(int64(benefit.BenefitDate), 0)
+		good, ok := h.goods[benefit.GoodID]
 		if !ok {
 			return fmt.Errorf("invalid good")
 		}
+
 		total, err := decimal.NewFromString(good.GoodTotal)
 		if err != nil {
 			return err
@@ -68,8 +127,6 @@ func (h *benefitHandler) generateNotifContent() error {
 		if err != nil {
 			return err
 		}
-
-		tm := time.Unix(int64(benefit.BenefitDate), 0)
 		h.content += fmt.Sprintf(
 			`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 			benefit.GoodID,
@@ -84,10 +141,60 @@ func (h *benefitHandler) generateNotifContent() error {
 	return nil
 }
 
+func (h *benefitHandler) generateAppGoodNotifContent() error {
+	h.generateTableHeader("Application Products")
+	for _, benefit := range h.benefits {
+		tm := time.Unix(int64(benefit.BenefitDate), 0)
+		appGoods, ok := h.appGoods[benefit.GoodID]
+		if !ok {
+			continue
+		}
+		for appGoodID, appGood := range appGoods {
+			appGoodInService, err := decimal.NewFromString(appGood.AppGoodInService)
+			if err != nil {
+				return err
+			}
+			if appGoodInService.Cmp(decimal.NewFromInt(0)) <= 0 {
+				continue
+			}
+
+			total, err := decimal.NewFromString(appGood.GoodTotal)
+			if err != nil {
+				return err
+			}
+			amount, err := decimal.NewFromString(benefit.Amount)
+			if err != nil {
+				return err
+			}
+			goodInService, err := decimal.NewFromString(appGood.GoodInService)
+			if err != nil {
+				return err
+			}
+			if goodInService.Cmp(decimal.NewFromInt(0)) <= 0 {
+				continue
+			}
+
+			h.content += fmt.Sprintf(
+				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
+				appGoodID,
+				appGood.GoodName,
+				amount.Mul(appGoodInService).Div(goodInService),
+				amount.Div(total),
+				benefit.State,
+				benefit.Message,
+				tm,
+			)
+		}
+	}
+	return nil
+}
+
 func (h *benefitHandler) generateNotifContents() {
 	appIDs := map[string]struct{}{}
-	for _, appGood := range h.appGoods {
-		appIDs[appGood.AppID] = struct{}{}
+	for _, appGoods := range h.appGoods {
+		for _, appGood := range appGoods {
+			appIDs[appGood.AppID] = struct{}{}
+		}
 	}
 	for appID := range appIDs {
 		h.notifContents = append(h.notifContents, &types.NotifContent{
@@ -95,6 +202,31 @@ func (h *benefitHandler) generateNotifContents() {
 			Content: h.content,
 		})
 	}
+}
+
+func (h *benefitHandler) validateInServiceUnits() error {
+	for _, appGoods := range h.appGoods {
+		goodInService := decimal.NewFromInt(0)
+		inService := decimal.NewFromInt(0)
+		for _, appGood := range appGoods {
+			_goodInService, err := decimal.NewFromString(appGood.GoodInService)
+			if err != nil {
+				return err
+			}
+			if _goodInService.Cmp(goodInService) != 0 {
+				return fmt.Errorf("invalid inservice")
+			}
+			_inService, err := decimal.NewFromString(appGood.AppGoodInService)
+			if err != nil {
+				return err
+			}
+			inService = inService.Add(_inService)
+		}
+		if inService.Cmp(goodInService) > 0 {
+			return fmt.Errorf("invalid inservice")
+		}
+	}
+	return nil
 }
 
 //nolint:gocritic
@@ -120,15 +252,26 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *benefitHandler) exec(ctx context.Context) error {
-	h.appGoods = map[string]*appgoodmwpb.Good{}
+	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
+	h.goods = map[string]*goodmwpb.Good{}
 
 	var err error
 	defer h.final(ctx, &err)
 
+	if err = h.getGoods(ctx); err != nil {
+		return err
+	}
 	if err = h.getAppGoods(ctx); err != nil {
 		return err
 	}
-	if err = h.generateNotifContent(); err != nil {
+	if err = h.validateInServiceUnits(); err != nil {
+		return err
+	}
+	h.generateHTMLHeader()
+	if err = h.generateGoodNotifContent(); err != nil {
+		return err
+	}
+	if err = h.generateAppGoodNotifContent(); err != nil {
 		return err
 	}
 	h.generateNotifContents()
