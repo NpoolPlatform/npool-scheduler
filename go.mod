@@ -6,7 +6,7 @@ require (
 	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/account-middleware v0.0.0-20230826132818-836c0d0c882b
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20230821084741-bbe3cc02284b
-	github.com/NpoolPlatform/basal-middleware v0.0.0-20230815094824-5e9572b10997
+	github.com/NpoolPlatform/basal-middleware v0.0.0-20230908131959-b37594a23afd
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230825051420-8b0fe024643d
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20230901092100-75e025eff821
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230817045929-5013c1523e3a
