@@ -97,6 +97,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Good:                  h.Good,
 		NextStartRewardAmount: h.nextStartRewardAmount.String(),
 		BenefitOrderIDs:       h.benefitOrderIDs,
+		BenefitMessage:        basetypes.Result_Success.String(),
 	}
 
 	if *err == nil {
