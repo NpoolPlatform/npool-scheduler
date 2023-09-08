@@ -152,6 +152,12 @@ func (h *Handler) handler(ctx context.Context) bool {
 	case ent := <-h.sentinel.Exec():
 		if h.running != nil {
 			if _, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), true); loaded {
+				logger.Sugar().Warnw(
+					"handler",
+					"Ent", ent,
+					"Subsystem", h.subsystem,
+					"State", "Processing",
+				)
 				return false
 			}
 		}

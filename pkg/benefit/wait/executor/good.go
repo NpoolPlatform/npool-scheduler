@@ -256,7 +256,12 @@ func (h *goodHandler) getUserBenefitHotAccount(ctx context.Context) error {
 		return err
 	}
 	if account == nil {
-		return fmt.Errorf("invalid account")
+		return fmt.Errorf(
+			"invalid account (coin %v | %v, usedfor %v)",
+			h.coin.Name,
+			h.CoinTypeID,
+			basetypes.AccountUsedFor_UserBenefitHot,
+		)
 	}
 	h.userBenefitHotAccount = account
 	return nil
@@ -274,7 +279,12 @@ func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 		return err
 	}
 	if account == nil {
-		return fmt.Errorf("invalid account")
+		return fmt.Errorf(
+			"invalid account (good %v |%v, usedfor %v)",
+			h.Title,
+			h.ID,
+			basetypes.AccountUsedFor_GoodBenefit,
+		)
 	}
 	h.goodBenefitAccount = account
 	return nil
@@ -362,7 +372,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+		return
 	}
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic

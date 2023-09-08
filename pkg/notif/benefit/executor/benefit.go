@@ -205,8 +205,16 @@ func (h *benefitHandler) generateNotifContents() {
 }
 
 func (h *benefitHandler) validateInServiceUnits() error {
-	for _, appGoods := range h.appGoods {
-		goodInService := decimal.NewFromInt(0)
+	for goodID, appGoods := range h.appGoods {
+		good, ok := h.goods[goodID]
+		if !ok {
+			continue
+		}
+		goodInService, err := decimal.NewFromString(good.GoodInService)
+		if err != nil {
+			return err
+		}
+
 		inService := decimal.NewFromInt(0)
 		for _, appGood := range appGoods {
 			_goodInService, err := decimal.NewFromString(appGood.GoodInService)
@@ -214,7 +222,13 @@ func (h *benefitHandler) validateInServiceUnits() error {
 				return err
 			}
 			if _goodInService.Cmp(goodInService) != 0 {
-				return fmt.Errorf("invalid inservice")
+				return fmt.Errorf(
+					"invalid inservice (good %v | %v, inservice %v != %v)",
+					appGood.GoodName,
+					appGood.ID,
+					goodInService,
+					_goodInService,
+				)
 			}
 			_inService, err := decimal.NewFromString(appGood.AppGoodInService)
 			if err != nil {
@@ -222,8 +236,14 @@ func (h *benefitHandler) validateInServiceUnits() error {
 			}
 			inService = inService.Add(_inService)
 		}
-		if inService.Cmp(goodInService) > 0 {
-			return fmt.Errorf("invalid inservice")
+		if inService.Cmp(goodInService) != 0 {
+			return fmt.Errorf(
+				"invalid inservice (good %v | %v, inservice %v != %v)",
+				good.Title,
+				good.ID,
+				inService,
+				goodInService,
+			)
 		}
 	}
 	return nil
