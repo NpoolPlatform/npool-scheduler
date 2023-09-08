@@ -16,7 +16,6 @@ type PersistentGood struct {
 	PlatformColdAccountID   string
 	PlatformColdAddress     string
 	FeeAmount               string
-	NextStartAmount         string
 	Extra                   string
 	BenefitResult           basetypes.Result
 	BenefitMessage          string

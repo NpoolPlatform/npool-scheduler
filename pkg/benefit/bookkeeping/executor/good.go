@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -76,6 +77,33 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
+func (h *goodHandler) getAppGoods(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(goods) == 0 {
+			break
+		}
+		for _, good := range goods {
+			_goods, ok := h.goods[good.AppID]
+			if !ok {
+				_goods = map[string]*appgoodmwpb.Good{}
+			}
+			_goods[good.ID] = good
+			h.goods[good.AppID] = _goods
+		}
+		offset += limit
+	}
+	return nil
+}
+
 func (h *goodHandler) calculateUnitReward() {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		goods, ok := h.goods[appID]
@@ -120,8 +148,9 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 		return nil
 	}
 	ioExtra := fmt.Sprintf(
-		`{"GoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
+		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
 		h.ID,
+		order.AppGoodID,
 		order.ID,
 		order.Units,
 		h.LastRewardAt,
@@ -219,6 +248,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
+	h.goods = map[string]map[string]*appgoodmwpb.Good{}
+	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
+	h.appGoodUnitRewards = map[string]map[string]decimal.Decimal{}
 	var err error
 
 	defer h.final(ctx, &err)
@@ -228,6 +260,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if exist, err := h.checkGoodStatement(ctx); err != nil || exist {
+		return err
+	}
+	if err = h.getAppGoods(ctx); err != nil {
 		return err
 	}
 	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)

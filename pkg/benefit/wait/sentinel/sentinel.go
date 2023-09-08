@@ -71,7 +71,10 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		return nil
 	}
 	h.CalculateNextBenefitAt()
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec)
+	if err := h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec); err != nil {
+		return err
+	}
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckWait, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

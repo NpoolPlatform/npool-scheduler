@@ -8,6 +8,7 @@ import (
 	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
@@ -41,7 +42,9 @@ type goodHandler struct {
 	totalInServiceUnits    decimal.Decimal
 	totalBenefitOrderUnits decimal.Decimal
 	startRewardAmount      decimal.Decimal
+	nextStartRewardAmount  decimal.Decimal
 	todayRewardAmount      decimal.Decimal
+	todayUnitRewardAmount  decimal.Decimal
 	userRewardAmount       decimal.Decimal
 	platformRewardAmount   decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
@@ -53,17 +56,25 @@ type goodHandler struct {
 	benefitOrderIDs        []string
 	benefitResult          basetypes.Result
 	benefitMessage         string
+	notifiable             bool
+	transferrable          bool
 }
 
 const (
-	resultNotMining  = "Mining not start"
-	resultZeroReward = "Mining reward is zero"
+	resultNotMining     = "Mining not start"
+	resultMinimumReward = "Mining reward not transferred"
 )
 
 func (h *goodHandler) checkBenefitable() (bool, error) {
-	if h.StartAt <= uint32(time.Now().Unix()) {
-		h.benefitResult = basetypes.Result_Fail
-		h.benefitMessage = resultNotMining
+	if h.StartAt >= uint32(time.Now().Unix()) {
+		h.benefitResult = basetypes.Result_Success
+		h.benefitMessage = fmt.Sprintf(
+			"%v (start at %v, now %v)",
+			resultNotMining,
+			time.Unix(int64(h.StartAt), 0),
+			time.Now(),
+		)
+		h.notifiable = true
 		return false, nil
 	}
 	return true, nil
@@ -86,29 +97,24 @@ func (h *goodHandler) getCoin(ctx context.Context) error {
 }
 
 func (h *goodHandler) checkBenefitBalance(ctx context.Context) error {
-	account, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
-		GoodID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		Backup:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Active:  &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Blocked: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		return fmt.Errorf("invalid account")
-	}
-
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 		Name:    h.coin.Name,
-		Address: account.Address,
+		Address: h.goodBenefitAccount.Address,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"%v (coin %v, address %v)",
+			err,
+			h.coin.Name,
+			h.goodBenefitAccount.Address,
+		)
 	}
 	if balance == nil {
-		return fmt.Errorf("invalid balance")
+		return fmt.Errorf(
+			"invalid balance (coin %v, address %v)",
+			h.coin.Name,
+			h.goodBenefitAccount.Address,
+		)
 	}
 	bal, err := decimal.NewFromString(balance.BalanceStr)
 	if err != nil {
@@ -274,8 +280,44 @@ func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 	return nil
 }
 
+func (h *goodHandler) checkTransferrable() error {
+	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
+	if err != nil {
+		return err
+	}
+	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid leasttransferamount")
+	}
+	if h.todayRewardAmount.Cmp(least) <= 0 {
+		h.benefitResult = basetypes.Result_Success
+		h.benefitMessage = fmt.Sprintf(
+			"%v (coin %v, address %v, amount %v)",
+			resultMinimumReward,
+			h.coin.Name,
+			h.goodBenefitAccount.Address,
+			h.todayRewardAmount,
+		)
+		h.notifiable = true
+		return nil
+	}
+	h.transferrable = true
+	return nil
+}
+
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Good", h.Good,
+			"TodayRewardAmount", h.todayRewardAmount,
+			"GoodBenefitAccount", h.goodBenefitAccount,
+			"UserBenefitHotAccount", h.userBenefitHotAccount,
+			"Notifiable", h.notifiable,
+			"Error", *err,
+		)
+	}
+
 	txExtra := fmt.Sprintf(
 		`{"GoodID":"%v","Reward":"%v","UserReward":"%v","PlatformReward":"%v","TechniqueServiceFee":"%v"}`,
 		h.ID,
@@ -286,41 +328,50 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	)
 
 	persistentGood := &types.PersistentGood{
-		Good:                    h.Good,
-		BenefitOrderIDs:         h.benefitOrderIDs,
-		GoodBenefitAccountID:    h.goodBenefitAccount.AccountID,
-		GoodBenefitAddress:      h.goodBenefitAccount.Address,
-		UserBenefitHotAccountID: h.userBenefitHotAccount.AccountID,
-		UserBenefitHotAddress:   h.userBenefitHotAccount.Address,
-		TodayRewardAmount:       h.todayRewardAmount.String(),
-		FeeAmount:               decimal.NewFromInt(0).String(),
-		Extra:                   txExtra,
-		Error:                   *err,
+		Good:                  h.Good,
+		BenefitOrderIDs:       h.benefitOrderIDs,
+		TodayRewardAmount:     h.todayRewardAmount.String(),
+		TodayUnitRewardAmount: h.todayUnitRewardAmount.String(),
+		NextStartRewardAmount: h.nextStartRewardAmount.String(),
+		FeeAmount:             decimal.NewFromInt(0).String(),
+		Extra:                 txExtra,
+		Transferrable:         h.transferrable,
+		BenefitTimestamp:      h.BenefitTimestamp(),
+		Error:                 *err,
 	}
 
+	if h.goodBenefitAccount != nil {
+		persistentGood.GoodBenefitAccountID = h.goodBenefitAccount.AccountID
+		persistentGood.GoodBenefitAddress = h.goodBenefitAccount.Address
+	}
+	if h.userBenefitHotAccount != nil {
+		persistentGood.UserBenefitHotAccountID = h.userBenefitHotAccount.AccountID
+		persistentGood.UserBenefitHotAddress = h.userBenefitHotAccount.Address
+	}
+	if h.notifiable {
+		persistentGood.BenefitResult = h.benefitResult
+		persistentGood.BenefitMessage = h.benefitMessage
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	}
 	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
 		persistentGood.BenefitMessage = (*err).Error()
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
-	} else if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		persistentGood.BenefitResult = basetypes.Result_Success
-		persistentGood.BenefitMessage = resultZeroReward
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+		return
 	}
 	if h.todayRewardAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
+	h.goods = map[string]map[string]*appgoodmwpb.Good{}
 	h.benefitResult = basetypes.Result_Success
 
 	var err error
-
 	defer h.final(ctx, &err)
 
 	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)
@@ -328,7 +379,8 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if h.totalUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return fmt.Errorf("invalid stock")
+		err = fmt.Errorf("invalid stock")
+		return err
 	}
 	h.startRewardAmount, err = decimal.NewFromString(h.NextRewardStartAmount)
 	if err != nil {
@@ -340,15 +392,24 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getCoin(ctx); err != nil {
 		return err
 	}
+	if err = h.getUserBenefitHotAccount(ctx); err != nil {
+		return err
+	}
+	if err = h.getGoodBenefitAccount(ctx); err != nil {
+		return err
+	}
 	if err = h.checkBenefitBalance(ctx); err != nil {
 		return err
 	}
 	if err = h.getOrderUnits(ctx); err != nil {
 		return err
 	}
-	h.todayRewardAmount = h.benefitBalance.
-		Sub(h.reservedAmount).
-		Sub(h.startRewardAmount)
+	h.todayRewardAmount = h.benefitBalance.Sub(h.startRewardAmount)
+	if h.startRewardAmount.Cmp(decimal.NewFromInt(0)) == 0 {
+		h.todayRewardAmount = h.todayRewardAmount.Sub(h.reservedAmount)
+	}
+	h.nextStartRewardAmount = h.benefitBalance
+	h.todayUnitRewardAmount = h.todayRewardAmount.Div(h.totalUnits)
 	h.userRewardAmount = h.todayRewardAmount.
 		Mul(h.totalBenefitOrderUnits).
 		Div(h.totalUnits)
@@ -358,10 +419,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	h.calculateTechniqueFee()
-	if err = h.getUserBenefitHotAccount(ctx); err != nil {
-		return err
-	}
-	if err = h.getGoodBenefitAccount(ctx); err != nil {
+	if err = h.checkTransferrable(); err != nil {
 		return err
 	}
 

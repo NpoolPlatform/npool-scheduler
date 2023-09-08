@@ -101,8 +101,12 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
 	state := goodtypes.BenefitState_BenefitDone
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:          &good.ID,
-		RewardState: &state,
+		ID:               &good.ID,
+		RewardState:      &state,
+		RewardTID:        &good.RewardTID,
+		RewardAmount:     &good.LastRewardAmount,
+		UnitRewardAmount: &good.LastUnitRewardAmount,
+		RewardAt:         &good.LastRewardAt,
 	}); err != nil {
 		return err
 	}
@@ -139,7 +143,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 		}); err != nil {
 			return err
 		}
-		_good.StatementExist = true
 		if err := p.updateGood(ctx, _good); err != nil {
 			return err
 		}
@@ -156,7 +159,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
-	_good.StatementExist = true
 	if err := p.updateGood(ctx, _good); err != nil {
 		return err
 	}

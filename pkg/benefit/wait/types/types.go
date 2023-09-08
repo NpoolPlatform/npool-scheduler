@@ -13,10 +13,14 @@ type PersistentGood struct {
 	UserBenefitHotAccountID string
 	UserBenefitHotAddress   string
 	TodayRewardAmount       string
+	TodayUnitRewardAmount   string
+	NextStartRewardAmount   string
+	LastUnitRewardAmount    string
 	FeeAmount               string
 	BenefitTimestamp        uint32
 	Extra                   string
 	BenefitResult           basetypes.Result
 	BenefitMessage          string
+	Transferrable           bool
 	Error                   error
 }

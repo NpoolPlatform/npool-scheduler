@@ -92,6 +92,7 @@ func (h *notifHandler) generateEmailMessage(ctx context.Context) error {
 	}
 
 	if _, err := mail.ParseAddress(h.user.EmailAddress); err != nil {
+		h.notifiable = false
 		return nil
 	}
 
@@ -123,6 +124,7 @@ func (h *notifHandler) generateSMSMessage(ctx context.Context) error {
 			`[\-\.\ \\\/]?(\d+))?$`,
 	)
 	if !re.MatchString(h.user.PhoneNO) {
+		h.notifiable = false
 		return nil
 	}
 
@@ -174,6 +176,7 @@ func (h *notifHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Notif", h.Notif,
+			"Notifiable", h.notifiable,
 			"Error", *err,
 		)
 	}
