@@ -10,7 +10,7 @@ require (
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20230825051420-8b0fe024643d
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20230901092100-75e025eff821
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20230817045929-5013c1523e3a
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230904130123-04579544195b
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20230908061036-1683975559d0
 	github.com/NpoolPlatform/good-middleware v0.0.0-20230908022644-f83b471b55a5
 	github.com/NpoolPlatform/inspire-middleware v0.0.0-20230817050019-cfaf96990771
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20230830092842-f2072ea81e7c
