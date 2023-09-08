@@ -130,7 +130,7 @@ func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.
 		return nil, err
 	}
 	if account == nil {
-		return nil, fmt.Errorf("invalid account")
+		return nil, fmt.Errorf("invalid account (%v)", usedFor)
 	}
 	return account, nil
 }
