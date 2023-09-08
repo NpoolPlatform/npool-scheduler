@@ -82,6 +82,7 @@ func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -108,6 +109,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
+//nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)

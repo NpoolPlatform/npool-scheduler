@@ -89,6 +89,7 @@ func (h *benefitHandler) generateHTMLHeader() {
 	h.content += "<table id='notif-good-benefit' class='notif-benefit'>"
 }
 
+//nolint
 func (h *benefitHandler) generateTableHeader(goodTypeName string) {
 	h.content += "<tr>"
 	h.content += fmt.Sprintf("<th>%v</th>", goodTypeName)
@@ -141,6 +142,7 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 	return nil
 }
 
+//nolint:gocognit
 func (h *benefitHandler) generateAppGoodNotifContent() error {
 	h.generateTableHeader("Application Products")
 	for _, benefit := range h.benefits {

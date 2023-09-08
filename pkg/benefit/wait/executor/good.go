@@ -65,7 +65,7 @@ const (
 	resultMinimumReward = "Mining reward not transferred"
 )
 
-func (h *goodHandler) checkBenefitable() (bool, error) {
+func (h *goodHandler) checkBenefitable() bool {
 	if h.StartAt >= uint32(time.Now().Unix()) {
 		h.benefitResult = basetypes.Result_Success
 		h.benefitMessage = fmt.Sprintf(
@@ -75,9 +75,9 @@ func (h *goodHandler) checkBenefitable() (bool, error) {
 			time.Now(),
 		)
 		h.notifiable = true
-		return false, nil
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func (h *goodHandler) getCoin(ctx context.Context) error {
@@ -398,8 +398,8 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if benefitable, err := h.checkBenefitable(); err != nil || !benefitable {
-		return err
+	if benefitable := h.checkBenefitable(); !benefitable {
+		return nil
 	}
 	if err = h.getCoin(ctx); err != nil {
 		return err
