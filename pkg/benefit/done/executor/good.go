@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -26,6 +28,7 @@ type goodHandler struct {
 	nextStartRewardAmount decimal.Decimal
 	coin                  *coinmwpb.Coin
 	benefitOrderIDs       []string
+	rewardTx              *txmwpb.Tx
 }
 
 func (h *goodHandler) checkLeastTransferAmount() error {
@@ -56,6 +59,18 @@ func (h *goodHandler) getCoin(ctx context.Context) error {
 		return fmt.Errorf("invalid coin")
 	}
 	h.coin = coin
+	return nil
+}
+
+func (h *goodHandler) getTransfer(ctx context.Context) error {
+	tx, err := txmwcli.GetTx(ctx, h.RewardTID)
+	if err != nil {
+		return err
+	}
+	if tx == nil {
+		return fmt.Errorf("invalid tx")
+	}
+	h.rewardTx = tx
 	return nil
 }
 
@@ -97,7 +112,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Good:                  h.Good,
 		NextStartRewardAmount: h.nextStartRewardAmount.String(),
 		BenefitOrderIDs:       h.benefitOrderIDs,
-		BenefitMessage:        basetypes.Result_Success.String(),
+		BenefitMessage:        fmt.Sprintf("%v@%v(%v)", h.rewardTx.ChainTxID, h.LastRewardAt, h.RewardTID),
 	}
 
 	if *err == nil {
@@ -113,6 +128,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)
 
+	if err = h.getTransfer(ctx); err != nil {
+		return err
+	}
 	if err = h.getCoin(ctx); err != nil {
 		return err
 	}
