@@ -92,13 +92,7 @@ func (h *benefitHandler) generateHTMLHeader() {
 //nolint
 func (h *benefitHandler) generateTableHeader(goodTypeName string) {
 	h.content += "<tr>"
-	h.content += fmt.Sprintf("<th>%v</th>", goodTypeName)
-	h.content += "<th></th>"
-	h.content += "<th></th>"
-	h.content += "<th></th>"
-	h.content += "<th></th>"
-	h.content += "<th></th>"
-	h.content += "<th></th>"
+	h.content += fmt.Sprintf(`<th colspan="7">%v</th>`, goodTypeName)
 	h.content += "</tr>"
 	h.content += "<tr>"
 	h.content += "<th>GoodID</th>"
