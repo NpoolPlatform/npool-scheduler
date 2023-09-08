@@ -7,6 +7,7 @@ import (
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
@@ -27,11 +28,13 @@ func NewPersistent() basepersistent.Persistenter {
 
 func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) error {
 	reqs := []*ordermwpb.OrderReq{}
+	state := ordertypes.BenefitState_BenefitCalculated
 	for _, id := range good.BenefitOrderIDs {
 		_id := id
 		reqs = append(reqs, &ordermwpb.OrderReq{
 			ID:            &_id,
 			LastBenefitAt: &good.BenefitTimestamp,
+			BenefitState:  &state,
 		})
 	}
 	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {

@@ -7,11 +7,16 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/fail/types"
 
 	"github.com/shopspring/decimal"
+	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
 type goodHandler struct {
@@ -20,6 +25,7 @@ type goodHandler struct {
 	done                  chan interface{}
 	nextStartRewardAmount decimal.Decimal
 	coin                  *coinmwpb.Coin
+	benefitOrderIDs []string
 }
 
 func (h *goodHandler) checkLeastTransferAmount() error {
@@ -50,6 +56,28 @@ func (h *goodHandler) getCoin(ctx context.Context) error {
 		return fmt.Errorf("invalid coin")
 	}
 	h.coin = coin
+}
+
+func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(orders) == 0 {
+			break
+		}
+		for _, order := range orders {
+			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
+		}
+		offset += limit
+	}
 	return nil
 }
 
@@ -71,6 +99,14 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
+	persistentGood := &types.PersistentGood{
+		Good:            h.Good,
+		BenefitOrderIDs: h.benefitOrderIDs,
+	}
+	if *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+		return
+	}
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 
@@ -86,6 +122,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.checkLeastTransferAmount(); err != nil {
+	if err = h.getBenefitOrders(ctx); err != nil {
 		return err
 	}
 

@@ -7,4 +7,5 @@ import (
 type PersistentGood struct {
 	*goodmwpb.Good
 	NextStartRewardAmount string
+	BenefitOrderIDs       []string
 }

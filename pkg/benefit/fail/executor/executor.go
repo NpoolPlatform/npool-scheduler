@@ -23,6 +23,7 @@ func (e *handler) Exec(ctx context.Context, good interface{}, persistent, notif,
 	h := &goodHandler{
 		Good:       _good,
 		persistent: persistent,
+		done:       done,
 	}
 	return h.exec(ctx)
 }

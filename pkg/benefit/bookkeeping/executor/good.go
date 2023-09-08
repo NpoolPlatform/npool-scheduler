@@ -37,6 +37,7 @@ type goodHandler struct {
 	totalUserRewardAmount   decimal.Decimal
 	totalTechniqueFeeAmount decimal.Decimal
 	orderRewards            []*types.OrderReward
+	benefitOrderIDs         []string
 	statementExist          bool
 }
 
@@ -69,6 +70,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			}
 			appGoodUnits[order.AppGoodID] = appGoodUnits[order.AppGoodID].Add(units)
 			h.appOrderUnits[order.AppID] = appGoodUnits
+			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
 		}
 		offset += limit
 	}
@@ -228,6 +230,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		UserRewardAmount:   h.totalUserRewardAmount.String(),
 		StatementExist:     h.statementExist,
 		OrderRewards:       h.orderRewards,
+		BenefitOrderIDs:    h.benefitOrderIDs,
 		Error:              *err,
 	}
 
