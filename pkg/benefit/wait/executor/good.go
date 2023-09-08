@@ -144,8 +144,9 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
+			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
+			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
 		}, offset, limit)
 		if err != nil {
 			return err

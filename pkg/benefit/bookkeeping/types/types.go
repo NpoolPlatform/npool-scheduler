@@ -22,5 +22,6 @@ type PersistentGood struct {
 	StatementExist     bool
 	BenefitResult      basetypes.Result
 	BenefitMessage     string
+	BenefitOrderIDs    []string
 	Error              error
 }

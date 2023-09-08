@@ -9,12 +9,15 @@ import (
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
@@ -26,6 +29,22 @@ type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
+}
+
+func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) error {
+	reqs := []*ordermwpb.OrderReq{}
+	state := ordertypes.BenefitState_BenefitBookKept
+	for _, id := range good.BenefitOrderIDs {
+		_id := id
+		reqs = append(reqs, &ordermwpb.OrderReq{
+			ID:           &_id,
+			BenefitState: &state,
+		})
+	}
+	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *handler) withCreateGoodLedgerStatement(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
@@ -97,6 +116,10 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
+	if err := p.updateOrders(ctx, _good); err != nil {
+		return err
+	}
 
 	if _good.StatementExist {
 		if err := p.updateGood(ctx, _good); err != nil {
