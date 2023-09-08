@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/sentinel"
 )
@@ -23,6 +24,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithSubsystem(subsystem),
 		base.WithScanInterval(1*time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
+		base.WithNotify(notif.NewNotif()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),

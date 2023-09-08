@@ -26,7 +26,10 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 		req := &notifbenefitmwpb.GoodBenefitReq{
 			GoodID:      &good.ID,
 			GoodName:    &good.Title,
+			Amount:      &good.LastRewardAmount,
+			TxID:        &good.RewardTID,
 			State:       &result,
+			Message:     &good.BenefitMessage,
 			BenefitDate: &now,
 		}
 		return publisher.Update(
