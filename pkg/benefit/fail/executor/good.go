@@ -6,17 +6,17 @@ import (
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/fail/types"
 
-	"github.com/shopspring/decimal"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	"github.com/shopspring/decimal"
 )
 
 type goodHandler struct {
@@ -25,7 +25,7 @@ type goodHandler struct {
 	done                  chan interface{}
 	nextStartRewardAmount decimal.Decimal
 	coin                  *coinmwpb.Coin
-	benefitOrderIDs []string
+	benefitOrderIDs       []string
 }
 
 func (h *goodHandler) checkLeastTransferAmount() error {
@@ -56,6 +56,7 @@ func (h *goodHandler) getCoin(ctx context.Context) error {
 		return fmt.Errorf("invalid coin")
 	}
 	h.coin = coin
+	return nil
 }
 
 func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
@@ -94,14 +95,11 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	persistentGood := &types.PersistentGood{
 		Good:                  h.Good,
 		NextStartRewardAmount: h.nextStartRewardAmount.String(),
+		BenefitOrderIDs:       h.benefitOrderIDs,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
-	}
-	persistentGood := &types.PersistentGood{
-		Good:            h.Good,
-		BenefitOrderIDs: h.benefitOrderIDs,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
@@ -122,6 +120,8 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.checkLeastTransferAmount(); err != nil {
+		return err
+	}
 	if err = h.getBenefitOrders(ctx); err != nil {
 		return err
 	}

@@ -15,6 +15,7 @@ import (
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	"github.com/shopspring/decimal"
 )
 
 type goodHandler struct {
@@ -55,6 +56,7 @@ func (h *goodHandler) getCoin(ctx context.Context) error {
 		return fmt.Errorf("invalid coin")
 	}
 	h.coin = coin
+	return nil
 }
 
 func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
@@ -94,7 +96,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	persistentGood := &types.PersistentGood{
 		Good:                  h.Good,
 		NextStartRewardAmount: h.nextStartRewardAmount.String(),
-		Good:                  h.Good,
 		BenefitOrderIDs:       h.benefitOrderIDs,
 	}
 
