@@ -306,7 +306,7 @@ func (h *goodHandler) checkTransferrable() error {
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Good", h.Good,
