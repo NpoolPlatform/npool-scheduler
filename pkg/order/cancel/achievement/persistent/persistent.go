@@ -42,16 +42,21 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) error {
 	if len(order.LedgerStatements) == 0 {
-		return
+		return nil
 	}
 	for _, statement := range order.LedgerStatements {
+		lock, ok := order.CommissionLocks[*statement.UserID]
+		if !ok {
+			return fmt.Errorf("invalid commission lock")
+		}
 		req := &ledgermwpb.LedgerReq{
 			AppID:       statement.AppID,
 			UserID:      statement.UserID,
 			CoinTypeID:  statement.CoinTypeID,
 			Locked:      statement.Amount,
+			LockID:      &lock.ID,
 			StatementID: statement.ID,
 			IOSubType:   statement.IOSubType,
 			IOExtra:     statement.IOExtra,
@@ -65,6 +70,7 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 			},
 		)
 	}
+	return nil
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
@@ -84,7 +90,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withDeductLockedCommission(sagaDispose, _order)
+	if err := p.withDeductLockedCommission(sagaDispose, _order); err != nil {
+		return err
+	}
 	p.withUpdateOrderState(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
