@@ -9,13 +9,16 @@ import (
 	achievementstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/orderlock"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement/types"
+	orderlockmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order/orderlock"
 
 	"github.com/google/uuid"
 )
@@ -27,6 +30,28 @@ type orderHandler struct {
 	done             chan interface{}
 	statements       []*achievementstatementmwpb.Statement
 	ledgerStatements []*ledgerstatementmwpb.StatementReq
+	commissionLocks  []*orderlockmwpb.OrderLock
+}
+
+func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		locks, _, err := orderlockmwcli.GetOrderLocks(ctx, &orderlockmwpb.Conds{
+			OrderID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			LockType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderLockType_LockCommission)},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(locks) == 0 {
+			break
+		}
+		h.commissionLocks = append(h.commissionLocks, locks...)
+		offset += limit
+	}
+	return nil
 }
 
 func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
@@ -87,6 +112,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	persistentOrder := &types.PersistentOrder{
 		Order:            h.Order,
 		LedgerStatements: h.ledgerStatements,
+		CommissionLocks:  map[string]*orderlockmwpb.OrderLock{},
+	}
+	for _, lock := range h.commissionLocks {
+		persistentOrder.CommissionLocks[lock.UserID] = lock
 	}
 
 	if *err == nil {
@@ -103,6 +132,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
+	if err = h.getOrderCommissionLock(ctx); err != nil {
+		return err
+	}
 	if err = h.getOrderAchievement(ctx); err != nil {
 		return err
 	}

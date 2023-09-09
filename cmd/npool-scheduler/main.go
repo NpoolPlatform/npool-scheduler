@@ -14,8 +14,8 @@ import (
 	redisconst "github.com/NpoolPlatform/go-service-framework/pkg/redis/const"
 
 	chainconst "github.com/NpoolPlatform/chain-middleware/pkg/servicename"
-	orderconst "github.com/NpoolPlatform/order-middleware/pkg/message/const"
-	thirdconst "github.com/NpoolPlatform/third-middleware/pkg/message/const"
+	orderconst "github.com/NpoolPlatform/order-middleware/pkg/servicename"
+	thirdconst "github.com/NpoolPlatform/third-middleware/pkg/servicename"
 
 	cli "github.com/urfave/cli/v2"
 )
@@ -40,9 +40,9 @@ func main() {
 		redisconst.RedisServiceName,
 		mysqlconst.MysqlServiceName,
 		rabbitmqconst.RabbitMQServiceName,
-		orderconst.ServiceName,
+		orderconst.ServiceDomain,
 		chainconst.ServiceDomain,
-		thirdconst.ServiceName,
+		thirdconst.ServiceDomain,
 	)
 	if err != nil {
 		logger.Sugar().Errorf("fail to create %v: %v", serviceName, err)
