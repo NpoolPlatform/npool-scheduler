@@ -100,8 +100,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withCreateStatements(sagaDispose, _order)
 	p.withUpdateOrderState(sagaDispose, _order)
+	p.withCreateStatements(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}

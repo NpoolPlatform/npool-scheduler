@@ -86,8 +86,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
-	p.withSpendLockedBalance(sagaDispose, _order)
 	p.withUpdateOrderState(sagaDispose, _order)
+	p.withSpendLockedBalance(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
