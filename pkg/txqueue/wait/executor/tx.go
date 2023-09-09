@@ -192,7 +192,7 @@ func (h *txHandler) checkAccountCoin() error {
 
 //nolint:gocritic
 func (h *txHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Tx", h,

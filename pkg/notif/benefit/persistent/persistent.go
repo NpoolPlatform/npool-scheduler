@@ -38,7 +38,7 @@ func (p *handler) Update(ctx context.Context, benefit interface{}, notif, done c
 				Message: &content.Content,
 			},
 		}); err != nil {
-			return err
+			continue
 		}
 	}
 

@@ -219,6 +219,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"TotalRewardAmount", h.totalRewardAmount,
 			"UserRewardAmount", h.userRewardAmount,
 			"UnsoldRewardAmount", h.unsoldRewardAmount,
+			"TotalTechniqueFeeAmount", h.totalTechniqueFeeAmount,
+			"TotalUserRewardAmount", h.totalUserRewardAmount,
+			"OrderRewards", h.orderRewards,
+			"AppOrderUnits", h.appOrderUnits,
 			"Error", *err,
 		)
 	}

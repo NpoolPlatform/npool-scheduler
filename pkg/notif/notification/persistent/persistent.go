@@ -3,7 +3,9 @@ package persistent
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -26,7 +28,20 @@ func (p *handler) Update(ctx context.Context, notif interface{}, notif1, done ch
 
 	defer asyncfeed.AsyncFeed(ctx, _notif, done)
 
-	if err := sendmwcli.SendMessage(ctx, _notif.MessageRequest); err != nil {
+	if err := func() error {
+		start := time.Now()
+		defer func() {
+			elapsed := time.Since(start).Milliseconds()
+			if elapsed > 1000 { //nolint
+				logger.Sugar().Warnw(
+					"Update",
+					"ElapsedMS", elapsed,
+					"NotifID", _notif.ID,
+				)
+			}
+		}()
+		return sendmwcli.SendMessage(ctx, _notif.MessageRequest)
+	}(); err != nil {
 		return err
 	}
 	if len(_notif.EventNotifs) == 0 {
