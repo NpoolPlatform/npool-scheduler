@@ -7,11 +7,13 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	cancelachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement"
+	cancelbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/bookkeeping"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/canceled"
 	cancelcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel"
 	cancelrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance"
+	cancelunlockaccount "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/unlockaccount"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/created"
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired"
@@ -62,6 +64,8 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	paidcheck.Initialize(ctx, cancel, &running)
 	finish.Initialize(ctx, cancel, &running)
 	precancel.Initialize(ctx, cancel, &running)
+	cancelbookkeeping.Initialize(ctx, cancel, &running)
+	cancelunlockaccount.Initialize(ctx, cancel, &running)
 	cancelachievement.Initialize(ctx, cancel, &running)
 	cancelrestorestock.Initialize(ctx, cancel, &running)
 	returnbalance.Initialize(ctx, cancel, &running)
@@ -86,6 +90,8 @@ func Finalize(ctx context.Context) {
 	returnbalance.Finalize(ctx)
 	cancelrestorestock.Finalize(ctx)
 	cancelachievement.Finalize(ctx)
+	cancelunlockaccount.Finalize(ctx)
+	cancelbookkeeping.Finalize(ctx)
 	precancel.Finalize(ctx)
 	finish.Finalize(ctx)
 	paidcheck.Finalize(ctx)
