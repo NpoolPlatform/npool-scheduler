@@ -2,27 +2,30 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
 	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
+	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission/types"
 
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
 	*ordermwpb.Order
-	persistent            chan interface{}
-	notif                 chan interface{}
-	done                  chan interface{}
-	achievementStatements []*achievementstatementmwpb.StatementReq
-	paymentAmount         decimal.Decimal
+	persistent       chan interface{}
+	notif            chan interface{}
+	done             chan interface{}
+	paymentAmount    decimal.Decimal
+	statements       []*achievementstatementmwpb.Statement
+	ledgerStatements []*ledgerstatementmwpb.StatementReq
 }
 
 func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error {
@@ -55,44 +58,54 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 	if err != nil {
 		return err
 	}
+	h.statements = statements
+	return nil
+}
 
-	for _, statement := range statements {
-		req := &achievementstatementmwpb.StatementReq{
-			AppID:                  &statement.AppID,
-			UserID:                 &statement.UserID,
-			GoodID:                 &statement.GoodID,
-			OrderID:                &statement.OrderID,
-			SelfOrder:              &statement.SelfOrder,
-			PaymentID:              &statement.PaymentID,
-			CoinTypeID:             &statement.CoinTypeID,
-			PaymentCoinTypeID:      &statement.PaymentCoinTypeID,
-			PaymentCoinUSDCurrency: &statement.PaymentCoinUSDCurrency,
-			Units:                  &statement.Units,
-			Amount:                 &statement.Amount,
-			USDAmount:              &statement.USDAmount,
-			Commission:             &statement.Commission,
+func (h *orderHandler) calculateLedgerStatements() error {
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_Commission
+
+	for _, statement := range h.statements {
+		commission, err := decimal.NewFromString(statement.Commission)
+		if err != nil {
+			return err
 		}
-		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
-			req.DirectContributorID = &statement.DirectContributorID
+		if commission.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
 		}
-		h.achievementStatements = append(h.achievementStatements, req)
+		ioExtra := fmt.Sprintf(
+			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
+			h.PaymentID,
+			h.ID,
+			statement.DirectContributorID,
+			h.UserID,
+		)
+		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
+			AppID:      &h.AppID,
+			UserID:     &statement.UserID,
+			CoinTypeID: &h.PaymentCoinTypeID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &statement.Commission,
+			IOExtra:    &ioExtra,
+		})
 	}
-
 	return nil
 }
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	persistentOrder := &types.PersistentOrder{
-		Order:                 h.Order,
-		AchievementStatements: h.achievementStatements,
+		Order:            h.Order,
+		LedgerStatements: h.ledgerStatements,
 	}
-	if *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }
 
 //nolint:gocritic
@@ -105,6 +118,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.calculateAchievementStatements(ctx); err != nil {
+		return err
+	}
+	if err = h.calculateLedgerStatements(); err != nil {
 		return err
 	}
 

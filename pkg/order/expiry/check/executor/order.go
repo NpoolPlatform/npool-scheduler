@@ -13,8 +13,10 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	persistent chan interface{}
-	done       chan interface{}
+	persistent    chan interface{}
+	done          chan interface{}
+	notif         chan interface{}
+	newOrderState ordertypes.OrderState
 }
 
 func (h *orderHandler) expired() (bool, error) {
@@ -32,21 +34,43 @@ func (h *orderHandler) expired() (bool, error) {
 	if h.EndAt >= uint32(time.Now().Unix()) {
 		return false, nil
 	}
+	h.newOrderState = ordertypes.OrderState_OrderStatePreExpired
 	return true, nil
 }
 
-func (h *orderHandler) final(ctx context.Context) {
-	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+func (h *orderHandler) checkCanceled() bool {
+	if h.AdminSetCanceled || h.UserSetCanceled {
+		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
+		return true
 	}
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	return false
+}
+
+func (h *orderHandler) final(ctx context.Context, err *error) {
+	persistentOrder := &types.PersistentOrder{
+		Order:         h.Order,
+		NewOrderState: h.newOrderState,
+	}
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
+	}
+	if h.newOrderState != h.OrderState {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {
-	if yes, err := h.expired(); err != nil || !yes {
-		asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	var err error
+	var yes bool
+	defer h.final(ctx, &err)
+
+	if yes = h.checkCanceled(); yes {
+		return nil
+	}
+	if yes, err = h.expired(); err != nil || !yes {
 		return err
 	}
-	h.final(ctx)
 	return nil
 }

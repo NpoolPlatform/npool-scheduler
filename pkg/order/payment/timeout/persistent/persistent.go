@@ -28,9 +28,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	state := ordertypes.OrderState_OrderStatePreCancel
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:          &_order.ID,
-		OrderState:  &state,
-		CancelState: &_order.OrderState,
+		ID:         &_order.ID,
+		OrderState: &state,
 	}); err != nil {
 		return err
 	}

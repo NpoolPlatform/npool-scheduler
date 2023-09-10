@@ -53,8 +53,6 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 	case ordertypes.OrderState_OrderStateWaitPayment:
 		fallthrough //nolint
 	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateCheckPayment:
 		req.Locked = &order.Units
 		req.LockID = &order.AppGoodStockLockID
 	case ordertypes.OrderState_OrderStatePaid:

@@ -20,20 +20,6 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) feedOrder(ctx context.Context, order *ordermwpb.Order, exec chan interface{}) error {
-	if order.OrderState == ordertypes.OrderState_OrderStatePaymentTransferReceived {
-		newState := ordertypes.OrderState_OrderStatePaymentTransferReceivedCheck
-		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-			ID:         &order.ID,
-			OrderState: &newState,
-		}); err != nil {
-			return err
-		}
-	}
-	cancelablefeed.CancelableFeed(ctx, order, exec)
-	return nil
-}
-
 func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -50,9 +36,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 		}
 
 		for _, order := range orders {
-			if err := h.feedOrder(ctx, order, exec); err != nil {
-				return err
-			}
+			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
 		offset += limit
@@ -60,14 +44,11 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	if err := h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStatePaymentTransferReceivedCheck, exec); err != nil {
-		return err
-	}
 	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStatePaymentTransferReceived, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStatePaymentTransferReceivedCheck, exec)
+	return nil
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {

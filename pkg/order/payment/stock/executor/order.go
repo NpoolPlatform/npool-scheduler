@@ -4,108 +4,52 @@ import (
 	"context"
 	"fmt"
 
-	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
-	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
-	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
-	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
-	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
+	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
-
-	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
 	*ordermwpb.Order
-	persistent       chan interface{}
-	notif            chan interface{}
-	done             chan interface{}
-	paymentAmount    decimal.Decimal
-	statements       []*achievementstatementmwpb.Statement
-	ledgerStatements []*ledgerstatementmwpb.StatementReq
+	persistent chan interface{}
+	done       chan interface{}
+	appGood    *appgoodmwpb.Good
 }
 
-func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error {
-	hasCommission := false
-
-	switch h.OrderType {
-	case ordertypes.OrderType_Normal:
-		hasCommission = true
-	case ordertypes.OrderType_Offline:
-	case ordertypes.OrderType_Airdrop:
-	}
-
-	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
-		AppID:                  h.AppID,
-		UserID:                 h.UserID,
-		GoodID:                 h.GoodID,
-		OrderID:                h.ID,
-		PaymentID:              h.PaymentID,
-		CoinTypeID:             h.CoinTypeID,
-		PaymentCoinTypeID:      h.PaymentCoinTypeID,
-		PaymentCoinUSDCurrency: h.CoinUSDCurrency,
-		Units:                  h.Units,
-		PaymentAmount:          h.PaymentAmount,
-		GoodValue:              h.GoodValue,
-		GoodValueUSD:           h.GoodValueUSD,
-		SettleType:             inspiretypes.SettleType_GoodOrderPayment,
-		HasCommission:          hasCommission,
-		OrderCreatedAt:         h.CreatedAt,
-	})
+func (h *orderHandler) getAppGood(ctx context.Context) error {
+	good, err := appgoodmwcli.GetGood(ctx, h.AppGoodID)
 	if err != nil {
 		return err
 	}
-	h.statements = statements
-	return nil
-}
-
-func (h *orderHandler) calculateLedgerStatements() error {
-	ioType := ledgertypes.IOType_Incoming
-	ioSubType := ledgertypes.IOSubType_Commission
-
-	for _, statement := range h.statements {
-		commission, err := decimal.NewFromString(statement.Commission)
-		if err != nil {
-			return err
-		}
-		if commission.Cmp(decimal.NewFromInt(0)) <= 0 {
-			continue
-		}
-		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
-			h.PaymentID,
-			h.ID,
-			statement.DirectContributorID,
-			h.UserID,
-		)
-		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
-			AppID:      &h.AppID,
-			UserID:     &statement.UserID,
-			CoinTypeID: &h.PaymentCoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &statement.Commission,
-			IOExtra:    &ioExtra,
-		})
+	if good == nil {
+		return fmt.Errorf("invalid good")
 	}
+	h.appGood = good
 	return nil
 }
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	persistentOrder := &types.PersistentOrder{
-		Order:            h.Order,
-		LedgerStatements: h.ledgerStatements,
-	}
 	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"AppGood", h.appGood,
+			"Error", *err,
+		)
+	}
+	persistentOrder := &types.PersistentOrder{
+		Order:          h.Order,
+		AppGoodStockID: h.appGood.AppGoodStockID,
+	}
+	if *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 //nolint:gocritic
@@ -114,13 +58,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	if h.paymentAmount, err = decimal.NewFromString(h.PaymentAmount); err != nil {
-		return err
-	}
-	if err = h.calculateAchievementStatements(ctx); err != nil {
-		return err
-	}
-	if err = h.calculateLedgerStatements(); err != nil {
+	if err = h.getAppGood(ctx); err != nil {
 		return err
 	}
 

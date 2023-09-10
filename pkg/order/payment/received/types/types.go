@@ -6,9 +6,4 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	IncomingAmount string
-	IncomingExtra  string
-	TransferAmount string
-	TransferExtra  string
-	Error          error
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -26,10 +25,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	state := ordertypes.OrderState_OrderStatePreExpired
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 		ID:         &_order.ID,
-		OrderState: &state,
+		OrderState: &_order.NewOrderState,
 	}); err != nil {
 		return err
 	}

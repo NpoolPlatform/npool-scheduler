@@ -71,8 +71,6 @@ func (h *orderHandler) exec(ctx context.Context) error { //nolint
 	switch h.CancelState {
 	case ordertypes.OrderState_OrderStateWaitPayment:
 		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateCheckPayment:
-		fallthrough //nolint
 	case ordertypes.OrderState_OrderStatePaymentTimeout:
 		h.lockedBalanceAmount, err = decimal.NewFromString(h.BalanceAmount)
 		if err != nil {

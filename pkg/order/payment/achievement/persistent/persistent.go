@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	achievementstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -26,24 +27,16 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	orderState := ordertypes.OrderState_OrderStatePaid
-	paymentState := ordertypes.PaymentState_PaymentStateDone
-	reqs := []*ordermwpb.OrderReq{
-		{
-			ID:           &_order.ID,
-			OrderState:   &orderState,
-			PaymentState: &paymentState,
-		},
+	if len(_order.AchievementStatements) > 0 {
+		if _, err := achievementstatementmwcli.CreateStatements(ctx, _order.AchievementStatements); err != nil {
+			return err
+		}
 	}
-	for _, child := range _order.ChildOrders {
-		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:           &child.ID,
-			OrderState:   &orderState,
-			PaymentState: &paymentState,
-		})
-	}
-
-	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {
+	state := ordertypes.OrderState_OrderStateUpdatePaidChilds
+	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
+		ID:         &_order.ID,
+		OrderState: &state,
+	}); err != nil {
 		return err
 	}
 

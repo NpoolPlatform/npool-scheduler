@@ -21,20 +21,6 @@ func NewSentinel() basesentinel.Scanner {
 	return h
 }
 
-func (h *handler) feedGood(ctx context.Context, good *goodmwpb.Good, exec chan interface{}) error {
-	if good.RewardState == goodtypes.BenefitState_BenefitBookKeeping {
-		state := goodtypes.BenefitState_BenefitCheckBookKeeping
-		if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-			ID:          &good.ID,
-			RewardState: &state,
-		}); err != nil {
-			return err
-		}
-	}
-	cancelablefeed.CancelableFeed(ctx, good, exec)
-	return nil
-}
-
 func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -51,9 +37,7 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 		}
 
 		for _, good := range goods {
-			if err := h.feedGood(ctx, good, exec); err != nil {
-				return err
-			}
+			cancelablefeed.CancelableFeed(ctx, good, exec)
 		}
 
 		offset += limit
@@ -61,14 +45,11 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	if err := h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckBookKeeping, exec); err != nil {
-		return err
-	}
 	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitBookKeeping, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitCheckBookKeeping, exec)
+	return nil
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {

@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	cancelachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/canceled"
+	cancelcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel"
 	cancelrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance"
@@ -15,17 +16,21 @@ import (
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/restorestock"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/paid"
+	expiryupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/updatechilds"
+	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/check"
+	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/stock"
+	paidupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkept"
-	paymentcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/check"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkeeping"
+	paymentcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/spent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/spend"
+	paymentstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer"
+	paymentupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/updatechilds"
+	paymentwait "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/wait"
 )
 
 const subsystem = "order"
@@ -41,16 +46,20 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		"Subsystem", subsystem,
 	)
 
+	paidupdatechilds.Initialize(ctx, cancel, &running)
+	paymentupdatechilds.Initialize(ctx, cancel, &running)
 	paymentachievement.Initialize(ctx, cancel, &running)
-	bookkept.Initialize(ctx, cancel, &running)
-	paymentcheck.Initialize(ctx, cancel, &running)
-	commission.Initialize(ctx, cancel, &running)
+	bookkeeping.Initialize(ctx, cancel, &running)
+	paymentwait.Initialize(ctx, cancel, &running)
+	paymentcommission.Initialize(ctx, cancel, &running)
+	cancelcommission.Initialize(ctx, cancel, &running)
 	received.Initialize(ctx, cancel, &running)
-	spent.Initialize(ctx, cancel, &running)
-	stock.Initialize(ctx, cancel, &running)
+	spend.Initialize(ctx, cancel, &running)
+	paidstock.Initialize(ctx, cancel, &running)
+	paymentstock.Initialize(ctx, cancel, &running)
 	timeout.Initialize(ctx, cancel, &running)
 	transfer.Initialize(ctx, cancel, &running)
-	paid.Initialize(ctx, cancel, &running)
+	paidcheck.Initialize(ctx, cancel, &running)
 	finish.Initialize(ctx, cancel, &running)
 	precancel.Initialize(ctx, cancel, &running)
 	cancelachievement.Initialize(ctx, cancel, &running)
@@ -60,6 +69,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	preexpired.Initialize(ctx, cancel, &running)
 	expiryrestorestock.Initialize(ctx, cancel, &running)
 	expirycheck.Initialize(ctx, cancel, &running)
+	expiryupdatechilds.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
 }
 
@@ -68,6 +78,7 @@ func Finalize(ctx context.Context) {
 		return
 	}
 	created.Finalize(ctx)
+	expiryupdatechilds.Finalize(ctx)
 	expirycheck.Finalize(ctx)
 	expiryrestorestock.Finalize(ctx)
 	preexpired.Finalize(ctx)
@@ -77,14 +88,18 @@ func Finalize(ctx context.Context) {
 	cancelachievement.Finalize(ctx)
 	precancel.Finalize(ctx)
 	finish.Finalize(ctx)
-	paid.Finalize(ctx)
+	paidcheck.Finalize(ctx)
 	transfer.Finalize(ctx)
 	timeout.Finalize(ctx)
-	stock.Finalize(ctx)
-	spent.Finalize(ctx)
+	paymentstock.Finalize(ctx)
+	paidstock.Finalize(ctx)
+	spend.Finalize(ctx)
 	received.Finalize(ctx)
-	commission.Finalize(ctx)
-	paymentcheck.Finalize(ctx)
-	bookkept.Finalize(ctx)
+	cancelcommission.Finalize(ctx)
+	paymentcommission.Finalize(ctx)
+	paymentwait.Finalize(ctx)
+	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
+	paymentupdatechilds.Finalize(ctx)
+	paidupdatechilds.Finalize(ctx)
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
+	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -24,7 +24,7 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateCommissionAdded
+	state := ordertypes.OrderState_OrderStateAddCommission
 	rollback := true
 	req := &ordermwpb.OrderReq{
 		ID:         &order.ID,
@@ -41,13 +41,21 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withCreateCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	req := &appstockmwpb.StockReq{
+		ID:        &order.AppGoodStockID,
+		AppID:     &order.AppID,
+		GoodID:    &order.GoodID,
+		AppGoodID: &order.AppGoodID,
+		WaitStart: &order.Units,
+		LockID:    &order.AppGoodStockLockID,
+	}
 	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
+		goodsvcname.ServiceDomain,
+		"good.middleware.app.good1.stock.v1.Middleware/AddStock",
 		"",
-		&statementmwpb.CreateStatementsRequest{
-			Infos: order.LedgerStatements,
+		&appstockmwpb.AddStockRequest{
+			Info: req,
 		},
 	)
 }
@@ -66,7 +74,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
-	p.withCreateCommission(sagaDispose, _order)
+	p.withUpdateStock(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
