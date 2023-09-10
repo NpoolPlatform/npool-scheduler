@@ -30,9 +30,10 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	state := ordertypes.OrderState_OrderStatePaymentSpendBalance
 	rollback := true
 	req := &ordermwpb.OrderReq{
-		ID:         &order.ID,
-		OrderState: &state,
-		Rollback:   &rollback,
+		ID:                  &order.ID,
+		OrderState:          &state,
+		PaymentFinishAmount: &order.PaymentAccountBalance,
+		Rollback:            &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,

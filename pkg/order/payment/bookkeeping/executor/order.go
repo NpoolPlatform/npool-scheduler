@@ -24,13 +24,14 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	done           chan interface{}
-	persistent     chan interface{}
-	notif          chan interface{}
-	incomingAmount decimal.Decimal
-	transferAmount decimal.Decimal
-	paymentCoin    *coinmwpb.Coin
-	paymentAccount *payaccmwpb.Account
+	done                  chan interface{}
+	persistent            chan interface{}
+	notif                 chan interface{}
+	paymentAccountBalance decimal.Decimal
+	incomingAmount        decimal.Decimal
+	transferAmount        decimal.Decimal
+	paymentCoin           *coinmwpb.Coin
+	paymentAccount        *payaccmwpb.Account
 }
 
 func (h *orderHandler) onlinePayment() bool {
@@ -113,6 +114,7 @@ func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
 		return err
 	}
 	h.incomingAmount = bal.Sub(startAmount)
+	h.paymentAccountBalance = bal
 	return nil
 }
 
@@ -132,10 +134,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentOrder := &types.PersistentOrder{
-		Order:          h.Order,
-		IncomingAmount: h.incomingAmount.String(),
-		TransferAmount: h.transferAmount.String(),
-		Error:          *err,
+		Order:                 h.Order,
+		PaymentAccountBalance: h.paymentAccountBalance.String(),
+		IncomingAmount:        h.incomingAmount.String(),
+		TransferAmount:        h.transferAmount.String(),
+		Error:                 *err,
 	}
 	if h.incomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		persistentOrder.IncomingExtra = fmt.Sprintf(
