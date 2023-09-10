@@ -43,7 +43,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrders(ctx, ordertypes.OrderState_OrderStateCancelUnlockPaymentAccount, exec)
+	return h.scanOrders(ctx, ordertypes.OrderState_OrderStatePaymentUnlockAccount, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

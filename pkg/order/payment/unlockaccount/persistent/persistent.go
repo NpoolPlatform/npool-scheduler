@@ -4,20 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
-	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
+	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
+	accountsvcname "github.com/NpoolPlatform/account-middleware/pkg/servicename"
+	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
-
-	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
@@ -27,13 +25,12 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateCancelUnlockPaymentAccount
+	state := ordertypes.OrderState_OrderStatePaid
 	rollback := true
 	req := &ordermwpb.OrderReq{
-		ID:                  &order.ID,
-		OrderState:          &state,
-		Rollback:            &rollback,
-		PaymentFinishAmount: order.PaymentAccountBalance,
+		ID:         &order.ID,
+		OrderState: &state,
+		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
@@ -45,34 +42,22 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withCreateIncomingStatement(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.IncomingAmount == nil {
+func (p *handler) withUnlockPaymentAccount(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if !order.Unlockable {
 		return
 	}
 
-	balance := decimal.RequireFromString(*order.IncomingAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return
-	}
-
-	ioType := ledgertypes.IOType_Incoming
-	ioSubType := ledgertypes.IOSubType_Payment
-
-	req := &statementmwpb.StatementReq{
-		AppID:      &order.AppID,
-		UserID:     &order.UserID,
-		CoinTypeID: &order.PaymentCoinTypeID,
-		IOType:     &ioType,
-		IOSubType:  &ioSubType,
-		Amount:     order.IncomingAmount,
-		IOExtra:    &order.IncomingExtra,
+	locked := false
+	req := &payaccmwpb.AccountReq{
+		ID:     &order.PaymentAccountID,
+		Locked: &locked,
 	}
 
 	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatement",
+		accountsvcname.ServiceDomain,
+		"account.middleware.payment.v1.Middleware/UpdateAccount",
 		"",
-		&statementmwpb.CreateStatementRequest{
+		&payaccmwpb.UpdateAccountRequest{
 			Info: req,
 		},
 	)
@@ -86,13 +71,20 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
+	if err := accountlock.Lock(_order.PaymentAccountID); err != nil {
+		return err
+	}
+	defer func() {
+		_ = accountlock.Unlock(_order.PaymentAccountID) //nolint
+	}()
+
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
-	p.withCreateIncomingStatement(sagaDispose, _order)
+	p.withUnlockPaymentAccount(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}

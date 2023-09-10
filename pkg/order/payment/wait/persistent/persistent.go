@@ -30,7 +30,6 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		OrderState:   &_order.NewOrderState,
 		PaymentState: &_order.NewPaymentState,
 	}
-
 	if _, err := ordermwcli.UpdateOrder(ctx, req); err != nil {
 		return err
 	}

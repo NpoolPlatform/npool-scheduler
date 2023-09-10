@@ -31,6 +31,7 @@ import (
 	paymentstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer"
+	paymentunlockaccount "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount"
 	paymentupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/updatechilds"
 	paymentwait "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/wait"
 )
@@ -50,6 +51,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 
 	paidupdatechilds.Initialize(ctx, cancel, &running)
 	paymentupdatechilds.Initialize(ctx, cancel, &running)
+	paymentunlockaccount.Initialize(ctx, cancel, &running)
 	paymentachievement.Initialize(ctx, cancel, &running)
 	bookkeeping.Initialize(ctx, cancel, &running)
 	paymentwait.Initialize(ctx, cancel, &running)
@@ -106,6 +108,7 @@ func Finalize(ctx context.Context) {
 	paymentwait.Finalize(ctx)
 	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
+	paymentunlockaccount.Finalize(ctx)
 	paymentupdatechilds.Finalize(ctx)
 	paidupdatechilds.Finalize(ctx)
 }
