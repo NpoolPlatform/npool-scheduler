@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -47,6 +48,16 @@ func (h *orderHandler) checkCanceled() bool {
 }
 
 func (h *orderHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"NewOrderState", h.newOrderState,
+			"AdminSetCanceled", h.AdminSetCanceled,
+			"UserSetCanceled", h.UserSetCanceled,
+			"Error", *err,
+		)
+	}
 	persistentOrder := &types.PersistentOrder{
 		Order:         h.Order,
 		NewOrderState: h.newOrderState,
@@ -62,9 +73,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 }
 
 func (h *orderHandler) exec(ctx context.Context) error { //nolint
+	h.newOrderState = h.OrderState
+
 	var err error
 	var yes bool
-	h.final(ctx, &err)
+	defer h.final(ctx, &err)
 
 	if yes = h.checkCanceled(); yes {
 		return nil

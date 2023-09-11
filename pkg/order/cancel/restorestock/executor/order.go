@@ -43,8 +43,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	persistentOrder := &types.PersistentOrder{
 		Order:              h.Order,
-		AppGoodStockID:     h.appGood.AppGoodStockID,
 		AppGoodStockLockID: h.AppGoodStockLockID,
+	}
+	if h.appGood != nil {
+		persistentOrder.AppGoodStockID = h.appGood.AppGoodStockID
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
