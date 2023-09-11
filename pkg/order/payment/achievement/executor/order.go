@@ -91,7 +91,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Order", h.Order,
 			"PaymentAmount", h.paymentAmount,
-			"AchievementStatements", h.achievementStatements,
 			"Error", *err,
 		)
 	}

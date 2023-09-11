@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
 	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
@@ -42,6 +43,7 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 		AppID:                  h.AppID,
 		UserID:                 h.UserID,
 		GoodID:                 h.GoodID,
+		AppGoodID:              h.AppGoodID,
 		OrderID:                h.ID,
 		PaymentID:              h.PaymentID,
 		CoinTypeID:             h.CoinTypeID,
@@ -96,16 +98,23 @@ func (h *orderHandler) calculateLedgerStatements() error {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"Error", *err,
+		)
+	}
 	persistentOrder := &types.PersistentOrder{
 		Order:            h.Order,
 		LedgerStatements: h.ledgerStatements,
 	}
-	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
+	if *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
 //nolint:gocritic
