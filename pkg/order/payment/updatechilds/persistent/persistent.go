@@ -27,22 +27,18 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	orderState := ordertypes.OrderState_OrderStatePaymentUnlockAccount
-	paymentState := ordertypes.PaymentState_PaymentStateDone
 	reqs := []*ordermwpb.OrderReq{
 		{
-			ID:           &_order.ID,
-			OrderState:   &orderState,
-			PaymentState: &paymentState,
+			ID:         &_order.ID,
+			OrderState: &orderState,
 		},
 	}
 	for _, child := range _order.ChildOrders {
 		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:           &child.ID,
-			OrderState:   &orderState,
-			PaymentState: &paymentState,
+			ID:         &child.ID,
+			OrderState: &orderState,
 		})
 	}
-
 	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {
 		return err
 	}

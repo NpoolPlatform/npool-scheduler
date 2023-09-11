@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
 	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -85,6 +86,15 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
+	if err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"Order", h.Order,
+			"PaymentAmount", h.paymentAmount,
+			"AchievementStatements", h.achievementStatements,
+			"Error", *err,
+		)
+	}
 	persistentOrder := &types.PersistentOrder{
 		Order:                 h.Order,
 		AchievementStatements: h.achievementStatements,
