@@ -42,7 +42,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+		Order:              h.Order,
+		AppGoodStockLockID: h.Order.AppGoodStockLockID,
 	}
 	if h.appGood != nil {
 		persistentOrder.AppGoodStockID = h.appGood.AppGoodStockID
@@ -57,7 +58,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
-
 	defer h.final(ctx, &err)
 
 	if err = h.getAppGood(ctx); err != nil {

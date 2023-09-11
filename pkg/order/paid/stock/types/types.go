@@ -6,5 +6,6 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	AppGoodStockID string
+	AppGoodStockID     string
+	AppGoodStockLockID string
 }
