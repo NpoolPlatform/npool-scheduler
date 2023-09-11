@@ -6,6 +6,7 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	BalanceAmount string
-	BalanceExtra  string
+	OrderBalanceAmount string
+	BalanceExtra       string
+	OrderBalanceLockID string
 }

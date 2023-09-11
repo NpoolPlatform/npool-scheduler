@@ -46,7 +46,7 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	balance := decimal.RequireFromString(order.BalanceAmount)
+	balance := decimal.RequireFromString(order.OrderBalanceAmount)
 	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return
 	}
@@ -58,10 +58,10 @@ func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *typ
 		AppID:       &order.AppID,
 		UserID:      &order.UserID,
 		CoinTypeID:  &order.PaymentCoinTypeID,
-		Locked:      &order.BalanceAmount,
+		Locked:      &order.OrderBalanceAmount,
 		IOExtra:     &order.BalanceExtra,
 		IOSubType:   &ioSubType,
-		LockID:      &order.LedgerLockID,
+		LockID:      &order.OrderBalanceLockID,
 		StatementID: &id,
 	}
 	dispose.Add(
