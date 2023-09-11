@@ -24,35 +24,6 @@ config:
     - deposituser
     - gasfeeder
     - limitation
-    - order
-    - ordercreated
-    - orderpaymentwait
-    - orderpaymentreceived
-    - orderpaymentbookkeeping
-    - orderpaymentspend
-    - orderpaymentstock
-    - orderpaymentcommission
-    - orderpaymentachievement
-    - orderpaymentupdatechilds
-    - orderpaymentunlockaccount
-    - orderpaidcheck
-    - orderpaidstock
-    - orderpaidupdatechilds
-    - orderpaymenttimeout
-    - ordercancelprecancel
-    - ordercancelbookkeeping
-    - ordercancelrestorestock
-    - ordercancelachievement
-    - ordercancelcommission
-    - ordercancelreturnbalance
-    - ordercancelunlockaccount
-    - ordercancelcanceled
-    - orderexpirycheck
-    - orderexpirypreexpired
-    - orderexpiryrestorestock
-    - orderexpiryupdatechilds
-    - orderpaymenttransfer
-    - orderpaymentfinish
     - txqueue
     - txqueuecreated
     - txqueuetransferring
@@ -68,3 +39,25 @@ config:
     - withdrawrejectedreturnbalance
     - withdrawsuccessfulspendbalance
     - withdrawsuccessfulpresuccessful
+    - order
+    - ordercreated
+    - orderpaymentwait
+    - orderpaymentreceived
+    - orderpaymentbookkeeping
+    - orderpaymentspend
+    - orderpaymentstock
+    - orderpaymentcommission
+    - orderpaymentachievement
+    - orderpaymentupdatechilds
+    - orderpaymentunlockaccount
+    - orderpaidcheck
+    - orderpaidstock
+    - orderpaidupdatechilds
+    - ordercancelprecancel
+    - ordercancelrestorestock
+    - ordercancelachievement
+    - ordercancelcommission
+    - ordercancelreturnbalance
+    - ordercancelupdatechilds
+    - ordercancelbookkeeping
+    - ordercancelunlockaccount
