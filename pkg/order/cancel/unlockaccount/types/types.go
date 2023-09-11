@@ -6,5 +6,6 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	Unlockable bool
+	// ID of payment table but not account table
+	OrderPaymentAccountID *string
 }
