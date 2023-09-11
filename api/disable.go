@@ -18,8 +18,8 @@ func (s *Server) DisableSubsystem(ctx context.Context, in *npool.DisableSubsyste
 				return &npool.DisableSubsystemResponse{}, status.Error(codes.InvalidArgument, "already disabled")
 			}
 		}
-		config.DisableSubsystem(info)
 		scheduler1.FinalizeSubsystem(ctx, info)
+		config.DisableSubsystem(info)
 	}
 	subsystems := config.Subsystems()
 	return &npool.DisableSubsystemResponse{

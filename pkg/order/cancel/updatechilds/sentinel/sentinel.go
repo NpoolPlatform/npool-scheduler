@@ -20,7 +20,7 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
+func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -44,7 +44,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateUpdateInServiceChilds, exec)
+	return h.scanOrders(ctx, ordertypes.OrderState_OrderStateUpdateCanceledChilds, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

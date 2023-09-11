@@ -22,6 +22,26 @@ type orderHandler struct {
 	childOrders []*ordermwpb.Order
 }
 
+func (h *orderHandler) getChildOrders(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+			PaymentType:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
+			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(orders) == 0 {
+			return nil
+		}
+		h.childOrders = append(h.childOrders, orders...)
+		offset += limit
+	}
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -42,26 +62,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
-}
-
-func (h *orderHandler) getChildOrders(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			PaymentType:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
-			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(orders) == 0 {
-			return nil
-		}
-		h.childOrders = append(h.childOrders, orders...)
-		offset += limit
-	}
 }
 
 //nolint:gocritic

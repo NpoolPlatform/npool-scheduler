@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/updatechilds/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/updatechilds/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/updatechilds/sentinel"
 )
 
-const subsystem = "orderpaidupdatechilds"
+const subsystem = "ordercancelupdatechilds"
 
 var h *base.Handler
 
@@ -21,7 +21,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		ctx,
 		cancel,
 		base.WithSubsystem(subsystem),
-		base.WithScanInterval(time.Minute),
+		base.WithScanInterval(time.Second),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
