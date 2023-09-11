@@ -22,7 +22,17 @@ func SupportSubsystem(system string) bool {
 }
 
 func Subsystems() []string {
-	return config.GetStringSliceValueWithNameSpace("", config.KeySubsystems)
+	systems := config.GetStringSliceValueWithNameSpace("", config.KeySubsystems)
+	localSubsystems.Range(func(key, value interface{}) bool {
+		for _, system := range systems {
+			if key.(string) == system {
+				return true
+			}
+		}
+		systems = append(systems, key.(string))
+		return true
+	})
+	return systems
 }
 
 func EnableSubsystem(system string) {
