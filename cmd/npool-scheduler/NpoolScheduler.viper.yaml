@@ -9,53 +9,62 @@ config:
   logdir: "./"
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
-    - gasfeeder
-    - withdraw
-    - withdrawreviewing
-    - withdrawapproved
-    - withdrawfailreturnbalance
-    - withdrawfailprefail
-    - withdrawcreated
-    - withdrawrejectedreturnbalance
-    - withdrawrejectedprerejected
-    - withdrawsuccessfulpresuccessful
-    - withdrawsuccessfulspendbalance
-    - withdrawtransferring
-    - limitation
-    - deposit
-    - deposittransfer
-    - deposituser
-    - depositfinish
-    - announcement
     - notification
+    - announcement
     - notifbenefit
     - benefit
-    - benefitbookkeeping
-    - benefitfail
     - benefitwait
     - benefittransferring
+    - benefitbookkeeping
+    - benefitfail
     - benefitdone
-    - ordercancelachievement
-    - ordercancelreturnbalance
-    - ordercancelprecancel
-    - ordercancelrestorestock
-    - ordercancelcanceled
-    - ordercreated
-    - orderexpirycheck
-    - orderexpiryrestorestock
-    - orderexpirypreexpired
+    - deposit
+    - depositfinish
+    - deposittransfer
+    - deposituser
+    - gasfeeder
+    - limitation
     - order
-    - orderpaid
-    - orderpaymentachievement
-    - orderpaymenttransfer
-    - orderpaymentstock
-    - orderpaymentbookkept
-    - orderpaymentspent
-    - orderpaymenttimeout
-    - orderpaymentcommission
-    - orderpaymentcheck
-    - orderpaymentfinish
+    - ordercreated
+    - orderpaymentwait
     - orderpaymentreceived
+    - orderpaymentbookkeeping
+    - orderpaymentspend
+    - orderpaymentstock
+    - orderpaymentcommission
+    - orderpaymentachievement
+    - orderpaymentupdatechilds
+    - orderpaymentunlockaccount
+    - orderpaidcheck
+    - orderpaidstock
+    - orderpaidupdatechilds
+    - orderpaymenttimeout
+    - ordercancelprecancel
+    - ordercancelbookkeeping
+    - ordercancelrestorestock
+    - ordercancelachievement
+    - ordercancelcommission
+    - ordercancelreturnbalance
+    - ordercancelunlockaccount
+    - ordercancelcanceled
+    - orderexpirycheck
+    - orderexpirypreexpired
+    - orderexpiryrestorestock
+    - orderexpiryupdatechilds
+    - orderpaymenttransfer
+    - orderpaymentfinish
     - txqueue
     - txqueuecreated
+    - txqueuetransferring
     - txqueuewait
+    - withdraw
+    - withdrawcreated
+    - withdrawreviewing
+    - withdrawapproved
+    - withdrawtransferring
+    - withdrawfailprefail
+    - withdrawfailreturnbalance
+    - withdrawrejectedprerejected
+    - withdrawrejectedreturnbalance
+    - withdrawsuccessfulspendbalance
+    - withdrawsuccessfulpresuccessful
