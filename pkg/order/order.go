@@ -8,7 +8,6 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 	cancelachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement"
 	cancelbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/bookkeeping"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/canceled"
 	cancelcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel"
 	cancelrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock"
@@ -72,7 +71,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	cancelachievement.Initialize(ctx, cancel, &running)
 	cancelrestorestock.Initialize(ctx, cancel, &running)
 	returnbalance.Initialize(ctx, cancel, &running)
-	canceled.Initialize(ctx, cancel, &running)
 	preexpired.Initialize(ctx, cancel, &running)
 	expiryrestorestock.Initialize(ctx, cancel, &running)
 	expirycheck.Initialize(ctx, cancel, &running)
@@ -91,7 +89,6 @@ func Finalize(ctx context.Context) {
 	expirycheck.Finalize(ctx)
 	expiryrestorestock.Finalize(ctx)
 	preexpired.Finalize(ctx)
-	canceled.Finalize(ctx)
 	returnbalance.Finalize(ctx)
 	cancelrestorestock.Finalize(ctx)
 	cancelachievement.Finalize(ctx)
