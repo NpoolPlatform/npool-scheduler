@@ -57,5 +57,14 @@ config:
     - txqueuecreated
     - txqueuewait
     - txqueuetransferring
+    - withdraw
     - withdrawreviewing
     - withdrawapproved
+    - withdrawfailreturnbalance
+    - withdrawfailprefail
+    - withdrawcreated
+    - withdrawrejectedreturnbalance
+    - withdrawrejectedprerejected
+    - withdrawsuccessfulpresuccessful
+    - withdrawsuccessfulspendbalance
+    - withdrawtransferring
