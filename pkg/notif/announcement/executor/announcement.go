@@ -9,6 +9,7 @@ import (
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	applangmwcli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	usermwpb "github.com/NpoolPlatform/message/npool/appuser/mw/v1/user"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
@@ -196,6 +197,12 @@ func (h *announcementHandler) multicastUsers(ctx context.Context, users []*userm
 	}
 	for _, user := range users {
 		if err := h.unicast(ctx, user); err != nil {
+			logger.Sugar().Errorw(
+				"multicastUsers",
+				"AnnouncementID", h.Announcement.ID,
+				"User", user,
+				"Error", err,
+			)
 			return err
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -219,6 +226,11 @@ func (h *announcementHandler) broadcast(ctx context.Context) error {
 		}
 
 		if err := h.multicastUsers(ctx, users); err != nil {
+			logger.Sugar().Errorw(
+				"broadcast",
+				"AnnouncementID", h.Announcement.ID,
+				"Error", err,
+			)
 			return err
 		}
 
