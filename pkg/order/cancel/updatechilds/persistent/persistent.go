@@ -26,7 +26,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	orderState := ordertypes.OrderState_OrderStateCanceledTransferBookKeeping
+	orderState := ordertypes.OrderState_OrderStateCanceled
 	reqs := []*ordermwpb.OrderReq{
 		{
 			ID:         &_order.ID,

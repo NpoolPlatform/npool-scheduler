@@ -26,7 +26,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	orderState := ordertypes.OrderState_OrderStatePaymentUnlockAccount
+	orderState := ordertypes.OrderState_OrderStatePaid
 	reqs := []*ordermwpb.OrderReq{
 		{
 			ID:         &_order.ID,
