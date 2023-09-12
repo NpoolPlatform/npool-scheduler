@@ -11,6 +11,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement/types"
 )
 
 type handler struct{}
@@ -61,5 +62,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if announcement, ok := ent.(*types.PersistentAnnouncement); ok {
+		return announcement.ID
+	}
 	return ent.(*ancmwpb.Announcement).ID
 }

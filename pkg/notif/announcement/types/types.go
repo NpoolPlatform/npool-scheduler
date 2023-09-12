@@ -7,5 +7,7 @@ import (
 
 type PersistentAnnouncement struct {
 	*ancmwpb.Announcement
+	SendAppID      string
+	SendUserID     string
 	MessageRequest *sendmwpb.SendMessageRequest
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
+	"time"
 
 	usermwcli "github.com/NpoolPlatform/appuser-middleware/pkg/client/user"
 	applangmwcli "github.com/NpoolPlatform/g11n-middleware/pkg/client/applang"
@@ -181,6 +182,8 @@ func (h *announcementHandler) unicast(ctx context.Context, user *usermwpb.User) 
 
 	asyncfeed.AsyncFeed(ctx, &types.PersistentAnnouncement{
 		Announcement:   h.Announcement,
+		SendAppID:      user.AppID,
+		SendUserID:     user.ID,
 		MessageRequest: req,
 	}, h.persistent)
 
@@ -195,6 +198,7 @@ func (h *announcementHandler) multicastUsers(ctx context.Context, users []*userm
 		if err := h.unicast(ctx, user); err != nil {
 			return err
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	return nil
 }
