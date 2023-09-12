@@ -32,6 +32,7 @@ func (h *orderHandler) getAppGood(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil || true {
 		logger.Sugar().Errorw(
@@ -56,6 +57,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)

@@ -164,7 +164,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
-func (h *orderHandler) exec(ctx context.Context) error { //nolint
+//nolint:gocritic
+func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)

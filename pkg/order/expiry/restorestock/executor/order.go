@@ -54,6 +54,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
+//nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)
@@ -61,8 +62,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.getAppGood(ctx); err != nil {
 		return err
 	}
-
-	return nil
 
 	return nil
 }

@@ -47,6 +47,7 @@ func (h *orderHandler) checkCanceled() bool {
 	return false
 }
 
+//nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
@@ -72,7 +73,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
 }
 
-func (h *orderHandler) exec(ctx context.Context) error { //nolint
+//nolint:gocritic
+func (h *orderHandler) exec(ctx context.Context) error {
 	h.newOrderState = h.OrderState
 
 	var err error
