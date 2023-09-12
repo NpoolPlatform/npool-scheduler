@@ -221,6 +221,7 @@ func (h *announcementHandler) broadcast(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
 		if len(users) == 0 {
 			return nil
 		}
