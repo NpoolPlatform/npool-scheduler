@@ -39,9 +39,6 @@ func (h *handler) scanAnnouncement(ctx context.Context, channel basetypes.NotifC
 		}
 
 		for _, anc := range ancs {
-			if anc.ID != "999da6cc-4690-42f3-a17f-c1deebf514da" {
-				continue
-			}
 			cancelablefeed.CancelableFeed(ctx, anc, exec)
 		}
 
