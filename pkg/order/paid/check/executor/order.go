@@ -29,6 +29,7 @@ func (h *orderHandler) startable() (bool, error) {
 	case ordertypes.PaymentState_PaymentStateTimeout:
 		return false, nil
 	case ordertypes.PaymentState_PaymentStateDone:
+	case ordertypes.PaymentState_PaymentStateNoPayment:
 	default:
 		return false, fmt.Errorf("invalid paymentstate")
 	}
