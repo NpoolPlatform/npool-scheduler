@@ -185,7 +185,7 @@ func (h *orderHandler) resolveNewState() {
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
 		return
 	}
-	if !h.paymentNoPayment() {
+	if h.paymentNoPayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		// For no payment, do not need to transfer payment state
 		return
