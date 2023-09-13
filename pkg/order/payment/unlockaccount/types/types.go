@@ -6,5 +6,5 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	Unlockable bool
+	OrderPaymentAccountID *string
 }

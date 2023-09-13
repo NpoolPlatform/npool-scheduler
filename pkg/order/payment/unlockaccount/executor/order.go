@@ -24,7 +24,6 @@ type orderHandler struct {
 	notif          chan interface{}
 	done           chan interface{}
 	paymentAccount *payaccmwpb.Account
-	unlockable     bool
 	transferAmount decimal.Decimal
 }
 
@@ -46,13 +45,6 @@ func (h *orderHandler) checkUnlockable() bool {
 	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return false
 	}
-	switch h.CancelState {
-	case ordertypes.OrderState_OrderStateWaitPayment:
-	case ordertypes.OrderState_OrderStatePaymentTimeout:
-	default:
-		return false
-	}
-	h.unlockable = true
 	return true
 }
 
@@ -70,7 +62,7 @@ func (h *orderHandler) checkPaymentAccount(ctx context.Context) error {
 	if account == nil {
 		return fmt.Errorf("invalid account")
 	}
-	h.unlockable = true
+	h.paymentAccount = account
 	return nil
 }
 
@@ -81,13 +73,14 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Order", h.Order,
 			"PaymentAccount", h.paymentAccount,
-			"Unlockable", h.unlockable,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:      h.Order,
-		Unlockable: h.unlockable,
+		Order: h.Order,
+	}
+	if h.paymentAccount != nil {
+		persistentOrder.OrderPaymentAccountID = &h.paymentAccount.ID
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)

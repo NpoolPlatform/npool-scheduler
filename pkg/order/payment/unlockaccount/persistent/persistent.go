@@ -43,13 +43,13 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUnlockPaymentAccount(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if !order.Unlockable {
+	if order.OrderPaymentAccountID == nil {
 		return
 	}
 
 	locked := false
 	req := &payaccmwpb.AccountReq{
-		ID:     &order.PaymentAccountID,
+		ID:     order.OrderPaymentAccountID,
 		Locked: &locked,
 	}
 
