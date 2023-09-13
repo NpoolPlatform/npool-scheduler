@@ -68,6 +68,13 @@ func (h *orderHandler) exec(ctx context.Context) error { //nolint
 
 	defer h.final(ctx, &err)
 
+	switch h.OrderType {
+	case ordertypes.OrderType_Offline:
+		fallthrough //nolint
+	case ordertypes.OrderType_Airdrop:
+		return nil
+	}
+
 	switch h.CancelState {
 	case ordertypes.OrderState_OrderStateWaitPayment:
 		fallthrough //nolint
