@@ -31,7 +31,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		return err
 	}
 
-	state := ordertypes.OrderState_OrderStateDeductLockedCommission
+	state := ordertypes.OrderState_OrderStateReturnCanceledBalance
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 		ID:         &_order.ID,
 		OrderState: &state,
