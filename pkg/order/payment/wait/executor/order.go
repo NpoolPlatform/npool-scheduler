@@ -60,11 +60,29 @@ func (h *orderHandler) getGood(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) onlinePayment() bool {
+func (h *orderHandler) paymentNoPayment() bool {
 	switch h.OrderType {
 	case ordertypes.OrderType_Offline:
 		fallthrough //nolint
 	case ordertypes.OrderType_Airdrop:
+		return true
+	}
+	switch h.PaymentType {
+	case ordertypes.PaymentType_PayWithOffline:
+		fallthrough //nolint
+	case ordertypes.PaymentType_PayWithNoPayment:
+		return true
+	}
+	switch h.PaymentState {
+	case ordertypes.PaymentState_PaymentStateNoPayment:
+		return true
+	default:
+	}
+	return false
+}
+
+func (h *orderHandler) onlinePayment() bool {
+	if yes := h.paymentNoPayment(); yes {
 		return false
 	}
 	return h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0
@@ -167,9 +185,9 @@ func (h *orderHandler) resolveNewState() {
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
 		return
 	}
-	if !h.onlinePayment() {
+	if !h.paymentNoPayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
+		// For no payment, do not need to transfer payment state
 		return
 	}
 	if h.paymentBalanceEnough() {
@@ -197,10 +215,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentOrder := &types.PersistentOrder{
-		Order:           h.Order,
-		NewOrderState:   h.newOrderState,
-		NewPaymentState: h.newPaymentState,
-		Error:           *err,
+		Order:         h.Order,
+		NewOrderState: h.newOrderState,
+		Error:         *err,
+	}
+	if h.newPaymentState != h.PaymentState {
+		persistentOrder.NewPaymentState = &h.newPaymentState
 	}
 	if h.newOrderState == h.OrderState && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)

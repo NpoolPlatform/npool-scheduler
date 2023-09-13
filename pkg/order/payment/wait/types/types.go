@@ -8,6 +8,6 @@ import (
 type PersistentOrder struct {
 	*ordermwpb.Order
 	NewOrderState   ordertypes.OrderState
-	NewPaymentState ordertypes.PaymentState
+	NewPaymentState *ordertypes.PaymentState
 	Error           error
 }
