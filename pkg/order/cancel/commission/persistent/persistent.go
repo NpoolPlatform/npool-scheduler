@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
+	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
@@ -61,7 +61,7 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 			IOExtra:     statement.IOExtra,
 		}
 		dispose.Add(
-			goodsvcname.ServiceDomain,
+			ledgersvcname.ServiceDomain,
 			"ledger.middleware.ledger.v2.Middleware/SubBalance",
 			"ledger.middleware.ledger.v2.Middleware/AddBalance",
 			&ledgermwpb.SubBalanceRequest{
