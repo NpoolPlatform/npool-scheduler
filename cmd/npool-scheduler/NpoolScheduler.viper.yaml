@@ -9,62 +9,62 @@ config:
   logdir: "./"
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
+    - notification
+    - announcement
+    - notifbenefit
     - benefit
-    - benefitbookkeeping
-    - benefitfail
     - benefitwait
     - benefittransferring
+    - benefitbookkeeping
+    - benefitfail
     - benefitdone
-    - deposittransfer
-    - deposituser
     - deposit
     - depositfinish
+    - deposittransfer
+    - deposituser
     - gasfeeder
     - limitation
-    - announcement
-    - notification
-    - notifbenefit
+    - order
+    - ordercreated
+    - orderpaymentwait
+    - orderpaymentreceived
+    - orderpaymentbookkeeping
+    - orderpaymentspend
+    - orderpaymentstock
+    - orderpaymentcommission
+    - orderpaymentachievement
+    - orderpaymentunlockaccount
+    - orderpaymentupdatechilds
+    - orderpaidcheck
+    - orderpaidstock
+    - orderpaidupdatechilds
+    - orderpaymenttimeout
+    - ordercancelprecancel
+    - ordercancelrestorestock
+    - ordercancelcommission
     - ordercancelachievement
-    - ordercancelupdatechilds
     - ordercancelreturnbalance
     - ordercancelbookkeeping
-    - ordercancelprecancel
     - ordercancelunlockaccount
-    - ordercancelcommission
-    - ordercancelrestorestock
-    - ordercreated
-    - orderexpiryupdatechilds
+    - ordercancelupdatechilds
     - orderexpirycheck
-    - orderexpiryrestorestock
     - orderexpirypreexpired
-    - order
-    - orderpaidupdatechilds
-    - orderpaidstock
-    - orderpaidcheck
-    - orderpaymentachievement
-    - orderpaymentupdatechilds
+    - orderexpiryrestorestock
+    - orderexpiryupdatechilds
     - orderpaymenttransfer
-    - orderpaymentstock
-    - orderpaymentspend
-    - orderpaymentbookkeeping
-    - orderpaymentunlockaccount
-    - orderpaymenttimeout
-    - orderpaymentcommission
-    - orderpaymentwait
     - orderpaymentfinish
-    - orderpaymentreceived
     - txqueue
     - txqueuecreated
-    - txqueuewait
     - txqueuetransferring
+    - txqueuewait
     - withdraw
+    - withdrawcreated
     - withdrawreviewing
     - withdrawapproved
-    - withdrawfailreturnbalance
-    - withdrawfailprefail
-    - withdrawcreated
-    - withdrawrejectedreturnbalance
-    - withdrawrejectedprerejected
-    - withdrawsuccessfulpresuccessful
-    - withdrawsuccessfulspendbalance
     - withdrawtransferring
+    - withdrawfailprefail
+    - withdrawfailreturnbalance
+    - withdrawrejectedprerejected
+    - withdrawrejectedreturnbalance
+    - withdrawsuccessfulspendbalance
+    - withdrawsuccessfulpresuccessful
