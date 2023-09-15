@@ -73,18 +73,14 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if balance.Cmp(h.incoming.Sub(h.outcoming)) < 0 {
-		return nil
-	}
-	amount := h.incoming.Sub(h.outcoming)
 	reserved, err := decimal.NewFromString(h.coin.ReservedAmount)
 	if err != nil {
 		return err
 	}
-	if amount.Cmp(reserved) <= 0 {
+	if balance.Cmp(reserved) <= 0 {
 		return nil
 	}
-	h.amount = amount.Sub(reserved)
+	h.amount = balance.Sub(reserved)
 	return nil
 }
 
