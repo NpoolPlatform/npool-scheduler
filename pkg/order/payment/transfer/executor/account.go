@@ -165,11 +165,11 @@ func (h *accountHandler) checkTransferring(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	if len(txs) == 0 {
-		return true, nil
+		return false, nil
 	}
 
 	if txs[0].State != basetypes.TxState_TxStateSuccessful {
-		return true, nil
+		return false, nil
 	}
 
 	const coolDown = timedef.SecondsPerHour
@@ -181,13 +181,13 @@ func (h *accountHandler) checkTransferring(ctx context.Context) (bool, error) {
 
 //nolint:gocritic
 func (h *accountHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Account", h,
 			"Coin", h.coin,
-			"Amount", h.amount,
 			"CollectAccount", h.collectAccount,
+			"Amount", h.amount,
 			"Error", *err,
 		)
 	}

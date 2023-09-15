@@ -142,7 +142,7 @@ func (h *accountHandler) checkFeeBalance(ctx context.Context) error {
 
 //nolint:gocritic
 func (h *accountHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Infow(
 			"final",
 			"Account", h,
