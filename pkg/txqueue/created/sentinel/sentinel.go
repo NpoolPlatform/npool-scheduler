@@ -40,7 +40,6 @@ func (h *handler) feedable(ctx context.Context, tx *txmwpb.Tx) (bool, error) {
 			tx.ToAccountID,
 		}},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
-			uint32(basetypes.TxState_TxStateCreatedCheck),
 			uint32(basetypes.TxState_TxStateWaitCheck),
 			uint32(basetypes.TxState_TxStateWait),
 			uint32(basetypes.TxState_TxStateTransferring),
