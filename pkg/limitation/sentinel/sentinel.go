@@ -8,6 +8,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/limitation/types"
 )
 
 type handler struct{}
@@ -46,5 +47,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if coin, ok := ent.(*types.PersistentCoin); ok {
+		return coin.ID
+	}
 	return ent.(*coinmwpb.Coin).ID
 }

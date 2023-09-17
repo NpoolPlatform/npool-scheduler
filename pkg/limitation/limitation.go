@@ -27,6 +27,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
