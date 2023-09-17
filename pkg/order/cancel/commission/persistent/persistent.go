@@ -51,7 +51,7 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 			return fmt.Errorf("invalid commission lock")
 		}
 		dispose.Add(
-			goodsvcname.ServiceDomain,
+			ledgersvcname.ServiceDomain,
 			"ledger.middleware.ledger.v2.Middleware/SettleBalance",
 			"",
 			&ledgermwpb.SettleBalanceRequest{

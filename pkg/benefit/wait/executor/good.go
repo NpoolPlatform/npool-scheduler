@@ -129,7 +129,6 @@ func (h *goodHandler) orderBenefitable(order *ordermwpb.Order) bool {
 	switch order.PaymentState {
 	case ordertypes.PaymentState_PaymentStateDone:
 	case ordertypes.PaymentState_PaymentStateNoPayment:
-	case ordertypes.PaymentState_PaymentStateOffline:
 	default:
 		return false
 	}
