@@ -42,31 +42,12 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	chargeBack := true
-	req := &appstockmwpb.StockReq{
-		ID:         &order.AppGoodStockID,
-		AppID:      &order.AppID,
-		GoodID:     &order.GoodID,
-		AppGoodID:  &order.AppGoodID,
-		ChargeBack: &chargeBack,
-	}
-	switch order.CancelState {
-	case ordertypes.OrderState_OrderStateWaitPayment:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		req.Locked = &order.Units
-		req.LockID = &order.AppGoodStockLockID
-	case ordertypes.OrderState_OrderStatePaid:
-		req.WaitStart = &order.Units
-	case ordertypes.OrderState_OrderStateInService:
-		req.InService = &order.Units
-	}
 	dispose.Add(
 		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
+		"good.middleware.app.good1.stock.v1.Middleware/ChargeBack",
 		"",
-		&appstockmwpb.SubStockRequest{
-			Info: req,
+		&appstockmwpb.ChargeBackRequest{
+			LockID: order.AppGoodStockLockID,
 		},
 	)
 }

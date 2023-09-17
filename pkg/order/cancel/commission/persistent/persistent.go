@@ -50,22 +50,15 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 		if !ok {
 			return fmt.Errorf("invalid commission lock")
 		}
-		req := &ledgermwpb.LedgerReq{
-			AppID:       statement.AppID,
-			UserID:      statement.UserID,
-			CoinTypeID:  statement.CoinTypeID,
-			Locked:      statement.Amount,
-			LockID:      &lock.ID,
-			StatementID: statement.ID,
-			IOSubType:   statement.IOSubType,
-			IOExtra:     statement.IOExtra,
-		}
 		dispose.Add(
 			goodsvcname.ServiceDomain,
-			"ledger.middleware.ledger.v2.Middleware/SubBalance",
-			"ledger.middleware.ledger.v2.Middleware/AddBalance",
-			&ledgermwpb.SubBalanceRequest{
-				Info: req,
+			"ledger.middleware.ledger.v2.Middleware/SettleBalance",
+			"",
+			&ledgermwpb.SettleBalanceRequest{
+				LockID:      lock.ID,
+				StatementID: *statement.ID,
+				IOSubType:   *statement.IOSubType,
+				IOExtra:     *statement.IOExtra,
 			},
 		)
 	}
@@ -85,10 +78,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
 	})
+	p.withUpdateOrderState(sagaDispose, _order)
 	if err := p.withDeductLockedCommission(sagaDispose, _order); err != nil {
 		return err
 	}
-	p.withUpdateOrderState(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}

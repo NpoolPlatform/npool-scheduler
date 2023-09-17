@@ -42,19 +42,12 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	req := &appstockmwpb.StockReq{
-		ID:        &order.AppGoodStockID,
-		AppID:     &order.AppID,
-		GoodID:    &order.GoodID,
-		AppGoodID: &order.AppGoodID,
-		InService: &order.Units,
-	}
 	dispose.Add(
 		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/SubStock",
+		"good.middleware.app.good1.stock.v1.Middleware/Expire",
 		"",
-		&appstockmwpb.SubStockRequest{
-			Info: req,
+		&appstockmwpb.ExpireRequest{
+			LockID: order.AppGoodStockLockID,
 		},
 	)
 }

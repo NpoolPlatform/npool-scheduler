@@ -50,26 +50,15 @@ func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *typ
 	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return
 	}
-
-	ioSubType := ledgertypes.IOSubType_Payment
-	id := uuid.NewString()
-
-	req := &ledgermwpb.LedgerReq{
-		AppID:       &order.AppID,
-		UserID:      &order.UserID,
-		CoinTypeID:  &order.PaymentCoinTypeID,
-		Locked:      &order.OrderBalanceAmount,
-		IOExtra:     &order.BalanceExtra,
-		IOSubType:   &ioSubType,
-		LockID:      &order.OrderBalanceLockID,
-		StatementID: &id,
-	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/SubBalance",
+		"ledger.middleware.ledger.v2.Middleware/SettleBalance",
 		"",
-		&ledgermwpb.SubBalanceRequest{
-			Info: req,
+		&ledgermwpb.SettleBalanceRequest{
+			LockID:      order.OrderBalanceLockID,
+			StatementID: uuid.NewString(),
+			IOExtra:     order.BalanceExtra,
+			IOSubType:   ledgertypes.IOSubType_Payment,
 		},
 	)
 }

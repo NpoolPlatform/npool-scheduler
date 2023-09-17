@@ -49,25 +49,16 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 	if order.LockedBalanceAmount == nil {
 		return
 	}
-
 	balance := decimal.RequireFromString(*order.LockedBalanceAmount)
 	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return
 	}
-
-	req := &ledgermwpb.LedgerReq{
-		AppID:      &order.AppID,
-		UserID:     &order.UserID,
-		CoinTypeID: &order.PaymentCoinTypeID,
-		LockID:     &order.LedgerLockID,
-		Spendable:  order.LockedBalanceAmount,
-	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/AddBalance",
+		"ledger.middleware.ledger.v2.Middleware/UnlockBalance",
 		"",
-		&ledgermwpb.SubBalanceRequest{
-			Info: req,
+		&ledgermwpb.UnlockBalanceRequest{
+			LockID: order.LedgerLockID,
 		},
 	)
 }
