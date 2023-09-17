@@ -42,14 +42,28 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	dispose.Add(
-		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/ChargeBack",
-		"",
-		&appstockmwpb.ChargeBackRequest{
-			LockID: order.AppGoodStockLockID,
-		},
-	)
+	switch order.CancelState {
+	case ordertypes.OrderState_OrderStateWaitPayment:
+		dispose.Add(
+			goodsvcname.ServiceDomain,
+			"good.middleware.app.good1.stock.v1.Middleware/Unlock",
+			"",
+			&appstockmwpb.UnlockRequest{
+				LockID: order.AppGoodStockLockID,
+			},
+		)
+	case ordertypes.OrderState_OrderStatePaid:
+		fallthrough //nolint
+	case ordertypes.OrderState_OrderStateInService:
+		dispose.Add(
+			goodsvcname.ServiceDomain,
+			"good.middleware.app.good1.stock.v1.Middleware/ChargeBack",
+			"",
+			&appstockmwpb.ChargeBackRequest{
+				LockID: order.AppGoodStockLockID,
+			},
+		)
+	}
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
