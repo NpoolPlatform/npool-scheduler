@@ -27,11 +27,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	orderState := ordertypes.OrderState_OrderStatePreCancel
-	paymentState := ordertypes.PaymentState_PaymentStateTimeout
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:           &_order.ID,
-		OrderState:   &orderState,
-		PaymentState: &paymentState,
+		ID:         &_order.ID,
+		OrderState: &orderState,
 	}); err != nil {
 		return err
 	}
