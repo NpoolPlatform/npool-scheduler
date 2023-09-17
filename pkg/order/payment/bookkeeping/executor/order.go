@@ -142,18 +142,21 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	if h.incomingAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		persistentOrder.IncomingExtra = fmt.Sprintf(
-			`{"PaymentID": "%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v"}`,
+			`{"PaymentID": "%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v","AppGoodID":"%v"}`,
 			h.PaymentID,
 			h.ID,
 			h.PaymentState,
 			h.GoodID,
+			h.AppGoodID,
 		)
 	}
 	if h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 		persistentOrder.TransferExtra = fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID": "%v","FromTransfer":true}`,
+			`{"PaymentID":"%v","OrderID": "%v","FromTransfer":true,"GoodID":"%v","AppGoodID":"%v"}`,
 			h.PaymentID,
 			h.ID,
+			h.GoodID,
+			h.AppGoodID,
 		)
 	}
 

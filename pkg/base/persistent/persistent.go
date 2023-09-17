@@ -49,6 +49,7 @@ func (p *handler) handler(ctx context.Context) bool {
 				"handler",
 				"State", "Update",
 				"Subsystem", p.subsystem,
+				"Ent", ent,
 				"Error", err,
 			)
 		}

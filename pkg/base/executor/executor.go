@@ -54,6 +54,7 @@ func (e *handler) handler(ctx context.Context) bool {
 				"handler",
 				"State", "Exec",
 				"Subsystem", e.subsystem,
+				"Ent", ent,
 				"Error", err,
 			)
 		}
