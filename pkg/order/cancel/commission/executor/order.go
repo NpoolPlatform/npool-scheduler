@@ -21,6 +21,7 @@ import (
 	orderlockmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order/orderlock"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
@@ -73,10 +74,17 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	}
 }
 
-func (h *orderHandler) toLedgerStatements() {
+func (h *orderHandler) toLedgerStatements() error {
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_CommissionRevoke
 	for _, statement := range h.statements {
+		amount, err := decimal.NewFromString(statement.Commission)
+		if err != nil {
+			return err
+		}
+		if amount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 		ioExtra := fmt.Sprintf(
 			`{"AppID":"%v","UserID":"%v","ArchivementStatementID":"%v","Amount":"%v","Date":"%v","CancelOrder":true}`,
 			statement.AppID,
@@ -97,6 +105,7 @@ func (h *orderHandler) toLedgerStatements() {
 			IOExtra:    &ioExtra,
 		})
 	}
+	return nil
 }
 
 //nolint:gocritic
@@ -105,6 +114,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Order", h.Order,
+			"CommissionStatements", h.statements,
+			"LedgerStatements", h.ledgerStatements,
+			"CommissionLocks", h.commissionLocks,
 			"Error", *err,
 		)
 	}
@@ -138,7 +150,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.getOrderAchievement(ctx); err != nil {
 		return err
 	}
-	h.toLedgerStatements()
+	if err = h.toLedgerStatements(); err != nil {
+		return err
+	}
 
 	return nil
 }

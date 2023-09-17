@@ -187,7 +187,7 @@ func (h *withdrawHandler) checkWithdrawReviewState() error {
 
 //nolint:gocritic
 func (h *withdrawHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Withdraw", h.Withdraw,

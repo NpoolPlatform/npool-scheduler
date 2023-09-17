@@ -198,7 +198,7 @@ func (h *orderHandler) resolveNewState() {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Order", h.Order,

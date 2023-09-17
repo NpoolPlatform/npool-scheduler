@@ -11,6 +11,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
 )
 
 type handler struct{}
@@ -54,5 +55,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
+	if account, ok := ent.(*types.PersistentAccount); ok {
+		return account.ID
+	}
 	return ent.(*payaccmwpb.Account).ID
 }

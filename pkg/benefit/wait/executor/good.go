@@ -126,7 +126,11 @@ func (h *goodHandler) checkBenefitBalance(ctx context.Context) error {
 
 func (h *goodHandler) orderBenefitable(order *ordermwpb.Order) bool {
 	now := uint32(time.Now().Unix())
-	if order.PaymentState != ordertypes.PaymentState_PaymentStateDone {
+	switch order.PaymentState {
+	case ordertypes.PaymentState_PaymentStateDone:
+	case ordertypes.PaymentState_PaymentStateNoPayment:
+	case ordertypes.PaymentState_PaymentStateOffline:
+	default:
 		return false
 	}
 
