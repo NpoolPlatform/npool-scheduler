@@ -2,6 +2,7 @@ package limitation
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -12,6 +13,8 @@ import (
 )
 
 const subsystem = "limitation"
+
+var running sync.Map
 
 var h *base.Handler
 
