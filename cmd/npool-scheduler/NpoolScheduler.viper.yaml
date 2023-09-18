@@ -7,6 +7,7 @@ config:
   appid: "89089012783789789719823798127398"
   serviceid: "5db85832-3f12-11ee-8408-ab47170b25a9"
   logdir: "./"
+  log_level: "info"
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
     - notification

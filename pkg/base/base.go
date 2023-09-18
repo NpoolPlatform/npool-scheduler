@@ -150,16 +150,17 @@ func (h *Handler) execEnt(ctx context.Context, ent interface{}) {
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
-		if h.running != nil {
-			if _, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), true); loaded {
+		if start, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), time.Now()); loaded {
+			if time.Now().After(start.(time.Time).Add(time.Minute)) {
+				h.running.Store(h.scanner.ObjectID(ent), time.Now())
 				logger.Sugar().Warnw(
 					"handler",
 					"Ent", ent,
 					"Subsystem", h.subsystem,
 					"State", "Processing",
 				)
-				return false
 			}
+			return false
 		}
 		h.execEnt(ctx, ent)
 		return false
@@ -170,9 +171,7 @@ func (h *Handler) handler(ctx context.Context) bool {
 		h.notifier.Feed(ctx, ent)
 		return false
 	case ent := <-h.done:
-		if h.running != nil {
-			h.running.Delete(h.scanner.ObjectID(ent))
-		}
+		h.running.Delete(h.scanner.ObjectID(ent))
 		return false
 	case <-h.w.CloseChan():
 		logger.Sugar().Infow(
