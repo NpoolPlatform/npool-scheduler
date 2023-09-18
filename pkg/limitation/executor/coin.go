@@ -16,7 +16,7 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/limitation/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
