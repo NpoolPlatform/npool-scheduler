@@ -2,6 +2,7 @@ package limitation
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -12,6 +13,8 @@ import (
 )
 
 const subsystem = "limitation"
+
+var running sync.Map
 
 var h *base.Handler
 
@@ -24,6 +27,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(

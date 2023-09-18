@@ -9,7 +9,7 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/limitation/types"
 )
 
 type handler struct{}
