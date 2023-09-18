@@ -104,6 +104,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Good", h.Good,
 			"NextStartRewardAmount", h.nextStartRewardAmount,
+			"RewardTx", h.rewardTx,
 			"Error", *err,
 		)
 	}
@@ -112,9 +113,15 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Good:                  h.Good,
 		NextStartRewardAmount: h.nextStartRewardAmount.String(),
 		BenefitOrderIDs:       h.benefitOrderIDs,
-		BenefitMessage:        fmt.Sprintf("%v@%v(%v)", h.rewardTx.ChainTxID, h.LastRewardAt, h.RewardTID),
 	}
-
+	if h.rewardTx != nil {
+		persistentGood.BenefitMessage = fmt.Sprintf(
+			"%v@%v(%v)",
+			h.rewardTx.ChainTxID,
+			h.LastRewardAt,
+			h.RewardTID,
+		)
+	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
