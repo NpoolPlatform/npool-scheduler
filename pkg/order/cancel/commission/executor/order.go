@@ -86,12 +86,11 @@ func (h *orderHandler) toLedgerStatements() error {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","ArchivementStatementID":"%v","Amount":"%v","Date":"%v","CancelOrder":true}`,
+			`{"AppID":"%v","UserID":"%v","ArchivementStatementID":"%v","Amount":"%v","CancelOrder":true}`,
 			statement.AppID,
 			statement.UserID,
 			statement.ID,
 			statement.Commission,
-			time.Now(),
 		)
 		id := uuid.NewString()
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{

@@ -146,12 +146,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		amount := h.incomingAmount.String()
 		persistentOrder.IncomingAmount = &amount
 		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","OrderID":"%v","Amount":"%v","Date":"%v","CancelOrder":true}`,
+			`{"AppID":"%v","UserID":"%v","OrderID":"%v","Amount":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
 			h.ID,
 			h.incomingAmount,
-			time.Now(),
 		)
 		persistentOrder.IncomingExtra = ioExtra
 	}
