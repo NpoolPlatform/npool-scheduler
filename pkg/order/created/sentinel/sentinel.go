@@ -3,7 +3,9 @@ package sentinel
 import (
 	"context"
 	"fmt"
+	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	redis2 "github.com/NpoolPlatform/go-service-framework/pkg/redis"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -27,9 +29,10 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	limit := constant.DefaultRowLimit
 
 	for {
+		createdAt := uint32(time.Now().Unix()) - timedef.SecondsPerMinute
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			CreatedAt:  &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Sub(time.Minute).Unix())},
+			CreatedAt:  &basetypes.Uint32Val{Op: cruder.LT, Value: createdAt},
 		}, offset, limit)
 		if err != nil {
 			return err
