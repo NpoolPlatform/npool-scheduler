@@ -42,10 +42,6 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) getGood(ctx context.Context) error {
-	if h.timeout() || h.canceled() {
-		return nil
-	}
-
 	good, err := appgoodmwcli.GetGoodOnly(ctx, &appgoodmwpb.Conds{
 		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
@@ -97,12 +93,8 @@ func (h *orderHandler) timeout() bool {
 	return h.CreatedAt+timeoutSeconds < uint32(time.Now().Unix())
 }
 
-func (h *orderHandler) canceled() bool {
-	return h.UserSetCanceled || h.AdminSetCanceled
-}
-
 func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return nil
 	}
 
@@ -121,7 +113,7 @@ func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return nil
 	}
 
@@ -143,7 +135,7 @@ func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
 }
 
 func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() || h.timeout() || h.canceled() {
+	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return nil
 	}
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
@@ -175,11 +167,6 @@ func (h *orderHandler) paymentBalanceEnough() bool {
 }
 
 func (h *orderHandler) resolveNewState() {
-	if h.canceled() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateCanceled
-		return
-	}
 	if h.timeout() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTimeout
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout

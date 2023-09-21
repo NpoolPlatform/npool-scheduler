@@ -18,6 +18,22 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 
+type syncMap struct {
+	*sync.Map
+	count      int
+	concurrent int
+}
+
+func (s *syncMap) Store(key, value interface{}) {
+	s.Store(key, value)
+	s.count++
+}
+
+func (s *syncMap) Delete(key interface{}) {
+	s.Delete(key)
+	s.count--
+}
+
 type Handler struct {
 	persistent     chan interface{}
 	notif          chan interface{}
@@ -35,7 +51,7 @@ type Handler struct {
 	notify         notif.Notify
 	subsystem      string
 	scanInterval   time.Duration
-	running        *sync.Map
+	running        *syncMap
 }
 
 func (h *Handler) lockKey() string {
@@ -130,7 +146,16 @@ func WithNotify(notify notif.Notify) func(*Handler) {
 
 func WithRunningMap(m *sync.Map) func(*Handler) {
 	return func(h *Handler) {
-		h.running = m
+		h.running = &syncMap{
+			Map:        m,
+			concurrent: 3,
+		}
+	}
+}
+
+func WithRunningConcurrent(concurrent int) func(*Handler) {
+	return func(h *Handler) {
+		h.running.concurrent = concurrent
 	}
 }
 
@@ -150,17 +175,22 @@ func (h *Handler) execEnt(ctx context.Context, ent interface{}) {
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
-		if start, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), time.Now()); loaded {
-			if time.Now().After(start.(time.Time).Add(time.Minute)) {
-				h.running.Store(h.scanner.ObjectID(ent), time.Now())
-				logger.Sugar().Warnw(
-					"handler",
-					"Ent", ent,
-					"Subsystem", h.subsystem,
-					"State", "Processing",
-				)
-			}
+		if h.running.count >= h.running.concurrent {
 			return false
+		}
+		start, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), time.Now())
+		if !loaded {
+			h.execEnt(ctx, ent)
+			return false
+		}
+		if time.Now().After(start.(time.Time).Add(time.Minute)) {
+			h.running.Store(h.scanner.ObjectID(ent), time.Now())
+			logger.Sugar().Warnw(
+				"handler",
+				"Ent", ent,
+				"Subsystem", h.subsystem,
+				"State", "Processing",
+			)
 		}
 		h.execEnt(ctx, ent)
 		return false

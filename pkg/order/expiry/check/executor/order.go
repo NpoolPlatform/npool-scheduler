@@ -40,14 +40,6 @@ func (h *orderHandler) expired() (bool, error) {
 	return true, nil
 }
 
-func (h *orderHandler) checkCanceled() bool {
-	if h.AdminSetCanceled || h.UserSetCanceled {
-		h.newOrderState = ordertypes.OrderState_OrderStatePreCancel
-		return true
-	}
-	return false
-}
-
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -80,9 +72,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	var yes bool
 	defer h.final(ctx, &err)
 
-	if yes = h.checkCanceled(); yes {
-		return nil
-	}
 	if yes, err = h.expired(); err != nil || !yes {
 		return err
 	}
