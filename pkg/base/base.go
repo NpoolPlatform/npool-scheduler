@@ -18,15 +18,49 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 
+type idDesc struct {
+	id        string
+	subsystem string
+	start     time.Time
+}
+
 type syncMap struct {
 	*sync.Map
 	count      int
 	concurrent int
+	subsystem  string
 }
 
-func (s *syncMap) Store(key, value interface{}) {
-	s.Map.Store(key, value)
-	s.count++
+func (s *syncMap) Store(key, value interface{}) (bool, bool) {
+	desc := &idDesc{
+		id:        key.(string),
+		subsystem: s.subsystem,
+		start:     time.Now(),
+	}
+	_desc, loaded := s.Map.LoadOrStore(key, desc)
+	if !loaded {
+		if s.count >= s.concurrent {
+			s.Map.Delete(key)
+			return false, true
+		}
+		s.count++
+		return false, false
+	}
+	if time.Now().After(_desc.(*idDesc).start.Add(1 * time.Minute)) {
+		desc.start = time.Now()
+		s.Map.Store(key, desc)
+		logger.Sugar().Warnw(
+			"handler",
+			"Ent", value,
+			"ID", _desc.(*idDesc).id,
+			"StoreSubsystem", _desc.(*idDesc).subsystem,
+			"Start", _desc.(*idDesc).start,
+			"Subsystem", s.subsystem,
+			"Count", s.count,
+			"State", "Processing",
+		)
+	}
+	return true, false
 }
 
 func (s *syncMap) Delete(key interface{}) {
@@ -149,6 +183,7 @@ func WithRunningMap(m *sync.Map) func(*Handler) {
 		h.running = &syncMap{
 			Map:        m,
 			concurrent: 3,
+			subsystem:  h.subsystem,
 		}
 	}
 }
@@ -175,22 +210,8 @@ func (h *Handler) execEnt(ctx context.Context, ent interface{}) {
 func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
-		if h.running.count >= h.running.concurrent {
+		if loaded, overflow := h.running.Store(h.scanner.ObjectID(ent), ent); loaded || overflow {
 			return false
-		}
-		start, loaded := h.running.LoadOrStore(h.scanner.ObjectID(ent), time.Now())
-		if !loaded {
-			h.execEnt(ctx, ent)
-			return false
-		}
-		if time.Now().After(start.(time.Time).Add(time.Minute)) {
-			h.running.Store(h.scanner.ObjectID(ent), time.Now())
-			logger.Sugar().Warnw(
-				"handler",
-				"Ent", ent,
-				"Subsystem", h.subsystem,
-				"State", "Processing",
-			)
 		}
 		h.execEnt(ctx, ent)
 		return false

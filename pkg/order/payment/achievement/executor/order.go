@@ -143,7 +143,7 @@ func (h *orderHandler) toAchievementStatementReqs() {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if err != nil {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"Order", h.Order,

@@ -10,6 +10,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
+	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
@@ -77,12 +78,14 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
+		TimeoutToFail:  timeoutSeconds,
+		RetryInterval:  timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
 	if err := p.withDeductLockedCommission(sagaDispose, _order); err != nil {
 		return err
 	}
-	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
+	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}
 
