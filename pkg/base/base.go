@@ -25,12 +25,12 @@ type syncMap struct {
 }
 
 func (s *syncMap) Store(key, value interface{}) {
-	s.Store(key, value)
+	s.Map.Store(key, value)
 	s.count++
 }
 
 func (s *syncMap) Delete(key interface{}) {
-	s.Delete(key)
+	s.Map.Delete(key)
 	s.count--
 }
 
