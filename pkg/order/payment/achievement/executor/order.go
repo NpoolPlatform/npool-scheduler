@@ -2,13 +2,16 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
+	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
@@ -32,6 +35,8 @@ type orderHandler struct {
 	childOrders           []*ordermwpb.Order
 	goodValue             decimal.Decimal
 	goodValueUSD          decimal.Decimal
+	usdtTrc20Coin         *coinmwpb.Coin
+	goodCoin              *coinmwpb.Coin
 }
 
 func (h *orderHandler) getChildOrders(ctx context.Context) error {
@@ -55,27 +60,65 @@ func (h *orderHandler) getChildOrders(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) calculateGoodValue() error {
-	for _, order := range h.childOrders {
-		amount, err := decimal.NewFromString(order.GoodValue)
-		if err != nil {
-			return err
-		}
-		h.goodValue = h.goodValue.Add(amount)
-	}
-
-	amount, err := decimal.NewFromString(h.GoodValue)
+func (h *orderHandler) getGoodCoin(ctx context.Context) error {
+	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
 	if err != nil {
 		return err
 	}
-	h.goodValue = h.goodValue.Add(amount)
+	if coin == nil {
+		return fmt.Errorf("invalid coin")
+	}
+	h.goodCoin = coin
+	return nil
+}
+
+func (h *orderHandler) getStableUSDCoin(ctx context.Context) error {
+	if h.PaymentCoinTypeID != uuid.Nil.String() {
+		return nil
+	}
+	coinName := "usdttrc20"
+	if h.goodCoin.ENV == "test" {
+		coinName = "tusdttrc20"
+	}
+	coin, err := coinmwcli.GetCoinOnly(ctx, &coinmwpb.Conds{
+		Name: &basetypes.StringVal{Op: cruder.EQ, Value: coinName},
+		ENV:  &basetypes.StringVal{Op: cruder.EQ, Value: h.goodCoin.ENV},
+	})
+	if err != nil {
+		return err
+	}
+	if coin == nil {
+		return fmt.Errorf("invalid stablecoin")
+	}
+	h.usdtTrc20Coin = coin
+	h.PaymentCoinTypeID = h.usdtTrc20Coin.ID
+	h.CoinUSDCurrency = decimal.NewFromInt(1).String()
+	return nil
+}
+
+func (h *orderHandler) calculateGoodValue() error {
+	for _, order := range h.childOrders {
+		amount, err := decimal.NewFromString(order.GoodValueUSD)
+		if err != nil {
+			return err
+		}
+		h.goodValueUSD = h.goodValueUSD.Add(amount)
+	}
+
+	amount, err := decimal.NewFromString(h.GoodValueUSD)
+	if err != nil {
+		return err
+	}
+	h.goodValueUSD = h.goodValueUSD.Add(amount)
 
 	currency, err := decimal.NewFromString(h.CoinUSDCurrency)
 	if err != nil {
 		return err
 	}
-
-	h.goodValueUSD = h.goodValue.Mul(currency)
+	if currency.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return fmt.Errorf("invalid currency")
+	}
+	h.goodValue = h.goodValueUSD.Div(currency)
 
 	return nil
 }
@@ -173,6 +216,12 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.getChildOrders(ctx); err != nil {
+		return err
+	}
+	if err = h.getGoodCoin(ctx); err != nil {
+		return err
+	}
+	if err = h.getStableUSDCoin(ctx); err != nil {
 		return err
 	}
 	if err = h.calculateGoodValue(); err != nil {
