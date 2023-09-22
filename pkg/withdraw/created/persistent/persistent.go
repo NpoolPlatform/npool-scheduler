@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	ledgergwname "github.com/NpoolPlatform/ledger-gateway/pkg/servicename"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
@@ -44,7 +45,7 @@ func (p *handler) withUpdateWithdrawState(dispose *dtmcli.SagaDispose, withdraw 
 }
 
 func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.PersistentWithdraw, reviewID string) {
-	serviceName := ledgersvcname.ServiceDomain
+	serviceName := ledgergwname.ServiceDomain
 	objType := reviewtypes.ReviewObjectType_ObjectWithdrawal
 	req := &reviewmwpb.ReviewReq{
 		ID:         &reviewID,
