@@ -12,6 +12,7 @@ import (
 	entpubsubmsg "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	benefitnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/benefit/notif"
 	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
+	orderpaidnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/paid/notif"
 	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
 
 	"github.com/google/uuid"
@@ -59,6 +60,8 @@ func prepare(mid, body string) (req interface{}, err error) {
 		req, err = withdrawnotif.Prepare(body)
 	case basetypes.MsgID_CreateGoodBenefitReq.String():
 		req, err = benefitnotif.Prepare(body)
+	case basetypes.MsgID_OrderPaidReq.String():
+		req, err = orderpaidnotif.Prepare(body)
 	default:
 		return nil, nil
 	}
@@ -124,6 +127,8 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 	case basetypes.MsgID_CreateGoodBenefitReq.String():
 		fallthrough //nolint
 	case basetypes.MsgID_WithdrawSuccessReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_OrderPaidReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
@@ -152,6 +157,8 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 		err = withdrawnotif.Apply(ctx, mid, req)
 	case basetypes.MsgID_CreateGoodBenefitReq.String():
 		err = benefitnotif.Apply(ctx, req)
+	case basetypes.MsgID_OrderPaidReq.String():
+		err = orderpaidnotif.Apply(ctx, req)
 	default:
 		return nil
 	}

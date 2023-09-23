@@ -43,5 +43,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		return err
 	}
 
+	asyncfeed.AsyncFeed(ctx, _order, notif)
+
 	return nil
 }

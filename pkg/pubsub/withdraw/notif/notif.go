@@ -11,8 +11,8 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	withdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
-	"github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
-	"github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
+	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
+	templatemwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 )
 
@@ -59,12 +59,12 @@ func Apply(ctx context.Context, mid string, req interface{}) error {
 		eventType = basetypes.UsedFor_WithdrawalCompleted
 	}
 
-	if _, err := notifmwcli.GenerateNotifs(ctx, &notif.GenerateNotifsRequest{
+	if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 		AppID:     in.AppID,
 		UserID:    in.UserID,
 		EventType: eventType,
 		NotifType: basetypes.NotifType_NotifUnicast,
-		Vars: &template.TemplateVars{
+		Vars: &templatemwpb.TemplateVars{
 			Username:  &user.Username,
 			Amount:    &in.Amount,
 			CoinUnit:  &coin.Unit,
