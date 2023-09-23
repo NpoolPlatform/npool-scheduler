@@ -174,7 +174,9 @@ func (h *orderHandler) resolveNewState() {
 	}
 	if h.paymentNoPayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		// For no payment, do not need to transfer payment state
+		if h.OrderType == ordertypes.OrderType_Offline {
+			h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
+		}
 		return
 	}
 	if h.paymentBalanceEnough() {
