@@ -33,20 +33,17 @@ spec:
             configMapKeyRef:
               name: system-environment
               key: environment.consul_port
-        - name: ENV_BENEFIT_INTERVAL_SECONDS
-          valueFrom:
-            configMapKeyRef:
-              name: staker-environment
-              key: environment.benefit_interval_seconds
-        - name: ENV_CURRENCY_REQUEST_PROXY
-          valueFrom:
-            configMapKeyRef:
-              name: staker-environment
-              key: environment.currency_proxy
         - name: ENV_CLUSTER_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        volumes:
+          - name: service-config
+            configMap:
+              name: npool-scheduler-config
+              items:
+                - key: service-conf
+                  path: NpoolScheduler.viper.yaml
         resources:
           requests:
             memory: "200Mi"
