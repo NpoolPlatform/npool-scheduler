@@ -31,7 +31,7 @@ type syncMap struct {
 	subsystem  string
 }
 
-func (s *syncMap) Store(key, value interface{}) (bool, bool) {
+func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 	desc := &idDesc{
 		id:        key.(string),
 		subsystem: s.subsystem,
