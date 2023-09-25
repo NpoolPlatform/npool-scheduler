@@ -102,10 +102,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
-	if *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-		return
-	}
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }
 

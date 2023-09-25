@@ -200,6 +200,9 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(goods) == 0 {
+			break
+		}
 		for _, good := range goods {
 			appGoods, ok := h.goods[good.AppID]
 			if !ok {
@@ -280,7 +283,7 @@ func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 	}
 	if account == nil {
 		return fmt.Errorf(
-			"invalid account (good %v |%v, usedfor %v)",
+			"invalid account (good %v | %v, usedfor %v)",
 			h.Title,
 			h.ID,
 			basetypes.AccountUsedFor_GoodBenefit,
@@ -473,6 +476,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.platformRewardAmount = h.todayRewardAmount.
 		Sub(h.userRewardAmount)
 	if err := h.getAppGoods(ctx); err != nil {
+		return err
+	}
+	if err := h.validateInServiceUnits(); err != nil {
 		return err
 	}
 	h.calculateTechniqueFee()
