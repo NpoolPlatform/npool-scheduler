@@ -63,6 +63,7 @@ type goodHandler struct {
 const (
 	resultNotMining     = "Mining not start"
 	resultMinimumReward = "Mining reward not transferred"
+	resultInvalidStock  = "Good stock not consistent"
 )
 
 func (h *goodHandler) checkBenefitable() bool {
@@ -189,29 +190,25 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 }
 
 func (h *goodHandler) getAppGoods(ctx context.Context) error {
-	appIDs := []string{}
-	appGoodIDs := []string{}
-	for appID, appGoodUnits := range h.appOrderUnits {
-		appIDs = append(appIDs, appID)
-		for appGoodID := range appGoodUnits {
-			appGoodIDs = append(appGoodIDs, appGoodID)
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+
+	for {
+		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		}, offset, limit)
+		if err != nil {
+			return err
 		}
-	}
-	goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-		AppIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: appIDs},
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-		IDs:    &basetypes.StringSliceVal{Op: cruder.IN, Value: appGoodIDs},
-	}, int32(0), int32(len(appGoodIDs)))
-	if err != nil {
-		return err
-	}
-	for _, good := range goods {
-		appGoods, ok := h.goods[good.AppID]
-		if !ok {
-			appGoods = map[string]*appgoodmwpb.Good{}
+		for _, good := range goods {
+			appGoods, ok := h.goods[good.AppID]
+			if !ok {
+				appGoods = map[string]*appgoodmwpb.Good{}
+			}
+			appGoods[good.ID] = good
+			h.goods[good.AppID] = appGoods
 		}
-		appGoods[good.ID] = good
-		h.goods[good.AppID] = appGoods
+		offset += limit
 	}
 	return nil
 }
@@ -314,6 +311,51 @@ func (h *goodHandler) checkTransferrable() error {
 		return nil
 	}
 	h.transferrable = true
+	return nil
+}
+
+func (h *goodHandler) validateInServiceUnits() error {
+	goodInService, err := decimal.NewFromString(h.GoodInService)
+	if err != nil {
+		return err
+	}
+
+	inService := decimal.NewFromInt(0)
+	for _, appGoods := range h.goods {
+		for _, appGood := range appGoods {
+			_goodInService, err := decimal.NewFromString(appGood.GoodInService)
+			if err != nil {
+				return err
+			}
+			if _goodInService.Cmp(goodInService) != 0 {
+				return fmt.Errorf(
+					"invalid inservice (good %v | %v, inservice %v != %v)",
+					appGood.GoodName,
+					appGood.ID,
+					goodInService,
+					_goodInService,
+				)
+			}
+			_inService, err := decimal.NewFromString(appGood.AppGoodInService)
+			if err != nil {
+				return err
+			}
+			inService = inService.Add(_inService)
+		}
+	}
+	if inService.Cmp(goodInService) != 0 {
+		h.benefitResult = basetypes.Result_Fail
+		h.benefitMessage = fmt.Sprintf(
+			"%v (good %v | %v, in service %v != %v)",
+			resultInvalidStock,
+			h.Title,
+			h.ID,
+			inService,
+			goodInService,
+		)
+		h.notifiable = true
+		return fmt.Errorf("invalid inservice")
+	}
 	return nil
 }
 
