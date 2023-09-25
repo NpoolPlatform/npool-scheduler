@@ -125,6 +125,9 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 		if err != nil {
 			return err
 		}
+		if total.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 		amount, err := decimal.NewFromString(benefit.Amount)
 		if err != nil {
 			return err
