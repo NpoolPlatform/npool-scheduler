@@ -86,6 +86,7 @@ type Handler struct {
 	subsystem      string
 	scanInterval   time.Duration
 	running        *syncMap
+	locked         bool
 }
 
 func (h *Handler) lockKey() string {
@@ -118,21 +119,16 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)
 
 	h.w = watcher.NewWatcher()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		case <-time.After(time.Minute):
-			if err := redis2.TryLock(h.lockKey(), 0); err == nil {
-				logger.Sugar().Infow(
-					"Initialize",
-					"Subsystem", h.subsystem,
-				)
-				return h, nil
-			}
-		}
+	if err := redis2.TryLock(h.lockKey(), 0); err == nil {
+		h.locked = true
 	}
+
+	logger.Sugar().Infow(
+		"Initialize",
+		"Subsystem", h.subsystem,
+		"Locked", h.locked,
+	)
+	return h, nil
 }
 
 func WithSubsystem(subsystem string) func(*Handler) {
@@ -235,7 +231,27 @@ func (h *Handler) handler(ctx context.Context) bool {
 	}
 }
 
+func (h *Handler) retryLock(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute):
+			if err := redis2.TryLock(h.lockKey(), 0); err == nil {
+				h.locked = true
+				return
+			}
+		}
+	}
+}
+
 func (h *Handler) run(ctx context.Context) {
+	if !h.locked {
+		h.retryLock(ctx)
+	}
+	if !h.locked {
+		return
+	}
 	for {
 		if b := h.handler(ctx); b {
 			break
@@ -255,7 +271,9 @@ func (h *Handler) Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(h.subsystem); !b {
 		return
 	}
-	_ = redis2.Unlock(h.lockKey()) //nolint
+	if h.locked {
+		_ = redis2.Unlock(h.lockKey()) //nolint
+	}
 	h.sentinel.Finalize(ctx)
 	if h.w != nil {
 		h.w.Shutdown(ctx)
