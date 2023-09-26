@@ -250,6 +250,7 @@ func (h *Handler) run(ctx context.Context) {
 		h.retryLock(ctx)
 	}
 	if !h.locked {
+		close(h.w.ClosedChan())
 		return
 	}
 	for {
