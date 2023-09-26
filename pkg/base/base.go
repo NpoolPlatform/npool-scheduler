@@ -119,13 +119,15 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 
 	h.w = watcher.NewWatcher()
 
-	if err := redis2.TryLock(h.lockKey(), 0); err != nil {
-		logger.Sugar().Infow(
-			"Initialize",
-			"Subsystem", h.subsystem,
-			"Error", err,
-		)
-		return nil, err
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil
+		case <-time.After(time.Minute):
+			if err := redis2.TryLock(h.lockKey(), 0); err == nil {
+				break
+			}
+		}
 	}
 
 	logger.Sugar().Infow(
