@@ -125,17 +125,14 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 			return nil, nil
 		case <-time.After(time.Minute):
 			if err := redis2.TryLock(h.lockKey(), 0); err == nil {
-				break
+				logger.Sugar().Infow(
+					"Initialize",
+					"Subsystem", h.subsystem,
+				)
+				return h, nil
 			}
 		}
 	}
-
-	logger.Sugar().Infow(
-		"Initialize",
-		"Subsystem", h.subsystem,
-	)
-
-	return h, nil
 }
 
 func WithSubsystem(subsystem string) func(*Handler) {
