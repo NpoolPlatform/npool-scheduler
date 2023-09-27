@@ -33,10 +33,9 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*ordermwpb.OrderReq{}
 	state := ordertypes.BenefitState_BenefitBookKept
-	for _, id := range good.BenefitOrderIDs {
-		_id := id
+	for _, order := range good.OrderRewards {
 		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:           &_id,
+			ID:           &order.OrderID,
 			BenefitState: &state,
 		})
 	}

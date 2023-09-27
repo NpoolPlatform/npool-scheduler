@@ -33,7 +33,6 @@ type goodHandler struct {
 	userRewardAmount   decimal.Decimal
 	appGoodUnitRewards map[string]map[string]decimal.Decimal
 	orderRewards       []*types.OrderReward
-	benefitOrderIDs    []string
 }
 
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
@@ -65,7 +64,6 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			}
 			appGoodUnits[order.AppGoodID] = appGoodUnits[order.AppGoodID].Add(units)
 			h.appOrderUnits[order.AppID] = appGoodUnits
-			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
 		}
 		offset += limit
 	}
@@ -151,10 +149,11 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 	}
 	amount := unitReward.Mul(units)
 	h.orderRewards = append(h.orderRewards, &types.OrderReward{
-		AppID:  order.AppID,
-		UserID: order.UserID,
-		Amount: amount.String(),
-		Extra:  ioExtra,
+		AppID:   order.AppID,
+		UserID:  order.UserID,
+		OrderID: order.ID,
+		Amount:  amount.String(),
+		Extra:   ioExtra,
 	})
 	return nil
 }
@@ -194,10 +193,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentGood := &types.PersistentGood{
-		Good:            h.Good,
-		OrderRewards:    h.orderRewards,
-		BenefitOrderIDs: h.benefitOrderIDs,
-		Error:           *err,
+		Good:         h.Good,
+		OrderRewards: h.orderRewards,
+		Error:        *err,
 	}
 
 	if *err == nil {

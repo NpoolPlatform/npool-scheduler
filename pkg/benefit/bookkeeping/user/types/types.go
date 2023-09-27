@@ -6,10 +6,11 @@ import (
 )
 
 type OrderReward struct {
-	AppID  string
-	UserID string
-	Amount string
-	Extra  string
+	AppID   string
+	UserID  string
+	OrderID string
+	Amount  string
+	Extra   string
 }
 
 type PersistentGood struct {
