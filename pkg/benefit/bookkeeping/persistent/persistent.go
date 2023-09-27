@@ -90,6 +90,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			CreatedAt:  &good.LastRewardAt,
 		})
 		if count <= reqsPerReq {
+			count++
 			continue
 		}
 		dispose.Add(
@@ -101,7 +102,21 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			},
 		)
 		reqs = []*statementmwpb.StatementReq{}
+		count = 0
 	}
+
+	if count == 0 {
+		return
+	}
+
+	dispose.Add(
+		ledgersvcname.ServiceDomain,
+		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
+		"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
+		&statementmwpb.CreateStatementsRequest{
+			Infos: reqs,
+		},
+	)
 }
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
@@ -155,10 +170,8 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 		return nil
 	}
 
-	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
-		WaitResult:     true,
-		RequestTimeout: timeoutSeconds,
+		WaitResult: true,
 	})
 	p.withCreateGoodLedgerStatement(sagaDispose, _good)
 	p.withCreateLedgerStatements(sagaDispose, _good)
