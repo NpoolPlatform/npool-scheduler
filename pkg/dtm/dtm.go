@@ -14,12 +14,19 @@ func Do(ctx context.Context, dispose *dtmcli.SagaDispose) error {
 	defer cancel()
 	err := dtmcli.WithSaga(_ctx, dispose)
 	dtmElapsed := time.Since(start)
-	logger.Sugar().Infow(
-		"CreateOrder",
+	logger.Sugar().Warnw(
+		"Do",
 		"Start", start,
-		"Dispose", dispose,
 		"DtmElapsed", dtmElapsed,
 		"Error", err,
 	)
+	for _, act := range dispose.Actions {
+		logger.Sugar().Warnw(
+			"Do",
+			"ServiceName", act.ServiceName,
+			"Action", act.Action,
+			"Revert", act.Revert,
+		)
+	}
 	return err
 }
