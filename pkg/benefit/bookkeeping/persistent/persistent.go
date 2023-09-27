@@ -71,10 +71,13 @@ func (p *handler) withCreateGoodLedgerStatement(dispose *dtmcli.SagaDispose, goo
 
 func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*statementmwpb.StatementReq{}
+	count := 0
+	const reqsPerReq = 50
+
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_MiningBenefit
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()
-		ioType := ledgertypes.IOType_Incoming
-		ioSubType := ledgertypes.IOSubType_MiningBenefit
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			ID:         &id,
 			AppID:      &reward.AppID,
@@ -86,16 +89,19 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			IOExtra:    &reward.Extra,
 			CreatedAt:  &good.LastRewardAt,
 		})
+		if count <= reqsPerReq {
+			continue
+		}
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
+			"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
+			&statementmwpb.CreateStatementsRequest{
+				Infos: reqs,
+			},
+		)
+		reqs = []*statementmwpb.StatementReq{}
 	}
-
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
-		"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
-		&statementmwpb.CreateStatementsRequest{
-			Infos: reqs,
-		},
-	)
 }
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
