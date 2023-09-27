@@ -68,12 +68,12 @@ github.com/NpoolPlatform/inspire-middleware v0.0.0-20230924053035-4e2ef1b162bd h
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20230924053035-4e2ef1b162bd/go.mod h1:uoV3MjEMG7yWWk8LfMS/2lKK0aWt+oU9LlT7x1P7PZ0=
 github.com/NpoolPlatform/ledger-gateway v0.0.0-20230924074539-2869344ae764 h1:crFzOFZkpfwHNcTkFBhkwASIn30+1C+YY9eZ6XrvvSs=
 github.com/NpoolPlatform/ledger-gateway v0.0.0-20230924074539-2869344ae764/go.mod h1:5nwpHBlgQhcvko9vfs5tcwoiq9OJW7HGclOe7PQLHdQ=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20230924053152-8c9b73fba39f h1:ExnSz0mBXNfyQnUuj4FOo0rpoO9344G7I0WO9Yrrvhw=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20230924053152-8c9b73fba39f/go.mod h1:/FAgmu5P84w4MTvJTyTBKMFsEQEinG7KJcE+I493+r0=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20230927050350-23172f4fb278 h1:p1LPC8QBxtFYxfHUC4JcB+Z6PnDgaLTGpLe4zv1X9BM=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20230927050350-23172f4fb278/go.mod h1:MFvSSxb3Uq7scI1dDav/TJq9ZnRcAYU3p3QKkM+40gE=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99 h1:boB4NuhQxXWeV0Z1qSxgIqbiMYU30dqFGDLtgNTqYbE=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20230825073905-d23e4d838f99/go.mod h1:1B4hvnPiGavpCYaEjW5H6xDz+UizFdRTIRBtNIGbx5s=
-github.com/NpoolPlatform/message v0.0.0-20230923053829-31c88d9a36c2 h1:iqb5Fxm2Q5ecx+4Q3Tw2w7DIyNd7+yt4iua8dwWm6ho=
-github.com/NpoolPlatform/message v0.0.0-20230923053829-31c88d9a36c2/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20230927033816-7863951ff02d h1:Og5Kg9J8hU+ze8i4gdPqhscBSEw2h0D7mWKHoayNK/Y=
+github.com/NpoolPlatform/message v0.0.0-20230927033816-7863951ff02d/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230924053351-a70b78c0f129 h1:PEvL56Nr4fkdewC9QDcZkTW4NwxJX4VN/KR7Sgt8Ml0=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20230924053351-a70b78c0f129/go.mod h1:EflSfKHds1TWAaxAZWSzLn3UB39XU16jwZXQ8P4thUk=
 github.com/NpoolPlatform/order-middleware v0.0.0-20230924055637-0cfe6550171b h1:ley/caYoH1ZSd7M2bpCltrEYRu7KpNRs1qLAaRbot60=

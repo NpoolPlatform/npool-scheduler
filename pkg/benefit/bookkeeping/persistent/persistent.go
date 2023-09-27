@@ -49,6 +49,7 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) 
 
 func (p *handler) withCreateGoodLedgerStatement(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	id := uuid.NewString()
+	rollback := true
 	req := &goodstmwpb.GoodStatementReq{
 		ID:                        &id,
 		GoodID:                    &good.ID,
@@ -57,6 +58,7 @@ func (p *handler) withCreateGoodLedgerStatement(dispose *dtmcli.SagaDispose, goo
 		UnsoldAmount:              &good.UnsoldRewardAmount,
 		TechniqueServiceFeeAmount: &good.TechniqueFeeAmount,
 		BenefitDate:               &good.LastRewardAt,
+		Rollback:                  &rollback,
 	}
 
 	dispose.Add(
@@ -73,6 +75,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 	reqs := []*statementmwpb.StatementReq{}
 	count := 0
 	const reqsPerReq = 50
+	rollback := true
 
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_MiningBenefit
@@ -88,6 +91,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			Amount:     &reward.Amount,
 			IOExtra:    &reward.Extra,
 			CreatedAt:  &good.LastRewardAt,
+			Rollback:   &rollback,
 		})
 		if count <= reqsPerReq {
 			continue
