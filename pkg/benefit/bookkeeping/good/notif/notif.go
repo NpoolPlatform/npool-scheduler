@@ -10,7 +10,7 @@ import (
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good/types"
 )
 
 type handler struct{}

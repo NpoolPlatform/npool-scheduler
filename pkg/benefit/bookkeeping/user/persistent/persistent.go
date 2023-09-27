@@ -5,19 +5,18 @@ import (
 	"fmt"
 
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
-	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user/types"
+	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
+	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
@@ -31,7 +30,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) error {
+func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*ordermwpb.OrderReq{}
 	state := ordertypes.BenefitState_BenefitBookKept
 	for _, id := range good.BenefitOrderIDs {
@@ -41,44 +40,23 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) 
 			BenefitState: &state,
 		})
 	}
-	if _, err := ordermwcli.UpdateOrders(ctx, reqs); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *handler) withCreateGoodLedgerStatement(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
-	id := uuid.NewString()
-	rollback := true
-	req := &goodstmwpb.GoodStatementReq{
-		ID:                        &id,
-		GoodID:                    &good.ID,
-		CoinTypeID:                &good.CoinTypeID,
-		TotalAmount:               &good.TotalRewardAmount,
-		UnsoldAmount:              &good.UnsoldRewardAmount,
-		TechniqueServiceFeeAmount: &good.TechniqueFeeAmount,
-		BenefitDate:               &good.LastRewardAt,
-		Rollback:                  &rollback,
-	}
-
 	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.good.ledger.statement.v2.Middleware/CreateGoodStatement",
-		"ledger.middleware.good.ledger.statement.v2.Middleware/DeleteGoodStatement",
-		&goodstmwpb.CreateGoodStatementRequest{
-			Info: req,
+		ordersvcname.ServiceDomain,
+		"order.middleware.order1.v1.Middleware/UpdateOrders",
+		"",
+		&ordermwpb.UpdateOrdersRequest{
+			Infos: reqs,
 		},
 	)
 }
 
 func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*statementmwpb.StatementReq{}
-	count := 0
-	const reqsPerReq = 50
-	rollback := true
 
+	rollback := true
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_MiningBenefit
+
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()
 		reqs = append(reqs, &statementmwpb.StatementReq{
@@ -93,24 +71,6 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			CreatedAt:  &good.LastRewardAt,
 			Rollback:   &rollback,
 		})
-		if count <= reqsPerReq {
-			count++
-			continue
-		}
-		dispose.Add(
-			ledgersvcname.ServiceDomain,
-			"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
-			"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
-			&statementmwpb.CreateStatementsRequest{
-				Infos: reqs,
-			},
-		)
-		reqs = []*statementmwpb.StatementReq{}
-		count = 0
-	}
-
-	if count == 0 {
-		return
 	}
 
 	dispose.Add(
@@ -146,28 +106,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
-	if err := p.updateOrders(ctx, _good); err != nil {
-		return err
-	}
-
-	if _good.StatementExist {
-		if err := p.updateGood(ctx, _good); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	if len(_good.OrderRewards) == 0 {
-		if _, err := goodstmwcli.CreateGoodStatement(ctx, &goodstmwpb.GoodStatementReq{
-			GoodID:                    &_good.ID,
-			CoinTypeID:                &_good.CoinTypeID,
-			TotalAmount:               &_good.TotalRewardAmount,
-			UnsoldAmount:              &_good.UnsoldRewardAmount,
-			TechniqueServiceFeeAmount: &_good.TechniqueFeeAmount,
-			BenefitDate:               &_good.LastRewardAt,
-		}); err != nil {
-			return err
-		}
 		if err := p.updateGood(ctx, _good); err != nil {
 			return err
 		}
@@ -177,12 +116,9 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult: true,
 	})
-	p.withCreateGoodLedgerStatement(sagaDispose, _good)
 	p.withCreateLedgerStatements(sagaDispose, _good)
-	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		return err
-	}
-	if err := p.updateGood(ctx, _good); err != nil {
+	p.withUpdateOrderBenefitState(sagaDispose, _good)
+	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}
 

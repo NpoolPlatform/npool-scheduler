@@ -3,47 +3,32 @@ package bookkeeping
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/notif"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/sentinel"
+	goodbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good"
+	userbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 
 const subsystem = "benefitbookkeeping"
 
-var h *base.Handler
-
 func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
-	_h, err := base.NewHandler(
-		ctx,
-		cancel,
-		base.WithSubsystem(subsystem),
-		base.WithScanInterval(20*time.Minute),
-		base.WithScanner(sentinel.NewSentinel()),
-		base.WithExec(executor.NewExecutor()),
-		base.WithNotify(notif.NewNotif()),
-		base.WithPersistenter(persistent.NewPersistent()),
-		base.WithRunningMap(running),
-	)
-	if err != nil || _h == nil {
-		logger.Sugar().Errorw(
-			"Initialize",
-			"Subsystem", subsystem,
-			"Error", err,
-		)
+	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	logger.Sugar().Infow(
+		"Initialize",
+		"Subsystem", subsystem,
+	)
 
-	h = _h
-	go h.Run(ctx, cancel)
+	goodbookkeeping.Initialize(ctx, cancel, running)
+	userbookkeeping.Initialize(ctx, cancel, running)
 }
 
 func Finalize(ctx context.Context) {
-	if h != nil {
-		h.Finalize(ctx)
+	if b := config.SupportSubsystem(subsystem); !b {
+		return
 	}
+	userbookkeeping.Finalize(ctx)
+	goodbookkeeping.Finalize(ctx)
 }

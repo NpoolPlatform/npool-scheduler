@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
@@ -14,7 +13,7 @@ import (
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
@@ -34,10 +33,7 @@ type goodHandler struct {
 	userRewardAmount        decimal.Decimal
 	unsoldRewardAmount      decimal.Decimal
 	appGoodUnitRewards      map[string]map[string]decimal.Decimal
-	totalUserRewardAmount   decimal.Decimal
 	totalTechniqueFeeAmount decimal.Decimal
-	orderRewards            []*types.OrderReward
-	benefitOrderIDs         []string
 	statementExist          bool
 }
 
@@ -70,7 +66,6 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			}
 			appGoodUnits[order.AppGoodID] = appGoodUnits[order.AppGoodID].Add(units)
 			h.appOrderUnits[order.AppID] = appGoodUnits
-			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
 		}
 		offset += limit
 	}
@@ -128,70 +123,10 @@ func (h *goodHandler) calculateUnitReward() {
 			unitRewards[appGoodID] = userRewardAmount.
 				Sub(techniqueFee).
 				Div(units)
-			h.totalUserRewardAmount = h.totalUserRewardAmount.
-				Add(userRewardAmount).
-				Sub(techniqueFee)
 			h.totalTechniqueFeeAmount = h.totalTechniqueFeeAmount.
 				Add(techniqueFee)
 		}
 		h.appGoodUnitRewards[appID] = unitRewards
-	}
-}
-
-func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
-	unitRewards, ok := h.appGoodUnitRewards[order.AppID]
-	if !ok {
-		return nil
-	}
-	unitReward, ok := unitRewards[order.AppGoodID]
-	if !ok {
-		return nil
-	}
-	ioExtra := fmt.Sprintf(
-		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
-		h.ID,
-		order.AppGoodID,
-		order.ID,
-		order.Units,
-		h.LastRewardAt,
-	)
-	units, err := decimal.NewFromString(order.Units)
-	if err != nil {
-		return err
-	}
-	amount := unitReward.Mul(units)
-	h.orderRewards = append(h.orderRewards, &types.OrderReward{
-		AppID:  order.AppID,
-		UserID: order.UserID,
-		Amount: amount.String(),
-		Extra:  ioExtra,
-	})
-	return nil
-}
-
-func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
-			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(orders) == 0 {
-			return nil
-		}
-
-		for _, order := range orders {
-			if err := h.calculateOrderReward(order); err != nil {
-				return err
-			}
-		}
-
-		offset += limit
 	}
 }
 
@@ -220,8 +155,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"UserRewardAmount", h.userRewardAmount,
 			"UnsoldRewardAmount", h.unsoldRewardAmount,
 			"TotalTechniqueFeeAmount", h.totalTechniqueFeeAmount,
-			"TotalUserRewardAmount", h.totalUserRewardAmount,
-			"OrderRewards", h.orderRewards,
 			"AppOrderUnits", h.appOrderUnits,
 			"StatementExist", h.statementExist,
 			"Error", *err,
@@ -232,10 +165,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		TotalRewardAmount:  h.totalRewardAmount.String(),
 		UnsoldRewardAmount: h.unsoldRewardAmount.String(),
 		TechniqueFeeAmount: h.totalTechniqueFeeAmount.String(),
-		UserRewardAmount:   h.totalUserRewardAmount.String(),
 		StatementExist:     h.statementExist,
-		OrderRewards:       h.orderRewards,
-		BenefitOrderIDs:    h.benefitOrderIDs,
 		Error:              *err,
 	}
 
@@ -283,9 +213,6 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.unsoldRewardAmount = h.totalRewardAmount.
 		Sub(h.userRewardAmount)
 	h.calculateUnitReward()
-	if err = h.calculateOrderRewards(ctx); err != nil {
-		return err
-	}
 
 	return nil
 }
