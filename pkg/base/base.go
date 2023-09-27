@@ -50,7 +50,7 @@ func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 		desc.start = time.Now()
 		s.Map.Store(key, desc)
 		logger.Sugar().Warnw(
-			"handler",
+			"Store",
 			"Ent", value,
 			"ID", _desc.(*idDesc).id,
 			"StoreSubsystem", _desc.(*idDesc).subsystem,
@@ -64,29 +64,40 @@ func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 }
 
 func (s *syncMap) Delete(key interface{}) {
-	s.Map.Delete(key)
+	desc, ok := s.Map.LoadAndDelete(key)
+	if !ok {
+		return
+	}
+	logger.Sugar().Warnw(
+		"Delete",
+		"ID", desc.(*idDesc).id,
+		"StoreSubsystem", desc.(*idDesc).subsystem,
+		"Start", desc.(*idDesc).start,
+		"Elapsed", time.Since(desc.(*idDesc).start),
+	)
 	s.count--
 }
 
 type Handler struct {
-	persistent     chan interface{}
-	notif          chan interface{}
-	done           chan interface{}
-	w              *watcher.Watcher
-	sentinel       sentinel.Sentinel
-	scanner        sentinel.Scanner
-	executors      []executor.Executor
-	execer         executor.Exec
-	executorNumber int
-	executorIndex  int
-	persistenter   persistent.Persistent
-	persistentor   persistent.Persistenter
-	notifier       notif.Notif
-	notify         notif.Notify
-	subsystem      string
-	scanInterval   time.Duration
-	running        *syncMap
-	locked         bool
+	persistent        chan interface{}
+	notif             chan interface{}
+	done              chan interface{}
+	w                 *watcher.Watcher
+	sentinel          sentinel.Sentinel
+	scanner           sentinel.Scanner
+	executors         []executor.Executor
+	execer            executor.Exec
+	executorNumber    int
+	executorIndex     int
+	persistenter      persistent.Persistent
+	persistentor      persistent.Persistenter
+	notifier          notif.Notif
+	notify            notif.Notify
+	subsystem         string
+	scanInterval      time.Duration
+	running           *syncMap
+	runningConcurrent int
+	locked            bool
 }
 
 func (h *Handler) lockKey() string {
@@ -105,6 +116,9 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	}
 	if h.running == nil {
 		return nil, fmt.Errorf("invalid running map")
+	}
+	if h.runningConcurrent > 0 {
+		h.running.concurrent = h.runningConcurrent
 	}
 
 	h.persistent = make(chan interface{})
@@ -185,7 +199,7 @@ func WithRunningMap(m *sync.Map) func(*Handler) {
 
 func WithRunningConcurrent(concurrent int) func(*Handler) {
 	return func(h *Handler) {
-		h.running.concurrent = concurrent
+		h.runningConcurrent = concurrent
 	}
 }
 
