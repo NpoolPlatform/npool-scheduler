@@ -45,7 +45,7 @@ func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
 		if err := p.persistenter.Update(ctx, ent, p.notif, p.done); err != nil {
-			logger.Sugar().Infow(
+			logger.Sugar().Errorw(
 				"handler",
 				"State", "Update",
 				"Subsystem", p.subsystem,
