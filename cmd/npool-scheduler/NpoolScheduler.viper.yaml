@@ -17,6 +17,8 @@ config:
     - benefitwait
     - benefittransferring
     - benefitbookkeeping
+    - benefitbookkeepinggood
+    - benefitbookkeepinguser
     - benefitfail
     - benefitdone
     - deposit
