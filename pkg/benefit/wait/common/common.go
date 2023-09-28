@@ -22,7 +22,7 @@ func NewHandler() *Handler {
 
 func (h *Handler) prepareInterval() {
 	if duration, err := time.ParseDuration(
-		fmt.Sprintf("%vs", os.Getenv("ENV_BENEFIT_INTERVAL_SECONDS"))); err == nil {
+		fmt.Sprintf("%vs", os.Getenv("ENV_BENEFIT_INTERVAL_SECONDS"))); err == nil && duration > 0 {
 		h.benefitInterval = duration
 	}
 	h.CalculateNextBenefitAt()
