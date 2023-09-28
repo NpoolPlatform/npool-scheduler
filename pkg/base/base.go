@@ -68,13 +68,15 @@ func (s *syncMap) Delete(key interface{}) {
 	if !ok {
 		return
 	}
-	logger.Sugar().Warnw(
-		"Delete",
-		"ID", desc.(*idDesc).id,
-		"StoreSubsystem", desc.(*idDesc).subsystem,
-		"Start", desc.(*idDesc).start,
-		"Elapsed", time.Since(desc.(*idDesc).start),
-	)
+	if time.Now().Sub(desc.(*idDesc).start).Seconds() > 10 { //nolint
+		logger.Sugar().Warnw(
+			"Delete",
+			"ID", desc.(*idDesc).id,
+			"StoreSubsystem", desc.(*idDesc).subsystem,
+			"Start", desc.(*idDesc).start,
+			"Elapsed", time.Since(desc.(*idDesc).start),
+		)
+	}
 	s.count--
 }
 
