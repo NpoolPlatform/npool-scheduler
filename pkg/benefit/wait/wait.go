@@ -2,6 +2,7 @@ package wait
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithScanInterval(1*time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
+		base.WithRunningConcurrent(math.MaxInt),
 		base.WithNotify(notif.NewNotif()),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),

@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -39,7 +40,7 @@ func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 	}
 	_desc, loaded := s.Map.LoadOrStore(key, desc)
 	if !loaded {
-		if s.count >= s.concurrent {
+		if s.count >= s.concurrent && s.concurrent < math.MaxInt {
 			s.Map.Delete(key)
 			return false, true
 		}

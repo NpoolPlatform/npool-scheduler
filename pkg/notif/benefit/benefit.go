@@ -2,6 +2,7 @@ package benefit
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithScanInterval(1*time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
+		base.WithRunningConcurrent(math.MaxInt),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(&running),
 	)
