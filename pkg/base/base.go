@@ -15,6 +15,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
@@ -223,6 +224,10 @@ func (h *Handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-h.sentinel.Exec():
 		if loaded, overflow := h.running.Store(h.scanner.ObjectID(ent), ent); loaded || overflow {
+			if overflow {
+				// Here is a bit strange, but let's use sentinel exec firstly
+				retry.Retry(ctx, ent, h.sentinel.Exec())
+			}
 			return false
 		}
 		h.execEnt(ctx, ent)
