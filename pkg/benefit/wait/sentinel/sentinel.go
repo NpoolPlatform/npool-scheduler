@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
@@ -78,6 +79,13 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 				goodIDs[goodID] = struct{}{}
 			}
 		}
+	}
+	logger.Sugar().Infow(
+		"TriggerScan",
+		"GoodIDs", goodIDs,
+	)
+	if len(goodIDs) == 0 {
+		return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, nil, exec)
 	}
 	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, goodIDs, exec)
 }
