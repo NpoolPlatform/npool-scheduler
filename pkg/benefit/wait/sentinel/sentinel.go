@@ -27,7 +27,7 @@ func NewSentinel() basesentinel.Scanner {
 	return h
 }
 
-func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, exec chan interface{}) error {
+func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, goodIDs map[string]struct{}, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -43,6 +43,11 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 		}
 
 		for _, good := range goods {
+			if goodIDs != nil {
+				if _, ok := goodIDs[good.ID]; !ok {
+					continue
+				}
+			}
 			cancelablefeed.CancelableFeed(ctx, good, exec)
 		}
 
@@ -55,7 +60,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		return nil
 	}
 	h.CalculateNextBenefitAt()
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, nil, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
@@ -63,7 +68,18 @@ func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, exec)
+	goodIDs := map[string]struct{}{}
+	if _cond, ok := cond.(*types.TriggerCond); ok {
+		if _cond.GoodID != nil {
+			goodIDs[*_cond.GoodID] = struct{}{}
+		}
+		if _cond.GoodIDs != nil {
+			for _, goodID := range *_cond.GoodIDs {
+				goodIDs[goodID] = struct{}{}
+			}
+		}
+	}
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, goodIDs, exec)
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
