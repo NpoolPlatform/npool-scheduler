@@ -23,6 +23,7 @@ func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif
 	h := &orderHandler{
 		Order:      _order,
 		persistent: persistent,
+		notif:      notif,
 		done:       done,
 	}
 	return h.exec(ctx)

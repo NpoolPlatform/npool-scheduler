@@ -25,6 +25,7 @@ type handler struct {
 	w            *watcher.Watcher
 	persistenter Persistenter
 	subsystem    string
+	cancel       context.CancelFunc
 }
 
 func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done chan interface{}, persistenter Persistenter, subsystem string) Persistent {
@@ -36,7 +37,7 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, notif, done c
 		persistenter: persistenter,
 		subsystem:    subsystem,
 	}
-
+	ctx, p.cancel = context.WithCancel(ctx)
 	go action.Watch(ctx, cancel, p.run, p.paniced)
 	return p
 }
@@ -73,7 +74,8 @@ func (p *handler) paniced(ctx context.Context) { //nolint
 }
 
 func (p *handler) Finalize(ctx context.Context) {
-	if p != nil && p.w != nil {
+	p.cancel()
+	if p.w != nil {
 		p.w.Shutdown(ctx)
 	}
 }

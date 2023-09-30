@@ -29,6 +29,7 @@ type handler struct {
 	exec       Exec
 	w          *watcher.Watcher
 	subsystem  string
+	cancel     context.CancelFunc
 }
 
 func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, notif, done chan interface{}, exec Exec, subsystem string) Executor {
@@ -41,7 +42,7 @@ func NewExecutor(ctx context.Context, cancel context.CancelFunc, persistent, not
 		exec:       exec,
 		subsystem:  subsystem,
 	}
-
+	ctx, e.cancel = context.WithCancel(ctx)
 	go action.Watch(ctx, cancel, e.run, e.paniced)
 	return e
 }
@@ -78,7 +79,8 @@ func (e *handler) paniced(ctx context.Context) { //nolint
 }
 
 func (e *handler) Finalize(ctx context.Context) {
-	if e != nil && e.w != nil {
+	e.cancel()
+	if e.w != nil {
 		e.w.Shutdown(ctx)
 	}
 }

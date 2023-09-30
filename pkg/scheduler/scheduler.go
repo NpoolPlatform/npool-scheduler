@@ -60,11 +60,11 @@ var subsystems = map[string]initializer{
 }
 
 func FinalizeSubsystem(ctx context.Context, system string) {
-	_initializer, ok := subsystems[system]
+	_finalizer, ok := subsystems[system]
 	if !ok {
 		return
 	}
-	_initializer.final(ctx)
+	_finalizer.final(ctx)
 }
 
 func InitializeSubsystem(ctx context.Context, system string) {

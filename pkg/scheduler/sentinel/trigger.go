@@ -13,7 +13,7 @@ func triggerBenefitWait(req *npool.TriggerRequest) {
 	if goodID := req.GetGoodID(); goodID != "" {
 		cond.GoodID = &goodID
 	}
-	if len(req.GetGoodIDs().GoodIDs) > 0 {
+	if req.GetGoodIDs() != nil {
 		cond.GoodIDs = &(req.GetGoodIDs().GoodIDs)
 	}
 	benefitwait.Trigger(cond)

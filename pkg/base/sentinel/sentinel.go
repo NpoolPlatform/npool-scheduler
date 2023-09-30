@@ -29,6 +29,7 @@ type handler struct {
 	scanner      Scanner
 	scanInterval time.Duration
 	subsystem    string
+	cancel       context.CancelFunc
 }
 
 func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner, scanInterval time.Duration, subsystem string) Sentinel {
@@ -40,6 +41,7 @@ func NewSentinel(ctx context.Context, cancel context.CancelFunc, scanner Scanner
 		scanInterval: scanInterval,
 		subsystem:    subsystem,
 	}
+	ctx, h.cancel = context.WithCancel(ctx)
 	go action.Watch(ctx, cancel, h.run, h.paniced)
 	go scanner.InitScan(ctx, h.exec) //nolint
 	return h
@@ -94,6 +96,7 @@ func (h *handler) Trigger(cond interface{}) {
 }
 
 func (h *handler) Finalize(ctx context.Context) {
+	h.cancel()
 	if h.w != nil {
 		h.w.Shutdown(ctx)
 	}

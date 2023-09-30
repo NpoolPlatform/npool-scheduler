@@ -23,6 +23,7 @@ type handler struct {
 	w         *watcher.Watcher
 	notify    Notify
 	subsystem string
+	cancel    context.CancelFunc
 }
 
 func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify, subsystem string) Notif {
@@ -32,7 +33,7 @@ func NewNotif(ctx context.Context, cancel context.CancelFunc, notify Notify, sub
 		notify:    notify,
 		subsystem: subsystem,
 	}
-
+	ctx, p.cancel = context.WithCancel(ctx)
 	go action.Watch(ctx, cancel, p.run, p.paniced)
 	return p
 }
@@ -71,7 +72,8 @@ func (p *handler) paniced(ctx context.Context) { //nolint
 }
 
 func (p *handler) Finalize(ctx context.Context) {
-	if p != nil && p.w != nil {
+	p.cancel()
+	if p.w != nil {
 		p.w.Shutdown(ctx)
 	}
 }

@@ -1,0 +1,9 @@
+grpcurl --plaintext -d '{"Infos":["order"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["order"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["benefit"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["deposit"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["notif"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["withdraw"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["gasfeeder"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["notifbenefit"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
+grpcurl --plaintext -d '{"Infos":["notification"]}' localhost:50801 scheduler.middleware.v1.Middleware.DisableSubsystem
