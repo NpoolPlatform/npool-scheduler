@@ -24,3 +24,8 @@ type PersistentGood struct {
 	Transferrable           bool
 	Error                   error
 }
+
+type TriggerCond struct {
+	GoodID  *string
+	GoodIDs *[]string
+}

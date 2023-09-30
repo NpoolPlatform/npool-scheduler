@@ -12,6 +12,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 )
 
 const subsystem = "benefitwait"
@@ -42,6 +43,12 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 
 	h = _h
 	go h.Run(ctx, cancel)
+}
+
+func Trigger(cond *types.TriggerCond) {
+	if h != nil {
+		h.Trigger(cond)
+	}
 }
 
 func Finalize(ctx context.Context) {
