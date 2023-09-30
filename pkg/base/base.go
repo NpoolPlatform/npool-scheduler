@@ -102,7 +102,6 @@ type Handler struct {
 	running           *syncMap
 	runningConcurrent int
 	locked            bool
-	cancel            context.CancelFunc
 }
 
 func (h *Handler) lockKey() string {
@@ -129,7 +128,6 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	h.persistent = make(chan interface{})
 	h.notif = make(chan interface{})
 	h.done = make(chan interface{})
-	ctx, h.cancel = context.WithCancel(ctx)
 
 	h.sentinel = sentinel.NewSentinel(ctx, cancel, h.scanner, h.scanInterval, h.subsystem)
 	for i := 0; i < h.executorNumber; i++ {
@@ -303,7 +301,6 @@ func (h *Handler) Finalize(ctx context.Context) {
 	if h.locked {
 		_ = redis2.Unlock(h.lockKey()) //nolint
 	}
-	h.cancel()
 	h.sentinel.Finalize(ctx)
 	if h.w != nil {
 		h.w.Shutdown(ctx)

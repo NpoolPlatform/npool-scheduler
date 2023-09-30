@@ -72,6 +72,6 @@ func InitializeSubsystem(ctx context.Context, system string) {
 	if !ok {
 		return
 	}
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	_initializer.init(ctx, cancel)
 }
