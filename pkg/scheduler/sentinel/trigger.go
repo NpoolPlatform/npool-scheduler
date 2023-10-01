@@ -8,21 +8,17 @@ import (
 	benefitwaittypes "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 )
 
-func triggerBenefitWait(req *npool.TriggerRequest) {
-	cond := &benefitwaittypes.TriggerCond{}
-	if goodID := req.GetGoodID(); goodID != "" {
-		cond.GoodID = &goodID
-	}
-	if req.GetGoodIDs() != nil {
-		cond.GoodIDs = &(req.GetGoodIDs().GoodIDs)
-	}
-	benefitwait.Trigger(cond)
+func triggerBenefitWait(req *npool.BenefitWait) {
+	benefitwait.Trigger(&benefitwaittypes.TriggerCond{
+		GoodIDs:  req.GetGoodIDs(),
+		RewardAt: req.GetRewardAt(),
+	})
 }
 
 func Trigger(req *npool.TriggerRequest) error {
 	switch req.Subsystem {
 	case "benefitwait":
-		triggerBenefitWait(req)
+		triggerBenefitWait(req.GetBenefitWait())
 	default:
 		return fmt.Errorf("invalid subsystem")
 	}

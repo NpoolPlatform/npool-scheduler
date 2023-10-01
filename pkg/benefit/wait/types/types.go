@@ -25,7 +25,24 @@ type PersistentGood struct {
 	Error                   error
 }
 
+type FeedGood struct {
+	*goodmwpb.Good
+	TriggerBenefitTimestamp uint32
+}
+
 type TriggerCond struct {
-	GoodID  *string
-	GoodIDs *[]string
+	GoodIDs  []string
+	RewardAt uint32
+}
+
+func (c *TriggerCond) ContainGoodID(goodID string) bool {
+	if len(c.GoodIDs) == 0 {
+		return true
+	}
+	for _, id := range c.GoodIDs {
+		if id == goodID {
+			return true
+		}
+	}
+	return false
 }

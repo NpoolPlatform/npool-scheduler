@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -28,7 +29,7 @@ func NewSentinel() basesentinel.Scanner {
 	return h
 }
 
-func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, goodIDs map[string]struct{}, exec chan interface{}) error {
+func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, cond *types.TriggerCond, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -44,12 +45,13 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, g
 		}
 
 		for _, good := range goods {
-			if goodIDs != nil {
-				if _, ok := goodIDs[good.ID]; !ok {
-					continue
-				}
+			if cond != nil && !cond.ContainGoodID(good.ID) {
+				continue
 			}
-			cancelablefeed.CancelableFeed(ctx, good, exec)
+			cancelablefeed.CancelableFeed(ctx, &types.FeedGood{
+				Good:                    good,
+				TriggerBenefitTimestamp: cond.RewardAt,
+			}, exec)
 		}
 
 		offset += limit
@@ -69,25 +71,16 @@ func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {
-	goodIDs := map[string]struct{}{}
-	if _cond, ok := cond.(*types.TriggerCond); ok {
-		if _cond.GoodID != nil {
-			goodIDs[*_cond.GoodID] = struct{}{}
-		}
-		if _cond.GoodIDs != nil {
-			for _, goodID := range *_cond.GoodIDs {
-				goodIDs[goodID] = struct{}{}
-			}
-		}
+	_cond, ok := cond.(*types.TriggerCond)
+	if !ok {
+		return fmt.Errorf("invalid cond")
 	}
 	logger.Sugar().Infow(
 		"TriggerScan",
-		"GoodIDs", goodIDs,
+		"GoodIDs", _cond.GoodIDs,
+		"RewardAt", _cond.RewardAt,
 	)
-	if len(goodIDs) == 0 {
-		return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, nil, exec)
-	}
-	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, goodIDs, exec)
+	return h.scanGoods(ctx, goodtypes.BenefitState_BenefitWait, _cond, exec)
 }
 
 func (h *handler) ObjectID(ent interface{}) string {

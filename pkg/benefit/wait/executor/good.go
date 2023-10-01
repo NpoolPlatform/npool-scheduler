@@ -17,7 +17,6 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -31,7 +30,7 @@ import (
 )
 
 type goodHandler struct {
-	*goodmwpb.Good
+	*types.FeedGood
 	*common.Handler
 	persistent             chan interface{}
 	notif                  chan interface{}
@@ -394,10 +393,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		FeeAmount:             decimal.NewFromInt(0).String(),
 		Extra:                 txExtra,
 		Transferrable:         h.transferrable,
-		BenefitTimestamp:      h.BenefitTimestamp(),
+		BenefitTimestamp:      h.TriggerBenefitTimestamp,
 		Error:                 *err,
 	}
 
+	if persistentGood.BenefitTimestamp == 0 {
+		persistentGood.BenefitTimestamp = h.BenefitTimestamp()
+	}
 	if h.goodBenefitAccount != nil {
 		persistentGood.GoodBenefitAccountID = h.goodBenefitAccount.AccountID
 		persistentGood.GoodBenefitAddress = h.goodBenefitAccount.Address
