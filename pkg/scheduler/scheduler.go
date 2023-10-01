@@ -67,7 +67,7 @@ func FinalizeSubsystem(ctx context.Context, system string) {
 	_finalizer.final(ctx)
 }
 
-func InitializeSubsystem(ctx context.Context, system string) {
+func InitializeSubsystem(system string) {
 	_initializer, ok := subsystems[system]
 	if !ok {
 		return

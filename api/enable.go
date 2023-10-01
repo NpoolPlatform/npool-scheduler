@@ -19,7 +19,7 @@ func (s *Server) EnableSubsystem(ctx context.Context, in *npool.EnableSubsystemR
 			}
 		}
 		config.EnableSubsystem(info)
-		scheduler1.InitializeSubsystem(ctx, info)
+		scheduler1.InitializeSubsystem(info)
 	}
 	subsystems := config.Subsystems()
 	return &npool.EnableSubsystemResponse{

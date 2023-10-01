@@ -10,6 +10,7 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
+	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
@@ -17,6 +18,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
+	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -57,6 +59,7 @@ type goodHandler struct {
 	benefitMessage         string
 	notifiable             bool
 	transferrable          bool
+	benefitTimestamp       uint32
 }
 
 const (
@@ -361,6 +364,27 @@ func (h *goodHandler) validateInServiceUnits() error {
 	return nil
 }
 
+func (h *goodHandler) resolveBenefitTimestamp() {
+	h.benefitTimestamp = h.TriggerBenefitTimestamp
+	if h.benefitTimestamp == 0 {
+		h.benefitTimestamp = h.BenefitTimestamp()
+	}
+}
+
+func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
+	exist, err := goodstmwcli.ExistGoodStatementConds(ctx, &goodstmwpb.Conds{
+		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		BenefitDate: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.benefitTimestamp},
+	})
+	if err != nil {
+		return false, err
+	}
+	if !exist {
+		return false, nil
+	}
+	return true, nil
+}
+
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -371,6 +395,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"GoodBenefitAccount", h.goodBenefitAccount,
 			"UserBenefitHotAccount", h.userBenefitHotAccount,
 			"Notifiable", h.notifiable,
+			"BenefitTimestamp", h.benefitTimestamp,
 			"Error", *err,
 		)
 	}
@@ -393,13 +418,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		FeeAmount:             decimal.NewFromInt(0).String(),
 		Extra:                 txExtra,
 		Transferrable:         h.transferrable,
-		BenefitTimestamp:      h.TriggerBenefitTimestamp,
+		BenefitTimestamp:      h.benefitTimestamp,
 		Error:                 *err,
 	}
 
-	if persistentGood.BenefitTimestamp == 0 {
-		persistentGood.BenefitTimestamp = h.BenefitTimestamp()
-	}
 	if h.goodBenefitAccount != nil {
 		persistentGood.GoodBenefitAccountID = h.goodBenefitAccount.AccountID
 		persistentGood.GoodBenefitAddress = h.goodBenefitAccount.Address
@@ -434,8 +456,13 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.benefitResult = basetypes.Result_Success
 
 	var err error
+	exist := false
 	defer h.final(ctx, &err)
 
+	h.resolveBenefitTimestamp()
+	if exist, err = h.checkGoodStatement(ctx); err != nil || exist {
+		return err
+	}
 	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)
 	if err != nil {
 		return err
