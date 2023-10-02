@@ -34,9 +34,13 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 	limit := constant.DefaultRowLimit
 
 	for {
-		goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
+		conds := &goodmwpb.Conds{
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-		}, offset, limit)
+		}
+		if cond != nil {
+			conds.IDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}
+		}
+		goods, _, err := goodmwcli.GetGoods(ctx, conds, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -45,13 +49,13 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 		}
 
 		for _, good := range goods {
-			if cond != nil && !cond.ContainGoodID(good.ID) {
-				continue
+			_good := &types.FeedGood{
+				Good: good,
 			}
-			cancelablefeed.CancelableFeed(ctx, &types.FeedGood{
-				Good:                    good,
-				TriggerBenefitTimestamp: cond.RewardAt,
-			}, exec)
+			if cond != nil {
+				_good.TriggerBenefitTimestamp = cond.RewardAt
+			}
+			cancelablefeed.CancelableFeed(ctx, _good, exec)
 		}
 
 		offset += limit
@@ -85,6 +89,9 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if good, ok := ent.(*types.PersistentGood); ok {
+		return good.ID
+	}
+	if good, ok := ent.(*types.FeedGood); ok {
 		return good.ID
 	}
 	return ent.(*goodmwpb.Good).ID
