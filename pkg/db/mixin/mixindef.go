@@ -1,9 +1,9 @@
 package mixin
 
 import (
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/mixin"
+	crudermixin "github.com/NpoolPlatform/libent-cruder/pkg/mixin"
 )
 
 type TimeMixin struct {
-	cruder.Schema
+	crudermixin.TimeMixin
 }
