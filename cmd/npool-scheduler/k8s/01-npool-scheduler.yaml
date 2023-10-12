@@ -64,13 +64,13 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 50180
-    targetPort: 50180
+    port: 50800
+    targetPort: 50800
   - name: grpc
-    port: 50181
-    targetPort: 50181
+    port: 50801
+    targetPort: 50801
   - name: prometheus
-    port: 50182
-    targetPort: 50182
+    port: 50802
+    targetPort: 50802
   selector:
     app: npool-scheduler
