@@ -27,12 +27,14 @@ func (p *handler) Update(ctx context.Context, coin interface{}, notif, done chan
 	defer asyncfeed.AsyncFeed(ctx, _coin, done)
 
 	txType := basetypes.TxType_TxLimitation
+	extra := fmt.Sprintf(`{"CoinName":"%v","CoinUnit":"%v","ENV":"%v","FromAddress":"%v","ToAddress":"%v"}`, _coin.Name, _coin.Unit, _coin.ENV, _coin.FromAddress, _coin.ToAddress)
 	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-		CoinTypeID:    &_coin.ID,
+		CoinTypeID:    &_coin.EntID,
 		FromAccountID: &_coin.FromAccountID,
 		ToAccountID:   &_coin.ToAccountID,
 		Amount:        &_coin.Amount,
 		FeeAmount:     &_coin.FeeAmount,
+		Extra:         &extra,
 		Type:          &txType,
 	}); err != nil {
 		return err

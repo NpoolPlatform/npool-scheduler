@@ -45,7 +45,7 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done 
 	if _withdraw.NewWithdrawState == ledgertypes.WithdrawState_Transferring {
 		txType := basetypes.TxType_TxWithdraw
 		if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-			ID:            req.PlatformTransactionID,
+			EntID:         req.PlatformTransactionID,
 			CoinTypeID:    &_withdraw.CoinTypeID,
 			FromAccountID: &_withdraw.UserBenefitHotAccountID,
 			ToAccountID:   &_withdraw.AccountID,

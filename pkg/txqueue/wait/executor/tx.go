@@ -40,7 +40,7 @@ type txHandler struct {
 }
 
 func (h *txHandler) checkTransfer(ctx context.Context) (bool, error) {
-	tx, err := sphinxproxycli.GetTransaction(ctx, h.ID)
+	tx, err := sphinxproxycli.GetTransaction(ctx, h.EntID)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return false, nil
@@ -121,7 +121,7 @@ func (h *txHandler) checkTransferAmount(ctx context.Context) error {
 }
 
 func (h *txHandler) checkFeeAmount(ctx context.Context) error {
-	if h.txCoin.ID == h.txCoin.FeeCoinTypeID {
+	if h.txCoin.EntID == h.txCoin.FeeCoinTypeID {
 		return nil
 	}
 

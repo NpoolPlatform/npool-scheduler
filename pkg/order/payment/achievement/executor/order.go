@@ -91,7 +91,7 @@ func (h *orderHandler) getStableUSDCoin(ctx context.Context) error {
 		return fmt.Errorf("invalid stablecoin")
 	}
 	h.usdtTrc20Coin = coin
-	h.PaymentCoinTypeID = h.usdtTrc20Coin.ID
+	h.PaymentCoinTypeID = h.usdtTrc20Coin.EntID
 	h.CoinUSDCurrency = decimal.NewFromInt(1).String()
 	return nil
 }

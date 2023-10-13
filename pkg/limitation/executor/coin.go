@@ -34,7 +34,7 @@ type coinHandler struct {
 
 func (h *coinHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
 	account, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(usedFor)},
 		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
@@ -82,7 +82,7 @@ func (h *coinHandler) checkBalanceLimitation(ctx context.Context) (bool, error) 
 
 func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: []string{
 			h.userBenefitHotAccount.AccountID,
 			h.userBenefitColdAccount.AccountID,
@@ -116,17 +116,17 @@ func (h *coinHandler) checkTransferring(ctx context.Context) (bool, error) {
 }
 
 func (h *coinHandler) checkAccountCoin() error {
-	if h.userBenefitHotAccount.CoinTypeID != h.ID {
+	if h.userBenefitHotAccount.CoinTypeID != h.EntID {
 		return fmt.Errorf("invalid hot account")
 	}
-	if h.userBenefitColdAccount.CoinTypeID != h.ID {
+	if h.userBenefitColdAccount.CoinTypeID != h.EntID {
 		return fmt.Errorf("invalid hot account")
 	}
 	return nil
 }
 
 func (h *coinHandler) checkFeeBalance(ctx context.Context) error {
-	if h.ID == h.FeeCoinTypeID {
+	if h.EntID == h.FeeCoinTypeID {
 		return nil
 	}
 	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
