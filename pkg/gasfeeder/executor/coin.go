@@ -213,7 +213,7 @@ func (h *coinHandler) feedable(ctx context.Context, account *accountmwpb.Account
 }
 
 func (h *coinHandler) checkUserBenefitHot(ctx context.Context) (bool, *accountmwpb.Account, decimal.Decimal, error) {
-	account, err := h.getPlatformAccount(ctx, h.ID, basetypes.AccountUsedFor_UserBenefitHot)
+	account, err := h.getPlatformAccount(ctx, h.EntID, basetypes.AccountUsedFor_UserBenefitHot)
 	if err != nil {
 		return false, nil, decimal.NewFromInt(0), err
 	}
@@ -260,7 +260,7 @@ func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmw
 
 	for {
 		accounts, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
-			CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 			Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
@@ -308,7 +308,7 @@ func (h *coinHandler) checkDepositAccount(ctx context.Context) (bool, *accountmw
 
 	for {
 		accounts, _, err := depositaccmwcli.GetAccounts(ctx, &depositaccmwpb.Conds{
-			CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 			Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},

@@ -104,7 +104,7 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 }
 
 func (h *accountHandler) checkFeeBalance(ctx context.Context) error {
-	if h.coin.ID == h.coin.FeeCoinTypeID {
+	if h.coin.EntID == h.coin.FeeCoinTypeID {
 		return nil
 	}
 
@@ -131,7 +131,7 @@ func (h *accountHandler) checkFeeBalance(ctx context.Context) error {
 
 func (h *accountHandler) getCollectAccount(ctx context.Context) error {
 	account, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.coin.ID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.coin.EntID},
 		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountUsedFor_PaymentCollector)},
 		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},

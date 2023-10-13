@@ -39,7 +39,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 			if coin.FeeCoinTypeID == uuid.Nil.String() {
 				continue
 			}
-			if coin.FeeCoinTypeID == coin.ID {
+			if coin.FeeCoinTypeID == coin.EntID {
 				continue
 			}
 			cancelablefeed.CancelableFeed(ctx, coin, exec)
@@ -59,7 +59,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if coin, ok := ent.(*types.PersistentCoin); ok {
-		return coin.ID
+		return coin.EntID
 	}
-	return ent.(*coinmwpb.Coin).ID
+	return ent.(*coinmwpb.Coin).EntID
 }

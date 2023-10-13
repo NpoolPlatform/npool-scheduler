@@ -75,7 +75,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	txType := basetypes.TxType_TxUserBenefit
 	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-		ID:            &id,
+		EntID:         &id,
 		CoinTypeID:    &_good.CoinTypeID,
 		FromAccountID: &_good.GoodBenefitAccountID,
 		ToAccountID:   &_good.UserBenefitHotAccountID,
