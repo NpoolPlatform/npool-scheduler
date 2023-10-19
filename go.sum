@@ -54,8 +54,8 @@ github.com/NpoolPlatform/appuser-middleware v0.0.0-20231011071633-e14f373f95cb h
 github.com/NpoolPlatform/appuser-middleware v0.0.0-20231011071633-e14f373f95cb/go.mod h1:chHkzOr3FosXgFhL53ftxsGJk2NRk7fhc7lLmz0k8qU=
 github.com/NpoolPlatform/basal-middleware v0.0.0-20231011062124-7ea6e9549a66 h1:KlQV/V75WqicxzTzgr82cdmt8TOVegYjmtCW9t/K8kA=
 github.com/NpoolPlatform/basal-middleware v0.0.0-20231011062124-7ea6e9549a66/go.mod h1:WlyWMkHKHeW9PuST/CvRAw9pkhfrr/XS8VDISBaKdGA=
-github.com/NpoolPlatform/chain-middleware v0.0.0-20231013082502-6adc454e314f h1:wjd+AC75RQWbmcxymjIIqfyLe5xYzSKbwKH/VT4Ikb0=
-github.com/NpoolPlatform/chain-middleware v0.0.0-20231013082502-6adc454e314f/go.mod h1:Xni/SvVA0bNQtp3H3/talclN/0zibupiUJjDL1c4Krw=
+github.com/NpoolPlatform/chain-middleware v0.0.0-20231019101816-e48291d7705d h1:fxaVl4Lr08ArBiZc9nnIPV41I460jxrs9Tvs/pHIacw=
+github.com/NpoolPlatform/chain-middleware v0.0.0-20231019101816-e48291d7705d/go.mod h1:yAMY4d0ESQvF3wtJksEkreGj+gWe2gon0WpdVIHtgps=
 github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626 h1:qPhxD5Z8D3Z83mUqf0KedOmfND0IrATmYTmpF9vfdsQ=
 github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626/go.mod h1:jMTc5jotk+u13Ztzz7ITdEGgEy8V4lsxI0FdcPuVmbo=
 github.com/NpoolPlatform/g11n-middleware v0.0.0-20231020020819-0550d757ddc4 h1:rCNrrts1HeC1VGdXFujBm/F2IFm5XNeAyPTO2J8Vr/o=
@@ -66,8 +66,8 @@ github.com/NpoolPlatform/good-middleware v0.0.0-20231011064249-08e0151ee767 h1:g
 github.com/NpoolPlatform/good-middleware v0.0.0-20231011064249-08e0151ee767/go.mod h1:vcwEXZrLcHSiaZW8qbAQgrIZChul3XvEtAWyncHqbZo=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20231011071847-cbf62ecf31c9 h1:tpxk3OMsZeap9VrEr9JhTJ+f3132E27NOAck311zhRs=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20231011071847-cbf62ecf31c9/go.mod h1:iQ+h70NffevWRzJFir5vpJiIgbF2+3z715lU6BDYdnE=
-github.com/NpoolPlatform/ledger-gateway v0.0.0-20231013104651-9ba77758c4cd h1:LH+6EpmgizrLRHkxxWFu8zCrmowldcNYXwMWYHmHKBY=
-github.com/NpoolPlatform/ledger-gateway v0.0.0-20231013104651-9ba77758c4cd/go.mod h1:GFHbz/U98X+RWImmpvpB87Bfd881z3uVxQcZqVNo1CU=
+github.com/NpoolPlatform/ledger-gateway v0.0.0-20231019110143-adbb2f1e3be4 h1:rIw7LJs1WJlmbbOyOmcb7IG0SZBaqsFVLzCNbLL1e/Y=
+github.com/NpoolPlatform/ledger-gateway v0.0.0-20231019110143-adbb2f1e3be4/go.mod h1:ZE8yKaoQ4OMrUMsmlF5EeRecXgCL0Eq+ZOGc7Fb3Rwk=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534 h1:FHeDpnlrfLm9mWII19IKthcqXHgiVcwrW0Go6T3hjwI=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534/go.mod h1:zYj3GArGhOgemhStYjfN8xv0apcQGTXdFM7QuHIfjno=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6 h1:zbM3Zq0qObWEiw+wYJihNFOsBfXey8mBgAhT7HzGB8Y=
@@ -80,8 +80,8 @@ github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c h1:
 github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c/go.mod h1:2QNwH7blxVhpdqHJXNtT1KhJQ/kFyaCYfRQBRz7DUxE=
 github.com/NpoolPlatform/review-middleware v0.0.0-20231011072605-f58c410c0758 h1:GoqDrQeLGurFE3qZuclPmHOwaqL1PdEQ510eFAbqZ1M=
 github.com/NpoolPlatform/review-middleware v0.0.0-20231011072605-f58c410c0758/go.mod h1:IIqTsE6FrfH6Bq6HJ817F9ksy3QGEe+HSsqnY3Yhugg=
-github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231013103729-02c9e8016d26 h1:Gw2miMMCh1yfylT+bwGZQvcFwjllMAuECXKfttNdZPg=
-github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231013103729-02c9e8016d26/go.mod h1:aO3/1euIp39bWvAlC1w+liccexcmxjRrzUr1MFLFE8M=
+github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231019105822-19c4fd65a157 h1:J/ZQlKs1l5zLviJ/jr3aFxmIiYC79h3qLk9wAmeewXo=
+github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231019105822-19c4fd65a157/go.mod h1:0lhb3vULb0/sXayXe9SKQh5R1SMGyjCkThg5CpACxJk=
 github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac h1:Bt0vPDCCdqbxl/BTHQxE6AsgdT0aBo/jDxM3tENWOOU=
 github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac/go.mod h1:J20Yf4xbvGzmiXmTJbx/kwceX1Svo9CDezVkQSP7EiA=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
