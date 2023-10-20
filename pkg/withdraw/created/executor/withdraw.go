@@ -160,7 +160,7 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.notif)
+	// TODO: notif to adminstrator
 	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
 }
 
