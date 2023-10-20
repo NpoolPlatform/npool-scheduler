@@ -27,7 +27,7 @@ type txHandler struct {
 }
 
 func (h *txHandler) checkTransfer(ctx context.Context) error {
-	tx, err := sphinxproxycli.GetTransaction(ctx, h.ID)
+	tx, err := sphinxproxycli.GetTransaction(ctx, h.EntID)
 	if err != nil {
 		switch status.Code(err) {
 		case codes.InvalidArgument:

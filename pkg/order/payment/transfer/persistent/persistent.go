@@ -61,14 +61,16 @@ func (p *handler) Update(ctx context.Context, account interface{}, notif, done c
 		_account.Locked = true
 	}
 
+	extra := fmt.Sprintf(`{"AccountID":"%v","Address":"%v","FromAddress":"%v","ToAddress":"%v"}`, _account.AccountID, _account.Address, _account.PaymentAddress, _account.CollectAddress)
 	txType := basetypes.TxType_TxPaymentCollect
 	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-		ID:            _account.CollectingTIDCandidate,
+		EntID:         _account.CollectingTIDCandidate,
 		CoinTypeID:    &_account.CoinTypeID,
 		FromAccountID: &_account.PaymentAccountID,
 		ToAccountID:   &_account.CollectAccountID,
 		Amount:        &_account.CollectAmount,
 		FeeAmount:     &_account.FeeAmount,
+		Extra:         &extra,
 		Type:          &txType,
 	}); err != nil {
 		return err

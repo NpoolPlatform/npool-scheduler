@@ -40,7 +40,7 @@ func (p *handler) Update(ctx context.Context, tx interface{}, notif, done chan i
 
 	if !_tx.TransactionExist {
 		if err := sphinxproxycli.CreateTransaction(ctx, &sphinxproxypb.CreateTransactionRequest{
-			TransactionID: _tx.ID,
+			TransactionID: _tx.EntID,
 			Name:          _tx.CoinName,
 			Amount:        _tx.FloatAmount,
 			From:          _tx.FromAddress,
