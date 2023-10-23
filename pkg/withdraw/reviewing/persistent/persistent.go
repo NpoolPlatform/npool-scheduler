@@ -28,8 +28,15 @@ func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done 
 	defer asyncfeed.AsyncFeed(ctx, _withdraw, done)
 
 	if _withdraw.NeedUpdateReview {
+		review, err := reviewmwcli.GetReview(ctx, _withdraw.ReviewID)
+		if err != nil {
+			return err
+		}
+		if review == nil {
+			return fmt.Errorf("review not found")
+		}
 		if _, err := reviewmwcli.UpdateReview(ctx, &reviewmwpb.ReviewReq{
-			ID:    &_withdraw.ReviewID,
+			ID:    &review.ID,
 			State: &_withdraw.NewReviewState,
 		}); err != nil {
 			return err
