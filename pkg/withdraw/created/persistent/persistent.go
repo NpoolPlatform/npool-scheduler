@@ -48,7 +48,7 @@ func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.
 	serviceName := ledgergwname.ServiceDomain
 	objType := reviewtypes.ReviewObjectType_ObjectWithdrawal
 	req := &reviewmwpb.ReviewReq{
-		ID:         &reviewID,
+		EntID:      &reviewID,
 		AppID:      &withdraw.AppID,
 		Domain:     &serviceName,
 		ObjectType: &objType,
