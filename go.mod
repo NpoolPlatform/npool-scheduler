@@ -16,10 +16,10 @@ require (
 	github.com/NpoolPlatform/ledger-gateway v0.0.0-20231020120307-3063a37cd9e5
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6
-	github.com/NpoolPlatform/message v0.0.0-20231026020155-4b0a4925a5fb
+	github.com/NpoolPlatform/message v0.0.0-20231027075951-f4da5d85ad08
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20231011082608-04973d328d1f
 	github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c
-	github.com/NpoolPlatform/review-middleware v0.0.0-20231023084503-cd36a0ec91d7
+	github.com/NpoolPlatform/review-middleware v0.0.0-20231027080125-f86b71e215b6
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231020115438-bd66d3d334af
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
 	github.com/dtm-labs/dtm v1.17.3
