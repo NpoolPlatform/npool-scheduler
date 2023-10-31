@@ -63,7 +63,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if announcement, ok := ent.(*types.PersistentAnnouncement); ok {
-		return announcement.ID
+		return announcement.EntID
 	}
-	return ent.(*ancmwpb.Announcement).ID
+	return ent.(*ancmwpb.Announcement).EntID
 }
