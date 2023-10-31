@@ -19,7 +19,7 @@ require (
 	github.com/NpoolPlatform/message v0.0.0-20231030072151-3f2917bce64c
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20231031070102-cd4e147aba23
 	github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c
-	github.com/NpoolPlatform/review-middleware v0.0.0-20231023084503-cd36a0ec91d7
+	github.com/NpoolPlatform/review-middleware v0.0.0-20231027080125-f86b71e215b6
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231020115438-bd66d3d334af
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
 	github.com/dtm-labs/dtm v1.17.3
