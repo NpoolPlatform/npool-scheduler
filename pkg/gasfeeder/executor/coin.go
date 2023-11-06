@@ -79,7 +79,7 @@ func (h *coinHandler) getGasProvider(ctx context.Context) error {
 
 func (h *coinHandler) feeding(ctx context.Context, account *accountmwpb.Account) (bool, error) {
 	txs, _, err := txmwcli.GetTxs(ctx, &txmwpb.Conds{
-		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: account.ID},
+		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: account.EntID},
 		Type:      &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.TxType_TxFeedGas)},
 		States: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 			uint32(basetypes.TxState_TxStateCreated),
@@ -277,7 +277,7 @@ func (h *coinHandler) checkPaymentAccount(ctx context.Context) (bool, *accountmw
 			ids = append(ids, account.AccountID)
 		}
 		_accounts, _, err := accountmwcli.GetAccounts(ctx, &accountmwpb.Conds{
-			IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: ids},
+			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: ids},
 		}, int32(0), int32(len(ids)))
 		if err != nil {
 			return false, nil, decimal.NewFromInt(0), err
@@ -325,7 +325,7 @@ func (h *coinHandler) checkDepositAccount(ctx context.Context) (bool, *accountmw
 			ids = append(ids, account.AccountID)
 		}
 		_accounts, _, err := accountmwcli.GetAccounts(ctx, &accountmwpb.Conds{
-			IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: ids},
+			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: ids},
 		}, int32(0), int32(len(ids)))
 		if err != nil {
 			return false, nil, decimal.NewFromInt(0), err
@@ -370,11 +370,11 @@ func (h *coinHandler) final(ctx context.Context, account **accountmwpb.Account, 
 		Error:     *err,
 	}
 	if *account != nil {
-		persistentCoin.ToAccountID = (*account).ID
+		persistentCoin.ToAccountID = (*account).EntID
 		persistentCoin.ToAddress = (*account).Address
 	}
 	if h.gasProviderAccount != nil {
-		persistentCoin.FromAccountID = h.gasProviderAccount.ID
+		persistentCoin.FromAccountID = h.gasProviderAccount.EntID
 		persistentCoin.FromAddress = h.gasProviderAccount.Address
 	}
 

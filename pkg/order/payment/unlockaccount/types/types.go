@@ -6,5 +6,5 @@ import (
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	OrderPaymentAccountID *string
+	OrderPaymentAccountID *uint32
 }

@@ -54,7 +54,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if account, ok := ent.(*types.PersistentAccount); ok {
-		return account.ID
+		return account.EntID
 	}
-	return ent.(*depositaccmwpb.Account).ID
+	return ent.(*depositaccmwpb.Account).EntID
 }
