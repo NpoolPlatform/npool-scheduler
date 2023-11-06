@@ -48,7 +48,7 @@ func (p *handler) Update(ctx context.Context, announcement interface{}, notif, d
 	if _, err := ancsendmwcli.CreateSendState(ctx, &ancsendmwpb.SendStateReq{
 		AppID:          &_announcement.SendAppID,
 		UserID:         &_announcement.SendUserID,
-		AnnouncementID: &_announcement.ID,
+		AnnouncementID: &_announcement.EntID,
 	}); err != nil {
 		return err
 	}

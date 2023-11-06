@@ -43,7 +43,7 @@ func (h *announcementHandler) getSendStats(ctx context.Context, users []*usermwp
 	}
 	stats, _, err := ancsendmwcli.GetSendStates(ctx, &ancsendmwpb.Conds{
 		AppID:          &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-		AnnouncementID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		AnnouncementID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		Channel:        &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(h.Channel)},
 		UserIDs:        &basetypes.StringSliceVal{Op: cruder.IN, Value: uids},
 	}, 0, int32(len(uids)))
@@ -246,7 +246,7 @@ func (h *announcementHandler) multicast(ctx context.Context) error {
 	for {
 		ancUsers, _, err := ancusermwcli.GetAnnouncementUsers(ctx, &ancusermwpb.Conds{
 			AppID:          &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-			AnnouncementID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			AnnouncementID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err
