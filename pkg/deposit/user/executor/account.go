@@ -43,7 +43,7 @@ func (h *accountHandler) getCoin(ctx context.Context) error {
 }
 
 func (h *accountHandler) recheckAccountLock(ctx context.Context) (bool, error) {
-	account, err := depositaccmwcli.GetAccount(ctx, h.ID)
+	account, err := depositaccmwcli.GetAccount(ctx, h.EntID)
 	if err != nil {
 		return false, err
 	}
