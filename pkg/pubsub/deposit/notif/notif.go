@@ -57,7 +57,7 @@ func Apply(ctx context.Context, req interface{}) error {
 
 	if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 		AppID:     *in.AppID,
-		UserID:    *in.UserID,
+		UserID:    in.UserID,
 		EventType: basetypes.UsedFor_DepositReceived,
 		NotifType: basetypes.NotifType_NotifUnicast,
 		Vars: &templatemwpb.TemplateVars{
