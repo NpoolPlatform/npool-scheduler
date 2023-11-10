@@ -39,7 +39,7 @@ func Apply(ctx context.Context, req interface{}) error {
 	now := uint32(time.Now().Unix())
 	if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 		AppID:     in.AppID,
-		UserID:    in.UserID,
+		UserID:    &in.UserID,
 		EventType: basetypes.UsedFor_OrderCompleted,
 		NotifType: basetypes.NotifType_NotifUnicast,
 		Vars: &templatemwpb.TemplateVars{

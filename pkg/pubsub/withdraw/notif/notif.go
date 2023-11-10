@@ -61,7 +61,7 @@ func Apply(ctx context.Context, mid string, req interface{}) error {
 
 	if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
 		AppID:     in.AppID,
-		UserID:    in.UserID,
+		UserID:    &in.UserID,
 		EventType: eventType,
 		NotifType: basetypes.NotifType_NotifUnicast,
 		Vars: &templatemwpb.TemplateVars{
