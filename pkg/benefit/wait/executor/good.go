@@ -394,8 +394,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"TodayRewardAmount", h.todayRewardAmount,
 			"GoodBenefitAccount", h.goodBenefitAccount,
 			"UserBenefitHotAccount", h.userBenefitHotAccount,
+			"Transferrable", h.transferrable,
 			"Notifiable", h.notifiable,
 			"BenefitTimestamp", h.benefitTimestamp,
+			"BenefitOrderIDs", len(h.benefitOrderIDs),
 			"Error", *err,
 		)
 	}
