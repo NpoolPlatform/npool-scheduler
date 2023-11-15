@@ -31,23 +31,23 @@ type goodHandler struct {
 	rewardTx              *txmwpb.Tx
 }
 
-func (h *goodHandler) checkLeastTransferAmount() error {
+func (h *goodHandler) checkLeastTransferAmount() (bool, error) {
 	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return fmt.Errorf("invalid leasttransferamount")
+		return false, fmt.Errorf("invalid leasttransferamount")
 	}
 	lastRewardAmount, err := decimal.NewFromString(h.LastRewardAmount)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if lastRewardAmount.Cmp(least) <= 0 {
-		return nil
+		return false, nil
 	}
 	h.nextStartRewardAmount = h.nextStartRewardAmount.Sub(lastRewardAmount)
-	return nil
+	return true, nil
 }
 
 func (h *goodHandler) getCoin(ctx context.Context) error {
@@ -133,11 +133,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 //nolint
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
+	var transferred bool
 	defer h.final(ctx, &err)
 
-	if err = h.getTransfer(ctx); err != nil {
-		return err
-	}
 	if err = h.getCoin(ctx); err != nil {
 		return err
 	}
@@ -145,10 +143,13 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = h.checkLeastTransferAmount(); err != nil {
+	if err = h.getBenefitOrders(ctx); err != nil {
 		return err
 	}
-	if err = h.getBenefitOrders(ctx); err != nil {
+	if transferred, err = h.checkLeastTransferAmount(); !transferred || err != nil {
+		return err
+	}
+	if err = h.getTransfer(ctx); err != nil {
 		return err
 	}
 

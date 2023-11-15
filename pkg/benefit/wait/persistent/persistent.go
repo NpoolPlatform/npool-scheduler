@@ -55,7 +55,11 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 		return err
 	}
 
-	id := uuid.NewString()
+	id := uuid.Nil.String()
+	if _good.Transferrable {
+		id = uuid.NewString()
+	}
+
 	state := goodtypes.BenefitState_BenefitTransferring
 	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
 		ID:                    &_good.ID,
