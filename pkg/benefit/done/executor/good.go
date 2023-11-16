@@ -29,6 +29,7 @@ type goodHandler struct {
 	coin                  *coinmwpb.Coin
 	benefitOrderIDs       []string
 	rewardTx              *txmwpb.Tx
+	leastTransferAmount   decimal.Decimal
 }
 
 func (h *goodHandler) checkLeastTransferAmount() (bool, error) {
@@ -43,6 +44,7 @@ func (h *goodHandler) checkLeastTransferAmount() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	h.leastTransferAmount = least
 	if lastRewardAmount.Cmp(least) <= 0 {
 		return false, nil
 	}
@@ -104,6 +106,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Good", h.Good,
 			"NextStartRewardAmount", h.nextStartRewardAmount,
+			"LeastTransferAmount", h.leastTransferAmount,
 			"RewardTx", h.rewardTx,
 			"Error", *err,
 		)
@@ -120,6 +123,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			h.rewardTx.ChainTxID,
 			h.LastRewardAt,
 			h.RewardTID,
+		)
+	} else {
+		persistentGood.BenefitMessage = fmt.Sprintf(
+			"Reward amount %v, least transfer amount %v (%v)",
+			h.LastRewardAmount,
+			h.leastTransferAmount,
+			h.LastRewardAt,
 		)
 	}
 	if *err == nil {
