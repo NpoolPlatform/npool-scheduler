@@ -39,7 +39,7 @@ type announcementHandler struct {
 func (h *announcementHandler) getSendStats(ctx context.Context, users []*usermwpb.User) error {
 	uids := []string{}
 	for _, user := range users {
-		uids = append(uids, user.ID)
+		uids = append(uids, user.EntID)
 	}
 	stats, _, err := ancsendmwcli.GetSendStates(ctx, &ancsendmwpb.Conds{
 		AppID:          &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
@@ -138,7 +138,7 @@ func (h *announcementHandler) smsRequest(ctx context.Context, user *usermwpb.Use
 }
 
 func (h *announcementHandler) unicast(ctx context.Context, user *usermwpb.User) error {
-	if _, ok := h.sendStats[user.ID]; ok {
+	if _, ok := h.sendStats[user.EntID]; ok {
 		return nil
 	}
 
@@ -184,7 +184,7 @@ func (h *announcementHandler) unicast(ctx context.Context, user *usermwpb.User) 
 	asyncfeed.AsyncFeed(ctx, &types.PersistentAnnouncement{
 		Announcement:   h.Announcement,
 		SendAppID:      user.AppID,
-		SendUserID:     user.ID,
+		SendUserID:     user.EntID,
 		MessageRequest: req,
 	}, h.persistent)
 
@@ -263,7 +263,7 @@ func (h *announcementHandler) multicast(ctx context.Context) error {
 		}
 
 		users, _, err := usermwcli.GetUsers(ctx, &usermwpb.Conds{
-			IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: uids},
+			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: uids},
 		}, 0, int32(len(uids)))
 		if err != nil {
 			return err
