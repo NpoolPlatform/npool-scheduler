@@ -39,7 +39,7 @@ func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 
 	for {
 		locks, _, err := orderlockmwcli.GetOrderLocks(ctx, &orderlockmwpb.Conds{
-			OrderID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			OrderID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LockType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderLockType_LockCommission)},
 		}, offset, limit)
 		if err != nil {
@@ -60,7 +60,7 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 
 	for {
 		statements, _, err := achievementstatementmwcli.GetStatements(ctx, &achievementstatementmwpb.Conds{
-			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err

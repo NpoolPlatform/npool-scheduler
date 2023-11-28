@@ -46,7 +46,7 @@ func (h *orderHandler) getChildOrders(ctx context.Context) error {
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			PaymentType:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
-			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -139,7 +139,7 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 		UserID:                 h.UserID,
 		GoodID:                 h.GoodID,
 		AppGoodID:              h.AppGoodID,
-		OrderID:                h.ID,
+		OrderID:                h.EntID,
 		PaymentID:              h.PaymentID,
 		CoinTypeID:             h.CoinTypeID,
 		PaymentCoinTypeID:      h.PaymentCoinTypeID,

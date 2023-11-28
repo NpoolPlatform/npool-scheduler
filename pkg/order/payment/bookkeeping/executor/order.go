@@ -144,7 +144,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		persistentOrder.IncomingExtra = fmt.Sprintf(
 			`{"PaymentID": "%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v","AppGoodID":"%v"}`,
 			h.PaymentID,
-			h.ID,
+			h.EntID,
 			h.PaymentState,
 			h.GoodID,
 			h.AppGoodID,
@@ -154,7 +154,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		persistentOrder.TransferExtra = fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID": "%v","FromTransfer":true,"GoodID":"%v","AppGoodID":"%v"}`,
 			h.PaymentID,
-			h.ID,
+			h.EntID,
 			h.GoodID,
 			h.AppGoodID,
 		)

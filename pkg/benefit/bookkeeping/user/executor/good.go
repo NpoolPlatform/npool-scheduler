@@ -139,7 +139,7 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
 		h.ID,
 		order.AppGoodID,
-		order.ID,
+		order.EntID,
 		order.Units,
 		h.LastRewardAt,
 	)

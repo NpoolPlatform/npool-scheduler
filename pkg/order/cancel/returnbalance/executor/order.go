@@ -47,7 +47,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			`{"AppID":"%v","UserID":"%v","OrderID":"%v","Amount":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
-			h.ID,
+			h.EntID,
 			h.spentBalanceAmount,
 		)
 		persistentOrder.SpentExtra = ioExtra

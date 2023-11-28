@@ -56,7 +56,7 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 			"ledger.middleware.ledger.v2.Middleware/SettleBalance",
 			"",
 			&ledgermwpb.SettleBalanceRequest{
-				LockID:      lock.ID,
+				LockID:      lock.EntID,
 				StatementID: *statement.ID,
 				IOSubType:   *statement.IOSubType,
 				IOExtra:     *statement.IOExtra,

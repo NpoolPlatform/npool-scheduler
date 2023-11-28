@@ -72,12 +72,12 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534 h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534/go.mod h1:zYj3GArGhOgemhStYjfN8xv0apcQGTXdFM7QuHIfjno=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6 h1:zbM3Zq0qObWEiw+wYJihNFOsBfXey8mBgAhT7HzGB8Y=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6/go.mod h1:EXCihQpRNNyWaPu1IphiZFLTyyUK/CJMZdW4My7y48Q=
-github.com/NpoolPlatform/message v0.0.0-20231110070602-d0ca2ae03619 h1:XSLCgR0u08RBZHhMpOpBEvxyLqytGKuAs9jYkWu8d2g=
-github.com/NpoolPlatform/message v0.0.0-20231110070602-d0ca2ae03619/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20231120084734-64d6a212aa7c h1:DQFae10Yh+fo5Q4vgum/m5L5rP1Af5axNeacVD5RW7k=
+github.com/NpoolPlatform/message v0.0.0-20231120084734-64d6a212aa7c/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a h1:+gVUfl0pCMHIBNXpwxseDxxapqmed8/ZAf+Oewl3UpQ=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a/go.mod h1:4Du89hzmz5gfqyxqXyzCOIWWpbPlDhKDRirekueAoRk=
-github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c h1:stqCDzbX/ODx0eNdkuZmuCDW1MMeydsyzZeE9WaTXXA=
-github.com/NpoolPlatform/order-middleware v0.0.0-20231011072313-c0f26bd2b58c/go.mod h1:2QNwH7blxVhpdqHJXNtT1KhJQ/kFyaCYfRQBRz7DUxE=
+github.com/NpoolPlatform/order-middleware v0.0.0-20231123072841-cc7ae7bb7ba4 h1:45zYroYdNJ3LFkVrjWZiG4Okm7IAmAj3TOFBNvcDy1U=
+github.com/NpoolPlatform/order-middleware v0.0.0-20231123072841-cc7ae7bb7ba4/go.mod h1:RgRC1SPgNy1hffeOJlYub8fRveWpp6R/uCuQduOrb04=
 github.com/NpoolPlatform/review-middleware v0.0.0-20231031085621-a1ee14e144fd h1:uwov2CYbx8u1WubUnNAk/nLl/rgle+y/KSrd6BvLohI=
 github.com/NpoolPlatform/review-middleware v0.0.0-20231031085621-a1ee14e144fd/go.mod h1:LtZLrG8mCHUkAmUktvO/BdQarz3UjCKanNDzZuzWpZg=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231020115438-bd66d3d334af h1:FzsoK7YIfXlpWLqBH8XB5zdBIjlVEG542VC1YL//gpw=
