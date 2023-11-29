@@ -88,7 +88,7 @@ func (h *orderHandler) toLedgerStatements() error {
 			`{"AppID":"%v","UserID":"%v","ArchivementStatementID":"%v","Amount":"%v","CancelOrder":true}`,
 			statement.AppID,
 			statement.UserID,
-			statement.ID,
+			statement.EntID,
 			statement.Commission,
 		)
 		id := uuid.NewString()
