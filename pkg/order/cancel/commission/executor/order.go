@@ -93,7 +93,7 @@ func (h *orderHandler) toLedgerStatements() error {
 		)
 		id := uuid.NewString()
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
-			ID:         &id,
+			EntID:      &id,
 			AppID:      &statement.AppID,
 			UserID:     &statement.UserID,
 			CoinTypeID: &statement.PaymentCoinTypeID,

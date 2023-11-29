@@ -59,7 +59,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()
 		reqs = append(reqs, &statementmwpb.StatementReq{
-			ID:         &id,
+			EntID:      &id,
 			AppID:      &reward.AppID,
 			UserID:     &reward.UserID,
 			CoinTypeID: &good.CoinTypeID,

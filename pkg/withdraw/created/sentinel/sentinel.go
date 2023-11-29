@@ -66,7 +66,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if withdraw, ok := ent.(*types.PersistentWithdraw); ok {
-		return withdraw.ID
+		return withdraw.EntID
 	}
-	return ent.(*withdrawmwpb.Withdraw).ID
+	return ent.(*withdrawmwpb.Withdraw).EntID
 }
