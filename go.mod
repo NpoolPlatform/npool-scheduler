@@ -20,7 +20,11 @@ require (
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a
 	github.com/NpoolPlatform/order-middleware v0.0.0-20231129080534-8d1b1b2f6cb9
 	github.com/NpoolPlatform/review-middleware v0.0.0-20231031085621-a1ee14e144fd
+<<<<<<< HEAD
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
+=======
+	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231130023745-fe7e3a58a9f0
+>>>>>>> c0b3e4b (update deps on sphinx-proxy)
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
 	github.com/dtm-labs/dtm v1.17.3
 	github.com/go-redis/redis/v8 v8.11.5
