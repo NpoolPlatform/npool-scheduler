@@ -48,8 +48,8 @@ github.com/BurntSushi/toml v1.2.0 h1:Rt8g24XnyGTyglgET/PRUNlrUeu9F5L+7FilkXfZgs0
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/NpoolPlatform/account-middleware v0.0.0-20231011065927-9a824b9f1075 h1:qhvtoLT6jX9vy0YbFSbxst7mjXcw8WCP+JEyEUaxdEs=
-github.com/NpoolPlatform/account-middleware v0.0.0-20231011065927-9a824b9f1075/go.mod h1:O5THZrkvgT+8tculY1tCc1/R7yG2XmwRk5YFvFdGEGk=
+github.com/NpoolPlatform/account-middleware v0.0.0-20231204091959-43049c28dd55 h1:AfNXI7Y7BlpCtA8ZQmll684CWwSySgnZpFTaFlobCHY=
+github.com/NpoolPlatform/account-middleware v0.0.0-20231204091959-43049c28dd55/go.mod h1:9j4ek3GyuHOhxat2477RBZDvE2Dexd+alNiDWF2ZQ4k=
 github.com/NpoolPlatform/appuser-middleware v0.0.0-20231130084704-4550aabac9c7 h1:+4onUtHHReTc0Nz2uDRulQ/O21m/mSV9kRqzErEs4Bs=
 github.com/NpoolPlatform/appuser-middleware v0.0.0-20231130084704-4550aabac9c7/go.mod h1:Bo68/bdsZPmfxMlGWu8K8u+OlhiJ+BWEBvSsqiVgyhQ=
 github.com/NpoolPlatform/basal-middleware v0.0.0-20231015112137-254853c60eec h1:YftnEsNtCsUz3iAKsI2bwt7+AuA7Ygx3GfYV6h38s9U=
