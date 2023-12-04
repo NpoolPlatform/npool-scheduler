@@ -43,7 +43,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 				basetypes.Prefix_PrefixCreateWithdraw,
 				withdraw.AppID,
 				withdraw.UserID,
-				withdraw.ID,
+				withdraw.EntID,
 			)
 			if err := redis2.TryLock(key, 0); err != nil {
 				continue
