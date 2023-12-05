@@ -55,7 +55,7 @@ func (h *accountHandler) checkAccountCoin() error {
 }
 
 func (h *accountHandler) recheckAccount(ctx context.Context) (bool, error) {
-	account, err := payaccmwcli.GetAccount(ctx, h.ID)
+	account, err := payaccmwcli.GetAccount(ctx, h.EntID)
 	if err != nil {
 		return false, err
 	}

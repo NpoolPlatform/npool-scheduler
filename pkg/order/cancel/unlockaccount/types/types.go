@@ -7,5 +7,5 @@ import (
 type PersistentOrder struct {
 	*ordermwpb.Order
 	// ID of payment table but not account table
-	OrderPaymentAccountID *string
+	OrderPaymentAccountID *uint32
 }
