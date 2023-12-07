@@ -42,7 +42,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
-			key := fmt.Sprintf("%v:%v:%v:%v", basetypes.Prefix_PrefixCreateOrder, order.AppID, order.UserID, order.ID)
+			key := fmt.Sprintf("%v:%v:%v:%v", basetypes.Prefix_PrefixCreateOrder, order.AppID, order.UserID, order.EntID)
 			if err := redis2.TryLock(key, 0); err != nil {
 				continue
 			}
@@ -68,7 +68,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
-		return order.ID
+		return order.EntID
 	}
-	return ent.(*ordermwpb.Order).ID
+	return ent.(*ordermwpb.Order).EntID
 }

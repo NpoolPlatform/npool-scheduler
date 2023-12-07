@@ -7,7 +7,7 @@ import (
 
 type PersistentGood struct {
 	*goodmwpb.Good
-	BenefitOrderIDs         []string
+	BenefitOrderIDs         []uint32
 	GoodBenefitAccountID    string
 	GoodBenefitAddress      string
 	UserBenefitHotAccountID string

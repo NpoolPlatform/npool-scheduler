@@ -54,7 +54,7 @@ type goodHandler struct {
 	techniqueFeeAmount     decimal.Decimal
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	goodBenefitAccount     *gbmwpb.Account
-	benefitOrderIDs        []string
+	benefitOrderIDs        []uint32
 	benefitResult          basetypes.Result
 	benefitMessage         string
 	notifiable             bool

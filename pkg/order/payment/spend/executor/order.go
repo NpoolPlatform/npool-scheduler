@@ -38,7 +38,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		persistentOrder.BalanceExtra = fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID": "%v","FromBalance":true}`,
 			h.PaymentID,
-			h.ID,
+			h.EntID,
 		)
 	}
 	if *err == nil {

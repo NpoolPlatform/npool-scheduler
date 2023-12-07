@@ -27,7 +27,7 @@ type goodHandler struct {
 	done                  chan interface{}
 	nextStartRewardAmount decimal.Decimal
 	coin                  *coinmwpb.Coin
-	benefitOrderIDs       []string
+	benefitOrderIDs       []uint32
 	rewardTx              *txmwpb.Tx
 	leastTransferAmount   decimal.Decimal
 }

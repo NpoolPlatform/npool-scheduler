@@ -25,7 +25,7 @@ type goodHandler struct {
 	done                  chan interface{}
 	nextStartRewardAmount decimal.Decimal
 	coin                  *coinmwpb.Coin
-	benefitOrderIDs       []string
+	benefitOrderIDs       []uint32
 }
 
 func (h *goodHandler) checkLeastTransferAmount() error {

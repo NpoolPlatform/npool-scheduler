@@ -8,7 +8,7 @@ import (
 type OrderReward struct {
 	AppID   string
 	UserID  string
-	OrderID string
+	OrderID uint32
 	Amount  string
 	Extra   string
 }
@@ -18,6 +18,6 @@ type PersistentGood struct {
 	OrderRewards    []*OrderReward
 	BenefitResult   basetypes.Result
 	BenefitMessage  string
-	BenefitOrderIDs []string
+	BenefitOrderIDs []uint32
 	Error           error
 }
