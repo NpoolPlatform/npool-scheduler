@@ -82,7 +82,7 @@ func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		}, offset, limit)
 		if err != nil {

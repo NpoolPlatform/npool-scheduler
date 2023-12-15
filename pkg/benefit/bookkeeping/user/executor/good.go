@@ -41,7 +41,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		}, offset, limit)
 		if err != nil {
@@ -76,7 +76,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 
 	for {
 		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -89,7 +89,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			if !ok {
 				_goods = map[string]*appgoodmwpb.Good{}
 			}
-			_goods[good.ID] = good
+			_goods[good.EntID] = good
 			h.goods[good.AppID] = _goods
 		}
 		offset += limit
@@ -137,7 +137,7 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 	}
 	ioExtra := fmt.Sprintf(
 		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
-		h.ID,
+		h.EntID,
 		order.AppGoodID,
 		order.EntID,
 		order.Units,
@@ -160,7 +160,7 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 	}, 0, int32(20)) //nolint

@@ -38,7 +38,7 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 		}
 		if cond != nil {
-			conds.IDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}
+			conds.EntIDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}
 		}
 		goods, _, err := goodmwcli.GetGoods(ctx, conds, offset, limit)
 		if err != nil {
@@ -89,10 +89,10 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if good, ok := ent.(*types.PersistentGood); ok {
-		return good.ID
+		return good.EntID
 	}
 	if good, ok := ent.(*types.FeedGood); ok {
-		return good.ID
+		return good.EntID
 	}
-	return ent.(*goodmwpb.Good).ID
+	return ent.(*goodmwpb.Good).EntID
 }

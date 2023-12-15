@@ -47,7 +47,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	if _, err := goodstmwcli.CreateGoodStatement(ctx, &goodstmwpb.GoodStatementReq{
-		GoodID:                    &_good.ID,
+		GoodID:                    &_good.EntID,
 		CoinTypeID:                &_good.CoinTypeID,
 		TotalAmount:               &_good.TotalRewardAmount,
 		UnsoldAmount:              &_good.UnsoldRewardAmount,
