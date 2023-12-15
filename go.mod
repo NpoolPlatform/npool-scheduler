@@ -13,10 +13,10 @@ require (
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230930023319-e48074d9472e
 	github.com/NpoolPlatform/good-middleware v0.0.0-20231011064249-08e0151ee767
 	github.com/NpoolPlatform/inspire-middleware v0.0.0-20231213035028-f8c040385957
-	github.com/NpoolPlatform/ledger-gateway v0.0.0-20231130092206-af176623380a
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20231011072101-96b312d4e534
+	github.com/NpoolPlatform/ledger-gateway v0.0.0-20231214100242-662c2a968040
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20231214100111-0c00d61d19e5
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6
-	github.com/NpoolPlatform/message v0.0.0-20231213033239-6e9fd842e6c1
+	github.com/NpoolPlatform/message v0.0.0-20231214092739-7b4574189887
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a
 	github.com/NpoolPlatform/order-middleware v0.0.0-20231207022847-d562f0898e06
 	github.com/NpoolPlatform/review-middleware v0.0.0-20231031085621-a1ee14e144fd

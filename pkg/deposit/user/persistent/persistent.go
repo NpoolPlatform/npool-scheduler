@@ -46,7 +46,7 @@ func (p *handler) statement(account *types.PersistentAccount) *statementmwpb.Sta
 	ioSubType := ledgertypes.IOSubType_Deposit
 
 	return &statementmwpb.StatementReq{
-		ID:         &id,
+		EntID:      &id,
 		AppID:      &account.AppID,
 		UserID:     &account.UserID,
 		CoinTypeID: &account.CoinTypeID,

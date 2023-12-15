@@ -43,7 +43,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 				basetypes.Prefix_PrefixCreateWithdraw,
 				withdraw.AppID,
 				withdraw.UserID,
-				withdraw.ID,
+				withdraw.EntID,
 			)
 			if err := redis2.TryLock(key, 0); err != nil {
 				continue
@@ -66,7 +66,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if withdraw, ok := ent.(*types.PersistentWithdraw); ok {
-		return withdraw.ID
+		return withdraw.EntID
 	}
-	return ent.(*withdrawmwpb.Withdraw).ID
+	return ent.(*withdrawmwpb.Withdraw).EntID
 }

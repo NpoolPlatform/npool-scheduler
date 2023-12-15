@@ -230,7 +230,7 @@ func (h *withdrawHandler) final(ctx context.Context, err *error) {
 			h.UserID,
 			h.withdrawAccount.Address,
 			h.appCoin.Name,
-			h.ID,
+			h.EntID,
 		)
 		persistentWithdraw.WithdrawExtra = withdrawExtra
 	}

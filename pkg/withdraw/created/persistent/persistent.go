@@ -52,7 +52,7 @@ func (p *handler) withCreateReview(dispose *dtmcli.SagaDispose, withdraw *types.
 		AppID:      &withdraw.AppID,
 		Domain:     &serviceName,
 		ObjectType: &objType,
-		ObjectID:   &withdraw.ID,
+		ObjectID:   &withdraw.EntID,
 		Trigger:    &withdraw.ReviewTrigger,
 	}
 	dispose.Add(
