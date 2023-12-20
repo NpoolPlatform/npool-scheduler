@@ -10,7 +10,6 @@ import (
 	appcoinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/app/coin"
 
 	couponwithdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw/coupon"
-	reviewmwpb "github.com/NpoolPlatform/message/npool/review/mw/v2/review"
 	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
 	"github.com/google/uuid"
 )
@@ -20,7 +19,6 @@ type couponwithdrawHandler struct {
 	persistent chan interface{}
 	notif      chan interface{}
 	done       chan interface{}
-	review     *reviewmwpb.Review
 }
 
 func (h *couponwithdrawHandler) checkCouponWithdrawReview(ctx context.Context) error {
@@ -37,7 +35,6 @@ func (h *couponwithdrawHandler) checkCouponWithdrawReview(ctx context.Context) e
 	if review.AppID != h.AppID {
 		return fmt.Errorf("appid mismatch")
 	}
-	h.review = review
 	return nil
 }
 
