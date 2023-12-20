@@ -13,6 +13,7 @@ type handler struct{}
 func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
+
 func (e *handler) Exec(ctx context.Context, couponwithdraw interface{}, persistent, notif, done chan interface{}) error {
 	_couponwithdraw, ok := couponwithdraw.(*couponwithdrawmwpb.CouponWithdraw)
 	if !ok {
