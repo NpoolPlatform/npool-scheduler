@@ -60,14 +60,18 @@ func (h *couponwithdrawHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"CouponWithdraw", h.CouponWithdraw,
+			"CouponWithdrawApproved", h.CouponWithdraw,
 			"Error", *err,
 		)
 	}
-	persistentWithdraw := &types.PersistentCouponWithdraw{
+	persistentCouponWithdraw := &types.PersistentCouponWithdraw{
 		CouponWithdraw: h.CouponWithdraw,
 	}
-	asyncfeed.AsyncFeed(ctx, persistentWithdraw, h.done)
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.notif)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.persistent)
 }
 
 func (h *couponwithdrawHandler) exec(ctx context.Context) error {
