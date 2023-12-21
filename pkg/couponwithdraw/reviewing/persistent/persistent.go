@@ -35,6 +35,9 @@ func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif,
 	if err != nil {
 		return err
 	}
+	if review == nil {
+		return fmt.Errorf("review not found")
+	}
 
 	state := ledgertypes.WithdrawState_DefaultWithdrawState
 	switch review.State {
