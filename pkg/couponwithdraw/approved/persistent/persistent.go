@@ -26,7 +26,7 @@ func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif,
 
 	defer asyncfeed.AsyncFeed(ctx, _couponwithdraw, done)
 
-	coupon, err := allocatedmwcli.GetCoupon(ctx, _couponwithdraw.CouponID)
+	coupon, err := allocatedmwcli.GetCoupon(ctx, _couponwithdraw.AllocatedID)
 	if err != nil {
 		return err
 	}
