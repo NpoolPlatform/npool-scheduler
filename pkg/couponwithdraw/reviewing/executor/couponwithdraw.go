@@ -66,7 +66,11 @@ func (h *couponwithdrawHandler) final(ctx context.Context, err *error) {
 	persistentCouponWithdraw := &types.PersistentCouponWithdraw{
 		CouponWithdraw: h.CouponWithdraw,
 	}
-	asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.done)
+	if *err != nil {
+		asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.notif)
+		return
+	}
+	asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.persistent)
 }
 
 func (h *couponwithdrawHandler) exec(ctx context.Context) error {
