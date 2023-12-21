@@ -9,7 +9,7 @@ import (
 	allocatedmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/coupon/allocated"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/reviewing/types"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/approved/types"
 )
 
 type handler struct{}
@@ -33,7 +33,7 @@ func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif,
 	if coupon == nil {
 		return fmt.Errorf("coupon not found")
 	}
-	if !coupon.Used {
+	if coupon.Used {
 		return nil
 	}
 	used := true

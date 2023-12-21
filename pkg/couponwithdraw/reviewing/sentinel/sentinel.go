@@ -3,7 +3,6 @@ package sentinel
 import (
 	"context"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	couponwithdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw/coupon"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
@@ -31,7 +30,6 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 		if err != nil {
 			return err
 		}
-		logger.Sugar().Warnf("couponwithdraws: ", couponwithdraws)
 		if len(couponwithdraws) == 0 {
 			return nil
 		}
