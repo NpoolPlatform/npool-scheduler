@@ -37,7 +37,7 @@ func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif,
 		return err
 	}
 
-	coupon, err := allocatedmwcli.GetCoupon(ctx, _couponwithdraw.CouponID)
+	coupon, err := allocatedmwcli.GetCoupon(ctx, _couponwithdraw.AllocatedID)
 	if err != nil {
 		return err
 	}

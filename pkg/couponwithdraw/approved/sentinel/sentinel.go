@@ -49,8 +49,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
-	if couponwithdraw, ok := ent.(types.PersistentCouponWithdraw); ok {
+	if couponwithdraw, ok := ent.(*types.PersistentCouponWithdraw); ok {
 		return couponwithdraw.EntID
 	}
-	return ent.(couponwithdrawmwpb.CouponWithdraw).EntID
+	return ent.(*couponwithdrawmwpb.CouponWithdraw).EntID
 }
