@@ -10,65 +10,67 @@ config:
   log_level: "warning"
   apolloAccessKey: "0147fb70b815403790e8634b899fac07"
   subsystems:
-    - notification
-    - announcement
-    - notifbenefit
-    - benefit
-    - benefitwait
-    - benefittransferring
-    - benefitbookkeeping
-    - benefitbookkeepinggood
-    - benefitbookkeepinguser
-    - benefitfail
-    - benefitdone
-    - deposit
-    - depositfinish
-    - deposittransfer
-    - deposituser
-    - gasfeeder
-    - limitation
-    - order
-    - ordercreated
-    - orderpaymentwait
-    - orderpaymentreceived
-    - orderpaymentbookkeeping
-    - orderpaymentspend
-    - orderpaymentstock
-    - orderpaymentcommission
-    - orderpaymentachievement
-    - orderpaymentunlockaccount
-    - orderpaymentupdatechilds
-    - orderpaidcheck
-    - orderpaidstock
-    - orderpaidupdatechilds
-    - orderpaymenttimeout
-    - ordercancelcheck
-    - ordercancelprecancel
-    - ordercancelrestorestock
-    - ordercancelcommission
-    - ordercancelachievement
-    - ordercancelreturnbalance
-    - ordercancelbookkeeping
-    - ordercancelunlockaccount
-    - ordercancelupdatechilds
-    - orderexpirycheck
-    - orderexpirypreexpired
-    - orderexpiryrestorestock
-    - orderexpiryupdatechilds
-    - orderpaymenttransfer
-    - orderpaymentfinish
-    - txqueue
-    - txqueuecreated
-    - txqueuetransferring
-    - txqueuewait
-    - withdraw
-    - withdrawcreated
-    - withdrawreviewing
-    - withdrawapproved
-    - withdrawtransferring
-    - withdrawfailprefail
-    - withdrawfailreturnbalance
-    - withdrawrejectedprerejected
-    - withdrawrejectedreturnbalance
-    - withdrawsuccessfulspendbalance
-    - withdrawsuccessfulpresuccessful
+    # - notification
+    # - announcement
+    # - notifbenefit
+    # - benefit
+    # - benefitwait
+    # - benefittransferring
+    # - benefitbookkeeping
+    # - benefitbookkeepinggood
+    # - benefitbookkeepinguser
+    # - benefitfail
+    # - benefitdone
+    # - deposit
+    # - depositfinish
+    # - deposittransfer
+    # - deposituser
+    # - gasfeeder
+    # - limitation
+    # - order
+    # - ordercreated
+    # - orderpaymentwait
+    # - orderpaymentreceived
+    # - orderpaymentbookkeeping
+    # - orderpaymentspend
+    # - orderpaymentstock
+    # - orderpaymentcommission
+    # - orderpaymentachievement
+    # - orderpaymentunlockaccount
+    # - orderpaymentupdatechilds
+    # - orderpaidcheck
+    # - orderpaidstock
+    # - orderpaidupdatechilds
+    # - orderpaymenttimeout
+    # - ordercancelcheck
+    # - ordercancelprecancel
+    # - ordercancelrestorestock
+    # - ordercancelcommission
+    # - ordercancelachievement
+    # - ordercancelreturnbalance
+    # - ordercancelbookkeeping
+    # - ordercancelunlockaccount
+    # - ordercancelupdatechilds
+    # - orderexpirycheck
+    # - orderexpirypreexpired
+    # - orderexpiryrestorestock
+    # - orderexpiryupdatechilds
+    # - orderpaymenttransfer
+    # - orderpaymentfinish
+    # - txqueue
+    # - txqueuecreated
+    # - txqueuetransferring
+    # - txqueuewait
+    # - withdraw
+    # - withdrawcreated
+    # - withdrawreviewing
+    # - withdrawapproved
+    # - withdrawtransferring
+    # - withdrawfailprefail
+    # - withdrawfailreturnbalance
+    # - withdrawrejectedprerejected
+    # - withdrawrejectedreturnbalance
+    # - withdrawsuccessfulspendbalance
+    # - withdrawsuccessfulpresuccessful
+    - couponwithdrawreviewing
+    - couponwithdrawapproved
