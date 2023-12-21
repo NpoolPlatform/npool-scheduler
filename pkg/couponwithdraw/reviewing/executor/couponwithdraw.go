@@ -5,9 +5,12 @@ import (
 	"fmt"
 
 	appcoinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/app/coin"
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appcoinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/app/coin"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/reviewing/types"
 
 	couponwithdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw/coupon"
 	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
@@ -52,7 +55,24 @@ func (h *couponwithdrawHandler) checkAppCoin(ctx context.Context) error {
 	return nil
 }
 
+func (h *couponwithdrawHandler) final(ctx context.Context, err *error) {
+	if *err != nil {
+		logger.Sugar().Errorw(
+			"final",
+			"CouponWithdraw", h.CouponWithdraw,
+			"Error", *err,
+		)
+	}
+	persistentCouponWithdraw := &types.PersistentCouponWithdraw{
+		CouponWithdraw: h.CouponWithdraw,
+	}
+	asyncfeed.AsyncFeed(ctx, persistentCouponWithdraw, h.done)
+}
+
 func (h *couponwithdrawHandler) exec(ctx context.Context) error {
+	var err error
+	defer h.final(ctx, &err)
+
 	if err := h.checkCouponWithdrawReview(ctx); err != nil {
 		return err
 	}
