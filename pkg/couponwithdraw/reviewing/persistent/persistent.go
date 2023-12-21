@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
+	reviewtypes "github.com/NpoolPlatform/message/npool/basetypes/review/v1"
 	allocatedmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/coupon/allocated"
+	reviewmwcli "github.com/NpoolPlatform/review-middleware/pkg/client/review"
 
 	allocatedmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/coupon/allocated"
 	couponwithdrawmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/withdraw/coupon"
@@ -29,14 +31,30 @@ func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif,
 
 	defer asyncfeed.AsyncFeed(ctx, _couponwithdraw, done)
 
-	approved := ledgertypes.WithdrawState_Approved
+	review, err := reviewmwcli.GetReview(ctx, _couponwithdraw.ReviewID)
+	if err != nil {
+		return err
+	}
+
+	state := ledgertypes.WithdrawState_DefaultWithdrawState
+	switch review.State {
+	case reviewtypes.ReviewState_Rejected:
+		state = ledgertypes.WithdrawState_Rejected
+	case reviewtypes.ReviewState_Approved:
+		state = ledgertypes.WithdrawState_Approved
+	default:
+		return nil
+	}
 	if _, err := couponwithdrawmwcli.UpdateCouponWithdraw(ctx, &couponwithdrawmwpb.CouponWithdrawReq{
 		ID:    &_couponwithdraw.ID,
-		State: &approved,
+		State: &state,
 	}); err != nil {
 		return err
 	}
 
+	if state != ledgertypes.WithdrawState_Approved {
+		return nil
+	}
 	coupon, err := allocatedmwcli.GetCoupon(ctx, _couponwithdraw.AllocatedID)
 	if err != nil {
 		return err
