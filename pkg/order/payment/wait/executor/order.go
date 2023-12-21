@@ -45,7 +45,7 @@ func (h *orderHandler) getGood(ctx context.Context) error {
 	good, err := appgoodmwcli.GetGoodOnly(ctx, &appgoodmwpb.Conds{
 		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
-		ID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.AppGoodID},
+		EntID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppGoodID},
 	})
 	if err != nil {
 		return err

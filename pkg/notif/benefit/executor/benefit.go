@@ -37,13 +37,13 @@ func (h *benefitHandler) getGoods(ctx context.Context) error {
 		goodIDs = append(goodIDs, benefit.GoodID)
 	}
 	goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
-		IDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
+		EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
 	}, int32(0), int32(len(goodIDs)))
 	if err != nil {
 		return err
 	}
 	for _, good := range goods {
-		h.goods[good.ID] = good
+		h.goods[good.EntID] = good
 	}
 	return nil
 }
@@ -71,7 +71,7 @@ func (h *benefitHandler) getAppGoods(ctx context.Context) error {
 			if !ok {
 				appGoods = map[string]*appgoodmwpb.Good{}
 			}
-			appGoods[good.ID] = good
+			appGoods[good.EntID] = good
 			h.appGoods[good.GoodID] = appGoods
 		}
 		offset += limit

@@ -23,7 +23,7 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 	return pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		now := uint32(time.Now().Unix())
 		req := &notifbenefitmwpb.GoodBenefitReq{
-			GoodID:      &good.ID,
+			GoodID:      &good.EntID,
 			GoodName:    &good.Title,
 			State:       &good.BenefitResult,
 			Message:     &good.BenefitMessage,

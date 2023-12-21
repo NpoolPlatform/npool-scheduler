@@ -156,7 +156,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
 		}, offset, limit)
@@ -197,7 +197,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 
 	for {
 		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -210,7 +210,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			if !ok {
 				appGoods = map[string]*appgoodmwpb.Good{}
 			}
-			appGoods[good.ID] = good
+			appGoods[good.EntID] = good
 			h.goods[good.AppID] = appGoods
 		}
 		offset += limit
@@ -274,7 +274,7 @@ func (h *goodHandler) getUserBenefitHotAccount(ctx context.Context) error {
 
 func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
 	account, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
-		GoodID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		GoodID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		Backup:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		Active:  &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		Locked:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
@@ -373,7 +373,7 @@ func (h *goodHandler) resolveBenefitTimestamp() {
 
 func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
 	exist, err := goodstmwcli.ExistGoodStatementConds(ctx, &goodstmwpb.Conds{
-		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.ID},
+		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		BenefitDate: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.benefitTimestamp},
 	})
 	if err != nil {
@@ -404,7 +404,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 	txExtra := fmt.Sprintf(
 		`{"GoodID":"%v","Reward":"%v","UserReward":"%v","PlatformReward":"%v","TechniqueServiceFee":"%v"}`,
-		h.ID,
+		h.EntID,
 		h.todayRewardAmount,
 		h.userRewardAmount,
 		h.platformRewardAmount,
