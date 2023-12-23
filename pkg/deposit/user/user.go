@@ -26,7 +26,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithNotify(notif.NewNotif()),
 		base.WithExec(executor.NewExecutor()),
-		base.WithExecutorNumber(5),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),
 	)
