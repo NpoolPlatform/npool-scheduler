@@ -55,7 +55,7 @@ func (h *couponwithdrawHandler) checkAppCoin(ctx context.Context) error {
 	return nil
 }
 
-func (h *couponwithdrawHandler) final(ctx context.Context, err *error) {
+func (h *couponwithdrawHandler) final(ctx context.Context, err *error) { //nolint
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
