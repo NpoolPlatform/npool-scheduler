@@ -72,7 +72,7 @@ func (p *handler) Notify(ctx context.Context, account interface{}, retry chan in
 			"AccountType", _account.DepositAmount,
 			"Error", err,
 		)
-		retry1.Retry(ctx, _account, retry)
+		retry1.Retry(_account.EntID, _account, retry)
 		return err
 	}
 	return nil

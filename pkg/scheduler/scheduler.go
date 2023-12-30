@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 
+	"github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
@@ -39,6 +40,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	deposit.Initialize(ctx, cancel)
 	benefit.Initialize(ctx, cancel)
 	notifbenefit.Initialize(ctx, cancel)
+	retry.Initialize(ctx)
 }
 
 type initializer struct {

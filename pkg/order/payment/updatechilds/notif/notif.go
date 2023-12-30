@@ -35,7 +35,7 @@ func (p *handler) Notify(ctx context.Context, order interface{}, retry chan inte
 		return fmt.Errorf("invalid order")
 	}
 	if err := p.notifyPaid(_order); err != nil {
-		retry1.Retry(ctx, _order, retry)
+		retry1.Retry(_order.EntID, _order, retry)
 		return err
 	}
 	return nil
