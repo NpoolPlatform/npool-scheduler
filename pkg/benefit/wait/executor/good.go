@@ -10,14 +10,19 @@ import (
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
+	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	requiredmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good/required"
 	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	gbmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/goodbenefit"
 	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
+	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	requiredmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/required"
 	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
@@ -51,10 +56,12 @@ type goodHandler struct {
 	appOrderUnits          map[string]map[string]decimal.Decimal
 	coin                   *coinmwpb.Coin
 	goods                  map[string]map[string]*appgoodmwpb.Good
+	techniqueFeeGood       *goodmwpb.Good
 	techniqueFeeAmount     decimal.Decimal
 	userBenefitHotAccount  *pltfaccmwpb.Account
 	goodBenefitAccount     *gbmwpb.Account
 	benefitOrderIDs        []uint32
+	benefitOrderEntIDs     []string
 	benefitResult          basetypes.Result
 	benefitMessage         string
 	notifiable             bool
@@ -177,6 +184,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			}
 			h.totalBenefitOrderUnits = h.totalBenefitOrderUnits.Add(units)
 			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
+			h.benefitOrderEntIDs = append(h.benefitOrderEntIDs, order.EntID)
 			appGoodUnits, ok := h.appOrderUnits[order.AppID]
 			if !ok {
 				appGoodUnits = map[string]decimal.Decimal{
@@ -218,14 +226,7 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateTechniqueFee() {
-	if h.totalBenefitOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return
-	}
-	if h.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return
-	}
-
+func (h *goodHandler) calculateTechniqueFeeLegacy() {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		appGoods, ok := h.goods[appID]
 		if !ok {
@@ -246,6 +247,90 @@ func (h *goodHandler) calculateTechniqueFee() {
 		}
 	}
 	h.userRewardAmount = h.userRewardAmount.Sub(h.techniqueFeeAmount)
+}
+
+func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+	requireds := []*requiredmwpb.Required{}
+
+	for {
+		_requireds, _, err := requiredmwcli.GetRequireds(ctx, &requiredmwpb.Conds{
+			MainGoodID: &basetypes.StringVal{Op: cruder.IN, Value: h.EntID},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(_requireds) == 0 {
+			break
+		}
+		requireds = append(requireds, _requireds...)
+		offset += limit
+	}
+
+	offset = 0
+	requiredGoodIDs := []string{}
+	for _, required := range requireds {
+		requiredGoodIDs = append(requiredGoodIDs, required.RequiredGoodID)
+	}
+
+	for {
+		goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
+			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(goods) == 0 {
+			break
+		}
+		for _, good := range goods {
+			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
+				continue
+			}
+			if h.techniqueFeeGood != nil {
+				return fmt.Errorf("too many techniquefeegood")
+			}
+			h.techniqueFeeGood = good
+		}
+		offset += limit
+	}
+
+	return nil
+}
+
+func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
+	if h.totalBenefitOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
+	if h.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return nil
+	}
+
+	const legacyTechniqueFeeTimestamp = 1704009402
+	if time.Now().Unix() <= legacyTechniqueFeeTimestamp {
+		h.calculateTechniqueFeeLegacy()
+		return nil
+	}
+	if err := h.getTechniqueFeeGood(ctx); err != nil {
+		return err
+	}
+	if h.techniqueFeeGood == nil {
+		return nil
+	}
+	if h.techniqueFeeGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
+		return nil
+	}
+
+	feePercent, err := decimal.NewFromString(h.techniqueFeeGood.UnitPrice)
+	if err != nil {
+		return err
+	}
+
+	h.techniqueFeeAmount = h.userRewardAmount.Mul(feePercent).Div(decimal.NewFromInt(100))
+	h.userRewardAmount = h.userRewardAmount.Sub(h.techniqueFeeAmount)
+
+	return nil
 }
 
 func (h *goodHandler) getUserBenefitHotAccount(ctx context.Context) error {
@@ -512,7 +597,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err := h.validateInServiceUnits(); err != nil {
 		return err
 	}
-	h.calculateTechniqueFee()
+	if err := h.calculateTechniqueFee(ctx); err != nil {
+		return err
+	}
 	if err = h.checkTransferrable(); err != nil {
 		return err
 	}
