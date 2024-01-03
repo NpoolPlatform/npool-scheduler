@@ -35,6 +35,7 @@ import (
 	paymentunlockaccount "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount"
 	paymentupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/updatechilds"
 	paymentwait "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/wait"
+	renewcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check"
 )
 
 const subsystem = "order"
@@ -79,12 +80,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	cancelupdatechilds.Initialize(ctx, cancel, &running)
 	expiryupdatechilds.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
+	renewcheck.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	renewcheck.Finalize(ctx)
 	created.Finalize(ctx)
 	expiryupdatechilds.Finalize(ctx)
 	cancelupdatechilds.Finalize(ctx)
