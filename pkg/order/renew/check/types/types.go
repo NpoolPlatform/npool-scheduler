@@ -5,7 +5,15 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 )
 
+type FeeDeduction struct {
+	CoinName    string
+	CoinUnit    string
+	USDCurrency string
+	Amount      string
+}
+
 type PersistentOrder struct {
 	*ordermwpb.Order
 	NewRenewState ordertypes.OrderRenewState
+	FeeDeductions []*FeeDeduction
 }
