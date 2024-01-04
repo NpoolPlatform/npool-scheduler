@@ -27,7 +27,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			RenewState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewIdle)},
+			RenewState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewWait)},
 		}, offset, limit)
 		if err != nil {
 			return err

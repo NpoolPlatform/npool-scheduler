@@ -85,10 +85,6 @@ func (h *orderHandler) getAppGoods(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
-	if len(h.requireds) == 0 {
-		return nil
-	}
-
 	goodIDs := []string{h.GoodID}
 	for _, required := range h.requireds {
 		goodIDs = append(goodIDs, required.RequiredGoodID)
