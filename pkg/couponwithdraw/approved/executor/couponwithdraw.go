@@ -32,6 +32,9 @@ func (h *couponwithdrawHandler) checkCouponWithdrawReview(ctx context.Context) e
 	if err != nil {
 		return err
 	}
+	if review == nil {
+		return fmt.Errorf("invalid review")
+	}
 	if review.ObjectID != h.EntID {
 		return fmt.Errorf("objectid mismatch")
 	}
