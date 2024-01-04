@@ -7,7 +7,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
@@ -27,7 +27,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
 		ID:         &_order.ID,
-		OrderState: &_order.NewOrderState,
+		RenewState: &_order.NewRenewState,
 	}); err != nil {
 		return err
 	}
