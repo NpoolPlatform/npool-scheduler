@@ -25,6 +25,7 @@ import (
 	paidupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkeeping"
+	paymentchildpaidparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/childpaidparent"
 	paymentcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received"
@@ -56,6 +57,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	paymentachievement.Initialize(ctx, cancel, &running)
 	bookkeeping.Initialize(ctx, cancel, &running)
 	paymentwait.Initialize(ctx, cancel, &running)
+	paymentchildpaidparent.Initialize(ctx, cancel, &running)
 	paymentcommission.Initialize(ctx, cancel, &running)
 	cancelcommission.Initialize(ctx, cancel, &running)
 	received.Initialize(ctx, cancel, &running)
@@ -108,6 +110,7 @@ func Finalize(ctx context.Context) {
 	received.Finalize(ctx)
 	cancelcommission.Finalize(ctx)
 	paymentcommission.Finalize(ctx)
+	paymentchildpaidparent.Finalize(ctx)
 	paymentwait.Finalize(ctx)
 	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
