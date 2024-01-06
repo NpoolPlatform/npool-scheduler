@@ -36,8 +36,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	orderState1 := ordertypes.OrderState_OrderStateChildCanceledByParent
 	for _, child := range _order.ChildOrders {
 		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:         &child.ID,
-			OrderState: &orderState1,
+			ID:               &child.ID,
+			OrderState:       &orderState1,
+			UserSetCanceled:  &_order.UserSetCanceled,
+			AdminSetCanceled: &_order.AdminSetCanceled,
 		})
 	}
 
