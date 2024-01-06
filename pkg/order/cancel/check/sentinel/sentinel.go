@@ -34,7 +34,8 @@ func (h *handler) scanOrders(ctx context.Context, admin bool, exec chan interfac
 				uint32(ordertypes.OrderState_OrderStateWaitPayment),
 				uint32(ordertypes.OrderState_OrderStateInService),
 			}},
-			UpdatedAt: &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
+			UpdatedAt:   &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
+			PaymentType: &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
 		}
 		if admin {
 			conds.AdminSetCanceled = &basetypes.BoolVal{Op: cruder.EQ, Value: true}
