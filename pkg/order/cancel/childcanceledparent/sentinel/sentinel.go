@@ -46,7 +46,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateChildExpiredByParent, exec)
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateChildCanceledByParent, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
