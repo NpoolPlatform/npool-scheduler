@@ -17,6 +17,7 @@ import (
 	cancelupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/updatechilds"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/created"
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check"
+	expirychildexpiredparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/childexpiredparent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/restorestock"
 	expiryupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/updatechilds"
@@ -81,6 +82,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	expiryrestorestock.Initialize(ctx, cancel, &running)
 	expirycheck.Initialize(ctx, cancel, &running)
 	cancelupdatechilds.Initialize(ctx, cancel, &running)
+	expirychildexpiredparent.Initialize(ctx, cancel, &running)
 	expiryupdatechilds.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
 }
@@ -91,6 +93,7 @@ func Finalize(ctx context.Context) {
 	}
 	created.Finalize(ctx)
 	expiryupdatechilds.Finalize(ctx)
+	expirychildexpiredparent.Finalize(ctx)
 	cancelupdatechilds.Finalize(ctx)
 	expirycheck.Finalize(ctx)
 	expiryrestorestock.Finalize(ctx)
