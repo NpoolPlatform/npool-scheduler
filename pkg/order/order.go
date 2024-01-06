@@ -21,6 +21,7 @@ import (
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/restorestock"
 	expiryupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/updatechilds"
 	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/check"
+	paidchildinserviceparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/childinserviceparent"
 	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/stock"
 	paidupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement"
@@ -51,6 +52,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		"Subsystem", subsystem,
 	)
 
+	paidchildinserviceparent.Initialize(ctx, cancel, &running)
 	paidupdatechilds.Initialize(ctx, cancel, &running)
 	paymentupdatechilds.Initialize(ctx, cancel, &running)
 	paymentunlockaccount.Initialize(ctx, cancel, &running)
@@ -117,4 +119,5 @@ func Finalize(ctx context.Context) {
 	paymentunlockaccount.Finalize(ctx)
 	paymentupdatechilds.Finalize(ctx)
 	paidupdatechilds.Finalize(ctx)
+	paidchildinserviceparent.Finalize(ctx)
 }
