@@ -294,8 +294,6 @@ func (h *orderHandler) getUserLedgers(ctx context.Context) error {
 		offset += limit
 	}
 
-	// Get currency of fee deduction coins
-	// Calculate expected deduct amount of different coins user balance
 	return nil
 }
 
