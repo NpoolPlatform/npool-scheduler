@@ -197,10 +197,9 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 		return nil
 	}
 
-	h.calculateUnitRewardLegacy()
-
 	const legacyTechniqueFeeTimestamp = 1704009402
 	if h.goodCreatedAt <= legacyTechniqueFeeTimestamp {
+		h.calculateUnitRewardLegacy()
 		return nil
 	}
 
@@ -218,6 +217,8 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	h.calculateUnitRewardLegacy()
 
 	for appID, unitRewards := range h.appGoodUnitRewards {
 		for appGoodID, _ := range unitRewards {
