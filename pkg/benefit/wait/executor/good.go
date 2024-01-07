@@ -256,7 +256,7 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 
 	for {
 		_requireds, _, err := requiredmwcli.GetRequireds(ctx, &requiredmwpb.Conds{
-			MainGoodID: &basetypes.StringVal{Op: cruder.IN, Value: h.EntID},
+			MainGoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
 			return err
