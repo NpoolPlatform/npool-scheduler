@@ -49,6 +49,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
+			BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -110,7 +111,10 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateUnitRewardLegacy() {
+func (h *goodHandler) calculateUnitRewardLegacy() bool {
+	const legacyTechniqueFeeTimestamp = 1704009402
+	legacy := h.goodCreatedAt <= legacyTechniqueFeeTimestamp
+
 	for appID, appGoodUnits := range h.appOrderUnits {
 		goods, ok := h.goods[appID]
 		if !ok {
@@ -134,9 +138,15 @@ func (h *goodHandler) calculateUnitRewardLegacy() {
 			unitRewards[appGoodID] = userRewardAmount.
 				Sub(techniqueFee).
 				Div(units)
+			// For not ledgacy good, it'll processed later
+			if !legacy {
+				unitRewards[appGoodID] = userRewardAmount.
+					Div(units)
+			}
 		}
 		h.appGoodUnitRewards[appID] = unitRewards
 	}
+	return legacy
 }
 
 func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
@@ -197,9 +207,7 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 		return nil
 	}
 
-	const legacyTechniqueFeeTimestamp = 1704009402
-	if h.goodCreatedAt <= legacyTechniqueFeeTimestamp {
-		h.calculateUnitRewardLegacy()
+	if h.calculateUnitRewardLegacy() {
 		return nil
 	}
 
@@ -217,8 +225,6 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	h.calculateUnitRewardLegacy()
 
 	for appID, unitRewards := range h.appGoodUnitRewards {
 		for appGoodID, _ := range unitRewards {
@@ -265,11 +271,12 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 }
 
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
+	// If orderRewards is not empty, we do not update good benefit state, then we get get next 20 orders
 	orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
-	}, 0, int32(20)) //nolint
+	}, 0, int32(20))
 	if err != nil {
 		return err
 	}
