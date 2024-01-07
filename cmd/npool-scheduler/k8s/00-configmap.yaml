@@ -64,6 +64,10 @@ data:
           - orderexpiryupdatechilds
           - orderpaymenttransfer
           - orderpaymentfinish
+          - ordercancelchildcanceledparent
+          - orderexpirychildexpiredparent
+          - orderpaidchildinserviceparent
+          - orderpaymentchildpaidparent
           - txqueue
           - txqueuecreated
           - txqueuetransferring
