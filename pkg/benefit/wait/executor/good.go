@@ -56,6 +56,7 @@ type goodHandler struct {
 	appOrderUnits          map[string]map[string]decimal.Decimal
 	coin                   *coinmwpb.Coin
 	goods                  map[string]map[string]*appgoodmwpb.Good
+	goodCreatedAt          uint32
 	techniqueFeeGood       *goodmwpb.Good
 	techniqueFeeAmount     decimal.Decimal
 	userBenefitHotAccount  *pltfaccmwpb.Account
@@ -200,6 +201,13 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 }
 
 func (h *goodHandler) getAppGoods(ctx context.Context) error {
+	good, err := goodmwcli.GetGood(ctx, h.EntID)
+	if err != nil {
+		return err
+	}
+
+	h.goodCreatedAt = good.CreatedAt
+
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -308,7 +316,7 @@ func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
 	}
 
 	const legacyTechniqueFeeTimestamp = 1704009402
-	if time.Now().Unix() <= legacyTechniqueFeeTimestamp {
+	if h.goodCreatedAt <= legacyTechniqueFeeTimestamp {
 		h.calculateTechniqueFeeLegacy()
 		return nil
 	}
