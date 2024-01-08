@@ -26,19 +26,19 @@ import (
 
 type goodHandler struct {
 	*goodmwpb.Good
-	persistent         chan interface{}
-	notif              chan interface{}
-	done               chan interface{}
-	totalRewardAmount  decimal.Decimal
-	totalUnits         decimal.Decimal
-	totalOrderUnits    decimal.Decimal
-	appOrderUnits      map[string]map[string]decimal.Decimal
-	goods              map[string]map[string]*appgoodmwpb.Good
-	goodCreatedAt      uint32
-	techniqueFeeGood   *goodmwpb.Good
-	userRewardAmount   decimal.Decimal
-	appGoodUnitRewards map[string]map[string]decimal.Decimal
-	orderRewards       []*types.OrderReward
+	persistent           chan interface{}
+	notif                chan interface{}
+	done                 chan interface{}
+	totalRewardAmount    decimal.Decimal
+	totalUnits           decimal.Decimal
+	totalOrderUnits      decimal.Decimal
+	appOrderUnits        map[string]map[string]decimal.Decimal
+	appGoods             map[string]map[string]*appgoodmwpb.Good
+	goodCreatedAt        uint32
+	techniqueFeeAppGoods map[string]*appgoodmwpb.Good
+	userRewardAmount     decimal.Decimal
+	appGoodUnitRewards   map[string]map[string]decimal.Decimal
+	orderRewards         []*types.OrderReward
 }
 
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
@@ -99,24 +99,21 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			_goods, ok := h.goods[good.AppID]
+			_goods, ok := h.appGoods[good.AppID]
 			if !ok {
 				_goods = map[string]*appgoodmwpb.Good{}
 			}
 			_goods[good.EntID] = good
-			h.goods[good.AppID] = _goods
+			h.appGoods[good.AppID] = _goods
 		}
 		offset += limit
 	}
 	return nil
 }
 
-func (h *goodHandler) calculateUnitRewardLegacy() bool {
-	const legacyTechniqueFeeTimestamp = 1704009402
-	legacy := h.goodCreatedAt <= legacyTechniqueFeeTimestamp
-
+func (h *goodHandler) calculateUnitRewardLegacy() {
 	for appID, appGoodUnits := range h.appOrderUnits {
-		goods, ok := h.goods[appID]
+		goods, ok := h.appGoods[appID]
 		if !ok {
 			continue
 		}
@@ -138,18 +135,50 @@ func (h *goodHandler) calculateUnitRewardLegacy() bool {
 			unitRewards[appGoodID] = userRewardAmount.
 				Sub(techniqueFee).
 				Div(units)
-			// For not ledgacy good, it'll processed later
-			if !legacy {
-				unitRewards[appGoodID] = userRewardAmount.
-					Div(units)
-			}
 		}
 		h.appGoodUnitRewards[appID] = unitRewards
 	}
-	return legacy
 }
 
-func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
+func (h *goodHandler) _calculateUnitReward() error {
+	for appID, appGoodUnits := range h.appOrderUnits {
+		// For one good, event it's assign to multiple app goods,
+		// we'll use the same technique fee app good due to good only can bind to one technique fee good
+		techniqueFeeAppGood, ok := h.techniqueFeeAppGoods[appID]
+		feePercent := decimal.NewFromInt(0)
+		var err error
+
+		if ok {
+			if techniqueFeeAppGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
+				continue
+			}
+			feePercent, err = decimal.NewFromString(techniqueFeeAppGood.UnitPrice)
+			if err != nil {
+				return err
+			}
+		}
+
+		unitRewards, ok := h.appGoodUnitRewards[appID]
+		if !ok {
+			unitRewards = map[string]decimal.Decimal{}
+		}
+		for appGoodID, units := range appGoodUnits {
+			userRewardAmount := h.userRewardAmount.
+				Mul(units).
+				Div(h.totalOrderUnits)
+			techniqueFee := userRewardAmount.
+				Mul(feePercent).
+				Div(decimal.NewFromInt(100))
+			unitRewards[appGoodID] = userRewardAmount.
+				Sub(techniqueFee).
+				Div(units)
+		}
+		h.appGoodUnitRewards[appID] = unitRewards
+	}
+	return nil
+}
+
+func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	requireds := []*requiredmwpb.Required{}
@@ -175,8 +204,8 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 	}
 
 	for {
-		goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
-			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
+		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -188,10 +217,11 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
 				continue
 			}
-			if h.techniqueFeeGood != nil {
+			_, ok := h.techniqueFeeAppGoods[good.AppID]
+			if !ok {
 				return fmt.Errorf("too many techniquefeegood")
 			}
-			h.techniqueFeeGood = good
+			h.techniqueFeeAppGoods[good.AppID] = good
 		}
 		offset += limit
 	}
@@ -207,35 +237,17 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 		return nil
 	}
 
-	if h.calculateUnitRewardLegacy() {
+	const legacyTechniqueFeeTimestamp = 1704009402
+	if h.goodCreatedAt <= legacyTechniqueFeeTimestamp {
+		h.calculateUnitRewardLegacy()
 		return nil
 	}
 
-	if err := h.getTechniqueFeeGood(ctx); err != nil {
-		return err
-	}
-	if h.techniqueFeeGood == nil {
-		return nil
-	}
-	if h.techniqueFeeGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
-		return nil
-	}
-
-	feePercent, err := decimal.NewFromString(h.techniqueFeeGood.UnitPrice)
-	if err != nil {
+	if err := h.getTechniqueFeeGoods(ctx); err != nil {
 		return err
 	}
 
-	for appID, unitRewards := range h.appGoodUnitRewards {
-		for appGoodID, _ := range unitRewards {
-			h.appGoodUnitRewards[appID][appGoodID] = h.userRewardAmount.
-				Div(h.totalOrderUnits).
-				Mul(decimal.NewFromInt(100).Sub(feePercent)).
-				Div(decimal.NewFromInt(100))
-		}
-	}
-
-	return nil
+	return h._calculateUnitReward()
 }
 
 func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
@@ -325,7 +337,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
-	h.goods = map[string]map[string]*appgoodmwpb.Good{}
+	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
+	h.techniqueFeeAppGoods = map[string]*appgoodmwpb.Good{}
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
 	h.appGoodUnitRewards = map[string]map[string]decimal.Decimal{}
 	var err error

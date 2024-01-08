@@ -315,7 +315,7 @@ func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 
 	for {
 		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
+			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
 		}, offset, limit)
 		if err != nil {
 			return err
