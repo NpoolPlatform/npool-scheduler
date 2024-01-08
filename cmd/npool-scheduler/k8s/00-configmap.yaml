@@ -79,3 +79,6 @@ data:
           - withdrawrejectedreturnbalance
           - withdrawsuccessfulspendbalance
           - withdrawsuccessfulpresuccessful
+          - couponwithdraw
+          - couponwithdrawreviewing
+          - couponwithdrawapproved
