@@ -157,7 +157,7 @@ func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 				continue
 			}
 			_, ok := h.techniqueFeeAppGoods[good.AppID]
-			if !ok {
+			if ok {
 				return fmt.Errorf("too many techniquefeegood")
 			}
 			h.techniqueFeeAppGoods[good.AppID] = good
