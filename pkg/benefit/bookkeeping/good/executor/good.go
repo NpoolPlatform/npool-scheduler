@@ -34,9 +34,9 @@ type goodHandler struct {
 	totalUnits              decimal.Decimal
 	totalOrderUnits         decimal.Decimal
 	appOrderUnits           map[string]map[string]decimal.Decimal
-	goods                   map[string]map[string]*appgoodmwpb.Good
+	appGoods                map[string]map[string]*appgoodmwpb.Good
 	goodCreatedAt           uint32
-	techniqueFeeGood        *goodmwpb.Good
+	techniqueFeeAppGoods    map[string]*appgoodmwpb.Good
 	userRewardAmount        decimal.Decimal
 	unsoldRewardAmount      decimal.Decimal
 	totalBenefitOrderUnits  decimal.Decimal
@@ -80,14 +80,17 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) getAppGoods(ctx context.Context) error {
+func (h *goodHandler) getGoodCreatedAt(ctx context.Context) error {
 	good, err := goodmwcli.GetGood(ctx, h.EntID)
 	if err != nil {
 		return err
 	}
 
 	h.goodCreatedAt = good.CreatedAt
+	return nil
+}
 
+func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -102,19 +105,19 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			_goods, ok := h.goods[good.AppID]
+			_goods, ok := h.appGoods[good.AppID]
 			if !ok {
 				_goods = map[string]*appgoodmwpb.Good{}
 			}
 			_goods[good.EntID] = good
-			h.goods[good.AppID] = _goods
+			h.appGoods[good.AppID] = _goods
 		}
 		offset += limit
 	}
 	return nil
 }
 
-func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
+func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	requireds := []*requiredmwpb.Required{}
@@ -140,8 +143,8 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 	}
 
 	for {
-		goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
-			EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
+		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -153,10 +156,11 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
 				continue
 			}
-			if h.techniqueFeeGood != nil {
+			_, ok := h.techniqueFeeAppGoods[good.AppID]
+			if !ok {
 				return fmt.Errorf("too many techniquefeegood")
 			}
-			h.techniqueFeeGood = good
+			h.techniqueFeeAppGoods[good.AppID] = good
 		}
 		offset += limit
 	}
@@ -166,7 +170,7 @@ func (h *goodHandler) getTechniqueFeeGood(ctx context.Context) error {
 
 func (h *goodHandler) calculateTechniqueFeeLegacy() {
 	for appID, appGoodUnits := range h.appOrderUnits {
-		goods, ok := h.goods[appID]
+		goods, ok := h.appGoods[appID]
 		if !ok {
 			continue
 		}
@@ -187,6 +191,34 @@ func (h *goodHandler) calculateTechniqueFeeLegacy() {
 	}
 }
 
+func (h *goodHandler) _calculateTechniqueFee() error {
+	for appID, appGoodUnits := range h.appOrderUnits {
+		// For one good, event it's assign to multiple app goods,
+		// we'll use the same technique fee app good due to good only can bind to one technique fee good
+		techniqueFeeAppGood, ok := h.techniqueFeeAppGoods[appID]
+		if !ok {
+			continue
+		}
+		if techniqueFeeAppGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
+			continue
+		}
+		feePercent, err := decimal.NewFromString(techniqueFeeAppGood.UnitPrice)
+		if err != nil {
+			return err
+		}
+
+		for _, units := range appGoodUnits {
+			feeAmount := h.userRewardAmount.
+				Mul(units).
+				Div(h.totalBenefitOrderUnits).
+				Mul(feePercent).
+				Div(decimal.NewFromInt(100))
+			h.totalTechniqueFeeAmount = h.totalTechniqueFeeAmount.Add(feeAmount)
+		}
+	}
+	return nil
+}
+
 func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
 	if h.totalBenefitOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
@@ -200,23 +232,11 @@ func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
 		h.calculateTechniqueFeeLegacy()
 		return nil
 	}
-	if err := h.getTechniqueFeeGood(ctx); err != nil {
-		return err
-	}
-	if h.techniqueFeeGood == nil {
-		return nil
-	}
-	if h.techniqueFeeGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
-		return nil
-	}
-
-	feePercent, err := decimal.NewFromString(h.techniqueFeeGood.UnitPrice)
-	if err != nil {
+	if err := h.getTechniqueFeeGoods(ctx); err != nil {
 		return err
 	}
 
-	h.totalTechniqueFeeAmount = h.userRewardAmount.Mul(feePercent).Div(decimal.NewFromInt(100))
-	return nil
+	return h._calculateTechniqueFee()
 }
 
 func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
@@ -272,7 +292,8 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
-	h.goods = map[string]map[string]*appgoodmwpb.Good{}
+	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
+	h.techniqueFeeAppGoods = map[string]*appgoodmwpb.Good{}
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
 	var err error
 
@@ -283,6 +304,9 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if exist, err := h.checkGoodStatement(ctx); err != nil || exist {
+		return err
+	}
+	if err = h.getGoodCreatedAt(ctx); err != nil {
 		return err
 	}
 	if err = h.getAppGoods(ctx); err != nil {
