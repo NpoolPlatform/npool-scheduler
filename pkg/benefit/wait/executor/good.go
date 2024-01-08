@@ -339,7 +339,7 @@ func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateTechniqueFee(ctx context.Context) error {
+func (h *goodHandler) calculateTechniqueFee() error {
 	if h.totalBenefitOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
@@ -627,7 +627,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err := h.getTechniqueFeeGoods(ctx); err != nil {
 		return err
 	}
-	if err := h.calculateTechniqueFee(ctx); err != nil {
+	if err := h.calculateTechniqueFee(); err != nil {
 		return err
 	}
 	if err = h.checkTransferrable(); err != nil {
