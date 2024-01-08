@@ -66,8 +66,8 @@ github.com/NpoolPlatform/good-middleware v0.0.0-20231221030302-2e4c9171b07b h1:Y
 github.com/NpoolPlatform/good-middleware v0.0.0-20231221030302-2e4c9171b07b/go.mod h1:kKs4EhUVVX1LUH82douAgt2OkGD5rW87Jc7DPO+gUPs=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20240108100136-a7f8f4b4c6dc h1:wje3iXehCo3CRA+RnkZgU5ItSzuxhhAKPsRgTuItVtQ=
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20240108100136-a7f8f4b4c6dc/go.mod h1:eq+noSy8lO4FafVPL/ObS/dr3Ck8n8xMwizLo2vpsyg=
-github.com/NpoolPlatform/ledger-gateway v0.0.0-20231214100242-662c2a968040 h1:TG3oNB7eYYaQIpsSRmw43/YKXpEtF/m+f/QhNwJs7Iw=
-github.com/NpoolPlatform/ledger-gateway v0.0.0-20231214100242-662c2a968040/go.mod h1:HKNDd5DsE4IFiGjWn3jnHih9R7FEm6Vh/BudhHpPj3s=
+github.com/NpoolPlatform/ledger-gateway v0.0.0-20240108103203-c06fb1c7228b h1:jwN8El/n5xKhxwcPDLYJPkANm7wMJgq31sUM8E2aovM=
+github.com/NpoolPlatform/ledger-gateway v0.0.0-20240108103203-c06fb1c7228b/go.mod h1:jSRetV3S/zJVyd8xMQYqNNSp6WNmgtMYLlcfCuvlnPg=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21 h1:KHTWpxmhPrAdXF5/kKYShXiSlWSrPnjizN4I9sWKGN0=
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21/go.mod h1:GN2gHFIBRjNTWt2YEhN9arpsYeTiHmoBwMlCOjvcFIo=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6 h1:zbM3Zq0qObWEiw+wYJihNFOsBfXey8mBgAhT7HzGB8Y=
