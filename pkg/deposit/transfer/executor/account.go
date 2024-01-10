@@ -94,7 +94,7 @@ func (h *accountHandler) getCollectAccount(ctx context.Context) error {
 		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
-		return nil
+		return err
 	}
 	if account == nil {
 		return fmt.Errorf("invalid collect account")
