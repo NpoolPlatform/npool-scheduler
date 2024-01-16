@@ -35,6 +35,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	}
 	orderState1 := ordertypes.OrderState_OrderStateChildCanceledByParent
 	canceled := _order.UserSetCanceled || _order.AdminSetCanceled
+	if _order.CancelState == ordertypes.OrderState_OrderStatePaymentTimeout {
+		canceled = true
+	}
 	for _, child := range _order.ChildOrders {
 		reqs = append(reqs, &ordermwpb.OrderReq{
 			ID:               &child.ID,
