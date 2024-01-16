@@ -44,6 +44,8 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	switch order.CancelState {
+	case ordertypes.OrderState_OrderStatePaymentTimeout:
+		fallthrough //nolint
 	case ordertypes.OrderState_OrderStateWaitPayment:
 		dispose.Add(
 			goodsvcname.ServiceDomain,
