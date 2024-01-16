@@ -76,3 +76,6 @@ config:
     - withdrawrejectedreturnbalance
     - withdrawsuccessfulspendbalance
     - withdrawsuccessfulpresuccessful
+    - couponwithdraw
+    - couponwithdrawreviewing
+    - couponwithdrawapproved

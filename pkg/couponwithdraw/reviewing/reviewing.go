@@ -1,4 +1,4 @@
-package user
+package reviewing
 
 import (
 	"context"
@@ -7,13 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/notif"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/reviewing/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/reviewing/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw/reviewing/sentinel"
 )
 
-const subsystem = "deposituser"
+const subsystem = "couponwithdrawreviewing"
 
 var h *base.Handler
 
@@ -24,7 +23,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithSubsystem(subsystem),
 		base.WithScanInterval(30*time.Second),
 		base.WithScanner(sentinel.NewSentinel()),
-		base.WithNotify(notif.NewNotif()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
 		base.WithRunningMap(running),
