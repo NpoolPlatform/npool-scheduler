@@ -148,7 +148,7 @@ func (h *goodHandler) _calculateUnitReward() error {
 		feePercent := decimal.NewFromInt(0)
 		var err error
 
-		if ok && techniqueFeeAppGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit {
+		if ok && techniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit {
 			feePercent, err = decimal.NewFromString(techniqueFeeAppGood.UnitPrice)
 			if err != nil {
 				return err
