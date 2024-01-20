@@ -232,7 +232,7 @@ func (h *Handler) handler(ctx context.Context) bool {
 		if loaded, overflow := h.running.Store(h.scanner.ObjectID(ent), ent); loaded || overflow {
 			if overflow {
 				// Here is a bit strange, but let's use sentinel exec firstly
-				retry.Retry(ctx, ent, h.sentinel.Exec())
+				retry.Retry(h.scanner.ObjectID(ent), ent, h.sentinel.Exec())
 			}
 			return false
 		}

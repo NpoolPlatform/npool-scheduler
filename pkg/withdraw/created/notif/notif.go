@@ -35,7 +35,7 @@ func (p *handler) Notify(ctx context.Context, withdraw interface{}, retry chan i
 		return fmt.Errorf("invalid withdraw")
 	}
 	if err := p.notifyWithdraw(_withdraw); err != nil {
-		retry1.Retry(ctx, _withdraw, retry)
+		retry1.Retry(_withdraw.EntID, _withdraw, retry)
 		return err
 	}
 	return nil
