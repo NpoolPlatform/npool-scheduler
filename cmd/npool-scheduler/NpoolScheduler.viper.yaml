@@ -57,6 +57,10 @@ config:
     - orderexpiryupdatechilds
     - orderpaymenttransfer
     - orderpaymentfinish
+    - ordercancelchildcanceledparent
+    - orderexpirychildexpiredparent
+    - orderpaidchildinserviceparent
+    - orderpaymentchildpaidparent
     - txqueue
     - txqueuecreated
     - txqueuetransferring
@@ -72,3 +76,6 @@ config:
     - withdrawrejectedreturnbalance
     - withdrawsuccessfulspendbalance
     - withdrawsuccessfulpresuccessful
+    - couponwithdraw
+    - couponwithdrawreviewing
+    - couponwithdrawapproved

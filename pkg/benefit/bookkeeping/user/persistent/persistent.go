@@ -112,8 +112,10 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 		return nil
 	}
 
+	const timeoutSeconds = 60
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
-		WaitResult: true,
+		WaitResult:     true,
+		RequestTimeout: timeoutSeconds,
 	})
 	p.withCreateLedgerStatements(sagaDispose, _good)
 	p.withUpdateOrderBenefitState(sagaDispose, _good)

@@ -9,6 +9,7 @@ import (
 	cancelachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/achievement"
 	cancelbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/bookkeeping"
 	cancelcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/check"
+	cancelchildcanceledparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/childcanceledparent"
 	cancelcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/precancel"
 	cancelrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock"
@@ -17,14 +18,17 @@ import (
 	cancelupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/updatechilds"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/created"
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check"
+	expirychildexpiredparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/childexpiredparent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/restorestock"
 	expiryupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/updatechilds"
 	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/check"
+	paidchildinserviceparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/childinserviceparent"
 	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/stock"
 	paidupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/updatechilds"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/achievement"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkeeping"
+	paymentchildpaidparent "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/childpaidparent"
 	paymentcommission "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/received"
@@ -50,12 +54,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		"Subsystem", subsystem,
 	)
 
+	paidchildinserviceparent.Initialize(ctx, cancel, &running)
 	paidupdatechilds.Initialize(ctx, cancel, &running)
 	paymentupdatechilds.Initialize(ctx, cancel, &running)
 	paymentunlockaccount.Initialize(ctx, cancel, &running)
 	paymentachievement.Initialize(ctx, cancel, &running)
 	bookkeeping.Initialize(ctx, cancel, &running)
 	paymentwait.Initialize(ctx, cancel, &running)
+	paymentchildpaidparent.Initialize(ctx, cancel, &running)
 	paymentcommission.Initialize(ctx, cancel, &running)
 	cancelcommission.Initialize(ctx, cancel, &running)
 	received.Initialize(ctx, cancel, &running)
@@ -76,7 +82,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	preexpired.Initialize(ctx, cancel, &running)
 	expiryrestorestock.Initialize(ctx, cancel, &running)
 	expirycheck.Initialize(ctx, cancel, &running)
+	cancelchildcanceledparent.Initialize(ctx, cancel, &running)
 	cancelupdatechilds.Initialize(ctx, cancel, &running)
+	expirychildexpiredparent.Initialize(ctx, cancel, &running)
 	expiryupdatechilds.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
 }
@@ -87,7 +95,9 @@ func Finalize(ctx context.Context) {
 	}
 	created.Finalize(ctx)
 	expiryupdatechilds.Finalize(ctx)
+	expirychildexpiredparent.Finalize(ctx)
 	cancelupdatechilds.Finalize(ctx)
+	cancelchildcanceledparent.Finalize(ctx)
 	expirycheck.Finalize(ctx)
 	expiryrestorestock.Finalize(ctx)
 	preexpired.Finalize(ctx)
@@ -108,10 +118,12 @@ func Finalize(ctx context.Context) {
 	received.Finalize(ctx)
 	cancelcommission.Finalize(ctx)
 	paymentcommission.Finalize(ctx)
+	paymentchildpaidparent.Finalize(ctx)
 	paymentwait.Finalize(ctx)
 	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
 	paymentunlockaccount.Finalize(ctx)
 	paymentupdatechilds.Finalize(ctx)
 	paidupdatechilds.Finalize(ctx)
+	paidchildinserviceparent.Finalize(ctx)
 }
