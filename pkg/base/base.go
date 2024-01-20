@@ -24,6 +24,7 @@ type idDesc struct {
 	id        string
 	subsystem string
 	start     time.Time
+	value     interface{}
 }
 
 type syncMap struct {
@@ -38,6 +39,7 @@ func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 		id:        key.(string),
 		subsystem: s.subsystem,
 		start:     time.Now(),
+		value:     value,
 	}
 	_desc, loaded := s.Map.LoadOrStore(key, desc)
 	if !loaded {
@@ -54,6 +56,8 @@ func (s *syncMap) Store(key, value interface{}) (bool, bool) { //nolint
 		logger.Sugar().Warnw(
 			"Store",
 			"Ent", value,
+			"Key", key,
+			"StoreEnt", _desc.(*idDesc).value,
 			"ID", _desc.(*idDesc).id,
 			"StoreSubsystem", _desc.(*idDesc).subsystem,
 			"Start", _desc.(*idDesc).start,

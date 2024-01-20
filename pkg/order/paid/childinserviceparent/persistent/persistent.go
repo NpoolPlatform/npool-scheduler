@@ -10,8 +10,7 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/restorestock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/paid/childinserviceparent/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -24,8 +23,8 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateDeductLockedCommission
+func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	state := ordertypes.OrderState_OrderStateInService
 	rollback := true
 	req := &ordermwpb.OrderReq{
 		ID:         &order.ID,
@@ -42,31 +41,15 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	switch order.CancelState {
-	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateWaitPayment:
-		dispose.Add(
-			goodsvcname.ServiceDomain,
-			"good.middleware.app.good1.stock.v1.Middleware/Unlock",
-			"",
-			&appstockmwpb.UnlockRequest{
-				LockID: order.AppGoodStockLockID,
-			},
-		)
-	case ordertypes.OrderState_OrderStatePaid:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateInService:
-		dispose.Add(
-			goodsvcname.ServiceDomain,
-			"good.middleware.app.good1.stock.v1.Middleware/ChargeBack",
-			"",
-			&appstockmwpb.ChargeBackRequest{
-				LockID: order.AppGoodStockLockID,
-			},
-		)
-	}
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	dispose.Add(
+		goodsvcname.ServiceDomain,
+		"good.middleware.app.good1.stock.v1.Middleware/InService",
+		"",
+		&appstockmwpb.WaitStartRequest{
+			LockID: order.AppGoodStockLockID,
+		},
+	)
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
@@ -81,12 +64,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
-		TimeoutToFail:  timeoutSeconds,
-		RetryInterval:  timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
 	p.withUpdateStock(sagaDispose, _order)
-	if err := dtm1.Do(ctx, sagaDispose); err != nil {
+	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
 

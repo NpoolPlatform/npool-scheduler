@@ -26,7 +26,8 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			OrderState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			PaymentType: &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
 		}, offset, limit)
 		if err != nil {
 			return err
