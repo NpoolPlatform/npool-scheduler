@@ -5,20 +5,20 @@ go 1.17
 require (
 	entgo.io/ent v0.12.0
 	github.com/NpoolPlatform/account-middleware v0.0.0-20231205074056-0cc5ad44fac5
-	github.com/NpoolPlatform/appuser-middleware v0.0.0-20240108100407-73a6fe90209e
+	github.com/NpoolPlatform/appuser-middleware v0.0.0-20240119021359-948c8504d662
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20231015112137-254853c60eec
 	github.com/NpoolPlatform/chain-middleware v0.0.0-20231020114413-49166aeb1ec8
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20231026021135-ec3cd368fc24
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20230930023319-e48074d9472e
-	github.com/NpoolPlatform/good-middleware v0.0.0-20231221030302-2e4c9171b07b
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240108100136-a7f8f4b4c6dc
-	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240108103203-c06fb1c7228b
+	github.com/NpoolPlatform/good-middleware v0.0.0-20240120105645-3f387728dfa4
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240119021120-823cef934a51
+	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240120111725-0ae25f4c0320
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6
-	github.com/NpoolPlatform/message v0.0.0-20240112071642-dd9776d7b322
+	github.com/NpoolPlatform/message v0.0.0-20240120104527-6a5b7a93b1c8
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a
-	github.com/NpoolPlatform/order-middleware v0.0.0-20231207022847-d562f0898e06
+	github.com/NpoolPlatform/order-middleware v0.0.0-20240120110454-b5f2428771cd
 	github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
