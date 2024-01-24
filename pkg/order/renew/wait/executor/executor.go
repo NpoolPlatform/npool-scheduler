@@ -6,6 +6,7 @@ import (
 
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
 )
 
 type handler struct{}
@@ -21,7 +22,9 @@ func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif
 	}
 
 	h := &orderHandler{
-		Order:      _order,
+		OrderHandler: &renewcommon.OrderHandler{
+			Order: _order,
+		},
 		persistent: persistent,
 		notif:      notif,
 		done:       done,

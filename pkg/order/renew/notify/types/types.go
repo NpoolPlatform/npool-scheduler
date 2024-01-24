@@ -6,6 +6,7 @@ import (
 )
 
 type FeeDeduction struct {
+	CoinTypeID  string
 	CoinName    string
 	CoinUnit    string
 	USDCurrency string
@@ -14,6 +15,7 @@ type FeeDeduction struct {
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	NewRenewState ordertypes.OrderRenewState
-	FeeDeductions []*FeeDeduction
+	NewRenewState     ordertypes.OrderRenewState
+	FeeDeductions     []*FeeDeduction
+	NextRenewNotifyAt uint32
 }

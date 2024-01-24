@@ -83,13 +83,13 @@ func (h *orderHandler) getRequireds(ctx context.Context) error {
 }
 
 func (h *orderHandler) getAppGoods(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
 	goodIDs := []string{h.GoodID}
 	for _, required := range h.requireds {
 		goodIDs = append(goodIDs, required.RequiredGoodID)
 	}
+
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
 
 	for {
 		appGoods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
@@ -204,35 +204,62 @@ func (h *orderHandler) checkNotifiable() bool {
 	if h.electricityFeeAppGood != nil {
 		h.electricityFeeEndAt = h.StartAt + h.electricityFeeDuration + ignoredSeconds
 		h.checkElectricityFee = h.electricityFeeEndAt <= now+timedef.SecondsPerHour*24
-		if h.checkElectricityFee {
-			seconds := uint32(math.Min(float64(now-h.electricityFeeEndAt), float64(timedef.SecondsPerHour*6)))
-			seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
-			nextNotifyAt = now + seconds
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		if h.electricityFeeEndAt < h.EndAt {
+			if h.checkElectricityFee {
+				seconds := uint32(math.Min(float64(now-h.electricityFeeEndAt), float64(timedef.SecondsPerHour*6)))
+				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
+				nextNotifyAt = now + seconds
+			} else {
+				nextNotifyAt = h.electricityFeeEndAt - timedef.SecondsPerHour*24
+			}
+			if h.electricityFeeEndAt <= now+timedef.SecondsPerHour*6 {
+				h.newRenewState = ordertypes.OrderRenewState_OrderRenewExecute
+			}
 		} else {
-			nextNotifyAt = h.electricityFeeEndAt - timedef.SecondsPerHour*24
+			nextNotifyAt = h.EndAt + timedef.SecondsPerHour
 		}
 	}
 	if h.techniqueFeeAppGood != nil && h.techniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
 		h.techniqueFeeEndAt = h.StartAt + h.techniqueFeeDuration + ignoredSeconds
 		h.checkTechniqueFee = h.techniqueFeeEndAt <= now+timedef.SecondsPerHour*24
-		if h.checkTechniqueFee {
-			seconds := uint32(math.Min(float64(now-h.techniqueFeeEndAt), float64(timedef.SecondsPerHour*6)))
-			seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
-			if nextNotifyAt == now {
-				nextNotifyAt = now + seconds
+		if h.newRenewState == h.RenewState {
+			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		}
+		if h.techniqueFeeEndAt < h.EndAt {
+			if h.checkTechniqueFee {
+				seconds := uint32(math.Min(float64(now-h.techniqueFeeEndAt), float64(timedef.SecondsPerHour*6)))
+				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
+				if nextNotifyAt == now {
+					nextNotifyAt = now + seconds
+				} else {
+					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(now+seconds)))
+				}
+				if h.techniqueFeeEndAt <= now+timedef.SecondsPerHour*6 {
+					h.newRenewState = ordertypes.OrderRenewState_OrderRenewExecute
+				}
 			} else {
-				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(now+seconds)))
+				if nextNotifyAt == now {
+					nextNotifyAt = h.techniqueFeeEndAt - timedef.SecondsPerHour*24
+				} else {
+					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.techniqueFeeEndAt-timedef.SecondsPerHour*24)))
+				}
 			}
 		} else {
 			if nextNotifyAt == now {
-				nextNotifyAt = h.techniqueFeeEndAt - timedef.SecondsPerHour*24
+				nextNotifyAt = h.EndAt + timedef.SecondsPerHour
 			} else {
-				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.techniqueFeeEndAt-timedef.SecondsPerHour*24)))
+				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.EndAt+timedef.SecondsPerHour)))
 			}
 		}
 	}
 
 	h.notifiable = h.checkElectricityFee || h.checkTechniqueFee
+	h.nextRenewNotifyAt = nextNotifyAt
+	if h.electricityFeeAppGood == nil && h.techniqueFeeAppGood == nil {
+		h.nextRenewNotifyAt = h.EndAt + timedef.SecondsPerHour
+	}
+
 	return h.notifiable
 }
 
@@ -267,22 +294,15 @@ func (h *orderHandler) getUserLedgers(ctx context.Context) error {
 		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
 	}
 
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		ledgers, _, err := ledgermwcli.GetLedgers(ctx, &ledgermwpb.Conds{
-			CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(ledgers) == 0 {
-			break
-		}
-		h.ledgers = append(h.ledgers, ledgers...)
-		offset += limit
+	ledgers, _, err := ledgermwcli.GetLedgers(ctx, &ledgermwpb.Conds{
+		AppID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+		UserID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.UserID},
+		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
+	}, 0, int32(len(coinTypeIDs)))
+	if err != nil {
+		return err
 	}
+	h.ledgers = append(h.ledgers, ledgers...)
 
 	return nil
 }
@@ -293,23 +313,14 @@ func (h *orderHandler) getCoinUSDCurrency(ctx context.Context) error {
 		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
 	}
 
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		currencies, _, err := currencymwcli.GetCurrencies(ctx, &currencymwpb.Conds{
-			CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(currencies) == 0 {
-			break
-		}
-		for _, currency := range currencies {
-			h.currencies[currency.CoinTypeID] = currency
-		}
-		offset += limit
+	currencies, _, err := currencymwcli.GetCurrencies(ctx, &currencymwpb.Conds{
+		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
+	}, 0, int32(len(coinTypeIDs)))
+	if err != nil {
+		return err
+	}
+	for _, currency := range currencies {
+		h.currencies[currency.CoinTypeID] = currency
 	}
 
 	return nil
@@ -382,6 +393,7 @@ func (h *orderHandler) calculateFeeDeduction() error {
 		feeCoinAmount := feeUSDAmount.Div(currencyValue)
 		if spendable.Cmp(feeCoinAmount) >= 0 {
 			h.feeDeductions = append(h.feeDeductions, &types.FeeDeduction{
+				CoinTypeID:  ledger.CoinTypeID,
 				CoinName:    currency.CoinName,
 				CoinUnit:    currency.CoinUnit,
 				USDCurrency: currency.MarketValueLow,
@@ -390,6 +402,7 @@ func (h *orderHandler) calculateFeeDeduction() error {
 			return nil
 		}
 		h.feeDeductions = append(h.feeDeductions, &types.FeeDeduction{
+			CoinTypeID:  ledger.CoinTypeID,
 			CoinName:    currency.CoinName,
 			CoinUnit:    currency.CoinUnit,
 			USDCurrency: currency.MarketValueLow,
@@ -412,14 +425,19 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"checkElectricityFee", h.checkElectricityFee,
 			"electricityFeeUSDAmount", h.electricityFeeUSDAmount,
 			"checkTechniqueFee", h.checkTechniqueFee,
+			"techniqueFeeUSDAmount", h.techniqueFeeUSDAmount,
+			"nextRenewNotifyAt", h.nextRenewNotifyAt,
+			"feeDeductions", h.feeDeductions,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:         h.Order,
-		NewRenewState: h.newRenewState,
+		Order:             h.Order,
+		NewRenewState:     h.newRenewState,
+		FeeDeductions:     h.feeDeductions,
+		NextRenewNotifyAt: h.nextRenewNotifyAt,
 	}
-	if *err != nil {
+	if *err != nil || h.notifiable {
 		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
 	}
 	if h.newRenewState != h.RenewState {

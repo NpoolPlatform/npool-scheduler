@@ -1,4 +1,4 @@
-package check
+package wait
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/sentinel"
 )
 
-const subsystem = "orderrenewcheck"
+const subsystem = "orderrenewwait"
 
 var h *base.Handler
 
