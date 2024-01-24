@@ -39,6 +39,7 @@ import (
 	paymentunlockaccount "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount"
 	paymentupdatechilds "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/updatechilds"
 	paymentwait "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/wait"
+	renewcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check"
 	renewnotify "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify"
 	renewwait "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait"
 )
@@ -90,6 +91,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	expiryupdatechilds.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
 	renewwait.Initialize(ctx, cancel, &running)
+	renewcheck.Initialize(ctx, cancel, &running)
 	renewnotify.Initialize(ctx, cancel, &running)
 }
 
@@ -98,6 +100,7 @@ func Finalize(ctx context.Context) {
 		return
 	}
 	renewnotify.Finalize(ctx)
+	renewcheck.Finalize(ctx)
 	renewwait.Finalize(ctx)
 	created.Finalize(ctx)
 	expiryupdatechilds.Finalize(ctx)
