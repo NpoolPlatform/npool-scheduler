@@ -37,7 +37,9 @@ type OrderHandler struct {
 	TechniqueFeeAppGood     *appgoodmwpb.Good
 	childOrders             []*ordermwpb.Order
 	TechniqueFeeDuration    uint32
+	TechniqueFeeEndAt       uint32
 	ElectricityFeeDuration  uint32
+	ElectricityFeeEndAt     uint32
 	FeeDeductionCoins       []*coinusedformwpb.CoinUsedFor
 	FeeDeductions           []*types.FeeDeduction
 	UserLedgers             []*ledgermwpb.Ledger
@@ -176,6 +178,10 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	outOfGas := h.OutOfGasHours * timedef.SecondsPerHour
 	compensate := h.CompensateHours * timedef.SecondsPerHour
 	ignoredSeconds := outOfGas + compensate
+
+	h.TechniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
+	h.ElectricityFeeEndAt = h.StartAt + h.ElectricityFeeDuration + ignoredSeconds
+
 	now := uint32(time.Now().Unix())
 	if h.ElectricityFeeAppGood != nil {
 		h.CheckElectricityFee = h.StartAt+h.ElectricityFeeDuration+ignoredSeconds < now+timedef.SecondsPerHour*24

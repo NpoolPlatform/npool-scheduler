@@ -2,416 +2,21 @@ package executor
 
 import (
 	"context"
-	"fmt"
-	"math"
-	"sort"
-	"time"
 
-	currencymwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin/currency"
-	coinusedformwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin/usedfor"
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	requiredmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good/required"
-	ledgermwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger"
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	chaintypes "github.com/NpoolPlatform/message/npool/basetypes/chain/v1"
-	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
-	coinusedformwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/usedfor"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	requiredmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/required"
-	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
-	persistent              chan interface{}
-	done                    chan interface{}
-	notif                   chan interface{}
-	requireds               []*requiredmwpb.Required
-	mainAppGood             *appgoodmwpb.Good
-	electricityFeeAppGood   *appgoodmwpb.Good
-	techniqueFeeAppGood     *appgoodmwpb.Good
-	newRenewState           ordertypes.OrderRenewState
-	childOrders             []*ordermwpb.Order
-	techniqueFeeDuration    uint32
-	electricityFeeDuration  uint32
-	electricityFeeEndAt     uint32
-	techniqueFeeEndAt       uint32
-	userNotifText           string
-	insufficientBalance     bool
-	feeDeductionCoins       []*coinusedformwpb.CoinUsedFor
-	feeDeductions           []*types.FeeDeduction
-	ledgers                 []*ledgermwpb.Ledger
-	currencies              map[string]*currencymwpb.Currency
-	checkElectricityFee     bool
-	checkTechniqueFee       bool
-	electricityFeeUSDAmount decimal.Decimal
-	techniqueFeeUSDAmount   decimal.Decimal
-	notifiable              bool
-	nextRenewNotifyAt       uint32
-}
-
-func (h *orderHandler) getRequireds(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		requireds, _, err := requiredmwcli.GetRequireds(ctx, &requiredmwpb.Conds{
-			MainGoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(requireds) == 0 {
-			break
-		}
-		h.requireds = append(h.requireds, requireds...)
-		offset += limit
-	}
-	return nil
-}
-
-func (h *orderHandler) getAppGoods(ctx context.Context) error {
-	goodIDs := []string{h.GoodID}
-	for _, required := range h.requireds {
-		goodIDs = append(goodIDs, required.RequiredGoodID)
-	}
-
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		appGoods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-			AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(appGoods) == 0 {
-			break
-		}
-		for _, appGood := range appGoods {
-			switch appGood.GoodType {
-			case goodtypes.GoodType_ElectricityFee:
-				h.electricityFeeAppGood = appGood
-			case goodtypes.GoodType_TechniqueServiceFee:
-				h.techniqueFeeAppGood = appGood
-			}
-			if appGood.EntID == h.AppGoodID {
-				h.mainAppGood = appGood
-			}
-		}
-		offset += limit
-	}
-
-	if h.mainAppGood == nil {
-		return fmt.Errorf("invalid mainappgood")
-	}
-
-	return nil
-}
-
-func (h *orderHandler) renewGoodExist() (bool, error) {
-	if h.mainAppGood.PackageWithRequireds {
-		return false, nil
-	}
-	return h.techniqueFeeAppGood != nil || h.electricityFeeAppGood != nil, nil
-}
-
-func (h *orderHandler) getRenewableOrders(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	appGoodIDs := []string{}
-	if h.electricityFeeAppGood != nil {
-		appGoodIDs = append(appGoodIDs, h.electricityFeeAppGood.EntID)
-	}
-	if h.techniqueFeeAppGood != nil {
-		appGoodIDs = append(appGoodIDs, h.techniqueFeeAppGood.EntID)
-	}
-
-	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
-			AppGoodIDs:    &basetypes.StringSliceVal{Op: cruder.IN, Value: appGoodIDs},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(orders) == 0 {
-			break
-		}
-		h.childOrders = append(h.childOrders, orders...)
-		offset += limit
-	}
-
-	sort.Slice(h.childOrders, func(i, j int) bool {
-		return h.childOrders[i].StartAt < h.childOrders[j].StartAt
-	})
-
-	if h.electricityFeeAppGood != nil {
-		lastEndAt := uint32(0)
-		for _, order := range h.childOrders {
-			if order.AppGoodID == h.electricityFeeAppGood.EntID {
-				if order.StartAt < lastEndAt {
-					return fmt.Errorf("invalid order duration")
-				}
-				h.electricityFeeDuration += order.EndAt - order.StartAt
-				lastEndAt = order.EndAt
-			}
-		}
-	}
-
-	if h.techniqueFeeAppGood != nil {
-		lastEndAt := uint32(0)
-		for _, order := range h.childOrders {
-			if order.AppGoodID == h.techniqueFeeAppGood.EntID {
-				if order.StartAt < lastEndAt {
-					return fmt.Errorf("invalid order duration")
-				}
-				h.techniqueFeeDuration += order.EndAt - order.StartAt
-				lastEndAt = order.EndAt
-			}
-		}
-	}
-
-	return nil
-}
-
-func (h *orderHandler) checkNotifiable() bool {
-	now := uint32(time.Now().Unix())
-	if h.StartAt >= now || h.EndAt <= now {
-		return false
-	}
-
-	outOfGas := h.OutOfGasHours * timedef.SecondsPerHour
-	compensate := h.CompensateHours * timedef.SecondsPerHour
-	ignoredSeconds := outOfGas + compensate
-	nextNotifyAt := now
-
-	if h.electricityFeeAppGood != nil {
-		h.electricityFeeEndAt = h.StartAt + h.electricityFeeDuration + ignoredSeconds
-		h.checkElectricityFee = h.electricityFeeEndAt <= now+timedef.SecondsPerHour*24
-		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
-		if h.electricityFeeEndAt < h.EndAt {
-			if h.checkElectricityFee {
-				seconds := uint32(math.Min(float64(now-h.electricityFeeEndAt), float64(timedef.SecondsPerHour*6)))
-				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
-				nextNotifyAt = now + seconds
-			} else {
-				nextNotifyAt = h.electricityFeeEndAt - timedef.SecondsPerHour*24
-			}
-			if h.electricityFeeEndAt <= now+timedef.SecondsPerHour*6 {
-				h.newRenewState = ordertypes.OrderRenewState_OrderRenewExecute
-			}
-		} else {
-			nextNotifyAt = h.EndAt + timedef.SecondsPerHour
-		}
-	}
-	if h.techniqueFeeAppGood != nil && h.techniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
-		h.techniqueFeeEndAt = h.StartAt + h.techniqueFeeDuration + ignoredSeconds
-		h.checkTechniqueFee = h.techniqueFeeEndAt <= now+timedef.SecondsPerHour*24
-		if h.newRenewState == h.RenewState {
-			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
-		}
-		if h.techniqueFeeEndAt < h.EndAt {
-			if h.checkTechniqueFee {
-				seconds := uint32(math.Min(float64(now-h.techniqueFeeEndAt), float64(timedef.SecondsPerHour*6)))
-				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
-				if nextNotifyAt == now {
-					nextNotifyAt = now + seconds
-				} else {
-					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(now+seconds)))
-				}
-				if h.techniqueFeeEndAt <= now+timedef.SecondsPerHour*6 {
-					h.newRenewState = ordertypes.OrderRenewState_OrderRenewExecute
-				}
-			} else {
-				if nextNotifyAt == now {
-					nextNotifyAt = h.techniqueFeeEndAt - timedef.SecondsPerHour*24
-				} else {
-					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.techniqueFeeEndAt-timedef.SecondsPerHour*24)))
-				}
-			}
-		} else {
-			if nextNotifyAt == now {
-				nextNotifyAt = h.EndAt + timedef.SecondsPerHour
-			} else {
-				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.EndAt+timedef.SecondsPerHour)))
-			}
-		}
-	}
-
-	h.notifiable = h.checkElectricityFee || h.checkTechniqueFee
-	h.nextRenewNotifyAt = nextNotifyAt
-	if h.electricityFeeAppGood == nil && h.techniqueFeeAppGood == nil {
-		h.nextRenewNotifyAt = h.EndAt + timedef.SecondsPerHour
-	}
-
-	return h.notifiable
-}
-
-func (h *orderHandler) getFeeDeductionCoins(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-
-	for {
-		coinUsedFors, _, err := coinusedformwcli.GetCoinUsedFors(ctx, &coinusedformwpb.Conds{
-			UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(chaintypes.CoinUsedFor_CoinUsedForGoodFee)},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(coinUsedFors) == 0 {
-			break
-		}
-		h.feeDeductionCoins = append(h.feeDeductionCoins, coinUsedFors...)
-		offset += limit
-	}
-
-	if len(h.feeDeductionCoins) == 0 {
-		return fmt.Errorf("invalid feedudectioncoins")
-	}
-
-	return nil
-}
-
-func (h *orderHandler) getUserLedgers(ctx context.Context) error {
-	coinTypeIDs := []string{}
-	for _, coin := range h.feeDeductionCoins {
-		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
-	}
-
-	ledgers, _, err := ledgermwcli.GetLedgers(ctx, &ledgermwpb.Conds{
-		AppID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-		UserID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.UserID},
-		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
-	}, 0, int32(len(coinTypeIDs)))
-	if err != nil {
-		return err
-	}
-	h.ledgers = append(h.ledgers, ledgers...)
-
-	return nil
-}
-
-func (h *orderHandler) getCoinUSDCurrency(ctx context.Context) error {
-	coinTypeIDs := []string{}
-	for _, coin := range h.feeDeductionCoins {
-		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
-	}
-
-	currencies, _, err := currencymwcli.GetCurrencies(ctx, &currencymwpb.Conds{
-		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
-	}, 0, int32(len(coinTypeIDs)))
-	if err != nil {
-		return err
-	}
-	for _, currency := range currencies {
-		h.currencies[currency.CoinTypeID] = currency
-	}
-
-	return nil
-}
-
-func (h *orderHandler) calculateFeeUSDAmount() error {
-	orderUnits, err := decimal.NewFromString(h.Units)
-	if err != nil {
-		return err
-	}
-
-	if h.checkElectricityFee {
-		unitPrice, err := decimal.NewFromString(h.electricityFeeAppGood.UnitPrice)
-		if err != nil {
-			return err
-		}
-		durations := 1 //nolint
-		switch h.electricityFeeAppGood.DurationType {
-		case goodtypes.GoodDurationType_GoodDurationByHour:
-			durations *= timedef.HoursPerDay * 3
-		case goodtypes.GoodDurationType_GoodDurationByDay:
-			durations = 3
-		case goodtypes.GoodDurationType_GoodDurationByMonth:
-		case goodtypes.GoodDurationType_GoodDurationByYear:
-		}
-		h.electricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
-	}
-
-	if h.checkTechniqueFee {
-		unitPrice, err := decimal.NewFromString(h.techniqueFeeAppGood.UnitPrice)
-		if err != nil {
-			return err
-		}
-		durations := 1 //nolint
-		switch h.techniqueFeeAppGood.DurationType {
-		case goodtypes.GoodDurationType_GoodDurationByHour:
-			durations *= timedef.HoursPerDay * 3
-		case goodtypes.GoodDurationType_GoodDurationByDay:
-			durations = 3
-		case goodtypes.GoodDurationType_GoodDurationByMonth:
-		case goodtypes.GoodDurationType_GoodDurationByYear:
-		}
-		h.techniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
-	}
-
-	return nil
-}
-
-func (h *orderHandler) calculateFeeDeduction() error {
-	feeUSDAmount := h.electricityFeeUSDAmount.Add(h.techniqueFeeUSDAmount)
-	if feeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
-	}
-	for _, ledger := range h.ledgers {
-		currency, ok := h.currencies[ledger.CoinTypeID]
-		if !ok {
-			return fmt.Errorf("invalid coinusdcurrency")
-		}
-		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
-		if err != nil {
-			return err
-		}
-		if currencyValue.Cmp(decimal.NewFromInt(0)) <= 0 {
-			return fmt.Errorf("invalid coinusdcurrency")
-		}
-		spendable, err := decimal.NewFromString(ledger.Spendable)
-		if err != nil {
-			return err
-		}
-		feeCoinAmount := feeUSDAmount.Div(currencyValue)
-		if spendable.Cmp(feeCoinAmount) >= 0 {
-			h.feeDeductions = append(h.feeDeductions, &types.FeeDeduction{
-				CoinTypeID:  ledger.CoinTypeID,
-				CoinName:    currency.CoinName,
-				CoinUnit:    currency.CoinUnit,
-				USDCurrency: currency.MarketValueLow,
-				Amount:      feeCoinAmount.String(),
-			})
-			return nil
-		}
-		h.feeDeductions = append(h.feeDeductions, &types.FeeDeduction{
-			CoinTypeID:  ledger.CoinTypeID,
-			CoinName:    currency.CoinName,
-			CoinUnit:    currency.CoinUnit,
-			USDCurrency: currency.MarketValueLow,
-			Amount:      spendable.String(),
-		})
-		spendableUSD := spendable.Mul(currencyValue)
-		feeUSDAmount = feeUSDAmount.Sub(spendableUSD)
-	}
-	return fmt.Errorf("insufficient balance")
+	*renewcommon.OrderHandler
+	persistent    chan interface{}
+	done          chan interface{}
+	notif         chan interface{}
+	newRenewState ordertypes.OrderRenewState
 }
 
 //nolint:gocritic
@@ -420,24 +25,21 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Order", h.Order,
-			"NewRenewState", h.newRenewState,
-			"notifiable", h.notifiable,
-			"checkElectricityFee", h.checkElectricityFee,
-			"electricityFeeUSDAmount", h.electricityFeeUSDAmount,
-			"checkTechniqueFee", h.checkTechniqueFee,
-			"techniqueFeeUSDAmount", h.techniqueFeeUSDAmount,
-			"nextRenewNotifyAt", h.nextRenewNotifyAt,
-			"feeDeductions", h.feeDeductions,
+			"newRenewState", h.newRenewState,
+			"CheckElectricityFee", h.CheckElectricityFee,
+			"ElectricityFeeUSDAmount", h.ElectricityFeeUSDAmount,
+			"CheckTechniqueFee", h.CheckTechniqueFee,
+			"TechniqueFeeUSDAmount", h.TechniqueFeeUSDAmount,
+			"FeeDeductions", h.FeeDeductions,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:             h.Order,
-		NewRenewState:     h.newRenewState,
-		FeeDeductions:     h.feeDeductions,
-		NextRenewNotifyAt: h.nextRenewNotifyAt,
+		Order:         h.Order,
+		NewRenewState: h.newRenewState,
+		FeeDeductions: h.FeeDeductions,
 	}
-	if *err != nil || h.notifiable {
+	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
 	}
 	if h.newRenewState != h.RenewState {
@@ -450,40 +52,37 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	h.newRenewState = h.RenewState
-	h.currencies = map[string]*currencymwpb.Currency{}
+	h.Currencies = map[string]*currencymwpb.Currency{}
 
 	var err error
 	var yes bool
 	defer h.final(ctx, &err)
 
-	if err = h.getRequireds(ctx); err != nil {
+	if err = h.GetRequireds(ctx); err != nil {
 		return err
 	}
-	if err := h.getAppGoods(ctx); err != nil {
+	if err := h.GetAppGoods(ctx); err != nil {
 		return err
 	}
-	if yes, err = h.renewGoodExist(); err != nil || !yes {
+	if yes, err = h.RenewGoodExist(); err != nil || !yes {
 		return err
 	}
-	if err = h.getRenewableOrders(ctx); err != nil {
+	if err = h.GetRenewableOrders(ctx); err != nil {
 		return err
 	}
-	if yes = h.checkNotifiable(); !yes {
+	if err = h.GetFeeDeductionCoins(ctx); err != nil {
 		return err
 	}
-	if err = h.getFeeDeductionCoins(ctx); err != nil {
+	if err = h.GetUserLedgers(ctx); err != nil {
 		return err
 	}
-	if err = h.getUserLedgers(ctx); err != nil {
+	if err = h.GetCoinUSDCurrency(ctx); err != nil {
 		return err
 	}
-	if err = h.getCoinUSDCurrency(ctx); err != nil {
+	if err = h.CalculateFeeUSDAmount(); err != nil {
 		return err
 	}
-	if err = h.calculateFeeUSDAmount(); err != nil {
-		return err
-	}
-	if err = h.calculateFeeDeduction(); err != nil {
+	if err = h.CalculateFeeDeduction(); err != nil {
 		return err
 	}
 	return nil
