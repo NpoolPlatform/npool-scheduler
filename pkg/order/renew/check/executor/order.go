@@ -191,7 +191,7 @@ func (h *orderHandler) getRenewableOrders(ctx context.Context) error {
 
 func (h *orderHandler) renewable() bool {
 	now := uint32(time.Now().Unix())
-	if h.EndAt <= now {
+	if h.StartAt >= now || h.EndAt <= now {
 		return false
 	}
 
