@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"time"
 
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -11,7 +10,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 )
 
@@ -27,10 +26,8 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			EntID:         &basetypes.StringVal{Op: cruder.EQ, Value: "5e5c240f-8655-4df6-9325-7e22f9cb38b3"},
-			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			RenewState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewWait)},
-			RenewNotifyAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
+			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			RenewState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewCheck)},
 		}, offset, limit)
 		if err != nil {
 			return err
