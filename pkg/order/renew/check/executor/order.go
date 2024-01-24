@@ -22,8 +22,6 @@ type orderHandler struct {
 	newRenewState       ordertypes.OrderRenewState
 	electricityFeeEndAt uint32
 	techniqueFeeEndAt   uint32
-	checkElectricityFee bool
-	checkTechniqueFee   bool
 	notifiable          bool
 	nextRenewNotifyAt   uint32
 }
@@ -41,10 +39,9 @@ func (h *orderHandler) checkNotifiable() bool {
 
 	if h.ElectricityFeeAppGood != nil {
 		h.electricityFeeEndAt = h.StartAt + h.ElectricityFeeDuration + ignoredSeconds
-		h.checkElectricityFee = h.electricityFeeEndAt <= now+timedef.SecondsPerHour*24
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		if h.electricityFeeEndAt < h.EndAt {
-			if h.checkElectricityFee {
+			if h.CheckElectricityFee {
 				seconds := uint32(math.Min(float64(now-h.electricityFeeEndAt), float64(timedef.SecondsPerHour*6)))
 				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
 				nextNotifyAt = now + seconds
@@ -58,12 +55,11 @@ func (h *orderHandler) checkNotifiable() bool {
 	}
 	if h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
 		h.techniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
-		h.checkTechniqueFee = h.techniqueFeeEndAt <= now+timedef.SecondsPerHour*24
 		if h.newRenewState == h.RenewState {
 			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		}
 		if h.techniqueFeeEndAt < h.EndAt {
-			if h.checkTechniqueFee {
+			if h.CheckTechniqueFee {
 				seconds := uint32(math.Min(float64(now-h.techniqueFeeEndAt), float64(timedef.SecondsPerHour*6)))
 				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
 				if nextNotifyAt == now {
@@ -88,7 +84,7 @@ func (h *orderHandler) checkNotifiable() bool {
 		}
 	}
 
-	h.notifiable = h.checkElectricityFee || h.checkTechniqueFee
+	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
 	if h.ElectricityFeeAppGood == nil && h.TechniqueFeeAppGood == nil {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
@@ -106,8 +102,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"Order", h.Order,
 			"NewRenewState", h.newRenewState,
 			"notifiable", h.notifiable,
-			"checkElectricityFee", h.checkElectricityFee,
-			"checkTechniqueFee", h.checkTechniqueFee,
+			"CheckElectricityFee", h.CheckElectricityFee,
+			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"nextRenewNotifyAt", h.nextRenewNotifyAt,
 			"Error", *err,
 		)

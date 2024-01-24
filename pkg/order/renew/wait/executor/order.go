@@ -4,9 +4,7 @@ import (
 	"context"
 	"time"
 
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/types"
@@ -14,12 +12,10 @@ import (
 
 type orderHandler struct {
 	*renewcommon.OrderHandler
-	persistent           chan interface{}
-	done                 chan interface{}
-	notif                chan interface{}
-	notifyElectricityFee bool
-	notifyTechniqueFee   bool
-	notifiable           bool
+	persistent chan interface{}
+	done       chan interface{}
+	notif      chan interface{}
+	notifiable bool
 }
 
 func (h *orderHandler) checkNotifiable() bool {
@@ -30,22 +26,7 @@ func (h *orderHandler) checkNotifiable() bool {
 	if h.MainAppGood.PackageWithRequireds {
 		return false
 	}
-
-	orderElapsed := now - h.StartAt
-	outOfGas := h.OutOfGasHours * timedef.SecondsPerHour
-	compensate := h.CompensateHours * timedef.SecondsPerHour
-
-	ignoredSeconds := outOfGas + compensate
-	feeElapsed := orderElapsed - ignoredSeconds
-
-	if h.ElectricityFeeAppGood != nil {
-		h.notifyElectricityFee = h.ElectricityFeeDuration <= feeElapsed+timedef.SecondsPerHour*24
-	}
-	if h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
-		h.notifyTechniqueFee = h.TechniqueFeeDuration <= feeElapsed+timedef.SecondsPerHour*24
-	}
-
-	h.notifiable = h.notifyElectricityFee || h.notifyTechniqueFee
+	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	return h.notifiable
 }
 
@@ -56,8 +37,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Order", h.Order,
 			"notifiable", h.notifiable,
-			"notifyTechniqueFee", h.notifyTechniqueFee,
-			"notifyElectricityFee", h.notifyElectricityFee,
+			"CheckTechniqueFee", h.CheckTechniqueFee,
+			"CheckElectricityFee", h.CheckElectricityFee,
 			"Error", *err,
 		)
 	}
