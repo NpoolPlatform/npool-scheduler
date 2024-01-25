@@ -21,46 +21,49 @@ func Prepare(body string) (interface{}, error) {
 }
 
 func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
-	content := `<table style="border-collapse: collapse;">`
+	content := `<table style="border-collapse: collapse; text-align: left;">`
 	content += "<tr>"
-	content += `  <td colspan="4">Estimated Deductions</td>`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="4">Estimated Deductions</td>`
 	content += "</tr>"
 	content += "<tr>"
-	content += "  <td>Order ID</td>"
+	content += `  <td style="border: 1px solid #dddddd;">Order ID</td>`
 	// TODO: add order link and some other order info
-	content += `  <td colspan="3"><strong>` + req.ParentOrder.EntID + `</strong></td>`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="3"><strong>` + req.ParentOrder.EntID + `</strong></td>`
 	content += "</tr>"
 	content += "<tr>"
-	content += "  <th>CoinName</th>"
-	content += "  <th>Blockchain</th>"
-	content += "  <th>USDT Currency</th>"
-	content += "  <th>Deduction Amount</th>"
+	content += `  <th style="border: 1px solid #dddddd;">CoinName</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Blockchain</th>`
+	content += `  <th style="border: 1px solid #dddddd;">USDT Currency</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Deduction Amount</th>`
 	content += "</tr>"
 	for _, deduction := range req.Deductions {
 		content += "<tr>"
-		content += `  <td>` + deduction.AppCoin.Unit + `</td>`
-		content += `  <td>` + deduction.AppCoin.Name + `</td>`
-		content += `  <td>` + deduction.USDCurrency + `</td>`
-		content += `  <td>` + deduction.Amount + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + deduction.AppCoin.Unit + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + deduction.AppCoin.Name + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + deduction.USDCurrency + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + deduction.Amount + `</td>`
 		content += "</tr>"
 	}
 	content += "<tr>"
-	content += `  <td colspan="5">Renew Candidates</td>`
+	content += "</table>"
+
+	content := `<table style="border-collapse: collapse; text-align: left;">`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="5">Renew Candidates</td>`
 	content += "</tr>"
 	content += "<tr>"
-	content += "  <th>Product Name</th>"
-	content += "  <th>Price</th>"
-	content += "  <th>Least Duration</th>"
-	content += "  <th>Units</th>"
-	content += "  <th>EndAt</th>"
+	content += `  <th style="border: 1px solid #dddddd;">Product Name</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Price</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Least Duration</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Units</th>`
+	content += `  <th style="border: 1px solid #dddddd;">EndAt</th>`
 	content += "</tr>"
 	for _, renewInfo := range req.RenewInfos {
 		content += "<tr>"
-		content += `  <td>` + renewInfo.AppGood.GoodName + `</td>`
-		content += `  <td>` + renewInfo.AppGood.UnitPrice + `</td>`
-		content += `  <td>` + fmt.Sprintf("%v", renewInfo.AppGood.MinOrderDuration) + `</td>`
-		content += `  <td>` + req.ParentOrder.Units + `</td>`
-		content += `  <td>` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.GoodName + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.UnitPrice + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.AppGood.MinOrderDuration) + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + req.ParentOrder.Units + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`
 		content += "</tr>"
 	}
 	content += "</table>"
