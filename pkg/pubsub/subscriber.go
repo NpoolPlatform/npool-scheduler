@@ -132,6 +132,8 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 	case basetypes.MsgID_WithdrawSuccessReq.String():
 		fallthrough //nolint
 	case basetypes.MsgID_OrderPaidReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_OrderChildsRenewReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")

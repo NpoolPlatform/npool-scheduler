@@ -21,7 +21,50 @@ func Prepare(body string) (interface{}, error) {
 }
 
 func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
-	return fmt.Sprintf("%v", req)
+	content := `<table style="border-collapse: collapse;">`
+	content += "<tr>"
+	content += `  <td colspan="4">Estimated Deductions</td>`
+	content += "</tr>"
+	content += "<tr>"
+	content += "  <td>Order ID</td>"
+	// TODO: add order link and some other order info
+	content += `  <td colspan="3"><strong>` + req.ParentOrder.EntID + `</strong></td>`
+	content += "</tr>"
+	content += "<tr>"
+	content += "  <th>CoinName</th>"
+	content += "  <th>Blockchain</th>"
+	content += "  <th>USDT Currency</th>"
+	content += "  <th>Deduction Amount</th>"
+	content += "</tr>"
+	for _, deduction := range req.Deductions {
+		content += "<tr>"
+		content += `  <td>` + deduction.AppCoin.Unit + `</td>`
+		content += `  <td>` + deduction.AppCoin.Name + `</td>`
+		content += `  <td>` + deduction.USDCurrency + `</td>`
+		content += `  <td>` + deduction.Amount + `</td>`
+		content += "</tr>"
+	}
+	content += "<tr>"
+	content += `  <td colspan="5">Renew Candidates</td>`
+	content += "</tr>"
+	content += "<tr>"
+	content += "  <th>Product Name</th>"
+	content += "  <th>Price</th>"
+	content += "  <th>Least Duration</th>"
+	content += "  <th>Units</th>"
+	content += "  <th>EndAt</th>"
+	content += "</tr>"
+	for _, renewInfo := range req.RenewInfos {
+		content += "<tr>"
+		content += `  <td>` + renewInfo.AppGood.GoodName + `</td>`
+		content += `  <td>` + renewInfo.AppGood.UnitPrice + `</td>`
+		content += `  <td>` + fmt.Sprintf("%v", renewInfo.AppGood.MinOrderDuration) + `</td>`
+		content += `  <td>` + req.ParentOrder.Units + `</td>`
+		content += `  <td>` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`
+		content += "</tr>"
+	}
+	content += "</table>"
+	return content
 }
 
 func Apply(ctx context.Context, req interface{}) error {
