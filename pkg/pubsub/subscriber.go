@@ -13,6 +13,7 @@ import (
 	benefitnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/benefit/notif"
 	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
 	orderpaidnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/paid/notif"
+	orderrenewnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/renew/notify/notif"
 	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
 
 	"github.com/google/uuid"
@@ -62,6 +63,8 @@ func prepare(mid, body string) (req interface{}, err error) {
 		req, err = benefitnotif.Prepare(body)
 	case basetypes.MsgID_OrderPaidReq.String():
 		req, err = orderpaidnotif.Prepare(body)
+	case basetypes.MsgID_OrderChildsRenewReq.String():
+		req, err = orderrenewnotif.Prepare(body)
 	default:
 		return nil, nil
 	}
@@ -159,6 +162,8 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 		err = benefitnotif.Apply(ctx, req)
 	case basetypes.MsgID_OrderPaidReq.String():
 		err = orderpaidnotif.Apply(ctx, req)
+	case basetypes.MsgID_OrderChildsRenewReq.String():
+		err = orderrenewnotif.Apply(ctx, req)
 	default:
 		return nil
 	}

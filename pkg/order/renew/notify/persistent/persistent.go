@@ -26,9 +26,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:            &_order.ID,
-		RenewState:    &_order.NewRenewState,
-		RenewNotifyAt: &_order.NextRenewNotifyAt,
+		ID:         &_order.ID,
+		RenewState: &_order.NewRenewState,
 	}); err != nil {
 		return err
 	}

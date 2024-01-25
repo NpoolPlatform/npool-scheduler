@@ -35,19 +35,24 @@ func (h *orderHandler) checkNotifiable() bool {
 	ignoredSeconds := outOfGas + compensate
 	nextNotifyAt := now
 
+	const maxNotifyInterval = timedef.SecondsPerHour * 6
+	const minNotifyInterval = timedef.SecondsPerHour
+	const preNotifyTicker = timedef.SecondsPerHour * 24
+	const noNotifyTicker = minNotifyInterval
+
 	if h.ElectricityFeeAppGood != nil {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		if h.ElectricityFeeEndAt < h.EndAt {
 			if h.CheckElectricityFee {
-				seconds := uint32(math.Min(float64(now-h.ElectricityFeeEndAt), float64(timedef.SecondsPerHour*6)))
-				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
+				seconds := uint32(math.Min(float64(now-h.ElectricityFeeEndAt), float64(maxNotifyInterval)))
+				seconds = uint32(math.Max(float64(seconds), float64(minNotifyInterval)))
 				nextNotifyAt = now + seconds
 				h.newRenewState = ordertypes.OrderRenewState_OrderRenewNotify
 			} else {
-				nextNotifyAt = h.ElectricityFeeEndAt - timedef.SecondsPerHour*24
+				nextNotifyAt = h.ElectricityFeeEndAt - preNotifyTicker
 			}
 		} else {
-			nextNotifyAt = h.EndAt + timedef.SecondsPerHour
+			nextNotifyAt = h.EndAt + noNotifyTicker
 		}
 	}
 	if h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
@@ -57,8 +62,8 @@ func (h *orderHandler) checkNotifiable() bool {
 		}
 		if h.TechniqueFeeEndAt < h.EndAt {
 			if h.CheckTechniqueFee {
-				seconds := uint32(math.Min(float64(now-h.TechniqueFeeEndAt), float64(timedef.SecondsPerHour*6)))
-				seconds = uint32(math.Max(float64(seconds), float64(timedef.SecondsPerHour)))
+				seconds := uint32(math.Min(float64(now-h.TechniqueFeeEndAt), float64(maxNotifyInterval)))
+				seconds = uint32(math.Max(float64(seconds), float64(minNotifyInterval)))
 				if nextNotifyAt == now {
 					nextNotifyAt = now + seconds
 				} else {
@@ -67,16 +72,16 @@ func (h *orderHandler) checkNotifiable() bool {
 				h.newRenewState = ordertypes.OrderRenewState_OrderRenewNotify
 			} else {
 				if nextNotifyAt == now {
-					nextNotifyAt = h.TechniqueFeeEndAt - timedef.SecondsPerHour*24
+					nextNotifyAt = h.TechniqueFeeEndAt - preNotifyTicker
 				} else {
-					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.TechniqueFeeEndAt-timedef.SecondsPerHour*24)))
+					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.TechniqueFeeEndAt-preNotifyTicker)))
 				}
 			}
 		} else {
 			if nextNotifyAt == now {
-				nextNotifyAt = h.EndAt + timedef.SecondsPerHour
+				nextNotifyAt = h.EndAt + noNotifyTicker
 			} else {
-				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.EndAt+timedef.SecondsPerHour)))
+				nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(h.EndAt+noNotifyTicker)))
 			}
 		}
 	}
@@ -85,7 +90,7 @@ func (h *orderHandler) checkNotifiable() bool {
 	h.nextRenewNotifyAt = nextNotifyAt
 	if h.ElectricityFeeAppGood == nil && h.TechniqueFeeAppGood == nil {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
-		h.nextRenewNotifyAt = h.EndAt + timedef.SecondsPerHour
+		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
 	}
 
 	return h.notifiable

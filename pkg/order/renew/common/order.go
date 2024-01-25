@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	appcoinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/app/coin"
 	currencymwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin/currency"
 	coinusedformwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin/usedfor"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
@@ -16,14 +17,15 @@ import (
 	chaintypes "github.com/NpoolPlatform/message/npool/basetypes/chain/v1"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	appcoinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/app/coin"
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
 	coinusedformwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/usedfor"
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	requiredmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/required"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	orderrenewpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order/renew"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 
 	"github.com/shopspring/decimal"
@@ -40,14 +42,17 @@ type OrderHandler struct {
 	TechniqueFeeEndAt       uint32
 	ElectricityFeeDuration  uint32
 	ElectricityFeeEndAt     uint32
-	FeeDeductionCoins       []*coinusedformwpb.CoinUsedFor
-	FeeDeductions           []*types.FeeDeduction
+	DeductionCoins          []*coinusedformwpb.CoinUsedFor
+	DeductionAppCoins       map[string]*appcoinmwpb.Coin
+	Deductions              []*orderrenewpb.Deduction
 	UserLedgers             []*ledgermwpb.Ledger
 	Currencies              map[string]*currencymwpb.Currency
 	ElectricityFeeUSDAmount decimal.Decimal
 	TechniqueFeeUSDAmount   decimal.Decimal
 	CheckElectricityFee     bool
 	CheckTechniqueFee       bool
+	InsufficientBalance     bool
+	RenewInfos              []*orderrenewpb.RenewInfo
 }
 
 func (h *OrderHandler) GetRequireds(ctx context.Context) error {
@@ -70,6 +75,7 @@ func (h *OrderHandler) GetRequireds(ctx context.Context) error {
 	return nil
 }
 
+// TODO: for some child goods which are suggested by us, we may also notify it to user when it's over
 func (h *OrderHandler) GetAppGoods(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -183,17 +189,19 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	h.ElectricityFeeEndAt = h.StartAt + h.ElectricityFeeDuration + ignoredSeconds
 
 	now := uint32(time.Now().Unix())
-	if h.ElectricityFeeAppGood != nil {
-		h.CheckElectricityFee = h.StartAt+h.ElectricityFeeDuration+ignoredSeconds < now+timedef.SecondsPerHour*24
+	const secondsBeforeFeeExhausted = timedef.SecondsPerHour * 24
+
+	if h.ElectricityFeeAppGood != nil && h.ElectricityFeeEndAt < h.EndAt {
+		h.CheckElectricityFee = h.StartAt+h.ElectricityFeeDuration+ignoredSeconds < now+secondsBeforeFeeExhausted
 	}
-	if h.TechniqueFeeAppGood != nil {
-		h.CheckTechniqueFee = h.StartAt+h.TechniqueFeeDuration+ignoredSeconds < now+timedef.SecondsPerHour*24
+	if h.TechniqueFeeAppGood != nil && h.TechniqueFeeEndAt < h.EndAt {
+		h.CheckTechniqueFee = h.StartAt+h.TechniqueFeeDuration+ignoredSeconds < now+secondsBeforeFeeExhausted
 	}
 
 	return nil
 }
 
-func (h *OrderHandler) GetFeeDeductionCoins(ctx context.Context) error {
+func (h *OrderHandler) GetDeductionCoins(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -207,20 +215,41 @@ func (h *OrderHandler) GetFeeDeductionCoins(ctx context.Context) error {
 		if len(coinUsedFors) == 0 {
 			break
 		}
-		h.FeeDeductionCoins = append(h.FeeDeductionCoins, coinUsedFors...)
+		h.DeductionCoins = append(h.DeductionCoins, coinUsedFors...)
 		offset += limit
 	}
 
-	if len(h.FeeDeductionCoins) == 0 {
+	if len(h.DeductionCoins) == 0 {
 		return fmt.Errorf("invalid feedudectioncoins")
 	}
 
 	return nil
 }
 
+func (h *OrderHandler) GetDeductionAppCoins(ctx context.Context) error {
+	coinTypeIDs := []string{}
+	for _, coin := range h.DeductionCoins {
+		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
+	}
+
+	h.DeductionAppCoins = map[string]*appcoinmwpb.Coin{}
+
+	coins, _, err := appcoinmwcli.GetCoins(ctx, &appcoinmwpb.Conds{
+		AppID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
+	}, 0, int32(len(coinTypeIDs)))
+	if err != nil {
+		return err
+	}
+	for _, coin := range coins {
+		h.DeductionAppCoins[coin.CoinTypeID] = coin
+	}
+	return nil
+}
+
 func (h *OrderHandler) GetUserLedgers(ctx context.Context) error {
 	coinTypeIDs := []string{}
-	for _, coin := range h.FeeDeductionCoins {
+	for _, coin := range h.DeductionCoins {
 		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
 	}
 
@@ -239,9 +268,11 @@ func (h *OrderHandler) GetUserLedgers(ctx context.Context) error {
 
 func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 	coinTypeIDs := []string{}
-	for _, coin := range h.FeeDeductionCoins {
+	for _, coin := range h.DeductionCoins {
 		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
 	}
+
+	h.Currencies = map[string]*currencymwpb.Currency{}
 
 	currencies, _, err := currencymwcli.GetCurrencies(ctx, &currencymwpb.Conds{
 		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
@@ -256,7 +287,7 @@ func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 	return nil
 }
 
-func (h *OrderHandler) CalculateFeeUSDAmount() error {
+func (h *OrderHandler) CalculateUSDAmount() error {
 	orderUnits, err := decimal.NewFromString(h.Units)
 	if err != nil {
 		return err
@@ -277,6 +308,10 @@ func (h *OrderHandler) CalculateFeeUSDAmount() error {
 		case goodtypes.GoodDurationType_GoodDurationByYear:
 		}
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
+		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
+			AppGood: h.ElectricityFeeAppGood,
+			EndAt:   h.ElectricityFeeEndAt,
+		})
 	}
 
 	if h.CheckTechniqueFee {
@@ -294,52 +329,57 @@ func (h *OrderHandler) CalculateFeeUSDAmount() error {
 		case goodtypes.GoodDurationType_GoodDurationByYear:
 		}
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
+		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
+			AppGood: h.TechniqueFeeAppGood,
+			EndAt:   h.TechniqueFeeEndAt,
+		})
 	}
 
 	return nil
 }
 
-func (h *OrderHandler) CalculateFeeDeduction() error {
+func (h *OrderHandler) CalculateDeduction() (bool, error) {
 	feeUSDAmount := h.ElectricityFeeUSDAmount.Add(h.TechniqueFeeUSDAmount)
 	if feeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
+		return false, nil
 	}
 	for _, ledger := range h.UserLedgers {
 		currency, ok := h.Currencies[ledger.CoinTypeID]
 		if !ok {
-			return fmt.Errorf("invalid coinusdcurrency")
+			return true, fmt.Errorf("invalid coinusdcurrency")
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {
-			return err
+			return true, err
 		}
 		if currencyValue.Cmp(decimal.NewFromInt(0)) <= 0 {
-			return fmt.Errorf("invalid coinusdcurrency")
+			return true, fmt.Errorf("invalid coinusdcurrency")
 		}
 		spendable, err := decimal.NewFromString(ledger.Spendable)
 		if err != nil {
-			return err
+			return true, err
 		}
 		feeCoinAmount := feeUSDAmount.Div(currencyValue)
+		appCoin, ok := h.DeductionAppCoins[ledger.CoinTypeID]
+		if !ok {
+			return true, fmt.Errorf("invalid deductioncoin")
+		}
 		if spendable.Cmp(feeCoinAmount) >= 0 {
-			h.FeeDeductions = append(h.FeeDeductions, &types.FeeDeduction{
-				CoinTypeID:  ledger.CoinTypeID,
-				CoinName:    currency.CoinName,
-				CoinUnit:    currency.CoinUnit,
+			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+				AppCoin:     appCoin,
 				USDCurrency: currency.MarketValueLow,
 				Amount:      feeCoinAmount.String(),
 			})
-			return nil
+			return false, nil
 		}
-		h.FeeDeductions = append(h.FeeDeductions, &types.FeeDeduction{
-			CoinTypeID:  ledger.CoinTypeID,
-			CoinName:    currency.CoinName,
-			CoinUnit:    currency.CoinUnit,
+		h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+			AppCoin:     appCoin,
 			USDCurrency: currency.MarketValueLow,
 			Amount:      spendable.String(),
 		})
 		spendableUSD := spendable.Mul(currencyValue)
 		feeUSDAmount = feeUSDAmount.Sub(spendableUSD)
 	}
-	return fmt.Errorf("insufficient balance")
+	h.InsufficientBalance = true
+	return true, nil
 }

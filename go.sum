@@ -72,10 +72,10 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21 h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21/go.mod h1:GN2gHFIBRjNTWt2YEhN9arpsYeTiHmoBwMlCOjvcFIo=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6 h1:zbM3Zq0qObWEiw+wYJihNFOsBfXey8mBgAhT7HzGB8Y=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6/go.mod h1:EXCihQpRNNyWaPu1IphiZFLTyyUK/CJMZdW4My7y48Q=
-github.com/NpoolPlatform/message v0.0.0-20240124070353-bb9fb091ab9a h1:eX9JI+/VV86ZhQAkZOyd9i4muHwaqv4ANpXWcT5NlmY=
-github.com/NpoolPlatform/message v0.0.0-20240124070353-bb9fb091ab9a/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a h1:+gVUfl0pCMHIBNXpwxseDxxapqmed8/ZAf+Oewl3UpQ=
-github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a/go.mod h1:4Du89hzmz5gfqyxqXyzCOIWWpbPlDhKDRirekueAoRk=
+github.com/NpoolPlatform/message v0.0.0-20240125070118-47a56a599463 h1:ksyOSEdvl7ObTaRRxkeCE7j1UbEnNuR6WEmI3qHVAPM=
+github.com/NpoolPlatform/message v0.0.0-20240125070118-47a56a599463/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20240125071424-20232a63a555 h1:D/JpGMRPmv7Qb89ax4AV5xJpZ47uZ6wgcuOX96LuYl8=
+github.com/NpoolPlatform/notif-middleware v0.0.0-20240125071424-20232a63a555/go.mod h1:143U5Hh39la5t99eIZ7dIuPIo/vwxUxJuoJ3lmQQKPo=
 github.com/NpoolPlatform/order-middleware v0.0.0-20240124073649-c02eb56ec7d1 h1:ioAXESDSndkdpeXrm48mHY899wcaPqDRCf15y+JlCTE=
 github.com/NpoolPlatform/order-middleware v0.0.0-20240124073649-c02eb56ec7d1/go.mod h1:CBZ9je+ZFO6nPyJsBgNRZXZzQGMYCht3OhLy3ATlRqs=
 github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2 h1:qXBRJjUzscoz2Sn2ceEmjweHVXZIqGBw2SgJDu/Tk2k=
