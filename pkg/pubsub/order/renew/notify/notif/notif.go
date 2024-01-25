@@ -47,7 +47,7 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content += "<tr>"
 	content += "</table>"
 
-	content := `<table style="border-collapse: collapse; text-align: left;">`
+	content += `<table style="border-collapse: collapse; text-align: left;">`
 	content += `  <td style="border: 1px solid #dddddd;" colspan="5">Renew Candidates</td>`
 	content += "</tr>"
 	content += "<tr>"
