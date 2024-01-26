@@ -2,7 +2,9 @@ package executor
 
 import (
 	"context"
+	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
@@ -48,6 +50,13 @@ func (h *orderHandler) constructElectricityFeeOrder() {
 	orderType := ordertypes.OrderType_Normal
 	paymentType := ordertypes.PaymentType_PayWithBalanceOnly
 	createMethod := ordertypes.OrderCreateMethod_OrderCreatedByRenew
+	investmentType := ordertypes.InvestmentType_FullPayment
+
+	startAt := uint32(time.Now().Unix() + 10*timedef.SecondsPerMinute)
+	if startAt < h.ElectricityFeeEndAt {
+		startAt = h.ElectricityFeeEndAt
+	}
+	endAt := startAt + h.ElectricityFeeExtendSeconds
 
 	orderReq := &ordermwpb.OrderReq{
 		AppID:             &h.AppID,
@@ -64,6 +73,10 @@ func (h *orderHandler) constructElectricityFeeOrder() {
 		CreateMethod:      &createMethod,
 		MultiPaymentCoins: &multiPaymentCoins,
 		PaymentAmounts:    amounts,
+		InvestmentType:    &investmentType,
+		CoinTypeID:        &h.ElectricityFeeAppGood.CoinTypeID,
+		StartAt:           &startAt,
+		EndAt:             &endAt,
 	}
 
 	h.orderReqs = append(h.orderReqs, &types.OrderReq{
@@ -99,6 +112,13 @@ func (h *orderHandler) constructTechniqueFeeOrder() {
 	orderType := ordertypes.OrderType_Normal
 	paymentType := ordertypes.PaymentType_PayWithBalanceOnly
 	createMethod := ordertypes.OrderCreateMethod_OrderCreatedByRenew
+	investmentType := ordertypes.InvestmentType_FullPayment
+
+	startAt := uint32(time.Now().Unix() + 10*timedef.SecondsPerMinute)
+	if startAt < h.ElectricityFeeEndAt {
+		startAt = h.ElectricityFeeEndAt
+	}
+	endAt := startAt + h.ElectricityFeeExtendSeconds
 
 	orderReq := &ordermwpb.OrderReq{
 		AppID:             &h.AppID,
@@ -115,6 +135,10 @@ func (h *orderHandler) constructTechniqueFeeOrder() {
 		CreateMethod:      &createMethod,
 		MultiPaymentCoins: &multiPaymentCoins,
 		PaymentAmounts:    amounts,
+		InvestmentType:    &investmentType,
+		CoinTypeID:        &h.TechniqueFeeAppGood.CoinTypeID,
+		StartAt:           &startAt,
+		EndAt:             &endAt,
 	}
 
 	h.orderReqs = append(h.orderReqs, &types.OrderReq{

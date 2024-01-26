@@ -40,9 +40,11 @@ type OrderHandler struct {
 	childOrders                  []*ordermwpb.Order
 	TechniqueFeeDuration         uint32
 	TechniqueFeeExtendDuration   uint32
+	TechniqueFeeExtendSeconds    uint32
 	TechniqueFeeEndAt            uint32
 	ElectricityFeeDuration       uint32
 	ElectricityFeeExtendDuration uint32
+	ElectricityFeeExtendSeconds  uint32
 	ElectricityFeeEndAt          uint32
 	DeductionCoins               []*coinusedformwpb.CoinUsedFor
 	DeductionAppCoins            map[string]*appcoinmwpb.Coin
@@ -301,15 +303,21 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 			return err
 		}
 		durations := 1 //nolint
+		seconds := 0
 		switch h.ElectricityFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
 			durations *= timedef.HoursPerDay * 3
+			seconds = durations * timedef.SecondsPerHour
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
+			seconds = durations * timedef.SecondsPerDay
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
+			seconds = durations * timedef.SecondsPerMonth
 		case goodtypes.GoodDurationType_GoodDurationByYear:
+			seconds = durations * timedef.SecondsPerYear
 		}
 		h.ElectricityFeeExtendDuration = uint32(durations)
+		h.ElectricityFeeExtendSeconds = uint32(seconds)
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood: h.ElectricityFeeAppGood,
@@ -323,15 +331,21 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 			return err
 		}
 		durations := 1 //nolint
+		seconds := 0
 		switch h.TechniqueFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
 			durations *= timedef.HoursPerDay * 3
+			seconds = durations * timedef.SecondsPerHour
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
+			seconds = durations * timedef.SecondsPerDay
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
+			seconds = durations * timedef.SecondsPerMonth
 		case goodtypes.GoodDurationType_GoodDurationByYear:
+			seconds = durations * timedef.SecondsPerYear
 		}
 		h.TechniqueFeeExtendDuration = uint32(durations)
+		h.TechniqueFeeExtendSeconds = uint32(seconds)
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood: h.TechniqueFeeAppGood,
