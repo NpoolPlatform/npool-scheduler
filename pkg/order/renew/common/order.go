@@ -16,6 +16,7 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	chaintypes "github.com/NpoolPlatform/message/npool/basetypes/chain/v1"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appcoinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/app/coin"
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
@@ -33,30 +34,32 @@ import (
 
 type OrderHandler struct {
 	*ordermwpb.Order
-	requireds                    []*requiredmwpb.Required
-	MainAppGood                  *appgoodmwpb.Good
-	ElectricityFeeAppGood        *appgoodmwpb.Good
-	TechniqueFeeAppGood          *appgoodmwpb.Good
-	childOrders                  []*ordermwpb.Order
-	TechniqueFeeDuration         uint32
-	TechniqueFeeExtendDuration   uint32
-	TechniqueFeeExtendSeconds    uint32
-	TechniqueFeeEndAt            uint32
-	ElectricityFeeDuration       uint32
-	ElectricityFeeExtendDuration uint32
-	ElectricityFeeExtendSeconds  uint32
-	ElectricityFeeEndAt          uint32
-	DeductionCoins               []*coinusedformwpb.CoinUsedFor
-	DeductionAppCoins            map[string]*appcoinmwpb.Coin
-	Deductions                   []*orderrenewpb.Deduction
-	UserLedgers                  []*ledgermwpb.Ledger
-	Currencies                   map[string]*currencymwpb.Currency
-	ElectricityFeeUSDAmount      decimal.Decimal
-	TechniqueFeeUSDAmount        decimal.Decimal
-	CheckElectricityFee          bool
-	CheckTechniqueFee            bool
-	InsufficientBalance          bool
-	RenewInfos                   []*orderrenewpb.RenewInfo
+	requireds                      []*requiredmwpb.Required
+	MainAppGood                    *appgoodmwpb.Good
+	ElectricityFeeAppGood          *appgoodmwpb.Good
+	TechniqueFeeAppGood            *appgoodmwpb.Good
+	childOrders                    []*ordermwpb.Order
+	TechniqueFeeDuration           uint32
+	TechniqueFeeExtendDuration     uint32
+	TechniqueFeeExtendSeconds      uint32
+	TechniqueFeeEndAt              uint32
+	ExistUnpaidTechniqueFeeOrder   bool
+	ElectricityFeeDuration         uint32
+	ElectricityFeeExtendDuration   uint32
+	ElectricityFeeExtendSeconds    uint32
+	ElectricityFeeEndAt            uint32
+	ExistUnpaidElectricityFeeOrder bool
+	DeductionCoins                 []*coinusedformwpb.CoinUsedFor
+	DeductionAppCoins              map[string]*appcoinmwpb.Coin
+	Deductions                     []*orderrenewpb.Deduction
+	UserLedgers                    []*ledgermwpb.Ledger
+	Currencies                     map[string]*currencymwpb.Currency
+	ElectricityFeeUSDAmount        decimal.Decimal
+	TechniqueFeeUSDAmount          decimal.Decimal
+	CheckElectricityFee            bool
+	CheckTechniqueFee              bool
+	InsufficientBalance            bool
+	RenewInfos                     []*orderrenewpb.RenewInfo
 }
 
 func (h *OrderHandler) GetRequireds(ctx context.Context) error {
@@ -140,6 +143,8 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 		appGoodIDs = append(appGoodIDs, h.TechniqueFeeAppGood.EntID)
 	}
 
+	// TODO: only check paid order. If unpaid order exist, we should just wait
+
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
@@ -162,12 +167,15 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	if h.ElectricityFeeAppGood != nil {
 		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
-			if order.AppGoodID == h.ElectricityFeeAppGood.EntID {
+			if order.AppGoodID == h.ElectricityFeeAppGood.EntID && order.PaymentState == ordertypes.PaymentState_PaymentStateDone {
 				if order.StartAt < lastEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.ElectricityFeeDuration += order.EndAt - order.StartAt
 				lastEndAt = order.EndAt
+			}
+			if order.PaymentState == ordertypes.PaymentState_PaymentStateWait {
+				h.ExistUnpaidElectricityFeeOrder = true
 			}
 		}
 	}
@@ -175,12 +183,15 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	if h.TechniqueFeeAppGood != nil {
 		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
-			if order.AppGoodID == h.TechniqueFeeAppGood.EntID {
+			if order.AppGoodID == h.TechniqueFeeAppGood.EntID && order.PaymentState == ordertypes.PaymentState_PaymentStateDone {
 				if order.StartAt < lastEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.TechniqueFeeDuration += order.EndAt - order.StartAt
 				lastEndAt = order.EndAt
+			}
+			if order.PaymentState == ordertypes.PaymentState_PaymentStateWait {
+				h.ExistUnpaidTechniqueFeeOrder = true
 			}
 		}
 	}
