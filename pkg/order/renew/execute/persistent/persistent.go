@@ -10,7 +10,7 @@ import (
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/execute/types"
-	// ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 	ordermwsvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -70,14 +70,12 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	/*
-		if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-			ID:         &_order.ID,
-			RenewState: &_order.NewRenewState,
-		}); err != nil {
-			return err
-		}
-	*/
+	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
+		ID:         &_order.ID,
+		RenewState: &_order.NewRenewState,
+	}); err != nil {
+		return err
+	}
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{

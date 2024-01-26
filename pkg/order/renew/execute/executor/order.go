@@ -57,6 +57,9 @@ func (h *orderHandler) constructElectricityFeeOrder() {
 		startAt = h.ElectricityFeeEndAt
 	}
 	endAt := startAt + h.ElectricityFeeExtendSeconds
+	if endAt > h.EndAt {
+		endAt = h.EndAt
+	}
 
 	orderReq := &ordermwpb.OrderReq{
 		AppID:             &h.AppID,
@@ -119,6 +122,9 @@ func (h *orderHandler) constructTechniqueFeeOrder() {
 		startAt = h.ElectricityFeeEndAt
 	}
 	endAt := startAt + h.ElectricityFeeExtendSeconds
+	if endAt > h.EndAt {
+		endAt = h.EndAt
+	}
 
 	orderReq := &ordermwpb.OrderReq{
 		AppID:             &h.AppID,
