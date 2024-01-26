@@ -35,6 +35,10 @@ data:
           - gasfeeder
           - limitation
           - order
+          - orderrenewwait
+          - orderrenewcheck
+          - orderrenewnotify
+          - orderrenewexecute
           - ordercreated
           - orderpaymentwait
           - orderpaymentreceived
