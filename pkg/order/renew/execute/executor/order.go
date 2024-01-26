@@ -36,9 +36,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"ElectricityFeeUSDAmount", h.ElectricityFeeUSDAmount,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"TechniqueFeeUSDAmount", h.TechniqueFeeUSDAmount,
-			"Deductions", h.Deductions,
 			"InsufficientBalance", h.InsufficientBalance,
 			"RenewInfos", h.RenewInfos,
+			"Deductions", h.Deductions,
 			"Error", *err,
 		)
 	}
@@ -95,7 +95,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.CalculateUSDAmount(); err != nil {
 		return err
 	}
-	if _, err = h.CalculateDeduction(); err != nil { // yes means insufficient balance
+	if _, err = h.CalculateDeductionForOrder(); err != nil { // yes means insufficient balance
 		return err
 	}
 	if err = h.constructRenewOrders(); err != nil {

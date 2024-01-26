@@ -433,7 +433,7 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 		// Only when all electricity fee is created, then we create technique fee
 		if spendable.Cmp(techniqueFeeCoinAmount) >= 0 &&
 			techniqueFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 &&
-			electricityFeeCoinAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
 				AppGood:     h.TechniqueFeeAppGood,
 				AppCoin:     appCoin,
@@ -449,7 +449,7 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 			return false, nil
 		}
 
-		if electricityFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+		if electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) > 0 {
 			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
 				AppGood:     h.ElectricityFeeAppGood,
 				AppCoin:     appCoin,
