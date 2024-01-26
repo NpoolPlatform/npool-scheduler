@@ -383,3 +383,90 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 	h.InsufficientBalance = true
 	return true, nil
 }
+
+func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
+	electricityFeeUSDAmount := h.ElectricityFeeUSDAmount
+	techniqueFeeUSDAmount := h.TechniqueFeeUSDAmount
+
+	if electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 &&
+		techniqueFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return false, nil
+	}
+
+	for _, ledger := range h.UserLedgers {
+		currency, ok := h.Currencies[ledger.CoinTypeID]
+		if !ok {
+			return true, fmt.Errorf("invalid coinusdcurrency")
+		}
+		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
+		if err != nil {
+			return true, err
+		}
+		if currencyValue.Cmp(decimal.NewFromInt(0)) <= 0 {
+			return true, fmt.Errorf("invalid coinusdcurrency")
+		}
+		spendable, err := decimal.NewFromString(ledger.Spendable)
+		if err != nil {
+			return true, err
+		}
+
+		electricityFeeCoinAmount := electricityFeeUSDAmount.Div(currencyValue)
+		techniqueFeeCoinAmount := techniqueFeeUSDAmount.Div(currencyValue)
+		spendableUSD := spendable.Mul(currencyValue)
+
+		appCoin, ok := h.DeductionAppCoins[ledger.CoinTypeID]
+		if !ok {
+			return true, fmt.Errorf("invalid deductioncoin")
+		}
+		if spendable.Cmp(electricityFeeCoinAmount) >= 0 &&
+			electricityFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+				AppGood:     h.ElectricityFeeAppGood,
+				AppCoin:     appCoin,
+				USDCurrency: currency.MarketValueLow,
+				Amount:      electricityFeeCoinAmount.String(),
+			})
+			spendable = spendable.Sub(electricityFeeCoinAmount)
+			spendableUSD = spendableUSD.Sub(electricityFeeUSDAmount)
+			electricityFeeUSDAmount = decimal.NewFromInt(0)
+		}
+		// Only when all electricity fee is created, then we create technique fee
+		if spendable.Cmp(techniqueFeeCoinAmount) >= 0 &&
+			techniqueFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 &&
+			electricityFeeCoinAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+				AppGood:     h.TechniqueFeeAppGood,
+				AppCoin:     appCoin,
+				USDCurrency: currency.MarketValueLow,
+				Amount:      techniqueFeeCoinAmount.String(),
+			})
+			spendable = spendable.Sub(techniqueFeeCoinAmount)
+			spendableUSD = spendableUSD.Sub(techniqueFeeUSDAmount)
+			techniqueFeeUSDAmount = decimal.NewFromInt(0)
+		}
+		if electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 &&
+			techniqueFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+			return false, nil
+		}
+
+		if electricityFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 {
+			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+				AppGood:     h.ElectricityFeeAppGood,
+				AppCoin:     appCoin,
+				USDCurrency: currency.MarketValueLow,
+				Amount:      spendable.String(),
+			})
+			electricityFeeUSDAmount = electricityFeeUSDAmount.Sub(spendableUSD)
+			continue
+		}
+		h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
+			AppGood:     h.TechniqueFeeAppGood,
+			AppCoin:     appCoin,
+			USDCurrency: currency.MarketValueLow,
+			Amount:      spendable.String(),
+		})
+		techniqueFeeUSDAmount = techniqueFeeUSDAmount.Sub(spendableUSD)
+	}
+	h.InsufficientBalance = true
+	return true, nil
+}
