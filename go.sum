@@ -68,12 +68,12 @@ github.com/NpoolPlatform/inspire-middleware v0.0.0-20240119021120-823cef934a51 h
 github.com/NpoolPlatform/inspire-middleware v0.0.0-20240119021120-823cef934a51/go.mod h1:16mM11b2e8fREhpL43HGlDAcntaVN3jfoAxxHy65F8I=
 github.com/NpoolPlatform/ledger-gateway v0.0.0-20240120111725-0ae25f4c0320 h1:PN3PPiyj6kJ9q6TvGfJVNDYSpFy8bWJZ+dFNnSeNoY0=
 github.com/NpoolPlatform/ledger-gateway v0.0.0-20240120111725-0ae25f4c0320/go.mod h1:IOffM1Uzu5uvrzRzOGlHQOqbEYZJuscgx55zDVhBkNg=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21 h1:KHTWpxmhPrAdXF5/kKYShXiSlWSrPnjizN4I9sWKGN0=
-github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21/go.mod h1:GN2gHFIBRjNTWt2YEhN9arpsYeTiHmoBwMlCOjvcFIo=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20240126082633-ae5e6c208094 h1:SiGfQjYTVJYy/ug/wdtXsSxr/HLJs/D48GE3wsaEYHk=
+github.com/NpoolPlatform/ledger-middleware v0.0.0-20240126082633-ae5e6c208094/go.mod h1:Z6s/zdoUU4PntqPxO/hIjcGm5RmTWjf6T5BUAxsJTHo=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6 h1:zbM3Zq0qObWEiw+wYJihNFOsBfXey8mBgAhT7HzGB8Y=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6/go.mod h1:EXCihQpRNNyWaPu1IphiZFLTyyUK/CJMZdW4My7y48Q=
-github.com/NpoolPlatform/message v0.0.0-20240126025848-841871c17e58 h1:gWvSi2wmBKhmSaYbt0Jp+bmXfNMUsZNo1g9NsfpZX0M=
-github.com/NpoolPlatform/message v0.0.0-20240126025848-841871c17e58/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20240126061253-46d4b5ec962b h1:uYmczOP2OgZQFNbQ0zB+qUlv7UIOsL0jb6OuovZpxHA=
+github.com/NpoolPlatform/message v0.0.0-20240126061253-46d4b5ec962b/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240125081628-c8ccd36fb6e8 h1:NvM1hP2gmxXvlj3ZdI2ejLwbMslVomDAHhdDihDn1ZU=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240125081628-c8ccd36fb6e8/go.mod h1:D6LCJMdtEK2/b2yt3vchvUgKdhD/+JMjMu0pIps3mqk=
 github.com/NpoolPlatform/order-middleware v0.0.0-20240125113554-ce7aa0c8db56 h1:mB0zg4bWttfdM8WrNNyWyWeWszD9nBeKLK1iwUSZ6wg=

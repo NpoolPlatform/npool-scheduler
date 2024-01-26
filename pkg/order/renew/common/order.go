@@ -33,26 +33,28 @@ import (
 
 type OrderHandler struct {
 	*ordermwpb.Order
-	requireds               []*requiredmwpb.Required
-	MainAppGood             *appgoodmwpb.Good
-	ElectricityFeeAppGood   *appgoodmwpb.Good
-	TechniqueFeeAppGood     *appgoodmwpb.Good
-	childOrders             []*ordermwpb.Order
-	TechniqueFeeDuration    uint32
-	TechniqueFeeEndAt       uint32
-	ElectricityFeeDuration  uint32
-	ElectricityFeeEndAt     uint32
-	DeductionCoins          []*coinusedformwpb.CoinUsedFor
-	DeductionAppCoins       map[string]*appcoinmwpb.Coin
-	Deductions              []*orderrenewpb.Deduction
-	UserLedgers             []*ledgermwpb.Ledger
-	Currencies              map[string]*currencymwpb.Currency
-	ElectricityFeeUSDAmount decimal.Decimal
-	TechniqueFeeUSDAmount   decimal.Decimal
-	CheckElectricityFee     bool
-	CheckTechniqueFee       bool
-	InsufficientBalance     bool
-	RenewInfos              []*orderrenewpb.RenewInfo
+	requireds                    []*requiredmwpb.Required
+	MainAppGood                  *appgoodmwpb.Good
+	ElectricityFeeAppGood        *appgoodmwpb.Good
+	TechniqueFeeAppGood          *appgoodmwpb.Good
+	childOrders                  []*ordermwpb.Order
+	TechniqueFeeDuration         uint32
+	TechniqueFeeExtendDuration   uint32
+	TechniqueFeeEndAt            uint32
+	ElectricityFeeDuration       uint32
+	ElectricityFeeExtendDuration uint32
+	ElectricityFeeEndAt          uint32
+	DeductionCoins               []*coinusedformwpb.CoinUsedFor
+	DeductionAppCoins            map[string]*appcoinmwpb.Coin
+	Deductions                   []*orderrenewpb.Deduction
+	UserLedgers                  []*ledgermwpb.Ledger
+	Currencies                   map[string]*currencymwpb.Currency
+	ElectricityFeeUSDAmount      decimal.Decimal
+	TechniqueFeeUSDAmount        decimal.Decimal
+	CheckElectricityFee          bool
+	CheckTechniqueFee            bool
+	InsufficientBalance          bool
+	RenewInfos                   []*orderrenewpb.RenewInfo
 }
 
 func (h *OrderHandler) GetRequireds(ctx context.Context) error {
@@ -307,6 +309,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
 		case goodtypes.GoodDurationType_GoodDurationByYear:
 		}
+		h.ElectricityFeeExtendDuration = uint32(durations)
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood: h.ElectricityFeeAppGood,
@@ -328,6 +331,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
 		case goodtypes.GoodDurationType_GoodDurationByYear:
 		}
+		h.TechniqueFeeExtendDuration = uint32(durations)
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood: h.TechniqueFeeAppGood,

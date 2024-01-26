@@ -2,12 +2,17 @@ package types
 
 import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	orderrenewpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order/renew"
 )
+
+type OrderReq struct {
+	*ordermwpb.OrderReq
+	Balances []*ledgermwpb.LockBalancesRequest_XBalance
+}
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	*orderrenewpb.MsgOrderChildsRenewReq
+	OrderReqs     []*OrderReq
 	NewRenewState ordertypes.OrderRenewState
 }
