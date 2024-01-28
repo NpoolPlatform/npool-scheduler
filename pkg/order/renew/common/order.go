@@ -438,6 +438,9 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 		if err != nil {
 			return true, err
 		}
+		if spendable.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 
 		electricityFeeCoinAmount := electricityFeeUSDAmount.Div(currencyValue)
 		techniqueFeeCoinAmount := techniqueFeeUSDAmount.Div(currencyValue)

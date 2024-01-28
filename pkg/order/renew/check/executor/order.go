@@ -40,6 +40,12 @@ func (h *orderHandler) checkNotifiable() bool {
 	const preNotifyTicker = timedef.SecondsPerHour * 24
 	const noNotifyTicker = minNotifyInterval
 
+	if h.ExistUnpaidElectricityFeeOrder || h.ExistUnpaidTechniqueFeeOrder {
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		h.nextRenewNotifyAt = now + noNotifyTicker
+		return false
+	}
+
 	if h.ElectricityFeeAppGood != nil {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		if h.ElectricityFeeEndAt < h.EndAt {

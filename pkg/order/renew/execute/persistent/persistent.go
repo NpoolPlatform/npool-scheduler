@@ -77,7 +77,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		return err
 	}
 
-	const timeoutSeconds = 10
+	const timeoutSeconds = 30
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
 		RequestTimeout: timeoutSeconds,
