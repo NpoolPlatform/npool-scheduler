@@ -24,6 +24,7 @@ type orderHandler struct {
 	nextRenewNotifyAt uint32
 }
 
+//nolint:gocognit
 func (h *orderHandler) checkNotifiable() bool {
 	now := uint32(time.Now().Unix())
 	if h.StartAt >= now || h.EndAt <= now {

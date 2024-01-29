@@ -52,7 +52,7 @@ func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *typ
 	}
 	if order.MultiPaymentCoins {
 		statementIDs := []string{}
-		for _, _ = range order.Balances {
+		for range order.Balances {
 			statementIDs = append(statementIDs, uuid.NewString())
 		}
 		dispose.Add(

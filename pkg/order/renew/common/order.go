@@ -131,6 +131,7 @@ func (h *OrderHandler) RenewGoodExist() (bool, error) {
 	return h.TechniqueFeeAppGood != nil || h.ElectricityFeeAppGood != nil, nil
 }
 
+//nolint:gocognit
 func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -413,6 +414,7 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 	return true, nil
 }
 
+//nolint:gocognit
 func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 	electricityFeeUSDAmount := h.ElectricityFeeUSDAmount
 	techniqueFeeUSDAmount := h.TechniqueFeeUSDAmount

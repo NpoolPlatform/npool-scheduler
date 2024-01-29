@@ -20,6 +20,7 @@ func Prepare(body string) (interface{}, error) {
 	return &req, nil
 }
 
+//nolint:goconst
 func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content := `<table style="border-collapse: collapse; text-align: left;">`
 	content += "<tr>"

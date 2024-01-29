@@ -25,7 +25,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (h *handler) withLockBalances(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, balances []*ledgermwpb.LockBalancesRequest_XBalance, lockID string) {
+func (p *handler) withLockBalances(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, balances []*ledgermwpb.LockBalancesRequest_XBalance, lockID string) {
 	dispose.Add(
 		ledgermwsvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/LockBalances",
