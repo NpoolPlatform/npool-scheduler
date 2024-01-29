@@ -54,9 +54,11 @@ func (p *handler) withCreateOrder(dispose *dtmcli.SagaDispose, orderReq *ordermw
 func (p *handler) createOrder(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, orderReq *types.OrderReq) {
 	ledgerLockID := uuid.NewString()
 	appGoodStockLockID := uuid.NewString()
+	orderID := uuid.NewString()
 
 	p.withLockBalances(dispose, order, orderReq.Balances, ledgerLockID)
 
+	orderReq.OrderReq.EntID = &orderID
 	orderReq.OrderReq.LedgerLockID = &ledgerLockID
 	orderReq.OrderReq.LedgerLockID = &appGoodStockLockID
 	p.withCreateOrder(dispose, orderReq.OrderReq)
