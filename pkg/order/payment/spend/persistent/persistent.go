@@ -47,20 +47,38 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 
 func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	balance := decimal.RequireFromString(order.OrderBalanceAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
+	if balance.Cmp(decimal.NewFromInt(0)) <= 0 && len(order.Balances) == 0 {
 		return
 	}
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/SettleBalance",
-		"",
-		&ledgermwpb.SettleBalanceRequest{
-			LockID:      order.OrderBalanceLockID,
-			StatementID: uuid.NewString(),
-			IOExtra:     order.BalanceExtra,
-			IOSubType:   ledgertypes.IOSubType_Payment,
-		},
-	)
+	if order.MultiPaymentCoins {
+		statementIDs := []string{}
+		for _, _ = range order.Balances {
+			statementIDs = append(statementIDs, uuid.NewString())
+		}
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.ledger.v2.Middleware/SettleBalances",
+			"",
+			&ledgermwpb.SettleBalancesRequest{
+				LockID:       order.OrderBalanceLockID,
+				StatementIDs: statementIDs,
+				IOExtra:      order.BalanceExtra,
+				IOSubType:    ledgertypes.IOSubType_Payment,
+			},
+		)
+	} else {
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.ledger.v2.Middleware/SettleBalance",
+			"",
+			&ledgermwpb.SettleBalanceRequest{
+				LockID:      order.OrderBalanceLockID,
+				StatementID: uuid.NewString(),
+				IOExtra:     order.BalanceExtra,
+				IOSubType:   ledgertypes.IOSubType_Payment,
+			},
+		)
+	}
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
