@@ -200,8 +200,8 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	compensate := h.CompensateHours * timedef.SecondsPerHour
 	ignoredSeconds := outOfGas + compensate
 
-	h.TechniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
 	h.ElectricityFeeEndAt = h.StartAt + h.ElectricityFeeDuration + ignoredSeconds
+	h.TechniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
 
 	now := uint32(time.Now().Unix())
 	const secondsBeforeFeeExhausted = timedef.SecondsPerHour * 24

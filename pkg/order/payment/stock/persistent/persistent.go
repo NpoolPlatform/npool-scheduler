@@ -66,7 +66,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
-	p.withUpdateStock(sagaDispose, _order)
+	if _order.CreateMethod != ordertypes.OrderCreateMethod_OrderCreatedByRenew {
+		p.withUpdateStock(sagaDispose, _order)
+	}
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
