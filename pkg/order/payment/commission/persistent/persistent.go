@@ -42,6 +42,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withCreateCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
