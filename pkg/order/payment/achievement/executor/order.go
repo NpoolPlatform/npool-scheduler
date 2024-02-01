@@ -134,6 +134,10 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 		return nil
 	}
 
+	if h.Simulate {
+		return nil
+	}
+
 	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
 		AppID:                  h.AppID,
 		UserID:                 h.UserID,
