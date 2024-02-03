@@ -36,7 +36,6 @@ func (h *orderHandler) checkNotifiable() bool {
 	ignoredSeconds := outOfGas + compensate
 	nextNotifyAt := now
 
-	const maxNotifyInterval = timedef.SecondsPerHour * 6
 	const minNotifyInterval = timedef.SecondsPerHour
 	const preNotifyTicker = timedef.SecondsPerHour * 24
 	const noNotifyTicker = minNotifyInterval
@@ -51,9 +50,7 @@ func (h *orderHandler) checkNotifiable() bool {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		if h.ElectricityFeeEndAt < h.EndAt {
 			if h.CheckElectricityFee {
-				seconds := uint32(math.Min(float64(now-h.ElectricityFeeEndAt), float64(maxNotifyInterval)))
-				seconds = uint32(math.Max(float64(seconds), float64(minNotifyInterval)))
-				nextNotifyAt = now + seconds
+				nextNotifyAt = now + minNotifyInterval
 				h.newRenewState = ordertypes.OrderRenewState_OrderRenewNotify
 			} else {
 				nextNotifyAt = h.ElectricityFeeEndAt - preNotifyTicker
@@ -69,12 +66,10 @@ func (h *orderHandler) checkNotifiable() bool {
 		}
 		if h.TechniqueFeeEndAt < h.EndAt {
 			if h.CheckTechniqueFee {
-				seconds := uint32(math.Min(float64(now-h.TechniqueFeeEndAt), float64(maxNotifyInterval)))
-				seconds = uint32(math.Max(float64(seconds), float64(minNotifyInterval)))
 				if nextNotifyAt == now {
-					nextNotifyAt = now + seconds
+					nextNotifyAt = now + minNotifyInterval
 				} else {
-					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(now+seconds)))
+					nextNotifyAt = uint32(math.Min(float64(nextNotifyAt), float64(now+minNotifyInterval)))
 				}
 				h.newRenewState = ordertypes.OrderRenewState_OrderRenewNotify
 			} else {
