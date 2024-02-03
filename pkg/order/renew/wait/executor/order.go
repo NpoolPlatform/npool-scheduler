@@ -26,7 +26,8 @@ func (h *orderHandler) checkNotifiable() bool {
 	if h.MainAppGood.PackageWithRequireds {
 		return false
 	}
-	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
+	// Here we always goto check state then we can update renew notify at
+	h.notifiable = true
 	return h.notifiable
 }
 
