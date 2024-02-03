@@ -52,7 +52,7 @@ type OrderHandler struct {
 	DeductionCoins                 []*coinusedformwpb.CoinUsedFor
 	DeductionAppCoins              map[string]*appcoinmwpb.Coin
 	Deductions                     []*orderrenewpb.Deduction
-	UserLedgers                    []*ledgermwpb.Ledger
+	UserLedgers                    map[string]*ledgermwpb.Ledger
 	Currencies                     map[string]*currencymwpb.Currency
 	ElectricityFeeUSDAmount        decimal.Decimal
 	TechniqueFeeUSDAmount          decimal.Decimal
@@ -250,6 +250,9 @@ func (h *OrderHandler) GetDeductionCoins(ctx context.Context) error {
 	if len(h.DeductionCoins) == 0 {
 		return fmt.Errorf("invalid feedudectioncoins")
 	}
+	sort.Slice(h.DeductionCoins, func(i, j int) bool {
+		return h.DeductionCoins[i].Priority < h.DeductionCoins[j].Priority
+	})
 
 	return nil
 }
@@ -281,6 +284,8 @@ func (h *OrderHandler) GetUserLedgers(ctx context.Context) error {
 		coinTypeIDs = append(coinTypeIDs, coin.CoinTypeID)
 	}
 
+	h.UserLedgers = map[string]*ledgermwpb.Ledger{}
+
 	ledgers, _, err := ledgermwcli.GetLedgers(ctx, &ledgermwpb.Conds{
 		AppID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		UserID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.UserID},
@@ -289,7 +294,9 @@ func (h *OrderHandler) GetUserLedgers(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	h.UserLedgers = append(h.UserLedgers, ledgers...)
+	for _, ledger := range ledgers {
+		h.UserLedgers[ledger.CoinTypeID] = ledger
+	}
 
 	return nil
 }
@@ -385,10 +392,14 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 	if feeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return false, nil
 	}
-	for _, ledger := range h.UserLedgers {
-		currency, ok := h.Currencies[ledger.CoinTypeID]
+	for _, coin := range h.DeductionCoins {
+		ledger, ok := h.UserLedgers[coin.CoinTypeID]
 		if !ok {
-			return true, fmt.Errorf("invalid coinusdcurrency")
+			continue
+		}
+		currency, ok := h.Currencies[coin.CoinTypeID]
+		if !ok {
+			return true, fmt.Errorf("invalid coincurrency")
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {
@@ -436,10 +447,14 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 		return false, nil
 	}
 
-	for _, ledger := range h.UserLedgers {
-		currency, ok := h.Currencies[ledger.CoinTypeID]
+	for _, coin := range h.DeductionCoins {
+		ledger, ok := h.UserLedgers[coin.CoinTypeID]
 		if !ok {
-			return true, fmt.Errorf("invalid coinusdcurrency")
+			continue
+		}
+		currency, ok := h.Currencies[coin.CoinTypeID]
+		if !ok {
+			return true, fmt.Errorf("invalid coincurrency")
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {
