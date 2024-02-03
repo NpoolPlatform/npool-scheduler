@@ -68,6 +68,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		},
 		NewRenewState: h.newRenewState,
 	}
+	if *err != nil {
+		errStr := (*err).Error()
+		persistentOrder.MsgOrderChildsRenewReq.Error = &errStr
+	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	if h.newRenewState != h.RenewState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)

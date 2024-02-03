@@ -23,6 +23,11 @@ func Prepare(body string) (interface{}, error) {
 //nolint:goconst
 func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content := `<table style="border-collapse: collapse; text-align: left;">`
+	if req.Error != nil {
+		content += "<tr>"
+		content += `  <td style="border: 1px solid #dddddd;" colspan="4">Error: ` + fmt.Sprintf("%v", *req.Error) + `</td>`
+		content += "</tr>"
+	}
 	content += "<tr>"
 	content += `  <td style="border: 1px solid #dddddd;" colspan="4">Estimated Deductions</td>`
 	content += "</tr>"
@@ -84,27 +89,30 @@ func Apply(ctx context.Context, req interface{}) error {
 		eventType = basetypes.UsedFor_OrderChildsRenew
 	}
 
-	reqs := &notifmwpb.GenerateMultiNotifsRequest{
-		AppID: in.ParentOrder.AppID,
-		Reqs: []*notifmwpb.GenerateMultiNotifsRequest_XNotifReq{
-			{
-				UserID:    &in.ParentOrder.UserID,
-				EventType: eventType,
-				NotifType: basetypes.NotifType_NotifUnicast,
-				Vars: &templatemwpb.TemplateVars{
-					Message: &content,
-				},
-			},
-			{
-				EventType: eventType,
-				NotifType: basetypes.NotifType_NotifMulticast,
-				Vars: &templatemwpb.TemplateVars{
-					Message: &content,
-				},
+	reqs := []*notifmwpb.GenerateMultiNotifsRequest_XNotifReq{
+		{
+			EventType: eventType,
+			NotifType: basetypes.NotifType_NotifMulticast,
+			Vars: &templatemwpb.TemplateVars{
+				Message: &content,
 			},
 		},
 	}
-	if _, err := notifmwcli.GenerateMultiNotifs(ctx, reqs); err != nil {
+	if in.Error == nil {
+		reqs = append(reqs, &notifmwpb.GenerateMultiNotifsRequest_XNotifReq{
+			UserID:    &in.ParentOrder.UserID,
+			EventType: eventType,
+			NotifType: basetypes.NotifType_NotifUnicast,
+			Vars: &templatemwpb.TemplateVars{
+				Message: &content,
+			},
+		})
+	}
+
+	if _, err := notifmwcli.GenerateMultiNotifs(ctx, &notifmwpb.GenerateMultiNotifsRequest{
+		AppID: in.ParentOrder.AppID,
+		Reqs:  reqs,
+	}); err != nil {
 		return err
 	}
 
