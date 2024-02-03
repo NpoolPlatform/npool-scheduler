@@ -119,10 +119,10 @@ func (h *orderHandler) constructTechniqueFeeOrder() {
 	investmentType := ordertypes.InvestmentType_FullPayment
 
 	startAt := uint32(time.Now().Unix() + 10*timedef.SecondsPerMinute)
-	if startAt < h.ElectricityFeeEndAt {
-		startAt = h.ElectricityFeeEndAt
+	if startAt < h.TechniqueFeeEndAt {
+		startAt = h.TechniqueFeeEndAt
 	}
-	endAt := startAt + h.ElectricityFeeExtendSeconds
+	endAt := startAt + h.TechniqueFeeExtendSeconds
 	if endAt > h.EndAt {
 		endAt = h.EndAt
 	}
@@ -168,6 +168,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"Order", h.Order,
 			"newRenewState", h.newRenewState,
 			"orderReqs", h.orderReqs,
+			"TechniqueFeeEndAt", h.TechniqueFeeEndAt,
+			"TechniqueFeeDuration", h.TechniqueFeeDuration,
+			"StartAt", h.StartAt,
 			"Error", *err,
 		)
 	}

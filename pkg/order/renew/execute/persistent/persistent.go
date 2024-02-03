@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ledgermwsvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
@@ -26,6 +27,12 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withLockBalances(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, balances []*ledgermwpb.LockBalancesRequest_XBalance, lockID string) {
+	logger.Sugar().Infow(
+		"withLockBalances",
+		"order", order,
+		"balances", balances,
+		"lockID", lockID,
+	)
 	dispose.Add(
 		ledgermwsvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/LockBalances",
@@ -60,7 +67,7 @@ func (p *handler) createOrder(dispose *dtmcli.SagaDispose, order *types.Persiste
 
 	orderReq.OrderReq.EntID = &orderID
 	orderReq.OrderReq.LedgerLockID = &ledgerLockID
-	orderReq.OrderReq.LedgerLockID = &appGoodStockLockID
+	orderReq.OrderReq.AppGoodStockLockID = &appGoodStockLockID
 	p.withCreateOrder(dispose, orderReq.OrderReq)
 }
 

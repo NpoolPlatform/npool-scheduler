@@ -114,6 +114,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"CheckElectricityFee", h.CheckElectricityFee,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"nextRenewNotifyAt", h.nextRenewNotifyAt,
+			"ExistUnpaidTechniqueFee", h.ExistUnpaidTechniqueFeeOrder,
+			"ExistUnpaidElectricityFee", h.ExistUnpaidElectricityFeeOrder,
 			"Error", *err,
 		)
 	}

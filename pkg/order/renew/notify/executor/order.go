@@ -30,10 +30,13 @@ func (h *orderHandler) resolveRenewState() {
 	}
 	now := uint32(time.Now().Unix())
 	const createOrderSeconds = timedef.SecondsPerHour * 6
-	if h.ElectricityFeeEndAt <= now+createOrderSeconds {
+	if (h.CheckElectricityFee && h.ElectricityFeeEndAt <= now+createOrderSeconds) ||
+		(h.CheckTechniqueFee && h.TechniqueFeeEndAt <= now+createOrderSeconds) {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewExecute
 		h.willCreateOrder = true
+		return
 	}
+	h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 }
 
 //nolint:gocritic

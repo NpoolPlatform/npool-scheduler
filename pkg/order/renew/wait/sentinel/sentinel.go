@@ -13,6 +13,8 @@ import (
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/types"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+
+	"github.com/google/uuid"
 )
 
 type handler struct{}
@@ -27,7 +29,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			EntID:         &basetypes.StringVal{Op: cruder.EQ, Value: "5e5c240f-8655-4df6-9325-7e22f9cb38b3"},
+			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: uuid.Nil.String()},
 			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			RenewState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewWait)},
 			RenewNotifyAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},

@@ -168,15 +168,21 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	if h.ElectricityFeeAppGood != nil {
 		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
-			if order.AppGoodID == h.ElectricityFeeAppGood.EntID && order.PaymentState == ordertypes.PaymentState_PaymentStateDone {
+			if order.AppGoodID == h.ElectricityFeeAppGood.EntID {
+				switch order.PaymentState {
+				case ordertypes.PaymentState_PaymentStateDone:
+				case ordertypes.PaymentState_PaymentStateNoPayment:
+				case ordertypes.PaymentState_PaymentStateWait:
+					h.ExistUnpaidElectricityFeeOrder = true
+					continue
+				default:
+					continue
+				}
 				if order.StartAt < lastEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.ElectricityFeeDuration += order.EndAt - order.StartAt
 				lastEndAt = order.EndAt
-			}
-			if order.PaymentState == ordertypes.PaymentState_PaymentStateWait {
-				h.ExistUnpaidElectricityFeeOrder = true
 			}
 		}
 	}
@@ -184,15 +190,21 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	if h.TechniqueFeeAppGood != nil {
 		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
-			if order.AppGoodID == h.TechniqueFeeAppGood.EntID && order.PaymentState == ordertypes.PaymentState_PaymentStateDone {
+			if order.AppGoodID == h.TechniqueFeeAppGood.EntID {
+				switch order.PaymentState {
+				case ordertypes.PaymentState_PaymentStateDone:
+				case ordertypes.PaymentState_PaymentStateNoPayment:
+				case ordertypes.PaymentState_PaymentStateWait:
+					h.ExistUnpaidTechniqueFeeOrder = true
+					continue
+				default:
+					continue
+				}
 				if order.StartAt < lastEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.TechniqueFeeDuration += order.EndAt - order.StartAt
 				lastEndAt = order.EndAt
-			}
-			if order.PaymentState == ordertypes.PaymentState_PaymentStateWait {
-				h.ExistUnpaidTechniqueFeeOrder = true
 			}
 		}
 	}
