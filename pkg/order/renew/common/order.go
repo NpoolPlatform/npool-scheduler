@@ -165,8 +165,8 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 		return h.childOrders[i].StartAt < h.childOrders[j].StartAt
 	})
 
+	maxElectricityFeeEndAt := uint32(0)
 	if h.ElectricityFeeAppGood != nil {
-		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
 			if order.AppGoodID == h.ElectricityFeeAppGood.EntID {
 				switch order.PaymentState {
@@ -178,17 +178,17 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 				default:
 					continue
 				}
-				if order.StartAt < lastEndAt {
+				if order.StartAt < maxElectricityFeeEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.ElectricityFeeDuration += order.EndAt - order.StartAt
-				lastEndAt = order.EndAt
+				maxElectricityFeeEndAt = order.EndAt
 			}
 		}
 	}
 
+	maxTechniqueFeeEndAt := uint32(0)
 	if h.TechniqueFeeAppGood != nil {
-		lastEndAt := uint32(0)
 		for _, order := range h.childOrders {
 			if order.AppGoodID == h.TechniqueFeeAppGood.EntID {
 				switch order.PaymentState {
@@ -200,11 +200,11 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 				default:
 					continue
 				}
-				if order.StartAt < lastEndAt {
+				if order.StartAt < maxTechniqueFeeEndAt {
 					return fmt.Errorf("invalid order duration")
 				}
 				h.TechniqueFeeDuration += order.EndAt - order.StartAt
-				lastEndAt = order.EndAt
+				maxTechniqueFeeEndAt = order.EndAt
 			}
 		}
 	}
@@ -214,7 +214,13 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	ignoredSeconds := outOfGas + compensate
 
 	h.ElectricityFeeEndAt = h.StartAt + h.ElectricityFeeDuration + ignoredSeconds
+	if h.ElectricityFeeEndAt < maxElectricityFeeEndAt {
+		h.ElectricityFeeEndAt = maxElectricityFeeEndAt
+	}
 	h.TechniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
+	if h.TechniqueFeeEndAt < maxTechniqueFeeEndAt {
+		h.TechniqueFeeEndAt = maxTechniqueFeeEndAt
+	}
 
 	now := uint32(time.Now().Unix())
 	const secondsBeforeFeeExhausted = timedef.SecondsPerHour * 24
