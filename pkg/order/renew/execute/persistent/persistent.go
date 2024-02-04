@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	goodmwsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ledgermwsvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
+	appgoodstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -18,6 +19,7 @@ import (
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
@@ -27,12 +29,6 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withLockBalances(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, balances []*ledgermwpb.LockBalancesRequest_XBalance, lockID string) {
-	logger.Sugar().Infow(
-		"withLockBalances",
-		"order", order,
-		"balances", balances,
-		"lockID", lockID,
-	)
 	dispose.Add(
 		ledgermwsvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/LockBalances",
@@ -43,6 +39,24 @@ func (p *handler) withLockBalances(dispose *dtmcli.SagaDispose, order *types.Per
 			LockID:   lockID,
 			Rollback: true,
 			Balances: balances,
+		},
+	)
+}
+
+func (p *handler) withLockStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder, stock *appgoodstockmwpb.LocksRequest_XStock, lockID string) {
+	dispose.Add(
+		goodmwsvcname.ServiceDomain,
+		"good.middleware.app.good1.stock.v1.Middleware/Lock",
+		"good.middleware.app.good1.stock.v1.Middleware/Unlock",
+		&appgoodstockmwpb.LockRequest{
+			AppID:        order.AppID,
+			EntID:        stock.EntID,
+			GoodID:       stock.GoodID,
+			AppGoodID:    stock.AppGoodID,
+			Units:        stock.Units,
+			AppSpotUnits: decimal.NewFromInt(0).String(),
+			LockID:       lockID,
+			Rollback:     true,
 		},
 	)
 }
@@ -64,6 +78,7 @@ func (p *handler) createOrder(dispose *dtmcli.SagaDispose, order *types.Persiste
 	orderID := uuid.NewString()
 
 	p.withLockBalances(dispose, order, orderReq.Balances, ledgerLockID)
+	p.withLockStock(dispose, order, orderReq.Stock, appGoodStockLockID)
 
 	orderReq.OrderReq.EntID = &orderID
 	orderReq.OrderReq.LedgerLockID = &ledgerLockID

@@ -8,6 +8,7 @@ import (
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	appgoodstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -86,6 +87,12 @@ func (h *orderHandler) constructElectricityFeeOrder() {
 	h.orderReqs = append(h.orderReqs, &types.OrderReq{
 		OrderReq: orderReq,
 		Balances: balances,
+		Stock: &appgoodstockmwpb.LocksRequest_XStock{
+			EntID:     h.ElectricityFeeAppGood.AppGoodStockID,
+			GoodID:    h.ElectricityFeeAppGood.GoodID,
+			AppGoodID: h.ElectricityFeeAppGood.EntID,
+			Units:     h.Units,
+		},
 	})
 }
 
@@ -151,6 +158,12 @@ func (h *orderHandler) constructTechniqueFeeOrder() {
 	h.orderReqs = append(h.orderReqs, &types.OrderReq{
 		OrderReq: orderReq,
 		Balances: balances,
+		Stock: &appgoodstockmwpb.LocksRequest_XStock{
+			EntID:     h.TechniqueFeeAppGood.AppGoodStockID,
+			GoodID:    h.TechniqueFeeAppGood.GoodID,
+			AppGoodID: h.TechniqueFeeAppGood.EntID,
+			Units:     h.Units,
+		},
 	})
 }
 
