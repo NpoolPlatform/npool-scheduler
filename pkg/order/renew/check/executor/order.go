@@ -90,7 +90,13 @@ func (h *orderHandler) checkNotifiable() bool {
 
 	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
+
 	if h.ElectricityFeeAppGood == nil && h.TechniqueFeeAppGood == nil {
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
+	}
+	if (h.ElectricityFeeAppGood != nil && h.ElectricityFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit) &&
+		(h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit) {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
 	}

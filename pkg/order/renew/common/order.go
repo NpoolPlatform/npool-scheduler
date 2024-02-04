@@ -225,6 +225,13 @@ func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	now := uint32(time.Now().Unix())
 	const secondsBeforeFeeExhausted = timedef.SecondsPerHour * 24
 
+	if h.ElectricityFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit {
+		h.ElectricityFeeEndAt = h.EndAt
+	}
+	if h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit {
+		h.TechniqueFeeEndAt = h.EndAt
+	}
+
 	if h.ElectricityFeeAppGood != nil && h.ElectricityFeeEndAt < h.EndAt {
 		h.CheckElectricityFee = h.ElectricityFeeAppGood.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfit &&
 			h.StartAt+h.ElectricityFeeDuration+ignoredSeconds < now+secondsBeforeFeeExhausted
