@@ -28,6 +28,11 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 		content += `  <td style="border: 1px solid #dddddd;" colspan="4">Error: ` + fmt.Sprintf("%v", *req.Error) + `</td>`
 		content += "</tr>"
 	}
+	if req.InsufficientBalance {
+		content += "<tr>"
+		content += `  <td style="border: 1px solid #dddddd;" colspan="4">Insufficient Balance</td>`
+		content += "</tr>"
+	}
 	content += "<tr>"
 	content += `  <td style="border: 1px solid #dddddd;" colspan="4">Estimated Deductions</td>`
 	content += "</tr>"

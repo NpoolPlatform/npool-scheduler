@@ -188,9 +188,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:         h.Order,
-		OrderReqs:     h.orderReqs,
-		NewRenewState: h.newRenewState,
+		Order:               h.Order,
+		InsufficientBalance: h.InsufficientBalance,
+		OrderReqs:           h.orderReqs,
+		NewRenewState:       h.newRenewState,
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	if h.newRenewState != h.RenewState {

@@ -15,6 +15,7 @@ type OrderReq struct {
 
 type PersistentOrder struct {
 	*ordermwpb.Order
-	OrderReqs     []*OrderReq
-	NewRenewState ordertypes.OrderRenewState
+	InsufficientBalance bool
+	OrderReqs           []*OrderReq
+	NewRenewState       ordertypes.OrderRenewState
 }

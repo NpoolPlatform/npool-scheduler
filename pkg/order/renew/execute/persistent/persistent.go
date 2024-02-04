@@ -100,6 +100,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	}); err != nil {
 		return err
 	}
+	if _order.InsufficientBalance {
+		return nil
+	}
 
 	const timeoutSeconds = 30
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
