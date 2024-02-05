@@ -27,7 +27,18 @@ type orderHandler struct {
 //nolint:gocognit
 func (h *orderHandler) checkNotifiable() bool {
 	now := uint32(time.Now().Unix())
-	if h.StartAt >= now || h.EndAt <= now {
+	const minNotifyInterval = timedef.SecondsPerHour
+	const preNotifyTicker = timedef.SecondsPerHour * 24
+	const noNotifyTicker = minNotifyInterval
+
+	if h.StartAt >= now {
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		h.nextRenewNotifyAt = h.StartAt
+		return false
+	}
+	if h.EndAt <= now {
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		h.nextRenewNotifyAt = math.MaxUint32
 		return false
 	}
 
@@ -35,10 +46,6 @@ func (h *orderHandler) checkNotifiable() bool {
 	compensate := h.CompensateHours * timedef.SecondsPerHour
 	ignoredSeconds := outOfGas + compensate
 	nextNotifyAt := now
-
-	const minNotifyInterval = timedef.SecondsPerHour
-	const preNotifyTicker = timedef.SecondsPerHour * 24
-	const noNotifyTicker = minNotifyInterval
 
 	if h.ExistUnpaidElectricityFeeOrder || h.ExistUnpaidTechniqueFeeOrder {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
@@ -91,12 +98,11 @@ func (h *orderHandler) checkNotifiable() bool {
 	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
 
-	if h.ElectricityFeeAppGood == nil && h.TechniqueFeeAppGood == nil {
-		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
-		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
-	}
-	if (h.ElectricityFeeAppGood != nil && h.ElectricityFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit) &&
-		(h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit) {
+	if ((h.ElectricityFeeAppGood == nil ||
+		(h.ElectricityFeeAppGood != nil && h.ElectricityFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit)) &&
+		(h.TechniqueFeeAppGood == nil ||
+			(h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit))) ||
+		h.MainAppGood.PackageWithRequireds {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
 	}
@@ -147,9 +153,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err := h.GetAppGoods(ctx); err != nil {
-		return err
-	}
-	if yes, err = h.RenewGoodExist(); err != nil || !yes {
 		return err
 	}
 	if err = h.GetRenewableOrders(ctx); err != nil {

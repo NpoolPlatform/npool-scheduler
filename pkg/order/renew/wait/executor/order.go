@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -19,13 +18,6 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) checkNotifiable() bool {
-	now := uint32(time.Now().Unix())
-	if h.StartAt >= now || h.EndAt <= now {
-		return false
-	}
-	if h.MainAppGood.PackageWithRequireds {
-		return false
-	}
 	// Here we always goto check state then we can update renew notify at
 	h.notifiable = true
 	return h.notifiable
@@ -66,9 +58,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err := h.GetAppGoods(ctx); err != nil {
-		return err
-	}
-	if yes, err = h.RenewGoodExist(); err != nil || !yes {
 		return err
 	}
 	if err = h.GetRenewableOrders(ctx); err != nil {
