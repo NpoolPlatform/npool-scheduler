@@ -47,11 +47,13 @@ type goodHandler struct {
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	simulate := false
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
+			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
 		}, offset, limit)
 		if err != nil {
 			return err
