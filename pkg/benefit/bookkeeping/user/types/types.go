@@ -6,11 +6,13 @@ import (
 )
 
 type OrderReward struct {
-	AppID   string
-	UserID  string
-	OrderID uint32
-	Amount  string
-	Extra   string
+	AppID      string
+	UserID     string
+	OrderID    uint32
+	Amount     string
+	Extra      string
+	Simulate   bool
+	SendCoupon bool
 }
 
 type PersistentGood struct {

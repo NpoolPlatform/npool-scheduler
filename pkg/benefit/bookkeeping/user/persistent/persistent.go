@@ -4,13 +4,18 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	simstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -51,6 +56,7 @@ func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good 
 
 func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*statementmwpb.StatementReq{}
+	simReqs := []*simstatementmwpb.StatementReq{}
 
 	rollback := true
 	ioType := ledgertypes.IOType_Incoming
@@ -58,28 +64,56 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()
-		reqs = append(reqs, &statementmwpb.StatementReq{
-			EntID:      &id,
-			AppID:      &reward.AppID,
-			UserID:     &reward.UserID,
-			CoinTypeID: &good.CoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &reward.Amount,
-			IOExtra:    &reward.Extra,
-			CreatedAt:  &good.LastRewardAt,
-			Rollback:   &rollback,
-		})
+		if reward.Simulate {
+			simReqs = append(simReqs, &simstatementmwpb.StatementReq{
+				EntID:      &id,
+				AppID:      &reward.AppID,
+				UserID:     &reward.UserID,
+				CoinTypeID: &good.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  &ioSubType,
+				Amount:     &reward.Amount,
+				IOExtra:    &reward.Extra,
+				CreatedAt:  &good.LastRewardAt,
+				Rollback:   &rollback,
+			})
+		} else {
+			reqs = append(reqs, &statementmwpb.StatementReq{
+				EntID:      &id,
+				AppID:      &reward.AppID,
+				UserID:     &reward.UserID,
+				CoinTypeID: &good.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  &ioSubType,
+				Amount:     &reward.Amount,
+				IOExtra:    &reward.Extra,
+				CreatedAt:  &good.LastRewardAt,
+				Rollback:   &rollback,
+			})
+		}
 	}
 
-	dispose.Add(
-		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
-		"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
-		&statementmwpb.CreateStatementsRequest{
-			Infos: reqs,
-		},
-	)
+	if len(reqs) > 0 {
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
+			"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
+			&statementmwpb.CreateStatementsRequest{
+				Infos: reqs,
+			},
+		)
+	}
+
+	if len(simReqs) > 0 {
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.simulate.ledger.statement.v2.Middleware/CreateStatements",
+			"ledger.middleware.simulate.ledger.statement.v2.Middleware/DeleteStatements",
+			&simstatementmwpb.CreateStatementsRequest{
+				Infos: simReqs,
+			},
+		)
+	}
 }
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
@@ -95,6 +129,39 @@ func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) er
 		return err
 	}
 	return nil
+}
+
+func (p *handler) rewardProfit(good *types.PersistentGood) {
+	for _, reward := range good.OrderRewards {
+		if !reward.Simulate {
+			continue
+		}
+		if !reward.SendCoupon {
+			continue
+		}
+		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+			req := &eventmwpb.RewardEventRequest{
+				AppID:       reward.AppID,
+				UserID:      reward.UserID,
+				EventType:   basetypes.UsedFor_SimulateOrderProfit,
+				Consecutive: 1,
+			}
+			return publisher.Update(
+				basetypes.MsgID_RewardEventReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			)
+		}); err != nil {
+			logger.Sugar().Errorw(
+				"rewardSimulateOrderProfit",
+				"AppID", reward.AppID,
+				"UserID", reward.UserID,
+				"Error", err,
+			)
+		}
+	}
 }
 
 func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
@@ -122,6 +189,8 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}
+
+	p.rewardProfit(_good)
 
 	return nil
 }
