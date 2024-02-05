@@ -10,6 +10,5 @@ type PersistentOrder struct {
 	OrderBalanceAmount string
 	BalanceExtra       string
 	OrderBalanceLockID string
-	MultiPaymentCoins  bool
 	Balances           []*ledgermwpb.LockBalancesRequest_XBalance
 }
