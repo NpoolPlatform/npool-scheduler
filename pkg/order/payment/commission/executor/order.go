@@ -92,28 +92,68 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 	case ordertypes.OrderType_Airdrop:
 	}
 
-	statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
-		AppID:                  h.AppID,
-		UserID:                 h.UserID,
-		GoodID:                 h.GoodID,
-		AppGoodID:              h.AppGoodID,
-		OrderID:                h.EntID,
-		PaymentID:              h.PaymentID,
-		CoinTypeID:             h.CoinTypeID,
-		PaymentCoinTypeID:      h.PaymentCoinTypeID,
-		PaymentCoinUSDCurrency: h.CoinUSDCurrency,
-		Units:                  h.Units,
-		PaymentAmount:          h.PaymentAmount,
-		GoodValue:              h.goodValue.String(),
-		GoodValueUSD:           h.goodValueUSD.String(),
-		SettleType:             inspiretypes.SettleType_GoodOrderPayment,
-		HasCommission:          hasCommission,
-		OrderCreatedAt:         h.CreatedAt,
-	})
-	if err != nil {
-		return err
+	if !h.MultiPaymentCoins {
+		statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
+			AppID:                  h.AppID,
+			UserID:                 h.UserID,
+			GoodID:                 h.GoodID,
+			AppGoodID:              h.AppGoodID,
+			OrderID:                h.EntID,
+			PaymentID:              h.PaymentID,
+			CoinTypeID:             h.CoinTypeID,
+			PaymentCoinTypeID:      h.PaymentCoinTypeID,
+			PaymentCoinUSDCurrency: h.CoinUSDCurrency,
+			Units:                  h.Units,
+			PaymentAmount:          h.PaymentAmount,
+			GoodValue:              h.goodValue.String(),
+			GoodValueUSD:           h.goodValueUSD.String(),
+			SettleType:             inspiretypes.SettleType_GoodOrderPayment,
+			HasCommission:          hasCommission,
+			OrderCreatedAt:         h.CreatedAt,
+		})
+		if err != nil {
+			return err
+		}
+		h.statements = statements
+		return nil
 	}
-	h.statements = statements
+
+	for _, paymentAmount := range h.PaymentAmounts {
+		amount, err := decimal.NewFromString(paymentAmount.Amount)
+		if err != nil {
+			return err
+		}
+		currency, err := decimal.NewFromString(paymentAmount.USDCurrency)
+		if err != nil {
+			return err
+		}
+		usdAmount := amount.Mul(currency)
+		usdAmountStr := usdAmount.String()
+
+		statements, err := calculatemwcli.Calculate(ctx, &calculatemwpb.CalculateRequest{
+			AppID:                  h.AppID,
+			UserID:                 h.UserID,
+			GoodID:                 h.GoodID,
+			AppGoodID:              h.AppGoodID,
+			OrderID:                h.EntID,
+			PaymentID:              h.PaymentID,
+			CoinTypeID:             h.CoinTypeID,
+			PaymentCoinTypeID:      paymentAmount.CoinTypeID,
+			PaymentCoinUSDCurrency: paymentAmount.USDCurrency,
+			Units:                  h.Units,
+			PaymentAmount:          paymentAmount.Amount,
+			GoodValue:              paymentAmount.Amount,
+			GoodValueUSD:           usdAmountStr,
+			SettleType:             inspiretypes.SettleType_GoodOrderPayment,
+			HasCommission:          hasCommission,
+			OrderCreatedAt:         h.CreatedAt,
+		})
+		if err != nil {
+			return err
+		}
+		h.statements = append(h.statements, statements...)
+	}
+
 	return nil
 }
 
