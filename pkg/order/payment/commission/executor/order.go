@@ -179,7 +179,7 @@ func (h *orderHandler) calculateLedgerStatements() error {
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
 			AppID:      &h.AppID,
 			UserID:     &statement.UserID,
-			CoinTypeID: &h.PaymentCoinTypeID,
+			CoinTypeID: &statement.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     &statement.Commission,
