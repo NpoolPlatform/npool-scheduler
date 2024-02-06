@@ -131,7 +131,7 @@ func (h *OrderHandler) RenewGoodExist() (bool, error) {
 	return h.TechniqueFeeAppGood != nil || h.ElectricityFeeAppGood != nil, nil
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo
 func (h *OrderHandler) GetRenewableOrders(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
