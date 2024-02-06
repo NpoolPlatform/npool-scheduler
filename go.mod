@@ -7,18 +7,18 @@ require (
 	github.com/NpoolPlatform/account-middleware v0.0.0-20231205074056-0cc5ad44fac5
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20240119021359-948c8504d662
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20231015112137-254853c60eec
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20231020114413-49166aeb1ec8
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20240206054529-d5a31563da6c
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20231026021135-ec3cd368fc24
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20230930023319-e48074d9472e
-	github.com/NpoolPlatform/good-middleware v0.0.0-20240120105645-3f387728dfa4
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240119021120-823cef934a51
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20231228071122-53a5febeea97
+	github.com/NpoolPlatform/good-middleware v0.0.0-20240206054338-ba6163372165
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240206054615-e7c6bad99cd5
 	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240120111725-0ae25f4c0320
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240108100325-6208a538cb21
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240206053955-735419c86935
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6
-	github.com/NpoolPlatform/message v0.0.0-20240120104527-6a5b7a93b1c8
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20231110071848-7e72bb63090a
-	github.com/NpoolPlatform/order-middleware v0.0.0-20240120110454-b5f2428771cd
+	github.com/NpoolPlatform/message v0.0.0-20240206051841-08231b88783a
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20240206054222-f748067eeeb1
+	github.com/NpoolPlatform/order-middleware v0.0.0-20240206052824-352d90c4d6b0
 	github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac

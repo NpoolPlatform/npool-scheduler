@@ -96,7 +96,7 @@ func (h *announcementHandler) emailRequest(ctx context.Context, user *usermwpb.U
 	tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmwpb.Conds{
 		AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.LangID},
-		UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Announcement)},
+		UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.UsedFor_Announcement)},
 	})
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (h *announcementHandler) smsRequest(ctx context.Context, user *usermwpb.Use
 	tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmwpb.Conds{
 		AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.LangID},
-		UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(basetypes.UsedFor_Announcement)},
+		UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.UsedFor_Announcement)},
 	})
 	if err != nil {
 		return nil, err

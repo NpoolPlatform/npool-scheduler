@@ -14,7 +14,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	applangmwpb "github.com/NpoolPlatform/message/npool/g11n/mw/v1/applang"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
-	emailtmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/email"
+	emailtmplmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/email"
 	smstmplmgrpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template/sms"
 	sendmwpb "github.com/NpoolPlatform/message/npool/third/mw/v1/send"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
@@ -79,10 +79,10 @@ func (h *notifHandler) getLang(ctx context.Context) error {
 }
 
 func (h *notifHandler) generateEmailMessage(ctx context.Context) error {
-	tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmgrpb.Conds{
+	tmpl, err := emailtmplmwcli.GetEmailTemplateOnly(ctx, &emailtmplmwpb.Conds{
 		AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.LangID},
-		UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(h.EventType)},
+		UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(h.EventType)},
 	})
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func (h *notifHandler) generateSMSMessage(ctx context.Context) error {
 	tmpl, err := smstmplmwcli.GetSMSTemplateOnly(ctx, &smstmplmgrpb.Conds{
 		AppID:   &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
 		LangID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.LangID},
-		UsedFor: &basetypes.Int32Val{Op: cruder.EQ, Value: int32(h.EventType)},
+		UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(h.EventType)},
 	})
 	if err != nil {
 		return err
