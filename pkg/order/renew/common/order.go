@@ -427,6 +427,9 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 		if err != nil {
 			return true, err
 		}
+		if spendable.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 		feeCoinAmount := feeUSDAmount.Div(currencyValue)
 		appCoin, ok := h.DeductionAppCoins[ledger.CoinTypeID]
 		if !ok {
@@ -506,6 +509,9 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 			spendableUSD = spendableUSD.Sub(electricityFeeUSDAmount)
 			electricityFeeUSDAmount = decimal.NewFromInt(0)
 		}
+		if spendable.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
+		}
 		// Only when all electricity fee is created, then we create technique fee
 		if spendable.Cmp(techniqueFeeCoinAmount) >= 0 &&
 			techniqueFeeCoinAmount.Cmp(decimal.NewFromInt(0)) > 0 &&
@@ -523,6 +529,9 @@ func (h *OrderHandler) CalculateDeductionForOrder() (bool, error) {
 		if electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 &&
 			techniqueFeeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 			return false, nil
+		}
+		if spendable.Cmp(decimal.NewFromInt(0)) <= 0 {
+			continue
 		}
 
 		if electricityFeeUSDAmount.Cmp(decimal.NewFromInt(0)) > 0 {
