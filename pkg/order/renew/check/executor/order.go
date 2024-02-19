@@ -94,6 +94,9 @@ func (h *orderHandler) checkNotifiable() bool {
 			}
 		}
 	}
+	if nextNotifyAt < now {
+		nextNotifyAt = now
+	}
 
 	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
