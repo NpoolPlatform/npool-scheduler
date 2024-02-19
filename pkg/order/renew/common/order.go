@@ -343,27 +343,41 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		return err
 	}
 
+	now := uint32(time.Now().Unix())
+	remainSeconds := h.EndAt - now
+	unitSeconds := timedef.HoursPerDay
+
 	if h.CheckElectricityFee {
 		unitPrice, err := decimal.NewFromString(h.ElectricityFeeAppGood.UnitPrice)
 		if err != nil {
 			return err
 		}
 		durations := 1 //nolint
-		seconds := 0
 		switch h.ElectricityFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
-			durations *= timedef.HoursPerDay * 3
-			seconds = durations * timedef.SecondsPerHour
+			durations *= 3
+			unitSeconds = timedef.HoursPerDay
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
-			seconds = durations * timedef.SecondsPerDay
+			unitSeconds = timedef.SecondsPerDay
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
-			seconds = durations * timedef.SecondsPerMonth
+			unitSeconds = timedef.SecondsPerMonth
 		case goodtypes.GoodDurationType_GoodDurationByYear:
-			seconds = durations * timedef.SecondsPerYear
+			unitSeconds = timedef.SecondsPerYear
 		}
+
+		seconds := uint32(durations * unitSeconds)
+		if seconds > remainSeconds {
+			seconds = remainSeconds
+			durations = int(seconds) / unitSeconds
+			if int(seconds)%unitSeconds != 0 {
+				durations += 1
+			}
+		}
+
 		h.ElectricityFeeExtendDuration = uint32(durations)
 		h.ElectricityFeeExtendSeconds = uint32(seconds)
+
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood: h.ElectricityFeeAppGood,
@@ -377,19 +391,28 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 			return err
 		}
 		durations := 1 //nolint
-		seconds := 0
 		switch h.TechniqueFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
-			durations *= timedef.HoursPerDay * 3
-			seconds = durations * timedef.SecondsPerHour
+			durations *= 3
+			unitSeconds = timedef.HoursPerDay
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
-			seconds = durations * timedef.SecondsPerDay
+			unitSeconds = timedef.SecondsPerDay
 		case goodtypes.GoodDurationType_GoodDurationByMonth:
-			seconds = durations * timedef.SecondsPerMonth
+			unitSeconds = timedef.SecondsPerMonth
 		case goodtypes.GoodDurationType_GoodDurationByYear:
-			seconds = durations * timedef.SecondsPerYear
+			unitSeconds = timedef.SecondsPerYear
 		}
+
+		seconds := uint32(durations * unitSeconds)
+		if seconds > remainSeconds {
+			seconds = remainSeconds
+			durations = int(seconds) / unitSeconds
+			if int(seconds)%unitSeconds != 0 {
+				durations += 1
+			}
+		}
+
 		h.TechniqueFeeExtendDuration = uint32(durations)
 		h.TechniqueFeeExtendSeconds = uint32(seconds)
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
