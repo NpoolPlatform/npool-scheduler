@@ -64,7 +64,7 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content += "<tr>"
 	content += `  <th style="border: 1px solid #dddddd;">Product Name</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Price</th>`
-	content += `  <th style="border: 1px solid #dddddd;">Least Duration</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Duration</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Units</th>`
 	content += `  <th style="border: 1px solid #dddddd;">EndAt</th>`
 	content += "</tr>"
@@ -72,7 +72,7 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 		content += "<tr>"
 		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.GoodName + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.UnitPrice + `</td>`
-		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.AppGood.MinOrderDuration) + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.RenewDuration) + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + req.ParentOrder.Units + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`
 		content += "</tr>"

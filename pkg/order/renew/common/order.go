@@ -380,8 +380,9 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
-			AppGood: h.ElectricityFeeAppGood,
-			EndAt:   h.ElectricityFeeEndAt,
+			AppGood:       h.ElectricityFeeAppGood,
+			EndAt:         h.ElectricityFeeEndAt,
+			RenewDuration: uint32(durations),
 		})
 	}
 
@@ -417,8 +418,9 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		h.TechniqueFeeExtendSeconds = uint32(seconds)
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
-			AppGood: h.TechniqueFeeAppGood,
-			EndAt:   h.TechniqueFeeEndAt,
+			AppGood:       h.TechniqueFeeAppGood,
+			EndAt:         h.TechniqueFeeEndAt,
+			RenewDuration: uint32(durations),
 		})
 	}
 
