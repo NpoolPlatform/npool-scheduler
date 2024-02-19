@@ -3,14 +3,11 @@ package executor
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	requiredmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good/required"
-	simprofitmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/simulate/ledger/profit"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -18,38 +15,30 @@ import (
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	requiredmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/required"
-	simprofitmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/profit"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	simulateconfigmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/simulate/config"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-	simulateconfigmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/simulate/config"
 
 	"github.com/shopspring/decimal"
 )
 
 type goodHandler struct {
 	*goodmwpb.Good
-	persistent                 chan interface{}
-	notif                      chan interface{}
-	done                       chan interface{}
-	totalRewardAmount          decimal.Decimal
-	totalUnits                 decimal.Decimal
-	totalOrderUnits            decimal.Decimal
-	totalSimulateOrderUnits    decimal.Decimal
-	appOrderUnits              map[string]map[string]decimal.Decimal
-	appSimulateOrderUnits      map[string]map[string]decimal.Decimal
-	appGoods                   map[string]map[string]*appgoodmwpb.Good
-	goodCreatedAt              uint32
-	techniqueFeeAppGoods       map[string]*appgoodmwpb.Good
-	userRewardAmount           decimal.Decimal
-	userSimulateRewardAmount   decimal.Decimal
-	appGoodUnitRewards         map[string]map[string]decimal.Decimal
-	appGoodUnitSimulateRewards map[string]map[string]decimal.Decimal
-	orderRewards               []*types.OrderReward
-	appSimulateConfig          map[string]*simulateconfigmwpb.SimulateConfig
+	persistent           chan interface{}
+	notif                chan interface{}
+	done                 chan interface{}
+	totalRewardAmount    decimal.Decimal
+	totalUnits           decimal.Decimal
+	totalOrderUnits      decimal.Decimal
+	appOrderUnits        map[string]map[string]decimal.Decimal
+	appGoods             map[string]map[string]*appgoodmwpb.Good
+	goodCreatedAt        uint32
+	techniqueFeeAppGoods map[string]*appgoodmwpb.Good
+	userRewardAmount     decimal.Decimal
+	appGoodUnitRewards   map[string]map[string]decimal.Decimal
+	orderRewards         []*types.OrderReward
 }
 
 //nolint:dupl
@@ -91,45 +80,6 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
-//nolint:dupl
-func (h *goodHandler) getSimulateOrderUnits(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-	simulate := true
-
-	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
-			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
-			BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
-			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(orders) == 0 {
-			break
-		}
-		for _, order := range orders {
-			units, err := decimal.NewFromString(order.Units)
-			if err != nil {
-				return err
-			}
-			h.totalSimulateOrderUnits = h.totalSimulateOrderUnits.Add(units)
-			appGoodUnits, ok := h.appSimulateOrderUnits[order.AppID]
-			if !ok {
-				appGoodUnits = map[string]decimal.Decimal{
-					order.AppGoodID: decimal.NewFromInt(0),
-				}
-			}
-			appGoodUnits[order.AppGoodID] = appGoodUnits[order.AppGoodID].Add(units)
-			h.appSimulateOrderUnits[order.AppID] = appGoodUnits
-		}
-		offset += limit
-	}
-	return nil
-}
-
 func (h *goodHandler) getAppGoods(ctx context.Context) error {
 	good, err := goodmwcli.GetGood(ctx, h.EntID)
 	if err != nil {
@@ -158,29 +108,6 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			}
 			_goods[good.EntID] = good
 			h.appGoods[good.AppID] = _goods
-		}
-		offset += limit
-	}
-	return nil
-}
-
-func (h *goodHandler) getAppSimulateConfig(ctx context.Context) error {
-	offset := int32(0)
-	limit := constant.DefaultRowLimit
-	enabled := true
-
-	for {
-		configs, _, err := simulateconfigmwcli.GetSimulateConfigs(ctx, &simulateconfigmwpb.Conds{
-			Enabled: &basetypes.BoolVal{Op: cruder.EQ, Value: enabled},
-		}, offset, limit)
-		if err != nil {
-			return err
-		}
-		if len(configs) == 0 {
-			break
-		}
-		for _, config := range configs {
-			h.appSimulateConfig[config.AppID] = config
 		}
 		offset += limit
 	}
@@ -247,41 +174,6 @@ func (h *goodHandler) _calculateUnitReward() error {
 				Div(units)
 		}
 		h.appGoodUnitRewards[appID] = unitRewards
-	}
-	return nil
-}
-
-func (h *goodHandler) calculateUnitRewardSimulate() error {
-	for appID, appGoodUnits := range h.appSimulateOrderUnits {
-		// For one good, event it's assign to multiple app goods,
-		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFeeAppGood, ok := h.techniqueFeeAppGoods[appID]
-		feePercent := decimal.NewFromInt(0)
-		var err error
-
-		if ok && techniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit {
-			feePercent, err = decimal.NewFromString(techniqueFeeAppGood.UnitPrice)
-			if err != nil {
-				return err
-			}
-		}
-
-		unitRewards, ok := h.appGoodUnitSimulateRewards[appID]
-		if !ok {
-			unitRewards = map[string]decimal.Decimal{}
-		}
-		for appGoodID, units := range appGoodUnits {
-			userRewardAmount := h.userSimulateRewardAmount.
-				Mul(units).
-				Div(h.totalSimulateOrderUnits)
-			techniqueFee := userRewardAmount.
-				Mul(feePercent).
-				Div(decimal.NewFromInt(100))
-			unitRewards[appGoodID] = userRewardAmount.
-				Sub(techniqueFee).
-				Div(units)
-		}
-		h.appGoodUnitSimulateRewards[appID] = unitRewards
 	}
 	return nil
 }
@@ -358,86 +250,6 @@ func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
 	return h._calculateUnitReward()
 }
 
-func (h *goodHandler) calculateSimulateUnitReward(ctx context.Context) error {
-	if h.totalSimulateOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
-	}
-	if h.userSimulateRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return nil
-	}
-
-	if err := h.getTechniqueFeeGoods(ctx); err != nil {
-		return err
-	}
-
-	return h.calculateUnitRewardSimulate()
-}
-
-func (h *goodHandler) checkFirstProfit(ctx context.Context, order *ordermwpb.Order) bool {
-	profit, err := simprofitmwcli.GetProfitOnly(ctx, &simprofitmwpb.Conds{
-		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: order.AppID},
-		UserID: &basetypes.StringVal{Op: cruder.EQ, Value: order.UserID},
-	})
-	if err != nil {
-		logger.Sugar().Errorw(
-			"checkFirstProfit",
-			"AppID", order.AppID,
-			"UserID", order.UserID,
-			"Error", err,
-		)
-		return false
-	}
-	if profit != nil {
-		return false
-	}
-	return true
-}
-
-func (h *goodHandler) sendCouponable(ctx context.Context, config *simulateconfigmwpb.SimulateConfig, order *ordermwpb.Order) bool {
-	switch config.SendCouponMode {
-	case ordertypes.SendCouponMode_WithoutCoupon:
-		return false
-	case ordertypes.SendCouponMode_FirstBenifit:
-		return h.checkFirstProfit(ctx, order)
-	case ordertypes.SendCouponMode_FirstAndRandomBenifit:
-		firstProfit := h.checkFirstProfit(ctx, order)
-		if firstProfit {
-			return true
-		}
-	case ordertypes.SendCouponMode_RandomBenifit:
-	default:
-		err := fmt.Errorf("invalid sendcouponmode")
-		logger.Sugar().Errorw(
-			"sendCouponable",
-			"AppID", config.AppID,
-			"SendCouponMode", config.SendCouponMode,
-			"Error", err,
-		)
-		return false
-	}
-
-	probability, err := decimal.NewFromString(config.SendCouponProbability)
-	if err != nil {
-		logger.Sugar().Errorw(
-			"sendCouponable",
-			"AppID", config.AppID,
-			"SendCouponProbability", config.SendCouponProbability,
-			"Error", err,
-		)
-		return false
-	}
-	if probability.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false
-	}
-	if probability.Cmp(decimal.NewFromInt(1)) >= 0 {
-		return true
-	}
-
-	rand.Seed(time.Now().UnixNano())
-	value := rand.Float64() //nolint
-	return decimal.NewFromFloat(value).Cmp(probability) <= 0
-}
-
 func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 	unitRewards, ok := h.appGoodUnitRewards[order.AppID]
 	if !ok {
@@ -460,64 +272,24 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 		return err
 	}
 	amount := unitReward.Mul(units)
-	sendCoupon := false
 	h.orderRewards = append(h.orderRewards, &types.OrderReward{
-		AppID:      order.AppID,
-		UserID:     order.UserID,
-		OrderID:    order.ID,
-		Amount:     amount.String(),
-		Extra:      ioExtra,
-		Simulate:   order.Simulate,
-		SendCoupon: sendCoupon,
-	})
-	return nil
-}
-
-func (h *goodHandler) calculateSimulateOrderReward(ctx context.Context, order *ordermwpb.Order) error {
-	unitRewards, ok := h.appGoodUnitSimulateRewards[order.AppID]
-	if !ok {
-		return nil
-	}
-	unitReward, ok := unitRewards[order.AppGoodID]
-	if !ok {
-		return nil
-	}
-	ioExtra := fmt.Sprintf(
-		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
-		h.EntID,
-		order.AppGoodID,
-		order.EntID,
-		order.Units,
-		h.LastRewardAt,
-	)
-	units, err := decimal.NewFromString(order.Units)
-	if err != nil {
-		return err
-	}
-	amount := unitReward.Mul(units)
-	sendCoupon := false
-	simulateConfig, ok := h.appSimulateConfig[order.AppID]
-	if ok {
-		sendCoupon = h.sendCouponable(ctx, simulateConfig, order)
-	}
-	h.orderRewards = append(h.orderRewards, &types.OrderReward{
-		AppID:      order.AppID,
-		UserID:     order.UserID,
-		OrderID:    order.ID,
-		Amount:     amount.String(),
-		Extra:      ioExtra,
-		Simulate:   order.Simulate,
-		SendCoupon: sendCoupon,
+		AppID:   order.AppID,
+		UserID:  order.UserID,
+		OrderID: order.ID,
+		Amount:  amount.String(),
+		Extra:   ioExtra,
 	})
 	return nil
 }
 
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	// If orderRewards is not empty, we do not update good benefit state, then we get get next 20 orders
+	simulate := false
 	orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
+		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
 	}, 0, int32(20))
 	if err != nil {
 		return err
@@ -527,12 +299,6 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	}
 
 	for _, order := range orders {
-		if order.Simulate {
-			if err := h.calculateSimulateOrderReward(ctx, order); err != nil {
-				return err
-			}
-			continue
-		}
 		if err := h.calculateOrderReward(order); err != nil {
 			return err
 		}
@@ -576,10 +342,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
 	h.techniqueFeeAppGoods = map[string]*appgoodmwpb.Good{}
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
-	h.appSimulateOrderUnits = map[string]map[string]decimal.Decimal{}
 	h.appGoodUnitRewards = map[string]map[string]decimal.Decimal{}
-	h.appGoodUnitSimulateRewards = map[string]map[string]decimal.Decimal{}
-	h.appSimulateConfig = map[string]*simulateconfigmwpb.SimulateConfig{}
 	var err error
 
 	defer h.final(ctx, &err)
@@ -598,24 +361,11 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getOrderUnits(ctx); err != nil {
 		return err
 	}
-	if err = h.getSimulateOrderUnits(ctx); err != nil {
-		return err
-	}
 	h.userRewardAmount = h.totalRewardAmount.
 		Mul(h.totalOrderUnits).
 		Div(h.totalUnits)
 
-	h.userSimulateRewardAmount = h.totalRewardAmount.
-		Mul(h.totalSimulateOrderUnits).
-		Div(h.totalUnits)
-
-	if err := h.getAppSimulateConfig(ctx); err != nil {
-		return err
-	}
 	if err := h.calculateUnitReward(ctx); err != nil {
-		return err
-	}
-	if err := h.calculateSimulateUnitReward(ctx); err != nil {
 		return err
 	}
 	if err = h.calculateOrderRewards(ctx); err != nil {
