@@ -356,7 +356,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		switch h.ElectricityFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
 			durations *= 3
-			unitSeconds = timedef.HoursPerDay
+			unitSeconds = timedef.SecondsPerHour
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
 			unitSeconds = timedef.SecondsPerDay
@@ -395,7 +395,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		switch h.TechniqueFeeAppGood.DurationType {
 		case goodtypes.GoodDurationType_GoodDurationByHour:
 			durations *= 3
-			unitSeconds = timedef.HoursPerDay
+			unitSeconds = timedef.SecondsPerHour
 		case goodtypes.GoodDurationType_GoodDurationByDay:
 			durations = 3
 			unitSeconds = timedef.SecondsPerDay
