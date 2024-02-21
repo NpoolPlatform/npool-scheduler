@@ -337,6 +337,7 @@ func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocognit
 func (h *OrderHandler) CalculateUSDAmount() error {
 	orderUnits, err := decimal.NewFromString(h.Units)
 	if err != nil {
@@ -347,6 +348,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	remainSeconds := h.EndAt - now
 	unitSeconds := timedef.HoursPerDay
 
+	//nolint:dupl
 	if h.CheckElectricityFee {
 		unitPrice, err := decimal.NewFromString(h.ElectricityFeeAppGood.UnitPrice)
 		if err != nil {
@@ -386,6 +388,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		})
 	}
 
+	//nolint:dupl
 	if h.CheckTechniqueFee {
 		unitPrice, err := decimal.NewFromString(h.TechniqueFeeAppGood.UnitPrice)
 		if err != nil {
