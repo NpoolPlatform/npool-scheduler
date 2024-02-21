@@ -373,12 +373,12 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 			seconds = remainSeconds
 			durations = int(seconds) / unitSeconds
 			if int(seconds)%unitSeconds != 0 {
-				durations += 1
+				durations++
 			}
 		}
 
 		h.ElectricityFeeExtendDuration = uint32(durations)
-		h.ElectricityFeeExtendSeconds = uint32(seconds)
+		h.ElectricityFeeExtendSeconds = seconds
 
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
@@ -413,12 +413,12 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 			seconds = remainSeconds
 			durations = int(seconds) / unitSeconds
 			if int(seconds)%unitSeconds != 0 {
-				durations += 1
+				durations++
 			}
 		}
 
 		h.TechniqueFeeExtendDuration = uint32(durations)
-		h.TechniqueFeeExtendSeconds = uint32(seconds)
+		h.TechniqueFeeExtendSeconds = seconds
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGood:       h.TechniqueFeeAppGood,
