@@ -73,6 +73,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			IOExtra:    &reward.Extra,
 			CreatedAt:  &good.LastRewardAt,
 			Rollback:   &rollback,
+			SendCoupon: &reward.SendCoupon,
 		})
 	}
 
