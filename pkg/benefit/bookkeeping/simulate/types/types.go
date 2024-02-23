@@ -12,6 +12,7 @@ type OrderReward struct {
 	Amount     string
 	Extra      string
 	SendCoupon bool
+	Cashable   bool
 }
 
 type PersistentGood struct {
