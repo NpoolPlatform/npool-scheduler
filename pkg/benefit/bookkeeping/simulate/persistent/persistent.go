@@ -61,7 +61,7 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 	rollback := true
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_MiningBenefit
-	realIoSubType := ledgertypes.IOSubType_RandomSimulateProfit
+	realIoSubType := ledgertypes.IOSubType_RandomCashableSimulateProfit
 
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()

@@ -156,16 +156,16 @@ func (h *goodHandler) checkFirstProfit(ctx context.Context, order *ordermwpb.Ord
 	return true
 }
 
-func (h *goodHandler) sendCashable(config *simulateconfigmwpb.SimulateConfig) bool {
-	if !config.EnabledProfitTx {
+func (h *goodHandler) calculateCashable(config *simulateconfigmwpb.SimulateConfig) bool {
+	if !config.EnabledCashableProfit {
 		return false
 	}
-	probability, err := decimal.NewFromString(config.ProfitTxProbability)
+	probability, err := decimal.NewFromString(config.CashableProfitProbability)
 	if err != nil {
 		logger.Sugar().Errorw(
-			"sendCashable",
+			"calculateCashable",
 			"AppID", config.AppID,
-			"ProfitTxProbability", config.ProfitTxProbability,
+			"CashableProfitProbability", config.CashableProfitProbability,
 			"Error", err,
 		)
 		return false
@@ -246,7 +246,7 @@ func (h *goodHandler) calculateSimulateOrderReward(ctx context.Context, order *o
 	simulateConfig, ok := h.appSimulateConfig[order.AppID]
 	if ok {
 		sendCoupon = h.sendCouponable(ctx, simulateConfig, order)
-		cashable = h.sendCashable(simulateConfig)
+		cashable = h.calculateCashable(simulateConfig)
 	}
 	h.orderRewards = append(h.orderRewards, &types.OrderReward{
 		AppID:      order.AppID,
