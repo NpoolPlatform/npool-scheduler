@@ -14,6 +14,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
+	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	simstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -55,10 +56,12 @@ func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good 
 
 func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
 	reqs := []*simstatementmwpb.StatementReq{}
+	RealReqs := []*statementmwpb.StatementReq{}
 
 	rollback := true
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_MiningBenefit
+	realIoSubType := ledgertypes.IOSubType_RandomSimulateProfit
 
 	for _, reward := range good.OrderRewards {
 		id := uuid.NewString()
@@ -76,6 +79,20 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			SendCoupon: &reward.SendCoupon,
 			Cashable:   &reward.Cashable,
 		})
+		if reward.Cashable {
+			RealReqs = append(RealReqs, &statementmwpb.StatementReq{
+				EntID:      &id,
+				AppID:      &reward.AppID,
+				UserID:     &reward.UserID,
+				CoinTypeID: &good.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  &realIoSubType,
+				Amount:     &reward.Amount,
+				IOExtra:    &reward.Extra,
+				CreatedAt:  &good.LastRewardAt,
+				Rollback:   &rollback,
+			})
+		}
 	}
 
 	if len(reqs) > 0 {
@@ -85,6 +102,17 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 			"ledger.middleware.simulate.ledger.statement.v2.Middleware/DeleteStatements",
 			&simstatementmwpb.CreateStatementsRequest{
 				Infos: reqs,
+			},
+		)
+	}
+
+	if len(RealReqs) > 0 {
+		dispose.Add(
+			ledgersvcname.ServiceDomain,
+			"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
+			"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
+			&statementmwpb.CreateStatementsRequest{
+				Infos: RealReqs,
 			},
 		)
 	}
