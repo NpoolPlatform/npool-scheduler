@@ -369,6 +369,7 @@ pipeline {
             REPLICAS_COUNT=2
           fi
           sed -i "s/replicas: 2/replicas: $REPLICAS_COUNT/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           make deploy-to-k8s-cluster
         '''.stripIndent())
       }
@@ -397,6 +398,7 @@ pipeline {
             REPLICAS_COUNT=2
           fi
           sed -i "s/replicas: 2/replicas: $REPLICAS_COUNT/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           make deploy-to-k8s-cluster
         '''.stripIndent())
       }
