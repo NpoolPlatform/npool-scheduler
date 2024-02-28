@@ -1,6 +1,7 @@
 package types
 
 import (
+	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 )
 
@@ -9,4 +10,5 @@ type PersistentOrder struct {
 	OrderBalanceAmount string
 	BalanceExtra       string
 	OrderBalanceLockID string
+	Balances           []*ledgermwpb.LockBalancesRequest_XBalance
 }
