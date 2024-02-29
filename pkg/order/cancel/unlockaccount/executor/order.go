@@ -45,6 +45,9 @@ func (h *orderHandler) checkUnlockable() bool {
 	if !h.onlinePayment() || h.payWithBalanceOnly() {
 		return false
 	}
+	if h.Simulate {
+		return false
+	}
 	switch h.CancelState {
 	case ordertypes.OrderState_OrderStateWaitPayment:
 	case ordertypes.OrderState_OrderStatePaymentTimeout:

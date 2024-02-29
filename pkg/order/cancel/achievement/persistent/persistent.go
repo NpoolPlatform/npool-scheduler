@@ -27,8 +27,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if err := achievementmwcli.ExpropriateAchievement(ctx, _order.EntID); err != nil {
-		return err
+	if !_order.Simulate {
+		if err := achievementmwcli.ExpropriateAchievement(ctx, _order.EntID); err != nil {
+			return err
+		}
 	}
 
 	state := ordertypes.OrderState_OrderStateReturnCanceledBalance

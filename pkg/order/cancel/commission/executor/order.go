@@ -34,6 +34,9 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
+	if h.Simulate {
+		return nil
+	}
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -55,6 +58,9 @@ func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 }
 
 func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
+	if h.Simulate {
+		return nil
+	}
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -74,6 +80,9 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 }
 
 func (h *orderHandler) toLedgerStatements() error {
+	if h.Simulate {
+		return nil
+	}
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_CommissionRevoke
 	for _, statement := range h.statements {

@@ -47,6 +47,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	if order.LockedBalanceAmount == nil {
 		return
 	}
@@ -65,6 +68,9 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 }
 
 func (p *handler) withReturnSpent(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	if order.SpentAmount == nil {
 		return
 	}
