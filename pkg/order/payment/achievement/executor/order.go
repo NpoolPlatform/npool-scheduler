@@ -203,6 +203,9 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 }
 
 func (h *orderHandler) toAchievementStatementReqs() {
+	if h.Simulate {
+		return
+	}
 	for _, statement := range h.statements {
 		req := &achievementstatementmwpb.StatementReq{
 			AppID:                  &statement.AppID,

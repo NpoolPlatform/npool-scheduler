@@ -46,6 +46,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	balance := decimal.RequireFromString(order.OrderBalanceAmount)
 	if balance.Cmp(decimal.NewFromInt(0)) <= 0 && len(order.Balances) == 0 {
 		return

@@ -23,7 +23,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStateInService
 	rollback := true
 	req := &ordermwpb.OrderReq{
@@ -41,7 +41,10 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 	)
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	dispose.Add(
 		goodsvcname.ServiceDomain,
 		"good.middleware.app.good1.stock.v1.Middleware/InService",
