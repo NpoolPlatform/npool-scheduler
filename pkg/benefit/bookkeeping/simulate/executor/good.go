@@ -116,12 +116,9 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 func (h *goodHandler) getAppSimulateConfig(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	enabled := true
 
 	for {
-		configs, _, err := simulateconfigmwcli.GetSimulateConfigs(ctx, &simulateconfigmwpb.Conds{
-			Enabled: &basetypes.BoolVal{Op: cruder.EQ, Value: enabled},
-		}, offset, limit)
+		configs, _, err := simulateconfigmwcli.GetSimulateConfigs(ctx, &simulateconfigmwpb.Conds{}, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -157,9 +154,6 @@ func (h *goodHandler) checkFirstProfit(ctx context.Context, order *ordermwpb.Ord
 }
 
 func (h *goodHandler) calculateCashable(config *simulateconfigmwpb.SimulateConfig) bool {
-	if !config.EnabledCashableProfit {
-		return false
-	}
 	probability, err := decimal.NewFromString(config.CashableProfitProbability)
 	if err != nil {
 		logger.Sugar().Errorw(
