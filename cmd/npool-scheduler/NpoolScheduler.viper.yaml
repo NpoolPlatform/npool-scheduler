@@ -19,6 +19,7 @@ config:
     - benefitbookkeeping
     - benefitbookkeepinggood
     - benefitbookkeepinguser
+    - benefitbookkeepingsimulate
     - benefitfail
     - benefitdone
     - deposit

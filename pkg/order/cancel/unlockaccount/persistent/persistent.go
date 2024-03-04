@@ -44,6 +44,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUnlockPaymentAccount(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	if order.OrderPaymentAccountID == nil {
 		return
 	}

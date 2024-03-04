@@ -41,15 +41,18 @@ type goodHandler struct {
 	orderRewards         []*types.OrderReward
 }
 
+//nolint:dupl
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	simulate := false
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 			BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
+			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -281,10 +284,12 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	// If orderRewards is not empty, we do not update good benefit state, then we get get next 20 orders
+	simulate := false
 	orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
 		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
+		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
 	}, 0, int32(20))
 	if err != nil {
 		return err
@@ -359,6 +364,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.userRewardAmount = h.totalRewardAmount.
 		Mul(h.totalOrderUnits).
 		Div(h.totalUnits)
+
 	if err := h.calculateUnitReward(ctx); err != nil {
 		return err
 	}

@@ -27,9 +27,11 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if len(_order.AchievementStatements) > 0 {
-		if _, err := achievementstatementmwcli.CreateStatements(ctx, _order.AchievementStatements); err != nil {
-			return err
+	if !_order.Simulate {
+		if len(_order.AchievementStatements) > 0 {
+			if _, err := achievementstatementmwcli.CreateStatements(ctx, _order.AchievementStatements); err != nil {
+				return err
+			}
 		}
 	}
 	state := ordertypes.OrderState_OrderStatePaymentUnlockAccount

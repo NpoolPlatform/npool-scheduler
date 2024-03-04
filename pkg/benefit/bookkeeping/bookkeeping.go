@@ -6,6 +6,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	goodbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good"
+	simulatebookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate"
 	userbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
@@ -23,6 +24,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 
 	goodbookkeeping.Initialize(ctx, cancel, running)
 	userbookkeeping.Initialize(ctx, cancel, running)
+	simulatebookkeeping.Initialize(ctx, cancel, running)
 }
 
 func Finalize(ctx context.Context) {
@@ -31,4 +33,5 @@ func Finalize(ctx context.Context) {
 	}
 	userbookkeeping.Finalize(ctx)
 	goodbookkeeping.Finalize(ctx)
+	simulatebookkeeping.Finalize(ctx)
 }

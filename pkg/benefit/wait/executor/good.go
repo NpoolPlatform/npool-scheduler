@@ -157,6 +157,7 @@ func (h *goodHandler) orderBenefitable(order *ordermwpb.Order) bool {
 	return true
 }
 
+//nolint:gocognit
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -178,13 +179,18 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			h.totalInServiceUnits = h.totalInServiceUnits.Add(units)
+			if !order.Simulate {
+				h.totalInServiceUnits = h.totalInServiceUnits.Add(units)
+			}
 			if !h.orderBenefitable(order) {
 				continue
 			}
-			h.totalBenefitOrderUnits = h.totalBenefitOrderUnits.Add(units)
 			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
 			h.benefitOrderEntIDs = append(h.benefitOrderEntIDs, order.EntID)
+			if order.Simulate {
+				continue
+			}
+			h.totalBenefitOrderUnits = h.totalBenefitOrderUnits.Add(units)
 			appGoodUnits, ok := h.appOrderUnits[order.AppID]
 			if !ok {
 				appGoodUnits = map[string]decimal.Decimal{

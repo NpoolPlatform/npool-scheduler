@@ -26,6 +26,7 @@ data:
           - benefitbookkeeping
           - benefitbookkeepinggood
           - benefitbookkeepinguser
+          - benefitbookkeepingsimulate
           - benefitfail
           - benefitdone
           - deposit

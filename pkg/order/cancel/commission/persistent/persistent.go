@@ -43,6 +43,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) error {
+	if order.Simulate {
+		return nil
+	}
 	if len(order.LedgerStatements) == 0 {
 		return nil
 	}

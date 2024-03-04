@@ -126,6 +126,10 @@ func (h *orderHandler) calculateGoodValue() error {
 func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error {
 	hasCommission := false
 
+	if h.Simulate {
+		return nil
+	}
+
 	switch h.OrderType {
 	case ordertypes.OrderType_Normal:
 		hasCommission = true
@@ -199,6 +203,9 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 }
 
 func (h *orderHandler) toAchievementStatementReqs() {
+	if h.Simulate {
+		return
+	}
 	for _, statement := range h.statements {
 		req := &achievementstatementmwpb.StatementReq{
 			AppID:                  &statement.AppID,

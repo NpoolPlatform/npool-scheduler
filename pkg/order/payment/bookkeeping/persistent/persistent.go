@@ -46,6 +46,9 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	if order.Simulate {
+		return
+	}
 	reqs := []*statementmwpb.StatementReq{}
 
 	incoming := decimal.RequireFromString(order.IncomingAmount)

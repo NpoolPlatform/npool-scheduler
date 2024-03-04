@@ -26,6 +26,7 @@ func NewSentinel() basesentinel.Scanner {
 func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	simulate := false
 
 	for {
 		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
@@ -33,6 +34,8 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			RenewState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewWait)},
 			RenewNotifyAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
+			OrderType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderType_Normal)},
+			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
 		}, offset, limit)
 		if err != nil {
 			return err
