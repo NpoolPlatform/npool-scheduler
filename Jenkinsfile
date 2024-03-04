@@ -105,28 +105,13 @@ pipeline {
       }
     }
 
-    stage('Generate docker image for feature') {
-      when {
-        expression { BUILD_TARGET == 'true' }
-        expression { BRANCH_NAME != 'master' }
-      }
-      steps {
-        sh 'make verify-build'
-        sh(returnStdout: false, script: '''
-          feature_name=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
-          DEVELOPMENT=$feature_name DOCKER_REGISTRY=$DOCKER_REGISTRY make generate-docker-images
-        '''.stripIndent())
-      }
-    }
-
     stage('Generate docker image for development') {
       when {
         expression { BUILD_TARGET == 'true' }
-        expression { BRANCH_NAME == 'master' }
       }
       steps {
         sh 'make verify-build'
-        sh 'DEVELOPMENT=development DOCKER_REGISTRY=$DOCKER_REGISTRY make generate-docker-images'
+        sh 'DOCKER_REGISTRY=$DOCKER_REGISTRY make generate-docker-images'
       }
     }
 
@@ -140,11 +125,13 @@ pipeline {
           revlist=`git rev-list --tags --max-count=1`
           rc=$?
           set -e
-          if [ 0 -eq $rc ]; then
+          if [ 0 -eq $rc -a x"$revlist" != x ]; then
             tag=`git describe --tags $revlist`
+
             major=`echo $tag | awk -F '.' '{ print $1 }'`
             minor=`echo $tag | awk -F '.' '{ print $2 }'`
             patch=`echo $tag | awk -F '.' '{ print $3 }'`
+
             case $TAG_FOR in
               testing)
                 patch=$(( $patch + $patch % 2 + 1 ))
@@ -178,13 +165,16 @@ pipeline {
           revlist=`git rev-list --tags --max-count=1`
           rc=$?
           set -e
-          if [ 0 -eq $rc ]; then
+          if [ 0 -eq $rc -a x"$revlist" != x ]; then
             tag=`git describe --tags $revlist`
+
             major=`echo $tag | awk -F '.' '{ print $1 }'`
             minor=`echo $tag | awk -F '.' '{ print $2 }'`
             patch=`echo $tag | awk -F '.' '{ print $3 }'`
+
             minor=$(( $minor + 1 ))
             patch=1
+
             tag=$major.$minor.$patch
           else
             tag=0.1.1
@@ -208,15 +198,19 @@ pipeline {
           revlist=`git rev-list --tags --max-count=1`
           rc=$?
           set -e
-          if [ 0 -eq $rc ]; then
+          if [ 0 -eq $rc -a x"$revlist" != x ]; then
             tag=`git describe --tags $revlist`
+
             major=`echo $tag | awk -F '.' '{ print $1 }'`
             minor=`echo $tag | awk -F '.' '{ print $2 }'`
             patch=`echo $tag | awk -F '.' '{ print $3 }'`
+
             major=$(( $major + 1 ))
             minor=0
             patch=1
+
             tag=$major.$minor.$patch
+
           else
             tag=0.1.1
           fi
@@ -246,30 +240,7 @@ pipeline {
           fi
         '''.stripIndent())
         sh 'make verify-build'
-        sh 'DEVELOPMENT=other DOCKER_REGISTRY=$DOCKER_REGISTRY make generate-docker-images'
-      }
-    }
-
-    stage('Release docker image for feature') {
-      when {
-        expression { RELEASE_TARGET == 'true' }
-        expression { BRANCH_NAME != 'master' }
-      }
-      steps {
-        sh(returnStdout: false, script: '''
-          feature_name=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
-          set +e
-          docker images | grep npool-scheduler | grep $feature_name
-          rc=$?
-          set -e
-          if [ 0 -eq $rc ]; then
-            TAG=$feature_name DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
-          fi
-          images=`docker images | grep entropypool | grep npool-scheduler | grep none | awk '{ print $3 }'`
-          for image in $images; do
-            docker rmi $image -f
-          done
-        '''.stripIndent())
+        sh 'DOCKER_REGISTRY=$DOCKER_REGISTRY make generate-docker-images'
       }
     }
 
@@ -279,12 +250,16 @@ pipeline {
       }
       steps {
         sh(returnStdout: false, script: '''
+          branch=latest
+          if [ "x$BRANCH_NAME" != "xmaster" ]; then
+            branch=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
+          fi
           set +e
-          docker images | grep npool-scheduler | grep latest
+          docker images | grep npool-scheduler | grep $branch
           rc=$?
           set -e
           if [ 0 -eq $rc ]; then
-            TAG=latest DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
+            DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
           fi
           images=`docker images | grep entropypool | grep npool-scheduler | grep none | awk '{ print $3 }'`
           for image in $images; do
@@ -306,13 +281,13 @@ pipeline {
           set -e
 
           if [ 0 -eq $rc -a x"$revlist" != x ]; then
-            tag=`git describe --tags $revlist`
+            tag=`git tag --sort=-v:refname | grep [1\\|3\\|5\\|7\\|9]$ | head -n1`
             set +e
             docker images | grep npool-scheduler | grep $tag
             rc=$?
             set -e
             if [ 0 -eq $rc ]; then
-              TAG=$tag DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
+              DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
             fi
           fi
         '''.stripIndent())
@@ -331,33 +306,15 @@ pipeline {
           set -e
 
           if [ 0 -eq $rc -a x"$taglist" != x ]; then
-            tag=`git describe --abbrev=0 --tags $taglist |grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
+            tag=`git tag --sort=-v:refname | grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
             set +e
             docker images | grep npool-scheduler | grep $tag
             rc=$?
             set -e
             if [ 0 -eq $rc ]; then
-              TAG=$tag DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
+              DOCKER_REGISTRY=$DOCKER_REGISTRY make release-docker-images
             fi
           fi
-        '''.stripIndent())
-      }
-    }
-
-    stage('Deploy for feature') {
-      when {
-        expression { DEPLOY_TARGET == 'true' }
-        expression { TARGET_ENV ==~ /.*development.*/ }
-        expression { BRANCH_NAME != 'master' }
-      }
-      steps {
-        sh(returnStdout: false, script: '''
-          feature_name=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
-          sed -i "s/npool-scheduler:latest/npool-scheduler:$feature_name/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
-          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml
-          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml
-          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
-          TAG=$feature_name make deploy-to-k8s-cluster
         '''.stripIndent())
       }
     }
@@ -366,13 +323,23 @@ pipeline {
       when {
         expression { DEPLOY_TARGET == 'true' }
         expression { TARGET_ENV ==~ /.*development.*/ }
-        expression { BRANCH_NAME == 'master' }
       }
       steps {
-        sh 'sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml'
-        sh 'sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml'
-        sh 'sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml'
-        sh 'TAG=latest make deploy-to-k8s-cluster'
+        sh(returnStdout: false, script: '''
+          branch=latest
+          if [ "x$BRANCH_NAME" != "xmaster" ]; then
+            branch=`echo $BRANCH_NAME | awk -F '/' '{ print $2 }'`
+          fi
+          sed -i "s/npool-scheduler:latest/npool-scheduler:$branch/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml
+          sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml
+          if [ "x$REPLICAS_COUNT" == "x" ];then
+            REPLICAS_COUNT=2
+          fi
+          sed -i "s/replicas: 2/replicas: $REPLICAS_COUNT/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          make deploy-to-k8s-cluster
+        '''.stripIndent())
       }
     }
 
@@ -387,10 +354,10 @@ pipeline {
           revlist=`git rev-list --tags --max-count=1`
           rc=$?
           set -e
-          if [ ! 0 -eq $rc ]; then
+          if [ ! 0 -eq $rc -o x"$revlist" == x]; then
             exit 0
           fi
-          tag=`git describe --tags $revlist`
+          tag=`git tag --sort=-v:refname | grep [1\\|3\\|5\\|7\\|9]$ | head -n1`
 
           git reset --hard
           git checkout $tag
@@ -398,7 +365,12 @@ pipeline {
           sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           sed -i "s/86400/$BENEFIT_INTERVAL_SECONDS/g" cmd/npool-scheduler/k8s/00-configmap.yaml
           sed -i "s#currency_proxy: \\\"\\\"#currency_proxy: \\\"$CURRENCY_REQUEST_PROXY\\\"#g" cmd/npool-scheduler/k8s/00-configmap.yaml
-          TAG=$tag make deploy-to-k8s-cluster
+          if [ "x$REPLICAS_COUNT" == "x" ];then
+            REPLICAS_COUNT=2
+          fi
+          sed -i "s/replicas: 2/replicas: $REPLICAS_COUNT/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          make deploy-to-k8s-cluster
         '''.stripIndent())
       }
     }
@@ -414,15 +386,20 @@ pipeline {
           taglist=`git rev-list --tags`
           rc=$?
           set -e
-          if [ ! 0 -eq $rc ]; then
+          if [ ! 0 -eq $rc -o x"$revlist" == x]; then
             exit 0
           fi
-          tag=`git describe --abbrev=0 --tags $taglist |grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
+          tag=`git tag --sort=-v:refname | grep [0\\|2\\|4\\|6\\|8]$ | head -n1`
           git reset --hard
           git checkout $tag
           sed -i "s/npool-scheduler:latest/npool-scheduler:$tag/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
           sed -i "s/uhub.service.ucloud.cn/$DOCKER_REGISTRY/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
-          TAG=$tag make deploy-to-k8s-cluster
+          if [ "x$REPLICAS_COUNT" == "x" ];then
+            REPLICAS_COUNT=2
+          fi
+          sed -i "s/replicas: 2/replicas: $REPLICAS_COUNT/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          sed -i "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" cmd/npool-scheduler/k8s/01-npool-scheduler.yaml
+          make deploy-to-k8s-cluster
         '''.stripIndent())
       }
     }
