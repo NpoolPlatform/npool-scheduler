@@ -12,6 +12,7 @@ import (
 	failreturnbalance "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/fail/returnbalance"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/prerejected"
 	rejectedreturnbalance "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/rejected/returnbalance"
+	withdrawreviewnotify "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/review/notify"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/reviewing"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/spendbalance"
@@ -41,12 +42,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	prerejected.Initialize(ctx, cancel, &running)
 	presuccessful.Initialize(ctx, cancel, &running)
 	spendbalance.Initialize(ctx, cancel, &running)
+	withdrawreviewnotify.Initialize(ctx, cancel)
 }
 
 func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
+	withdrawreviewnotify.Finalize(ctx)
 	spendbalance.Finalize(ctx)
 	presuccessful.Finalize(ctx)
 	prerejected.Finalize(ctx)
