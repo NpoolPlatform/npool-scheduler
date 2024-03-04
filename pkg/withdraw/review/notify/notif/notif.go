@@ -26,7 +26,7 @@ func (p *handler) notifyWithdrawReview(notify *types.PersistentWithdrawReviewNot
 			nil,
 			nil,
 			nil,
-			notify.Withdraws,
+			notify.AppWithdraws,
 		)
 	})
 }

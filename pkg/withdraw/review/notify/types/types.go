@@ -1,9 +1,9 @@
 package types
 
 import (
-	ledgerwithdrawmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/withdraw"
+	withdrawreviewnotifypb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/withdraw/review/notify"
 )
 
 type PersistentWithdrawReviewNotify struct {
-	Withdraws []*ledgerwithdrawmwpb.Withdraw
+	AppWithdraws []*withdrawreviewnotifypb.AppWithdrawInfos
 }
