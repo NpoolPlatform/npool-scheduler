@@ -80,6 +80,7 @@ func Apply(ctx context.Context, req interface{}) error {
 		}); err != nil {
 			return err
 		}
+		fmt.Printf("%v\n", content)
 	}
 
 	return nil
