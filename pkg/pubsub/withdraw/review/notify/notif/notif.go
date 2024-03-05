@@ -38,7 +38,6 @@ func appWithdraws2Content(appWithdraws *withdrawreviewnotifypb.AppWithdrawInfos)
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <td style="border: 1px solid #dddddd;">Application</td>`
-	// TODO: add order link and some other order info
 	content += `  <td style="border: 1px solid #dddddd;" colspan="3"><strong>` + appWithdraws.AppName + `</strong></td>`
 	content += "</tr>"
 	content += "<tr>"

@@ -66,7 +66,7 @@ func prepare(mid, body string) (req interface{}, err error) {
 		req, err = orderpaidnotif.Prepare(body)
 	case basetypes.MsgID_OrderChildsRenewReq.String():
 		req, err = orderrenewnotif.Prepare(body)
-	case basetypes.MsgID_WithdrawReviewNotify.String():
+	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		req, err = withdrawreviewnotifynotif.Prepare(body)
 	default:
 		return nil, nil
@@ -138,7 +138,7 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 		fallthrough //nolint
 	case basetypes.MsgID_OrderChildsRenewReq.String():
 		fallthrough //nolint
-	case basetypes.MsgID_WithdrawReviewNotify.String():
+	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
@@ -171,7 +171,7 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 		err = orderpaidnotif.Apply(ctx, req)
 	case basetypes.MsgID_OrderChildsRenewReq.String():
 		err = orderrenewnotif.Apply(ctx, req)
-	case basetypes.MsgID_WithdrawReviewNotify.String():
+	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		err = withdrawreviewnotifynotif.Apply(ctx, req)
 	default:
 		return nil

@@ -171,10 +171,10 @@ func (h *withdrawReviewNotifyHandler) final(ctx context.Context, err *error) {
 		AppWithdraws: h.appWithdrawInfos,
 	}
 	if *err == nil {
+		asyncfeed.AsyncFeed(ctx, persistentWithdrawReviewNotify, h.notif)
 		asyncfeed.AsyncFeed(ctx, persistentWithdrawReviewNotify, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentWithdrawReviewNotify, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentWithdrawReviewNotify, h.done)
 }
 

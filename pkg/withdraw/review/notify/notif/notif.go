@@ -22,7 +22,7 @@ func NewNotif() basenotif.Notify {
 func (p *handler) notifyWithdrawReview(notify *types.PersistentWithdrawReviewNotify) error {
 	return pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		return publisher.Update(
-			basetypes.MsgID_WithdrawReviewNotify.String(),
+			basetypes.MsgID_WithdrawReviewNotifyReq.String(),
 			nil,
 			nil,
 			nil,
