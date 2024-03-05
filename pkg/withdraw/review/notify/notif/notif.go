@@ -6,6 +6,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	withdrawreviewnotifypb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/withdraw/review/notify"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/review/notify/types"
@@ -26,7 +27,9 @@ func (p *handler) notifyWithdrawReview(notify *types.PersistentWithdrawReviewNot
 			nil,
 			nil,
 			nil,
-			notify.AppWithdraws,
+			&withdrawreviewnotifypb.MsgWithdrawReviewNotifyReq{
+				AppWithdraws: notify.AppWithdraws,
+			},
 		)
 	})
 }

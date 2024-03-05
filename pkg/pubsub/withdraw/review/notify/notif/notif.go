@@ -34,11 +34,11 @@ func userAccount(user *usermwpb.User) string {
 func appWithdraws2Content(appWithdraws *withdrawreviewnotifypb.AppWithdrawInfos) string {
 	content := `<table style="border-collapse: collapse; text-align: left;">`
 	content += "<tr>"
-	content += `  <td style="border: 1px solid #dddddd;" colspan="4">Withdraw Requests</td>`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="6"><strong>Withdraw Requests<strong></td>`
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <td style="border: 1px solid #dddddd;">Application</td>`
-	content += `  <td style="border: 1px solid #dddddd;" colspan="3"><strong>` + appWithdraws.AppName + `</strong></td>`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="5"><strong>` + appWithdraws.AppName + `</strong></td>`
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <th style="border: 1px solid #dddddd;">From UserID</th>`
@@ -80,7 +80,6 @@ func Apply(ctx context.Context, req interface{}) error {
 		}); err != nil {
 			return err
 		}
-		fmt.Printf("%v\n", content)
 	}
 
 	return nil

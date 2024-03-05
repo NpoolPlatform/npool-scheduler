@@ -3,6 +3,7 @@ package benefit
 import (
 	"context"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
@@ -15,11 +16,10 @@ import (
 
 const subsystem = "withdrawreviewnotify"
 
-var (
-	h *base.Handler
-)
+var h *base.Handler
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
+	var running sync.Map
 	_h, err := base.NewHandler(
 		ctx,
 		cancel,
@@ -30,6 +30,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 		base.WithRunningConcurrent(math.MaxInt),
 		base.WithNotify(notif.NewNotif()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(

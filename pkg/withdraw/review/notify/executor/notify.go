@@ -151,6 +151,8 @@ func (h *withdrawReviewNotifyHandler) resolveWithdrawInfos() {
 			User:     user,
 			Coin:     coin,
 		})
+
+		appWithdrawInfos[withdraw.AppID] = withdrawInfos
 	}
 
 	for _, _appWithdrawInfos := range appWithdrawInfos {
@@ -164,6 +166,7 @@ func (h *withdrawReviewNotifyHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Withdraws", h.withdraws,
+			"AppWithdraws", h.appWithdrawInfos,
 			"Error", *err,
 		)
 	}
