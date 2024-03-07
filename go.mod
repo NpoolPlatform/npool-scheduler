@@ -16,8 +16,8 @@ require (
 	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240304032258-18c040f653e0
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240304030403-1e129dfe4e3f
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20231008051607-f64457cf6ab6
-	github.com/NpoolPlatform/message v0.0.0-20240305060340-daddedc119ff
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20240206054222-f748067eeeb1
+	github.com/NpoolPlatform/message v0.0.0-20240307094455-03f958fa5938
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20240307094841-664e4a89a3f3
 	github.com/NpoolPlatform/order-middleware v0.0.0-20240304020155-1225d1f15992
 	github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
@@ -105,7 +105,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
