@@ -29,7 +29,7 @@ type handler struct {
 func NewSentinel() basesentinel.Scanner {
 	_interval := timedef.SecondsPerHour
 	if interval, err := time.ParseDuration(
-		fmt.Sprintf("%vm", os.Getenv("ENV_WITHDRAW_REVIEW_NOTIFY_INTERVAL_HOURS"))); err == nil && math.Round(interval.Seconds()) > 0 {
+		fmt.Sprintf("%vh", os.Getenv("ENV_WITHDRAW_REVIEW_NOTIFY_INTERVAL_HOURS"))); err == nil && math.Round(interval.Seconds()) > 0 {
 		_interval = int(math.Round(interval.Seconds()))
 	}
 	return &handler{
