@@ -2,18 +2,22 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	calculatemwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/calculate"
+	ledgerstatementmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/statement"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
+	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
@@ -26,17 +30,63 @@ import (
 
 type orderHandler struct {
 	*ordermwpb.Order
-	persistent            chan interface{}
-	notif                 chan interface{}
-	done                  chan interface{}
-	achievementStatements []*achievementstatementmwpb.StatementReq
-	statements            []*achievementstatementmwpb.Statement
-	paymentAmount         decimal.Decimal
-	childOrders           []*ordermwpb.Order
-	goodValue             decimal.Decimal
-	goodValueUSD          decimal.Decimal
-	usdtTrc20Coin         *coinmwpb.Coin
-	goodCoin              *coinmwpb.Coin
+	persistent                chan interface{}
+	notif                     chan interface{}
+	done                      chan interface{}
+	achievementStatements     []*achievementstatementmwpb.StatementReq
+	statements                []*achievementstatementmwpb.Statement
+	paymentAmount             decimal.Decimal
+	childOrders               []*ordermwpb.Order
+	goodValue                 decimal.Decimal
+	goodValueUSD              decimal.Decimal
+	usdtTrc20Coin             *coinmwpb.Coin
+	goodCoin                  *coinmwpb.Coin
+	orderCommissionStatements map[string]*ledgerstatementmwpb.Statement
+}
+
+type b struct {
+	PaymentID            string
+	OrderID              string
+	DirectContributorID  string
+	OrderUserID          string
+	InspireAppConfigID   string
+	CommissionConfigID   string
+	CommissionConfigType string
+}
+
+func (h *orderHandler) getOrdersCommissionStatements(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_Commission
+
+	var _b b
+
+	for {
+		statements, _, err := ledgerstatementmwcli.GetStatements(ctx, &ledgerstatementmwpb.Conds{
+			IOExtra:   &basetypes.StringVal{Op: cruder.LIKE, Value: h.EntID},
+			AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+			IOType:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
+			IOSubType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
+		}, offset, limit)
+		if err != nil {
+			return err
+		}
+		if len(statements) == 0 {
+			break
+		}
+		for _, statement := range statements {
+			if err := json.Unmarshal([]byte(statement.IOExtra), &_b); err != nil {
+				return err
+			}
+			if _b.OrderUserID != h.UserID || _b.OrderID != h.EntID {
+				continue
+			}
+			h.orderCommissionStatements[statement.UserID] = statement
+		}
+		offset += limit
+	}
+	return nil
 }
 
 func (h *orderHandler) getChildOrders(ctx context.Context) error {
@@ -202,10 +252,12 @@ func (h *orderHandler) calculateAchievementStatements(ctx context.Context) error
 	return nil
 }
 
-func (h *orderHandler) toAchievementStatementReqs() {
+func (h *orderHandler) toAchievementStatementReqs() error {
 	if h.Simulate {
-		return
+		return nil
 	}
+	var _b b
+
 	for _, statement := range h.statements {
 		req := &achievementstatementmwpb.StatementReq{
 			AppID:                  &statement.AppID,
@@ -226,11 +278,27 @@ func (h *orderHandler) toAchievementStatementReqs() {
 			CommissionConfigID:     &statement.CommissionConfigID,
 			CommissionConfigType:   &statement.CommissionConfigType,
 		}
+
+		if statement.CommissionConfigType != inspiretypes.CommissionConfigType_LegacyCommissionConfig {
+			orderCommissionStatement, ok := h.orderCommissionStatements[statement.UserID]
+			if ok {
+				if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
+					return err
+				}
+				commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
+				req.AppGoodID = &_b.InspireAppConfigID
+				req.CommissionConfigID = &_b.CommissionConfigID
+				req.CommissionConfigType = &commissionConfigType
+				req.Commission = &orderCommissionStatement.Amount
+			}
+		}
+
 		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
 			req.DirectContributorID = &statement.DirectContributorID
 		}
 		h.achievementStatements = append(h.achievementStatements, req)
 	}
+	return nil
 }
 
 //nolint:gocritic
@@ -273,13 +341,18 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.getStableUSDCoin(ctx); err != nil {
 		return err
 	}
+	if err = h.getOrdersCommissionStatements(ctx); err != nil {
+		return err
+	}
 	if err = h.calculateGoodValue(); err != nil {
 		return err
 	}
 	if err = h.calculateAchievementStatements(ctx); err != nil {
 		return err
 	}
-	h.toAchievementStatementReqs()
+	if err = h.toAchievementStatementReqs(); err != nil {
+		return err
+	}
 
 	return nil
 }
