@@ -55,6 +55,7 @@ type b struct {
 }
 
 func (h *orderHandler) getOrdersCommissionStatements(ctx context.Context) error {
+	h.orderCommissionStatements = map[string]*ledgerstatementmwpb.Statement{}
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	ioType := ledgertypes.IOType_Incoming
