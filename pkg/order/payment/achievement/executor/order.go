@@ -287,7 +287,7 @@ func (h *orderHandler) toAchievementStatementReqs() error {
 					return err
 				}
 				commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
-				req.AppGoodID = &_b.InspireAppConfigID
+				req.AppConfigID = &_b.InspireAppConfigID
 				req.CommissionConfigID = &_b.CommissionConfigID
 				req.CommissionConfigType = &commissionConfigType
 				req.Commission = &orderCommissionStatement.Amount
