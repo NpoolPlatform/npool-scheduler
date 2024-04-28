@@ -65,10 +65,11 @@ func (h *orderHandler) getOrdersCommissionStatements(ctx context.Context) error 
 
 	for {
 		statements, _, err := ledgerstatementmwcli.GetStatements(ctx, &ledgerstatementmwpb.Conds{
-			IOExtra:   &basetypes.StringVal{Op: cruder.LIKE, Value: h.EntID},
-			AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-			IOType:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
-			IOSubType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
+			IOExtra:    &basetypes.StringVal{Op: cruder.LIKE, Value: h.EntID},
+			AppID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
+			CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.PaymentCoinTypeID},
+			IOType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
+			IOSubType:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -282,16 +283,17 @@ func (h *orderHandler) toAchievementStatementReqs() error {
 
 		if statement.CommissionConfigType != inspiretypes.CommissionConfigType_LegacyCommissionConfig {
 			orderCommissionStatement, ok := h.orderCommissionStatements[statement.UserID]
-			if ok {
-				if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
-					return err
-				}
-				commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
-				req.AppConfigID = &_b.InspireAppConfigID
-				req.CommissionConfigID = &_b.CommissionConfigID
-				req.CommissionConfigType = &commissionConfigType
-				req.Commission = &orderCommissionStatement.Amount
+			if !ok {
+				continue
 			}
+			if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
+				return err
+			}
+			commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
+			req.AppConfigID = &_b.InspireAppConfigID
+			req.CommissionConfigID = &_b.CommissionConfigID
+			req.CommissionConfigType = &commissionConfigType
+			req.Commission = &orderCommissionStatement.Amount
 		}
 
 		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
