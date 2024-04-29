@@ -283,17 +283,19 @@ func (h *orderHandler) toAchievementStatementReqs() error {
 
 		if statement.CommissionConfigType != inspiretypes.CommissionConfigType_LegacyCommissionConfig {
 			orderCommissionStatement, ok := h.orderCommissionStatements[statement.UserID]
-			if !ok {
-				continue
+			if ok {
+				if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
+					return err
+				}
+				commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
+				req.AppConfigID = &_b.InspireAppConfigID
+				req.CommissionConfigID = &_b.CommissionConfigID
+				req.CommissionConfigType = &commissionConfigType
+				req.Commission = &orderCommissionStatement.Amount
+			} else {
+				commission := "0"
+				req.Commission = &commission
 			}
-			if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
-				return err
-			}
-			commissionConfigType := inspiretypes.CommissionConfigType(inspiretypes.CommissionConfigType_value[_b.CommissionConfigType])
-			req.AppConfigID = &_b.InspireAppConfigID
-			req.CommissionConfigID = &_b.CommissionConfigID
-			req.CommissionConfigType = &commissionConfigType
-			req.Commission = &orderCommissionStatement.Amount
 		}
 
 		if _, err := uuid.Parse(statement.DirectContributorID); err == nil {
