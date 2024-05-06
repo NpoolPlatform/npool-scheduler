@@ -258,7 +258,6 @@ func (h *orderHandler) toAchievementStatementReqs() error {
 	if h.Simulate {
 		return nil
 	}
-	var _b b
 
 	for _, statement := range h.statements {
 		req := &achievementstatementmwpb.StatementReq{
@@ -284,6 +283,7 @@ func (h *orderHandler) toAchievementStatementReqs() error {
 		if statement.CommissionConfigType != inspiretypes.CommissionConfigType_LegacyCommissionConfig {
 			orderCommissionStatement, ok := h.orderCommissionStatements[statement.UserID]
 			if ok {
+				var _b b
 				if err := json.Unmarshal([]byte(orderCommissionStatement.IOExtra), &_b); err != nil {
 					return err
 				}
