@@ -170,12 +170,16 @@ func (h *orderHandler) calculateLedgerStatements() error {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v"}`,
+			`{"PaymentID":"%v","OrderID":"%v","DirectContributorID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v"}`,
 			h.PaymentID,
 			h.EntID,
 			statement.DirectContributorID,
 			h.UserID,
+			statement.AppConfigID,
+			statement.CommissionConfigID,
+			statement.CommissionConfigType,
 		)
+
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
 			AppID:      &h.AppID,
 			UserID:     &statement.UserID,
