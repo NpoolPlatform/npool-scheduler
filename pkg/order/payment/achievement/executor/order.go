@@ -61,8 +61,6 @@ func (h *orderHandler) getOrdersCommissionStatements(ctx context.Context) error 
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_Commission
 
-	var _b b
-
 	for {
 		statements, _, err := ledgerstatementmwcli.GetStatements(ctx, &ledgerstatementmwpb.Conds{
 			IOExtra:    &basetypes.StringVal{Op: cruder.LIKE, Value: h.EntID},
@@ -78,6 +76,7 @@ func (h *orderHandler) getOrdersCommissionStatements(ctx context.Context) error 
 			break
 		}
 		for _, statement := range statements {
+			var _b b
 			if err := json.Unmarshal([]byte(statement.IOExtra), &_b); err != nil {
 				return err
 			}
