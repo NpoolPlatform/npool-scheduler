@@ -12,6 +12,7 @@ import (
 	entpubsubmsg "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	benefitnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/benefit/notif"
 	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
+	event "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event"
 	orderpaidnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/paid/notif"
 	orderrenewnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/renew/notify/notif"
 	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
@@ -139,6 +140,8 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 	case basetypes.MsgID_OrderChildsRenewReq.String():
 		fallthrough //nolint
 	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_CalculateEventRewardReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
@@ -173,6 +176,8 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 		err = orderrenewnotif.Apply(ctx, req)
 	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		err = withdrawreviewnotifynotif.Apply(ctx, req)
+	case basetypes.MsgID_CalculateEventRewardReq.String():
+		err = event.Apply(ctx, req)
 	default:
 		return nil
 	}
