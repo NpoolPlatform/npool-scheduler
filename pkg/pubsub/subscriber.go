@@ -12,7 +12,9 @@ import (
 	entpubsubmsg "github.com/NpoolPlatform/npool-scheduler/pkg/db/ent/pubsubmessage"
 	benefitnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/benefit/notif"
 	depositnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/deposit/notif"
-	event "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event"
+	eventcalculate "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/calculate"
+	eventreliable "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reliable"
+	eventunreliable "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/unreliable"
 	orderpaidnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/paid/notif"
 	orderrenewnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/renew/notify/notif"
 	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
@@ -69,6 +71,12 @@ func prepare(mid, body string) (req interface{}, err error) {
 		req, err = orderrenewnotif.Prepare(body)
 	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		req, err = withdrawreviewnotifynotif.Prepare(body)
+	case basetypes.MsgID_CalculateEventRewardReq.String():
+		req, err = eventcalculate.Prepare(body)
+	case basetypes.MsgID_ReliableEventRewardReq.String():
+		req, err = eventreliable.Prepare(body)
+	case basetypes.MsgID_UnReliableEventRewardReq.String():
+		req, err = eventunreliable.Prepare(body)
 	default:
 		return nil, nil
 	}
@@ -142,6 +150,10 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		fallthrough //nolint
 	case basetypes.MsgID_CalculateEventRewardReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_ReliableEventRewardReq.String():
+		fallthrough //nolint
+	case basetypes.MsgID_UnReliableEventRewardReq.String():
 		return statReq(ctx, mid, uid)
 	default:
 		return false, fmt.Errorf("invalid message")
@@ -177,7 +189,11 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 	case basetypes.MsgID_WithdrawReviewNotifyReq.String():
 		err = withdrawreviewnotifynotif.Apply(ctx, req)
 	case basetypes.MsgID_CalculateEventRewardReq.String():
-		err = event.Apply(ctx, req)
+		err = eventcalculate.Apply(ctx, req)
+	case basetypes.MsgID_ReliableEventRewardReq.String():
+		err = eventreliable.Apply(ctx, req)
+	case basetypes.MsgID_UnReliableEventRewardReq.String():
+		err = eventunreliable.Apply(ctx, req)
 	default:
 		return nil
 	}
