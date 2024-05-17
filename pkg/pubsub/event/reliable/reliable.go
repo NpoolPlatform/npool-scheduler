@@ -25,7 +25,8 @@ import (
 )
 
 type calculateHandler struct {
-	req *eventmwpb.RewardReliableRequest
+	req        *eventmwpb.RewardReliableRequest
+	taskUserID string
 }
 
 func (h *calculateHandler) withCreateCredit(dispose *dtmcli.SagaDispose) {
@@ -101,11 +102,12 @@ func (h *calculateHandler) withCreateLedgerStatements(dispose *dtmcli.SagaDispos
 		id := uuid.NewString()
 		now := uint32(time.Now().Unix())
 		ioExtra := fmt.Sprintf(
-			`{"EventID":"%v","EventType":"%v"}`,
+			`{"EventID":"%v","EventType":"%v","TaskID":"%v","TaskUserID":"%v"}`,
 			ev.EntID,
 			ev.EventType,
+			h.req.TaskID,
+			h.taskUserID,
 		)
-
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			EntID:      &id,
 			AppID:      &coin.AppID,
@@ -130,14 +132,12 @@ func (h *calculateHandler) withCreateLedgerStatements(dispose *dtmcli.SagaDispos
 	)
 }
 
-func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose, ev *eventmwpb.Event) {
-	id := uuid.NewString()
+func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose) {
 	taskState := inspiretypes.TaskState_Done
 	rewardState := inspiretypes.RewardState_Issued
 	rewardInfo := ""
-
 	req := &taskusermwpb.TaskUserReq{
-		EntID:       &id,
+		EntID:       &h.taskUserID,
 		AppID:       &h.req.AppID,
 		UserID:      &h.req.UserID,
 		TaskID:      &h.req.TaskID,
@@ -178,6 +178,9 @@ func Apply(ctx context.Context, req interface{}) error {
 	handler := &calculateHandler{
 		req: in,
 	}
+	id := uuid.NewString()
+	handler.taskUserID = id
+
 	const timeoutSeconds = 30
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
 		WaitResult:     true,
@@ -194,7 +197,7 @@ func Apply(ctx context.Context, req interface{}) error {
 	handler.withCreateLedgerStatements(sagaDispose, ev)
 
 	// // create task user
-	handler.WithCreateTaskUser(sagaDispose, ev)
+	handler.WithCreateTaskUser(sagaDispose)
 
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
