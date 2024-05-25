@@ -16,13 +16,13 @@ import (
 	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
 	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
 	simprofitmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/profit"
+	orderappconfigmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/app/config"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	simulateconfigmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/simulate/config"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	orderappconfigmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/app/config"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-	simulateconfigmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/simulate/config"
 
 	"github.com/shopspring/decimal"
 )
@@ -38,7 +38,7 @@ type goodHandler struct {
 	goodCreatedAt              uint32
 	appGoodUnitSimulateRewards map[string]map[string]decimal.Decimal
 	orderRewards               []*types.OrderReward
-	appSimulateConfig          map[string]*simulateconfigmwpb.SimulateConfig
+	appSimulateConfig          map[string]*orderappconfigmwpb.SimulateConfig
 }
 
 //nolint:dupl
@@ -118,7 +118,7 @@ func (h *goodHandler) getAppSimulateConfig(ctx context.Context) error {
 	limit := constant.DefaultRowLimit
 
 	for {
-		configs, _, err := simulateconfigmwcli.GetSimulateConfigs(ctx, &simulateconfigmwpb.Conds{}, offset, limit)
+		configs, _, err := orderappconfigmwcli.GetSimulateConfigs(ctx, &orderappconfigmwpb.Conds{}, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -153,7 +153,7 @@ func (h *goodHandler) checkFirstProfit(ctx context.Context, order *ordermwpb.Ord
 	return true
 }
 
-func (h *goodHandler) calculateCashable(config *simulateconfigmwpb.SimulateConfig) bool {
+func (h *goodHandler) calculateCashable(config *orderappconfigmwpb.SimulateConfig) bool {
 	probability, err := decimal.NewFromString(config.CashableProfitProbability)
 	if err != nil {
 		logger.Sugar().Errorw(
@@ -176,7 +176,7 @@ func (h *goodHandler) calculateCashable(config *simulateconfigmwpb.SimulateConfi
 	return decimal.NewFromFloat(value).Cmp(probability) <= 0
 }
 
-func (h *goodHandler) sendCouponable(ctx context.Context, config *simulateconfigmwpb.SimulateConfig, order *ordermwpb.Order) bool {
+func (h *goodHandler) sendCouponable(ctx context.Context, config *orderappconfigmwpb.SimulateConfig, order *ordermwpb.Order) bool {
 	switch config.SendCouponMode {
 	case ordertypes.SendCouponMode_WithoutCoupon:
 		return false
@@ -313,7 +313,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
 	h.appSimulateOrderUnits = map[string]map[string]decimal.Decimal{}
 	h.appGoodUnitSimulateRewards = map[string]map[string]decimal.Decimal{}
-	h.appSimulateConfig = map[string]*simulateconfigmwpb.SimulateConfig{}
+	h.appSimulateConfig = map[string]*orderappconfigmwpb.SimulateConfig{}
 	var err error
 
 	defer h.final(ctx, &err)

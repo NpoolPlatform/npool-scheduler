@@ -13,11 +13,11 @@ import (
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
-	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/orderlock"
+	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/lock"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/types"
-	orderlockmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order/orderlock"
+	orderlockmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order/lock"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
