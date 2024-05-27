@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
 type handler struct{}
@@ -25,12 +25,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
+	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
 		OrderState: &_order.NewOrderState,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
