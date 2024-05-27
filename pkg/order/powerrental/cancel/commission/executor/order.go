@@ -12,19 +12,19 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/lock"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/commission/types"
 	orderlockmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order/lock"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
-type orderHandler struct {
-	*ordermwpb.Order
+type powerRentalOrderHandler struct {
+	*powerrentalordermwpb.PowerRentalOrder
 	persistent       chan interface{}
 	notif            chan interface{}
 	done             chan interface{}
@@ -33,16 +33,13 @@ type orderHandler struct {
 	commissionLocks  []*orderlockmwpb.OrderLock
 }
 
-func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
-	if h.Simulate {
-		return nil
-	}
+func (h *powerRentalOrderHandler) getOrderCommissionLock(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
 		locks, _, err := orderlockmwcli.GetOrderLocks(ctx, &orderlockmwpb.Conds{
-			OrderID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			OrderID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 			LockType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderLockType_LockCommission)},
 		}, offset, limit)
 		if err != nil {
@@ -57,16 +54,13 @@ func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
-	if h.Simulate {
-		return nil
-	}
+func (h *powerRentalOrderHandler) getOrderAchievement(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
 		statements, _, err := achievementstatementmwcli.GetStatements(ctx, &achievementstatementmwpb.Conds{
-			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -79,10 +73,7 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	}
 }
 
-func (h *orderHandler) toLedgerStatements() error {
-	if h.Simulate {
-		return nil
-	}
+func (h *powerRentalOrderHandler) toLedgerStatements() error {
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_CommissionRevoke
 	for _, statement := range h.statements {
@@ -116,11 +107,11 @@ func (h *orderHandler) toLedgerStatements() error {
 }
 
 //nolint:gocritic
-func (h *orderHandler) final(ctx context.Context, err *error) {
+func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"Order", h.PowerRentalOrder,
 			"CommissionStatements", h.statements,
 			"LedgerStatements", h.ledgerStatements,
 			"CommissionLocks", h.commissionLocks,
@@ -128,8 +119,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 
-	persistentOrder := &types.PersistentOrder{
-		Order:            h.Order,
+	persistentOrder := &types.PersistentPowerRentalOrder{
+		PowerRentalOrder: h.PowerRentalOrder,
 		LedgerStatements: h.ledgerStatements,
 		CommissionLocks:  map[string]*orderlockmwpb.OrderLock{},
 	}
@@ -146,7 +137,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 }
 
 //nolint:gocritic
-func (h *orderHandler) exec(ctx context.Context) error {
+func (h *powerRentalOrderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)

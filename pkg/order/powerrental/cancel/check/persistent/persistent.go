@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/check/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/check/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
 type handler struct{}
@@ -18,22 +18,17 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
-	_order, ok := order.(*types.PersistentOrder)
+func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, notif, done chan interface{}) error {
+	_powerRentalOrder, ok := powerRentalOrder.(*types.PersistentPowerRentalOrder)
 	if !ok {
-		return fmt.Errorf("invalid order")
+		return fmt.Errorf("invalid powerrentalorder")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _order, done)
+	defer asyncfeed.AsyncFeed(ctx, _powerRentalOrder, done)
 
-	state := ordertypes.OrderState_OrderStatePreCancel
-	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:           &_order.ID,
-		OrderState:   &state,
-		PaymentState: _order.NewPaymentState,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:           &_powerRentalOrder.ID,
+		OrderState:   ordertypes.OrderState_OrderStatePreCancel.Enum(),
+		PaymentState: _powerRentalOrder.NewPaymentState,
+	})
 }

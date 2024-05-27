@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/commission/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/commission/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/commission/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/commission/sentinel"
 )
 
-const subsystem = "ordercancelcommission"
+const subsystem = "orderpowerrentalcancelcommission"
 
 var h *base.Handler
 

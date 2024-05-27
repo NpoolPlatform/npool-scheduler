@@ -8,12 +8,12 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/check/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/check/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
 type handler struct{}
@@ -22,13 +22,13 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) scanOrders(ctx context.Context, admin bool, exec chan interface{}) error {
+func (h *handler) scanPowerRentalOrders(ctx context.Context, admin bool, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
 		updatedAt := uint32(time.Now().Unix()) - timedef.SecondsPerMinute
-		conds := &ordermwpb.Conds{
+		conds := &powerrentalordermwpb.Conds{
 			OrderStates: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 				uint32(ordertypes.OrderState_OrderStatePaid),
 				uint32(ordertypes.OrderState_OrderStateWaitPayment),
@@ -42,16 +42,16 @@ func (h *handler) scanOrders(ctx context.Context, admin bool, exec chan interfac
 		} else {
 			conds.UserSetCanceled = &basetypes.BoolVal{Op: cruder.EQ, Value: true}
 		}
-		orders, _, err := ordermwcli.GetOrders(ctx, conds, offset, limit)
+		powerRentalOrders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, conds, offset, limit)
 		if err != nil {
 			return err
 		}
-		if len(orders) == 0 {
+		if len(powerRentalOrders) == 0 {
 			return nil
 		}
 
-		for _, order := range orders {
-			cancelablefeed.CancelableFeed(ctx, order, exec)
+		for _, powerRentalOrder := range powerRentalOrders {
+			cancelablefeed.CancelableFeed(ctx, powerRentalOrder, exec)
 		}
 
 		offset += limit
@@ -59,10 +59,10 @@ func (h *handler) scanOrders(ctx context.Context, admin bool, exec chan interfac
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	if err := h.scanOrders(ctx, true, exec); err != nil {
+	if err := h.scanPowerRentalOrders(ctx, true, exec); err != nil {
 		return err
 	}
-	return h.scanOrders(ctx, false, exec)
+	return h.scanPowerRentalOrders(ctx, false, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
@@ -74,8 +74,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
-	if order, ok := ent.(*types.PersistentOrder); ok {
-		return order.EntID
+	if powerRentalOrder, ok := ent.(*types.PersistentPowerRentalOrder); ok {
+		return powerRentalOrder.UserID
 	}
-	return ent.(*ordermwpb.Order).EntID
+	return ent.(*powerrentalordermwpb.PowerRentalOrder).UserID
 }
