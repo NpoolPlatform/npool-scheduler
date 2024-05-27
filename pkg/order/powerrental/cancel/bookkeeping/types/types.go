@@ -1,12 +1,24 @@
 package types
 
 import (
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+
+	"github.com/shopspring/decimal"
 )
 
-type PersistentOrder struct {
-	*ordermwpb.Order
-	PaymentAccountBalance *string
+type XPaymentTransfer struct {
+	PaymentTransferID     string
+	CoinTypeID            string
+	AccountID             string
+	PaymentAccountBalance string
 	IncomingAmount        *string
-	IncomingExtra         string
+	Amount                decimal.Decimal
+	StartAmount           decimal.Decimal
+	FinishAmount          string
+}
+
+type PersistentPowerRentalOrder struct {
+	*powerrentalordermwpb.PowerRentalOrder
+	XPaymentTransfers []*XPaymentTransfer
+	IncomingExtra     string
 }
