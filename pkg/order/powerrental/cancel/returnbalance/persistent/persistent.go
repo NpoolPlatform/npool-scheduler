@@ -9,17 +9,15 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/returnbalance/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
-
-	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
@@ -31,35 +29,28 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStateCanceledTransferBookKeeping
 	rollback := true
-	req := &ordermwpb.OrderReq{
+	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,
 		OrderState: &state,
 		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},
 	)
 }
 
 func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.Simulate {
-		return
-	}
-	if order.LockedBalanceAmount == nil {
-		return
-	}
-	balance := decimal.RequireFromString(*order.LockedBalanceAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
+	if order.PaymentOp != types.Unlock {
 		return
 	}
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.v2.Middleware/UnlockBalance",
+		"ledger.middleware.ledger.v2.Middleware/UnlockBalances",
 		"",
 		&ledgermwpb.UnlockBalanceRequest{
 			LockID: order.LedgerLockID,
@@ -68,37 +59,32 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 }
 
 func (p *handler) withReturnSpent(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.Simulate {
-		return
-	}
-	if order.SpentAmount == nil {
-		return
-	}
-
-	balance := decimal.RequireFromString(*order.SpentAmount)
-	if balance.Cmp(decimal.NewFromInt(0)) <= 0 {
+	if order.PaymentOp != types.Unspend {
 		return
 	}
 
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_OrderRevoke
+	reqs := []*statementmwpb.StatementReq{}
 
-	req := &statementmwpb.StatementReq{
-		AppID:      &order.AppID,
-		UserID:     &order.UserID,
-		CoinTypeID: &order.PaymentCoinTypeID,
-		IOType:     &ioType,
-		IOSubType:  &ioSubType,
-		Amount:     order.SpentAmount,
-		IOExtra:    &order.SpentExtra,
+	for _, payment := range order.Payments {
+		reqs = append(reqs, &statementmwpb.StatementReq{
+			AppID:      &order.AppID,
+			UserID:     &order.UserID,
+			CoinTypeID: &payment.CoinTypeID,
+			IOType:     &ioType,
+			IOSubType:  &ioSubType,
+			Amount:     &payment.Amount,
+			IOExtra:    &order.SpentExtra,
+		})
 	}
 
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
-		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatement",
+		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
 		"",
-		&statementmwpb.CreateStatementRequest{
-			Info: req,
+		&statementmwpb.CreateStatementsRequest{
+			Infos: reqs,
 		},
 	)
 }

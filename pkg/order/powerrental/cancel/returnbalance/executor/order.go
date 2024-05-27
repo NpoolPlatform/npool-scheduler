@@ -5,21 +5,64 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/cancel/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/returnbalance/types"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
-	persistent          chan interface{}
-	notif               chan interface{}
-	done                chan interface{}
-	lockedBalanceAmount decimal.Decimal
-	spentBalanceAmount  decimal.Decimal
+	*powerrentalordermwpb.PowerRentalOrder
+	persistent chan interface{}
+	notif      chan interface{}
+	done       chan interface{}
+	payments   []*types.Payment
+	paymentOp  types.PaymentOp
+}
+
+func (h *orderHandler) constructPayments() error {
+	switch h.OrderType {
+	case ordertypes.OrderType_Offline:
+		fallthrough //nolint
+	case ordertypes.OrderType_Airdrop:
+		return nil
+	}
+
+	switch h.CancelState {
+	case ordertypes.OrderState_OrderStateWaitPayment:
+		fallthrough //nolint
+	case ordertypes.OrderState_OrderStatePaymentTimeout:
+		h.paymentOp = types.Unlock
+	case ordertypes.OrderState_OrderStatePaid:
+		fallthrough //nolint
+	case ordertypes.OrderState_OrderStateInService:
+		h.paymentOp = types.Unspend
+	default:
+		return nil
+	}
+
+	for _, paymentTransfer := range h.PaymentTransfers {
+		if _, err := decimal.NewFromString(paymentTransfer.Amount); err != nil {
+			return wlog.WrapError(err)
+		}
+		h.payments = append(h.payments, &types.Payment{
+			CoinTypeID: paymentTransfer.CoinTypeID,
+			Amount:     paymentTransfer.Amount,
+		})
+	}
+	for _, paymentBalance := range h.PaymentBalances {
+		if _, err := decimal.NewFromString(paymentBalance.Amount); err != nil {
+			return wlog.WrapError(err)
+		}
+		h.payments = append(h.payments, &types.Payment{
+			CoinTypeID: paymentBalance.CoinTypeID,
+			Amount:     paymentBalance.Amount,
+		})
+	}
+	return nil
 }
 
 //nolint:gocritic
@@ -27,28 +70,22 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
-			"LockedBalance", h.lockedBalanceAmount,
-			"SpentBalance", h.spentBalanceAmount,
+			"PowerRentalOrder", h.PowerRentalOrder,
+			"Payments", h.payments,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+		PowerRentalOrder: h.PowerRentalOrder,
+		Payments:         h.payments,
+		PaymentOp:        h.paymentOp,
 	}
-	if h.lockedBalanceAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.lockedBalanceAmount.String()
-		persistentOrder.LockedBalanceAmount = &amount
-	}
-	if h.spentBalanceAmount.Cmp(decimal.NewFromInt(0)) > 0 {
-		amount := h.spentBalanceAmount.String()
-		persistentOrder.SpentAmount = &amount
+	if len(h.payments) > 0 && h.paymentOp == types.Unspend {
 		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","OrderID":"%v","Amount":"%v","CancelOrder":true}`,
+			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
 			h.EntID,
-			h.spentBalanceAmount,
 		)
 		persistentOrder.SpentExtra = ioExtra
 	}
@@ -61,33 +98,13 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.done)
 }
 
-func (h *orderHandler) exec(ctx context.Context) error { //nolint
+func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)
 
-	switch h.OrderType {
-	case ordertypes.OrderType_Offline:
-		fallthrough //nolint
-	case ordertypes.OrderType_Airdrop:
-		return nil
-	}
-
-	switch h.CancelState {
-	case ordertypes.OrderState_OrderStateWaitPayment:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		h.lockedBalanceAmount, err = decimal.NewFromString(h.BalanceAmount)
-		if err != nil {
-			return err
-		}
-	case ordertypes.OrderState_OrderStatePaid:
-		fallthrough //nolint
-	case ordertypes.OrderState_OrderStateInService:
-		h.spentBalanceAmount, err = decimal.NewFromString(h.PaymentAmount)
-		if err != nil {
-			return err
-		}
+	if err = h.constructPayments(); err != nil {
+		return wlog.WrapError(err)
 	}
 
 	return nil

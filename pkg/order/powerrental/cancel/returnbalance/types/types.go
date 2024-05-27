@@ -1,12 +1,24 @@
 package types
 
 import (
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 )
 
+type Payment struct {
+	CoinTypeID string
+	Amount     string
+}
+
+const (
+	Unlock  = 1
+	Unspend = 2
+)
+
+type PaymentOp = int
+
 type PersistentOrder struct {
-	*ordermwpb.Order
-	LockedBalanceAmount *string
-	SpentAmount         *string
-	SpentExtra          string
+	*powerrentalordermwpb.PowerRentalOrder
+	Payments   []*Payment
+	PaymentOp  PaymentOp
+	SpentExtra string
 }
