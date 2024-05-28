@@ -15,9 +15,6 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/returnbalance"
 	cancelunlockaccount "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/unlockaccount"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/created"
-	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/expiry/check"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/expiry/preexpired"
-	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/expiry/restorestock"
 	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/paid/check"
 	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/paid/stock"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/achievement"
@@ -63,9 +60,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	cancelachievement.Initialize(ctx, cancel, &running)
 	cancelrestorestock.Initialize(ctx, cancel, &running)
 	returnbalance.Initialize(ctx, cancel, &running)
-	preexpired.Initialize(ctx, cancel, &running)
-	expiryrestorestock.Initialize(ctx, cancel, &running)
-	expirycheck.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
 }
 
@@ -74,9 +68,6 @@ func Finalize(ctx context.Context) {
 		return
 	}
 	created.Finalize(ctx)
-	expirycheck.Finalize(ctx)
-	expiryrestorestock.Finalize(ctx)
-	preexpired.Finalize(ctx)
 	returnbalance.Finalize(ctx)
 	cancelrestorestock.Finalize(ctx)
 	cancelachievement.Finalize(ctx)
