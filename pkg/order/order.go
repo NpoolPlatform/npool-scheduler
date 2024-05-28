@@ -29,7 +29,7 @@ func Finalize(ctx context.Context) {
 	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	powerrentalsimulate.Initialize(ctx, cancel)
-	fee.Initialize(ctx, cancel)
-	powerrental.Initialize(ctx, cancel)
+	powerrentalsimulate.Finalize(ctx)
+	fee.Finalize(ctx)
+	powerrental.Finalize(ctx)
 }
