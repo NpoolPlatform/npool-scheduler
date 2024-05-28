@@ -10,8 +10,8 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/check/types"
-	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/check/types"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
 )
 
 type orderHandler struct {
