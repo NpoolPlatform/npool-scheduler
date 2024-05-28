@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
-	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
 )
 
 type handler struct{}
@@ -16,14 +16,14 @@ func NewExecutor() baseexecutor.Exec {
 }
 
 func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif, done chan interface{}) error {
-	_order, ok := order.(*ordermwpb.Order)
+	_order, ok := order.(*powerrentalordermwpb.PowerRentalOrder)
 	if !ok {
 		return fmt.Errorf("invalid order")
 	}
 
 	h := &orderHandler{
 		OrderHandler: &renewcommon.OrderHandler{
-			Order: _order,
+			PowerRentalOrder: _order,
 		},
 		persistent: persistent,
 		notif:      notif,

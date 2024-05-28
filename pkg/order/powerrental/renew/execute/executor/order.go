@@ -3,17 +3,16 @@ package executor
 
 import (
 	"context"
-	"time"
 
-	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	appgoodstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
-	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
+	paymentmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/payment"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/execute/types"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/execute/types"
+
+	"github.com/google/uuid"
 )
 
 type orderHandler struct {
@@ -22,149 +21,72 @@ type orderHandler struct {
 	done          chan interface{}
 	notif         chan interface{}
 	newRenewState ordertypes.OrderRenewState
-	orderReqs     []*types.OrderReq
+	feeOrderReqs  []*feeordermwpb.FeeOrderReq
+	paymentID     *string
+	ledgerLockID  string
+}
+
+func (h *orderHandler) formalizePayment(req *feeordermwpb.FeeOrderReq) {
+	if h.paymentID == nil {
+		req.PaymentType = func() *ordertypes.PaymentType { e := ordertypes.PaymentType_PayWithBalanceOnly; return &e }()
+		req.PaymentID = func() *string { s := uuid.NewString(); return &s }()
+		h.paymentID = req.PaymentID
+		req.LedgerLockID = func() *string { s := uuid.NewString(); return &s }()
+		h.ledgerLockID = *req.LedgerLockID
+		for _, deduction := range h.Deductions {
+			req.PaymentBalances = append(req.PaymentBalances, &paymentmwpb.PaymentBalanceReq{
+				CoinTypeID:           &deduction.AppCoin.CoinTypeID,
+				Amount:               &deduction.Amount,
+				CoinUSDCurrency:      &deduction.USDCurrency,
+				LocalCoinUSDCurrency: &deduction.USDCurrency,
+				LiveCoinUSDCurrency:  &deduction.USDCurrency,
+			})
+		}
+		req.PaymentAmountUSD = func() *string { s := h.ElectricityFeeUSDAmount.Add(h.TechniqueFeeUSDAmount).String(); return &s }()
+	} else {
+		req.PaymentType = func() *ordertypes.PaymentType { e := ordertypes.PaymentType_PayWithOtherOrder; return &e }()
+		req.PaymentID = h.paymentID
+	}
 }
 
 func (h *orderHandler) constructElectricityFeeOrder() {
 	if !h.CheckElectricityFee {
 		return
 	}
-
-	balances := []*ledgermwpb.LockBalancesRequest_XBalance{}
-	amounts := []*ordermwpb.PaymentAmount{}
-
-	for _, deduction := range h.Deductions {
-		if deduction.AppGood.EntID == h.ElectricityFeeAppGood.EntID {
-			balances = append(balances, &ledgermwpb.LockBalancesRequest_XBalance{
-				CoinTypeID: deduction.AppCoin.CoinTypeID,
-				Amount:     deduction.Amount,
-			})
-			amounts = append(amounts, &ordermwpb.PaymentAmount{
-				CoinTypeID:  deduction.AppCoin.CoinTypeID,
-				USDCurrency: deduction.USDCurrency,
-				Amount:      deduction.Amount,
-			})
-		}
+	req := &feeordermwpb.FeeOrderReq{
+		AppID:           &h.AppID,
+		UserID:          &h.UserID,
+		GoodID:          &h.ElectricityFee.GoodID,
+		GoodType:        &h.ElectricityFee.GoodType,
+		AppGoodID:       &h.ElectricityFee.EntID,
+		ParentOrderID:   &h.EntID,
+		OrderType:       func() *ordertypes.OrderType { e := ordertypes.OrderType_Normal; return &e }(),
+		CreateMethod:    func() *ordertypes.OrderCreateMethod { e := ordertypes.OrderCreateMethod_OrderCreatedByRenew; return &e }(),
+		GoodValueUSD:    func() *string { s := h.ElectricityFeeUSDAmount.String(); return &s }(),
+		DurationSeconds: &h.ElectricityFeeExtendSeconds,
 	}
-
-	multiPaymentCoins := true
-	usdAmount := h.ElectricityFeeUSDAmount.String()
-	orderType := ordertypes.OrderType_Normal
-	paymentType := ordertypes.PaymentType_PayWithBalanceOnly
-	createMethod := ordertypes.OrderCreateMethod_OrderCreatedByRenew
-	investmentType := ordertypes.InvestmentType_FullPayment
-
-	startAt := uint32(time.Now().Unix() + 10*timedef.SecondsPerMinute)
-	if startAt < h.ElectricityFeeEndAt {
-		startAt = h.ElectricityFeeEndAt
-	}
-	endAt := startAt + h.ElectricityFeeExtendSeconds
-	if endAt > h.EndAt {
-		endAt = h.EndAt
-	}
-
-	orderReq := &ordermwpb.OrderReq{
-		AppID:             &h.AppID,
-		UserID:            &h.UserID,
-		GoodID:            &h.ElectricityFeeAppGood.GoodID,
-		AppGoodID:         &h.ElectricityFeeAppGood.EntID,
-		ParentOrderID:     &h.EntID,
-		Units:             &h.Units,
-		GoodValue:         &usdAmount,
-		GoodValueUSD:      &usdAmount,
-		Duration:          &h.ElectricityFeeExtendDuration,
-		OrderType:         &orderType,
-		PaymentType:       &paymentType,
-		CreateMethod:      &createMethod,
-		MultiPaymentCoins: &multiPaymentCoins,
-		PaymentAmounts:    amounts,
-		InvestmentType:    &investmentType,
-		CoinTypeID:        &h.ElectricityFeeAppGood.CoinTypeID,
-		StartAt:           &startAt,
-		EndAt:             &endAt,
-	}
-
-	h.orderReqs = append(h.orderReqs, &types.OrderReq{
-		OrderReq: orderReq,
-		Balances: balances,
-		Stock: &appgoodstockmwpb.LocksRequest_XStock{
-			EntID:     h.ElectricityFeeAppGood.AppGoodStockID,
-			GoodID:    h.ElectricityFeeAppGood.GoodID,
-			AppGoodID: h.ElectricityFeeAppGood.EntID,
-			Units:     h.Units,
-		},
-	})
+	h.formalizePayment(req)
+	h.feeOrderReqs = append(h.feeOrderReqs, req)
 }
 
 func (h *orderHandler) constructTechniqueFeeOrder() {
 	if !h.CheckTechniqueFee {
 		return
 	}
-
-	balances := []*ledgermwpb.LockBalancesRequest_XBalance{}
-	amounts := []*ordermwpb.PaymentAmount{}
-
-	for _, deduction := range h.Deductions {
-		if deduction.AppGood.EntID == h.TechniqueFeeAppGood.EntID {
-			balances = append(balances, &ledgermwpb.LockBalancesRequest_XBalance{
-				CoinTypeID: deduction.AppCoin.CoinTypeID,
-				Amount:     deduction.Amount,
-			})
-			amounts = append(amounts, &ordermwpb.PaymentAmount{
-				CoinTypeID:  deduction.AppCoin.CoinTypeID,
-				USDCurrency: deduction.USDCurrency,
-				Amount:      deduction.Amount,
-			})
-		}
+	req := &feeordermwpb.FeeOrderReq{
+		AppID:           &h.AppID,
+		UserID:          &h.UserID,
+		GoodID:          &h.TechniqueFee.GoodID,
+		GoodType:        &h.TechniqueFee.GoodType,
+		AppGoodID:       &h.TechniqueFee.EntID,
+		ParentOrderID:   &h.EntID,
+		OrderType:       func() *ordertypes.OrderType { e := ordertypes.OrderType_Normal; return &e }(),
+		CreateMethod:    func() *ordertypes.OrderCreateMethod { e := ordertypes.OrderCreateMethod_OrderCreatedByRenew; return &e }(),
+		GoodValueUSD:    func() *string { s := h.TechniqueFeeUSDAmount.String(); return &s }(),
+		DurationSeconds: &h.TechniqueFeeExtendSeconds,
 	}
-
-	multiPaymentCoins := true
-	usdAmount := h.TechniqueFeeUSDAmount.String()
-	orderType := ordertypes.OrderType_Normal
-	paymentType := ordertypes.PaymentType_PayWithBalanceOnly
-	createMethod := ordertypes.OrderCreateMethod_OrderCreatedByRenew
-	investmentType := ordertypes.InvestmentType_FullPayment
-
-	startAt := uint32(time.Now().Unix() + 10*timedef.SecondsPerMinute)
-	if startAt < h.TechniqueFeeEndAt {
-		startAt = h.TechniqueFeeEndAt
-	}
-	endAt := startAt + h.TechniqueFeeExtendSeconds
-	if endAt > h.EndAt {
-		endAt = h.EndAt
-	}
-
-	orderReq := &ordermwpb.OrderReq{
-		AppID:             &h.AppID,
-		UserID:            &h.UserID,
-		GoodID:            &h.TechniqueFeeAppGood.GoodID,
-		AppGoodID:         &h.TechniqueFeeAppGood.EntID,
-		ParentOrderID:     &h.EntID,
-		Units:             &h.Units,
-		GoodValue:         &usdAmount,
-		GoodValueUSD:      &usdAmount,
-		Duration:          &h.TechniqueFeeExtendDuration,
-		OrderType:         &orderType,
-		PaymentType:       &paymentType,
-		CreateMethod:      &createMethod,
-		MultiPaymentCoins: &multiPaymentCoins,
-		PaymentAmounts:    amounts,
-		InvestmentType:    &investmentType,
-		CoinTypeID:        &h.TechniqueFeeAppGood.CoinTypeID,
-		StartAt:           &startAt,
-		EndAt:             &endAt,
-	}
-
-	h.orderReqs = append(h.orderReqs, &types.OrderReq{
-		OrderReq: orderReq,
-		Balances: balances,
-		Stock: &appgoodstockmwpb.LocksRequest_XStock{
-			EntID:     h.TechniqueFeeAppGood.AppGoodStockID,
-			GoodID:    h.TechniqueFeeAppGood.GoodID,
-			AppGoodID: h.TechniqueFeeAppGood.EntID,
-			Units:     h.Units,
-		},
-	})
+	h.formalizePayment(req)
+	h.feeOrderReqs = append(h.feeOrderReqs, req)
 }
 
 func (h *orderHandler) constructRenewOrders() {
@@ -178,27 +100,28 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"newRenewState", h.newRenewState,
-			"orderReqs", h.orderReqs,
+			"FeeOrderReqs", h.feeOrderReqs,
 			"TechniqueFeeEndAt", h.TechniqueFeeEndAt,
-			"TechniqueFeeDuration", h.TechniqueFeeDuration,
+			"TechniqueFeeDuration", h.TechniqueFeeSeconds,
 			"StartAt", h.StartAt,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:               h.Order,
+		PowerRentalOrder:    h.PowerRentalOrder,
 		InsufficientBalance: h.InsufficientBalance,
-		OrderReqs:           h.orderReqs,
+		FeeOrderReqs:        h.feeOrderReqs,
 		NewRenewState:       h.newRenewState,
+		LedgerLockID:        h.ledgerLockID,
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	if h.newRenewState != h.RenewState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic
@@ -209,16 +132,19 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	var yes bool
 	defer h.final(ctx, &err)
 
-	if err = h.GetRequireds(ctx); err != nil {
+	if err = h.GetAppPowerRental(ctx); err != nil {
 		return err
 	}
-	if err := h.GetAppGoods(ctx); err != nil {
+	if err = h.GetAppGoodRequireds(ctx); err != nil {
 		return err
 	}
-	if yes, err = h.RenewGoodExist(); err != nil || !yes {
+	if err := h.GetAppFees(ctx); err != nil {
 		return err
 	}
-	if err = h.GetRenewableOrders(ctx); err != nil {
+	if yes, err = h.Renewable(ctx); err != nil || !yes {
+		return err
+	}
+	if err = h.CalculateRenewDuration(ctx); err != nil {
 		return err
 	}
 	if err = h.GetDeductionCoins(ctx); err != nil {
@@ -234,9 +160,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.CalculateUSDAmount(); err != nil {
-		return err
-	}
-	if _, err = h.CalculateDeductionForOrder(); err != nil { // yes means insufficient balance
 		return err
 	}
 	h.constructRenewOrders()
