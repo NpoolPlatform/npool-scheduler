@@ -25,7 +25,7 @@ type orderHandler struct {
 }
 
 //nolint:gocognit
-func (h *orderHandler) checkNotifiable() bool {
+func (h *orderHandler) checkNotifiable(ctx context.Context) (bool, error) {
 	now := uint32(time.Now().Unix())
 	const minNotifyInterval = timedef.SecondsPerHour
 	const preNotifyTicker = timedef.SecondsPerHour * 24
@@ -34,26 +34,23 @@ func (h *orderHandler) checkNotifiable() bool {
 	if h.StartAt >= now {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = h.StartAt
-		return false
+		return false, nil
 	}
 	if h.EndAt <= now {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = math.MaxUint32
-		return false
+		return false, nil
 	}
 
-	outOfGas := h.OutOfGasHours * timedef.SecondsPerHour
-	compensate := h.CompensateHours * timedef.SecondsPerHour
-	ignoredSeconds := outOfGas + compensate
 	nextNotifyAt := now
 
-	if h.ExistUnpaidElectricityFeeOrder || h.ExistUnpaidTechniqueFeeOrder {
+	if able, err := h.Renewable(ctx); err != nil || !able {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = now + noNotifyTicker
-		return false
+		return false, err
 	}
 
-	if h.ElectricityFeeAppGood != nil {
+	if h.ElectricityFee != nil {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		if h.ElectricityFeeEndAt < h.EndAt {
 			if h.CheckElectricityFee {
@@ -66,8 +63,7 @@ func (h *orderHandler) checkNotifiable() bool {
 			nextNotifyAt = h.EndAt + noNotifyTicker
 		}
 	}
-	if h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByCash {
-		h.TechniqueFeeEndAt = h.StartAt + h.TechniqueFeeDuration + ignoredSeconds
+	if h.TechniqueFee != nil && h.TechniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount {
 		if h.newRenewState == h.RenewState {
 			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		}
@@ -101,16 +97,16 @@ func (h *orderHandler) checkNotifiable() bool {
 	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
 
-	if ((h.ElectricityFeeAppGood == nil ||
-		(h.ElectricityFeeAppGood != nil && h.ElectricityFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit)) &&
-		(h.TechniqueFeeAppGood == nil ||
-			(h.TechniqueFeeAppGood != nil && h.TechniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit))) ||
-		h.MainAppGood.PackageWithRequireds {
+	if ((h.ElectricityFee == nil ||
+		(h.ElectricityFee != nil && h.ElectricityFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount)) &&
+		(h.TechniqueFee == nil ||
+			(h.TechniqueFee != nil && h.TechniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount))) ||
+		h.AppPowerRental.PackageWithRequireds {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
 	}
 
-	return h.notifiable
+	return h.notifiable, nil
 }
 
 //nolint:gocritic
@@ -118,30 +114,28 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"NewRenewState", h.newRenewState,
 			"notifiable", h.notifiable,
 			"CheckElectricityFee", h.CheckElectricityFee,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"nextRenewNotifyAt", h.nextRenewNotifyAt,
-			"ExistUnpaidTechniqueFee", h.ExistUnpaidTechniqueFeeOrder,
-			"ExistUnpaidElectricityFee", h.ExistUnpaidElectricityFeeOrder,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:             h.Order,
+		PowerRentalOrder:  h.PowerRentalOrder,
 		NewRenewState:     h.newRenewState,
 		NextRenewNotifyAt: h.nextRenewNotifyAt,
 	}
 	if *err != nil || h.notifiable {
-		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
 	}
 	if h.newRenewState != h.RenewState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic
@@ -152,16 +146,20 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	var yes bool
 	defer h.final(ctx, &err)
 
-	if err = h.GetRequireds(ctx); err != nil {
+	if err = h.GetAppPowerRental(ctx); err != nil {
 		return err
 	}
-	if err := h.GetAppGoods(ctx); err != nil {
+	if err = h.GetAppGoodRequireds(ctx); err != nil {
 		return err
 	}
-	if err = h.GetRenewableOrders(ctx); err != nil {
+	if err := h.GetAppFees(ctx); err != nil {
 		return err
 	}
-	if yes = h.checkNotifiable(); !yes {
+	h.FormalizeFeeDurationSeconds()
+	if err = h.CalculateRenewDuration(ctx); err != nil {
+		return err
+	}
+	if yes, err = h.checkNotifiable(ctx); err != nil || !yes {
 		return err
 	}
 	return nil

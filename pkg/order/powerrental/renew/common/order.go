@@ -156,21 +156,21 @@ func (h *OrderHandler) CalculateRenewDuration(ctx context.Context) error {
 	now := uint32(time.Now().Unix())
 	const secondsBeforeFeeExhausted = timedef.SecondsPerHour * 24
 
-	if h.ElectricityFee != nil && h.ElectricityFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+	if h.ElectricityFee != nil && h.ElectricityFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount {
 		h.ElectricityFeeEndAt = h.EndAt
 	}
-	if h.TechniqueFee != nil && h.TechniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+	if h.TechniqueFee != nil && h.TechniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount {
 		h.TechniqueFeeEndAt = h.EndAt
 	}
 
 	if h.ElectricityFee != nil && h.ElectricityFeeEndAt < h.EndAt {
 		h.CheckElectricityFee =
-			h.ElectricityFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent &&
+			h.ElectricityFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
 				h.ElectricityFeeEndAt < now+secondsBeforeFeeExhausted
 	}
 	if h.TechniqueFee != nil && h.TechniqueFeeEndAt < h.EndAt {
 		h.CheckTechniqueFee =
-			h.TechniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent &&
+			h.TechniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
 				h.TechniqueFeeEndAt < now+secondsBeforeFeeExhausted
 	}
 	return nil
