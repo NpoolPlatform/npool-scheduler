@@ -8,7 +8,7 @@ import (
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/preexpired/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/preexpired/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 

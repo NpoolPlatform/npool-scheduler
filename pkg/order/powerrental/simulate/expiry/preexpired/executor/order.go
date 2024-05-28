@@ -5,7 +5,7 @@ import (
 
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/preexpired/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/preexpired/types"
 )
 
 type orderHandler struct {

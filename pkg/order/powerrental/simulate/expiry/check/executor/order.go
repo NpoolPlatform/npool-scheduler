@@ -9,14 +9,13 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/check/types"
 )
 
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	persistent    chan interface{}
 	done          chan interface{}
-	notif         chan interface{}
 	newOrderState ordertypes.OrderState
 }
 
@@ -25,8 +24,6 @@ func (h *orderHandler) expired() (bool, error) {
 	case ordertypes.PaymentState_PaymentStateWait:
 		fallthrough // nolint
 	case ordertypes.PaymentState_PaymentStateCanceled:
-		fallthrough // nolint
-	case ordertypes.PaymentState_PaymentStateTimeout:
 		return false, nil
 	case ordertypes.PaymentState_PaymentStateDone:
 	case ordertypes.PaymentState_PaymentStateNoPayment:
@@ -52,10 +49,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	persistentOrder := &types.PersistentOrder{
 		PowerRentalOrder: h.PowerRentalOrder,
-		NewOrderState:    h.newOrderState,
-	}
-	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
 	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
