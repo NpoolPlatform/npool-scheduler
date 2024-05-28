@@ -6,12 +6,13 @@ import (
 
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	accountsvcname "github.com/NpoolPlatform/account-middleware/pkg/servicename"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -25,42 +26,55 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateUpdatePaidChilds
+	state := ordertypes.OrderState_OrderStatePaid
 	rollback := true
-	req := &ordermwpb.OrderReq{
+	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,
 		OrderState: &state,
 		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},
 	)
 }
 
 func (p *handler) withUnlockPaymentAccount(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.OrderPaymentAccountID == nil {
-		return
+	// TODO: use UpdateAccounts in future
+	for _, id := range order.PaymentAccountIDs {
+		locked := false
+		req := &payaccmwpb.AccountReq{
+			ID:     &id,
+			Locked: &locked,
+		}
+		dispose.Add(
+			accountsvcname.ServiceDomain,
+			"account.middleware.payment.v1.Middleware/UpdateAccount",
+			"",
+			&payaccmwpb.UpdateAccountRequest{
+				Info: req,
+			},
+		)
 	}
+}
 
-	locked := false
-	req := &payaccmwpb.AccountReq{
-		ID:     order.OrderPaymentAccountID,
-		Locked: &locked,
+func (p *handler) lockPaymentTransferAccounts(order *types.PersistentOrder) error {
+	for _, paymentTransfer := range order.PaymentTransfers {
+		if err := accountlock.Lock(paymentTransfer.AccountID); err != nil {
+			return wlog.WrapError(err)
+		}
 	}
+	return nil
+}
 
-	dispose.Add(
-		accountsvcname.ServiceDomain,
-		"account.middleware.payment.v1.Middleware/UpdateAccount",
-		"",
-		&payaccmwpb.UpdateAccountRequest{
-			Info: req,
-		},
-	)
+func (p *handler) unlockPaymentTransferAccounts(order *types.PersistentOrder) {
+	for _, paymentTransfer := range order.PaymentTransfers {
+		_ = accountlock.Unlock(paymentTransfer.AccountID)
+	}
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
@@ -71,12 +85,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if err := accountlock.Lock(_order.PaymentAccountID); err != nil {
+	if err := p.lockPaymentTransferAccounts(_order); err != nil {
 		return err
 	}
-	defer func() {
-		_ = accountlock.Unlock(_order.PaymentAccountID) //nolint
-	}()
+	defer p.unlockPaymentTransferAccounts(_order)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{

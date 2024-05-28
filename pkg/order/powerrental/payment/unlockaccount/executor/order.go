@@ -2,67 +2,47 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
-	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
-	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
+	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/unlockaccount/types"
-
-	"github.com/shopspring/decimal"
+	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/types"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
-	persistent     chan interface{}
-	notif          chan interface{}
-	done           chan interface{}
-	paymentAccount *payaccmwpb.Account
-	transferAmount decimal.Decimal
+	*powerrentalordermwpb.PowerRentalOrder
+	persistent      chan interface{}
+	notif           chan interface{}
+	done            chan interface{}
+	paymentAccounts map[string]*paymentaccountmwpb.Account
 }
 
-func (h *orderHandler) onlinePayment() bool {
-	switch h.OrderType {
-	case ordertypes.OrderType_Offline:
-		fallthrough //nolint
-	case ordertypes.OrderType_Airdrop:
-		return false
-	}
-	return h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0
-}
-
-func (h *orderHandler) payWithBalanceOnly() bool {
-	return h.PaymentType == ordertypes.PaymentType_PayWithBalanceOnly
+func (h *orderHandler) payWithTransfer() bool {
+	return len(h.PaymentTransfers) > 0
 }
 
 func (h *orderHandler) checkUnlockable() bool {
-	if !h.onlinePayment() || h.payWithBalanceOnly() {
-		return false
-	}
-	return true
+	return h.payWithTransfer()
 }
 
-func (h *orderHandler) checkPaymentAccount(ctx context.Context) error {
-	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: h.PaymentAccountID},
-		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		LockedBy:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountLockedBy_Payment)},
-		Blocked:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
+func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
+	h.paymentAccounts, err = schedcommon.GetPaymentAccounts(ctx, func() (accountIDs []string) {
+		for _, paymentTransfer := range h.PaymentTransfers {
+			accountIDs = append(accountIDs, paymentTransfer.AccountID)
+		}
+		return
+	}())
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if account == nil {
-		return fmt.Errorf("invalid account")
+	for _, paymentTransfer := range h.PaymentTransfers {
+		if _, ok := h.paymentAccounts[paymentTransfer.AccountID]; !ok {
+			return wlog.Errorf("invalid paymentaccount")
+		}
 	}
-	h.paymentAccount = account
 	return nil
 }
 
@@ -71,16 +51,19 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
-			"PaymentAccount", h.paymentAccount,
+			"PowerRentalOrder", h.PowerRentalOrder,
+			"PaymentAccounts", h.paymentAccounts,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
-	}
-	if h.paymentAccount != nil {
-		persistentOrder.OrderPaymentAccountID = &h.paymentAccount.ID
+		PowerRentalOrder: h.PowerRentalOrder,
+		PaymentAccountIDs: func() (ids []uint32) {
+			for _, paymentAccount := range h.paymentAccounts {
+				ids = append(ids, paymentAccount.ID)
+			}
+			return
+		}(),
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
@@ -96,20 +79,10 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
-		return err
-	}
 	if able := h.checkUnlockable(); !able {
 		return nil
 	}
-	if err = accountlock.Lock(h.PaymentAccountID); err != nil {
-		return err
-	}
-	defer func() {
-		_ = accountlock.Unlock(h.PaymentAccountID) //nolint
-	}()
-
-	if err = h.checkPaymentAccount(ctx); err != nil {
+	if err = h.getPaymentAccounts(ctx); err != nil {
 		return err
 	}
 
