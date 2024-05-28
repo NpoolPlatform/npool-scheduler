@@ -27,7 +27,6 @@ type powerRentalOrderHandler struct {
 	paymentTransfers     []*types.XPaymentTransfer
 	paymentTransferCoins map[string]*coinmwpb.Coin
 	paymentAccounts      map[string]*paymentaccountmwpb.Account
-	incomingAmount       decimal.Decimal
 }
 
 func (h *powerRentalOrderHandler) payWithTransfer() bool {
@@ -163,11 +162,10 @@ func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
 	persistentPowerRentalOrder.XPaymentTransfers = h.paymentTransfers
 	if len(h.paymentTransfers) > 0 {
 		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","OrderID":"%v","Amount":"%v","CancelOrder":true}`,
+			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
 			h.EntID,
-			h.incomingAmount,
 		)
 		persistentPowerRentalOrder.IncomingExtra = ioExtra
 	}

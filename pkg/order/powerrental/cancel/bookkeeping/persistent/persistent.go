@@ -51,6 +51,8 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, powerRentalO
 	)
 }
 
+// TODO: here we should also unlock balance
+
 func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, powerRentalOrder *types.PersistentPowerRentalOrder) {
 	reqs := []*statementmwpb.StatementReq{}
 	ioType := ledgertypes.IOType_Incoming
@@ -86,7 +88,7 @@ func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, powe
 func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, notif, done chan interface{}) error {
 	_powerRentalOrder, ok := powerRentalOrder.(*types.PersistentPowerRentalOrder)
 	if !ok {
-		return fmt.Errorf("invalid powerRentalOrder")
+		return fmt.Errorf("invalid powerrentalorder")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _powerRentalOrder, done)
