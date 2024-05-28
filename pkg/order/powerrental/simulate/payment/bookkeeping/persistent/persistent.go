@@ -8,16 +8,15 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	paymentmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/payment"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/bookkeeping/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
-
-	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
@@ -29,58 +28,55 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStatePaymentSpendBalance
 	rollback := true
-	req := &ordermwpb.OrderReq{
-		ID:                  &order.ID,
-		OrderState:          &state,
-		PaymentFinishAmount: &order.PaymentAccountBalance,
-		Rollback:            &rollback,
+	req := &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &order.ID,
+		OrderState: &state,
+		Rollback:   &rollback,
+		PaymentTransfers: func() (paymentTransfers []*paymentmwpb.PaymentTransferReq) {
+			for _, paymentTransfer := range order.XPaymentTransfers {
+				paymentTransfers = append(paymentTransfers, &paymentmwpb.PaymentTransferReq{
+					EntID:        &paymentTransfer.PaymentTransferID,
+					FinishAmount: &paymentTransfer.FinishAmount,
+				})
+			}
+			return
+		}(),
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},
 	)
 }
 
 func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.Simulate {
-		return
-	}
 	reqs := []*statementmwpb.StatementReq{}
-
-	incoming := decimal.RequireFromString(order.IncomingAmount)
-	outcoming := decimal.RequireFromString(order.TransferAmount)
-
-	if incoming.Cmp(decimal.NewFromInt(0)) > 0 {
-		ioType := ledgertypes.IOType_Incoming
-		ioSubType := ledgertypes.IOSubType_Payment
+	for _, paymentTransfer := range order.XPaymentTransfers {
+		if paymentTransfer.IncomingAmount == nil {
+			continue
+		}
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			AppID:      &order.AppID,
 			UserID:     &order.UserID,
-			CoinTypeID: &order.PaymentCoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &order.IncomingAmount,
-			IOExtra:    &order.IncomingExtra,
+			CoinTypeID: &paymentTransfer.CoinTypeID,
+			IOType:     func() *ledgertypes.IOType { e := ledgertypes.IOType_Incoming; return &e }(),
+			IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_Payment; return &e }(),
+			Amount:     paymentTransfer.IncomingAmount,
+			IOExtra:    &paymentTransfer.IncomingExtra,
 		})
-	}
-	if outcoming.Cmp(decimal.NewFromInt(0)) > 0 {
-		ioType := ledgertypes.IOType_Outcoming
-		ioSubType := ledgertypes.IOSubType_Payment
 		reqs = append(reqs, &statementmwpb.StatementReq{
 			AppID:      &order.AppID,
 			UserID:     &order.UserID,
-			CoinTypeID: &order.PaymentCoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &order.TransferAmount,
-			IOExtra:    &order.TransferExtra,
+			CoinTypeID: &paymentTransfer.CoinTypeID,
+			IOType:     func() *ledgertypes.IOType { e := ledgertypes.IOType_Outcoming; return &e }(),
+			IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_Payment; return &e }(),
+			Amount:     func() *string { s := paymentTransfer.Amount.String(); return &s }(),
+			IOExtra:    &paymentTransfer.OutcomingExtra,
 		})
 	}
-
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",

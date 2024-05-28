@@ -30,6 +30,7 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, state ordertypes.Or
 		createdAt := uint32(time.Now().Unix()) - timedef.SecondsPerMinute
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			CreatedAt:  &basetypes.Uint32Val{Op: cruder.LT, Value: createdAt},
 		}, offset, limit)
 		if err != nil {

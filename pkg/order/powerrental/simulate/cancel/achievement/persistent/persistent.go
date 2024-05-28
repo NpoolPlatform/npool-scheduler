@@ -2,14 +2,13 @@ package persistent
 
 import (
 	"context"
-	"fmt"
 
-	achievementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/achievement/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/cancel/achievement/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
@@ -22,24 +21,15 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentPowerRentalOrder)
 	if !ok {
-		return fmt.Errorf("invalid powerrentalorder")
+		return wlog.Errorf("invalid powerrentalorder")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if !_order.Simulate {
-		if err := achievementmwcli.ExpropriateAchievement(ctx, _order.EntID); err != nil {
-			return err
-		}
-	}
-
-	state := ordertypes.OrderState_OrderStateReturnCanceledBalance
-	if _, err := ordermwcli.UpdateOrder(ctx, &ordermwpb.OrderReq{
-		ID:         &_order.ID,
-		OrderState: &state,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	return wlog.WrapError(
+		powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
+			ID:         &_order.ID,
+			OrderState: ordertypes.OrderState_OrderStateReturnCanceledBalance.Enum(),
+		}),
+	)
 }

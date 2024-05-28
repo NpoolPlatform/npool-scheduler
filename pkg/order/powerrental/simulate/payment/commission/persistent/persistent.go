@@ -7,10 +7,10 @@ import (
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/commission/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/commission/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -26,16 +26,16 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStateAchievementBookKeeping
 	rollback := true
-	req := &ordermwpb.OrderReq{
+	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,
 		OrderState: &state,
 		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},
 	)

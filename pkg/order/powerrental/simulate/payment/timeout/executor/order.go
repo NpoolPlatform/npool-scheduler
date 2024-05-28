@@ -3,19 +3,19 @@ package executor
 import (
 	"context"
 
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/timeout/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/timeout/types"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
+	*powerrentalordermwpb.PowerRentalOrder
 	persistent chan interface{}
 }
 
 func (h *orderHandler) final(ctx context.Context) {
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+		PowerRentalOrder: h.PowerRentalOrder,
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }

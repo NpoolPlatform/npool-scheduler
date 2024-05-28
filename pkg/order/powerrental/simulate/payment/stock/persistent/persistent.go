@@ -7,10 +7,10 @@ import (
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/stock/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -26,25 +26,22 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStateAddCommission
 	rollback := true
-	req := &ordermwpb.OrderReq{
+	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,
 		OrderState: &state,
 		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		&ordermwpb.UpdateOrderRequest{
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},
 	)
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.Simulate {
-		return
-	}
 	dispose.Add(
 		goodsvcname.ServiceDomain,
 		"good.middleware.app.good1.stock.v1.Middleware/WaitStart",

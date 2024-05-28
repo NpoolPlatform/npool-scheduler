@@ -7,13 +7,13 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/expiry/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check/types"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
+	*powerrentalordermwpb.PowerRentalOrder
 	persistent    chan interface{}
 	done          chan interface{}
 	notif         chan interface{}
@@ -45,23 +45,23 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"NewOrderState", h.newOrderState,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order:         h.Order,
-		NewOrderState: h.newOrderState,
+		PowerRentalOrder: h.PowerRentalOrder,
+		NewOrderState:    h.newOrderState,
 	}
 	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
 	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic
