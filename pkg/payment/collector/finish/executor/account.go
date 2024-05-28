@@ -10,7 +10,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/finish/types"
 
 	"github.com/google/uuid"
 )

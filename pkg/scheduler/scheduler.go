@@ -13,6 +13,7 @@ import (
 	notifbenefit "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
+	paymentcollector "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
 )
@@ -29,9 +30,11 @@ func Finalize(ctx context.Context) {
 	notification.Finalize(ctx)
 	gasfeeder.Finalize(ctx)
 	order.Finalize(ctx)
+	paymentcollector.Finalize(ctx)
 }
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
+	paymentcollector.Initialize(ctx, cancel)
 	order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
 	announcement.Initialize(ctx, cancel)
@@ -52,17 +55,18 @@ type initializer struct {
 }
 
 var subsystems = map[string]initializer{
-	"order":          {order.Initialize, order.Finalize},
-	"gasfeeder":      {gasfeeder.Initialize, gasfeeder.Finalize},
-	"announcement":   {announcement.Initialize, announcement.Finalize},
-	"notification":   {notification.Initialize, notification.Finalize},
-	"txqueue":        {txqueue.Initialize, txqueue.Finalize},
-	"limitation":     {limitation.Initialize, limitation.Finalize},
-	"withdraw":       {withdraw.Initialize, withdraw.Finalize},
-	"couponwithdraw": {couponwithdraw.Initialize, couponwithdraw.Finalize},
-	"deposit":        {deposit.Initialize, deposit.Finalize},
-	"benefit":        {benefit.Initialize, benefit.Finalize},
-	"notifbenefit":   {notifbenefit.Initialize, notifbenefit.Finalize},
+	"paymentcollector": {paymentcollector.Initialize, paymentcollector.Finalize},
+	"order":            {order.Initialize, order.Finalize},
+	"gasfeeder":        {gasfeeder.Initialize, gasfeeder.Finalize},
+	"announcement":     {announcement.Initialize, announcement.Finalize},
+	"notification":     {notification.Initialize, notification.Finalize},
+	"txqueue":          {txqueue.Initialize, txqueue.Finalize},
+	"limitation":       {limitation.Initialize, limitation.Finalize},
+	"withdraw":         {withdraw.Initialize, withdraw.Finalize},
+	"couponwithdraw":   {couponwithdraw.Initialize, couponwithdraw.Finalize},
+	"deposit":          {deposit.Initialize, deposit.Finalize},
+	"benefit":          {benefit.Initialize, benefit.Finalize},
+	"notifbenefit":     {notifbenefit.Initialize, notifbenefit.Finalize},
 }
 
 func FinalizeSubsystem(ctx context.Context, system string) {

@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"time"
 
 	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -11,7 +10,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/finish/types"
 )
 
 type handler struct{}
@@ -26,10 +25,8 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 
 	for {
 		accounts, _, err := payaccmwcli.GetAccounts(ctx, &payaccmwpb.Conds{
-			Active:      &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-			Locked:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-			Blocked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-			AvailableAt: &basetypes.Uint32Val{Op: cruder.LTE, Value: uint32(time.Now().Unix())},
+			Locked:   &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+			LockedBy: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountLockedBy_Collecting)},
 		}, offset, limit)
 		if err != nil {
 			return err

@@ -9,7 +9,7 @@ import (
 	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/finish/types"
 
 	"github.com/google/uuid"
 )

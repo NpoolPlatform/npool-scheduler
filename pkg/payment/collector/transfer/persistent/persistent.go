@@ -12,7 +12,7 @@ import (
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/transfer/types"
 
 	"github.com/google/uuid"
 )

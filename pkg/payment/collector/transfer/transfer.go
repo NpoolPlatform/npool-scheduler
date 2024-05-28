@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/transfer/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/transfer/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/transfer/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector/transfer/sentinel"
 )
 
-const subsystem = "orderpaymenttransfer"
+const subsystem = "paymentcollectortransfer"
 
 var h *base.Handler
 
