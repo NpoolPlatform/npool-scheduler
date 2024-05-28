@@ -5,87 +5,39 @@ import (
 	"fmt"
 	"time"
 
-	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
-	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/wait/types"
+	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
-	persistent            chan interface{}
-	notif                 chan interface{}
-	done                  chan interface{}
-	good                  *appgoodmwpb.Good
-	paymentCoin           *coinmwpb.Coin
-	paymentAccount        *payaccmwpb.Account
-	paymentAccountBalance decimal.Decimal
-	incomingAmount        decimal.Decimal
-	transferAmount        decimal.Decimal
-	newOrderState         ordertypes.OrderState
-	newPaymentState       ordertypes.PaymentState
-}
-
-func (h *orderHandler) getGood(ctx context.Context) error {
-	good, err := appgoodmwcli.GetGoodOnly(ctx, &appgoodmwpb.Conds{
-		AppID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppID},
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
-		EntID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.AppGoodID},
-	})
-	if err != nil {
-		return err
-	}
-	if good == nil {
-		return fmt.Errorf("invalid good")
-	}
-	return nil
+	*powerrentalordermwpb.PowerRentalOrder
+	persistent           chan interface{}
+	notif                chan interface{}
+	done                 chan interface{}
+	paymentTransferCoins map[string]*coinmwpb.Coin
+	paymentAccounts      map[string]*payaccmwpb.Account
+	newOrderState        ordertypes.OrderState
+	newPaymentState      ordertypes.PaymentState
 }
 
 func (h *orderHandler) paymentNoPayment() bool {
-	switch h.OrderType {
-	case ordertypes.OrderType_Offline:
-		fallthrough //nolint
-	case ordertypes.OrderType_Airdrop:
-		return true
-	}
-	switch h.PaymentType {
-	case ordertypes.PaymentType_PayWithOffline:
-		fallthrough //nolint
-	case ordertypes.PaymentType_PayWithNoPayment:
-		return true
-	}
-	switch h.PaymentState {
-	case ordertypes.PaymentState_PaymentStateNoPayment:
-		return true
-	default:
-	}
-	return false
+	return len(h.PaymentTransfers) == 0 && len(h.PaymentBalances) == 0
 }
 
-func (h *orderHandler) onlinePayment() bool {
-	if yes := h.paymentNoPayment(); yes {
-		return false
-	}
-	return h.transferAmount.Cmp(decimal.NewFromInt(0)) > 0
-}
-
-func (h *orderHandler) payWithBalanceOnly() bool {
-	return h.PaymentType == ordertypes.PaymentType_PayWithBalanceOnly
+func (h *orderHandler) payWithTransfer() bool {
+	return len(h.PaymentTransfers) > 0
 }
 
 func (h *orderHandler) timeout() bool {
@@ -93,96 +45,99 @@ func (h *orderHandler) timeout() bool {
 	return h.CreatedAt+timeoutSeconds < uint32(time.Now().Unix())
 }
 
-func (h *orderHandler) getPaymentCoin(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() {
-		return nil
-	}
-
-	coin, err := coinmwcli.GetCoin(ctx, h.PaymentCoinTypeID)
+func (h *orderHandler) getPaymentCoins(ctx context.Context) (err error) {
+	h.paymentTransferCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
+		for _, paymentTransfer := range h.PaymentTransfers {
+			coinTypeIDs = append(coinTypeIDs, paymentTransfer.CoinTypeID)
+		}
+		return
+	}())
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if coin == nil {
-		return fmt.Errorf("invalid payment coin")
+	for _, paymentTransfer := range h.PaymentTransfers {
+		if _, ok := h.paymentTransferCoins[paymentTransfer.CoinTypeID]; !ok {
+			return wlog.Errorf("invalid paymenttransfercoin")
+		}
 	}
-	if !coin.ForPay {
-		return fmt.Errorf("coin not payable")
+	for _, paymentCoin := range h.paymentTransferCoins {
+		if !paymentCoin.ForPay {
+			return wlog.Errorf("invalid paymenttransfercoin")
+		}
 	}
-	h.paymentCoin = coin
 	return nil
 }
 
-func (h *orderHandler) getPaymentAccount(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() {
-		return nil
-	}
-
-	account, err := payaccmwcli.GetAccountOnly(ctx, &payaccmwpb.Conds{
-		AccountID: &basetypes.StringVal{Op: cruder.EQ, Value: h.PaymentAccountID},
-		Active:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		LockedBy:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountLockedBy_Payment)},
-		Blocked:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
+func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
+	h.paymentAccounts, err = schedcommon.GetPaymentAccounts(ctx, func() (accountIDs []string) {
+		for _, paymentTransfer := range h.PaymentTransfers {
+			accountIDs = append(accountIDs, paymentTransfer.AccountID)
+		}
+		return
+	}())
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if account == nil {
-		return fmt.Errorf("invalid account")
+	for _, paymentTransfer := range h.PaymentTransfers {
+		if _, ok := h.paymentAccounts[paymentTransfer.AccountID]; !ok {
+			return wlog.Errorf("invalid paymentaccount")
+		}
 	}
-	h.paymentAccount = account
 	return nil
 }
 
-func (h *orderHandler) getPaymentAccountBalance(ctx context.Context) error {
-	if !h.onlinePayment() || h.payWithBalanceOnly() {
+func (h *orderHandler) checkPaymentTransferBalance(ctx context.Context) error {
+	for _, paymentTransfer := range h.PaymentTransfers {
+		paymentCoin, _ := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
+		paymentAccount, _ := h.paymentAccounts[paymentTransfer.AccountID]
+
+		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+			Name:    paymentCoin.Name,
+			Address: paymentAccount.Address,
+		})
+		if err != nil {
+			return err
+		}
+		if balance == nil {
+			return fmt.Errorf("invalid balance")
+		}
+		bal, err := decimal.NewFromString(balance.BalanceStr)
+		if err != nil {
+			return err
+		}
+		startAmount, err := decimal.NewFromString(paymentTransfer.StartAmount)
+		if err != nil {
+			return err
+		}
+		amount, err := decimal.NewFromString(paymentTransfer.Amount)
+		if err != nil {
+			return err
+		}
+		if bal.Cmp(startAmount.Add(amount)) >= 0 {
+			continue
+		}
 		return nil
 	}
-	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.paymentCoin.Name,
-		Address: h.paymentAccount.Address,
-	})
-	if err != nil {
-		return err
-	}
-	if balance == nil {
-		return fmt.Errorf("invalid balance")
-	}
-
-	bal, err := decimal.NewFromString(balance.BalanceStr)
-	if err != nil {
-		return err
-	}
-	h.paymentAccountBalance = bal
-	startAmount, err := decimal.NewFromString(h.PaymentStartAmount)
-	if err != nil {
-		return err
-	}
-	h.incomingAmount = h.paymentAccountBalance.Sub(startAmount)
+	// Here we have enough balance
+	h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
+	h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 	return nil
 }
 
-func (h *orderHandler) paymentBalanceEnough() bool {
-	return h.incomingAmount.Sub(h.transferAmount).Cmp(decimal.NewFromInt(0)) >= 0
-}
-
-func (h *orderHandler) resolveNewState() {
+func (h *orderHandler) preResolveNewState() bool {
 	if h.timeout() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTimeout
 		h.newPaymentState = ordertypes.PaymentState_PaymentStateTimeout
-		return
+		return true
 	}
 	if h.paymentNoPayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
 		if h.OrderType == ordertypes.OrderType_Offline {
 			h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 		}
-		return
+		return true
 	}
-	if h.paymentBalanceEnough() {
-		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
-	}
+	return false
 }
 
 //nolint:gocritic
@@ -190,13 +145,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
-			"Good", h.good,
-			"PaymentCoin", h.paymentCoin,
-			"PaymentAccount", h.paymentAccount,
-			"PaymentAccountBalance", h.paymentAccountBalance,
-			"IncomingAmount", h.incomingAmount,
-			"TransferAmount", h.transferAmount,
+			"PowerRentalOrder", h.PowerRentalOrder,
+			"PaymentTransferCoins", h.paymentTransferCoins,
+			"PaymentAccounts", h.paymentAccounts,
 			"NewOrderState", h.newOrderState,
 			"NewPaymentState", h.newPaymentState,
 			"Error", *err,
@@ -204,9 +155,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentOrder := &types.PersistentOrder{
-		Order:         h.Order,
-		NewOrderState: h.newOrderState,
-		Error:         *err,
+		PowerRentalOrder: h.PowerRentalOrder,
+		NewOrderState:    h.newOrderState,
+		Error:            *err,
 	}
 	if h.newPaymentState != h.PaymentState {
 		persistentOrder.NewPaymentState = &h.newPaymentState
@@ -231,32 +182,20 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	h.newPaymentState = h.PaymentState
 
 	var err error
-	if h.transferAmount, err = decimal.NewFromString(h.TransferAmount); err != nil {
-		return err
-	}
 
 	defer h.final(ctx, &err)
 
-	if err = h.getGood(ctx); err != nil {
+	if h.preResolveNewState() {
+		return nil
+	}
+	if err = h.getPaymentCoins(ctx); err != nil {
 		return err
 	}
-	if err = h.getPaymentCoin(ctx); err != nil {
+	if err = h.getPaymentAccounts(ctx); err != nil {
 		return err
 	}
-
-	if err = accountlock.Lock(h.PaymentAccountID); err != nil {
+	if err = h.checkPaymentTransferBalance(ctx); err != nil {
 		return err
 	}
-	defer func() {
-		_ = accountlock.Unlock(h.PaymentAccountID) //nolint
-	}()
-
-	if err = h.getPaymentAccount(ctx); err != nil {
-		return err
-	}
-	if err = h.getPaymentAccountBalance(ctx); err != nil {
-		return err
-	}
-	h.resolveNewState()
 	return nil
 }
