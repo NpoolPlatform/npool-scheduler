@@ -23,7 +23,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type powerRentalOrderHandler struct {
+type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	persistent       chan interface{}
 	notif            chan interface{}
@@ -33,7 +33,7 @@ type powerRentalOrderHandler struct {
 	commissionLocks  []*orderlockmwpb.OrderLock
 }
 
-func (h *powerRentalOrderHandler) getOrderCommissionLock(ctx context.Context) error {
+func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -54,7 +54,7 @@ func (h *powerRentalOrderHandler) getOrderCommissionLock(ctx context.Context) er
 	return nil
 }
 
-func (h *powerRentalOrderHandler) getOrderAchievement(ctx context.Context) error {
+func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -73,7 +73,7 @@ func (h *powerRentalOrderHandler) getOrderAchievement(ctx context.Context) error
 	}
 }
 
-func (h *powerRentalOrderHandler) toLedgerStatements() error {
+func (h *orderHandler) toLedgerStatements() error {
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_CommissionRevoke
 	for _, statement := range h.statements {
@@ -107,7 +107,7 @@ func (h *powerRentalOrderHandler) toLedgerStatements() error {
 }
 
 //nolint:gocritic
-func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -137,7 +137,7 @@ func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
 }
 
 //nolint:gocritic
-func (h *powerRentalOrderHandler) exec(ctx context.Context) error {
+func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)

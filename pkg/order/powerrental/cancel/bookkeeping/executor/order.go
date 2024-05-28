@@ -19,7 +19,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type powerRentalOrderHandler struct {
+type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	persistent           chan interface{}
 	notif                chan interface{}
@@ -29,11 +29,11 @@ type powerRentalOrderHandler struct {
 	paymentAccounts      map[string]*paymentaccountmwpb.Account
 }
 
-func (h *powerRentalOrderHandler) payWithTransfer() bool {
+func (h *orderHandler) payWithTransfer() bool {
 	return len(h.PaymentTransfers) > 0
 }
 
-func (h *powerRentalOrderHandler) checkBookKeepingAble() bool {
+func (h *orderHandler) checkBookKeepingAble() bool {
 	if !h.payWithTransfer() {
 		return false
 	}
@@ -46,7 +46,7 @@ func (h *powerRentalOrderHandler) checkBookKeepingAble() bool {
 	return true
 }
 
-func (h *powerRentalOrderHandler) constructPaymentTransfers() error {
+func (h *orderHandler) constructPaymentTransfers() error {
 	for _, paymentTransfer := range h.PaymentTransfers {
 		amount, err := decimal.NewFromString(paymentTransfer.Amount)
 		if err != nil {
@@ -70,7 +70,7 @@ func (h *powerRentalOrderHandler) constructPaymentTransfers() error {
 	return nil
 }
 
-func (h *powerRentalOrderHandler) getPaymentCoins(ctx context.Context) (err error) {
+func (h *orderHandler) getPaymentCoins(ctx context.Context) (err error) {
 	h.paymentTransferCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
 		for _, paymentTransfer := range h.PaymentTransfers {
 			coinTypeIDs = append(coinTypeIDs, paymentTransfer.CoinTypeID)
@@ -93,7 +93,7 @@ func (h *powerRentalOrderHandler) getPaymentCoins(ctx context.Context) (err erro
 	return nil
 }
 
-func (h *powerRentalOrderHandler) getPaymentAccounts(ctx context.Context) (err error) {
+func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 	h.paymentAccounts, err = schedcommon.GetPaymentAccounts(ctx, func() (accountIDs []string) {
 		for _, paymentTransfer := range h.PaymentTransfers {
 			accountIDs = append(accountIDs, paymentTransfer.AccountID)
@@ -111,7 +111,7 @@ func (h *powerRentalOrderHandler) getPaymentAccounts(ctx context.Context) (err e
 	return nil
 }
 
-func (h *powerRentalOrderHandler) updatePaymentTransfers(ctx context.Context) error {
+func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 	for _, paymentTransfer := range h.paymentTransfers {
 		paymentCoin, _ := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
 		paymentAccount, _ := h.paymentAccounts[paymentTransfer.AccountID]
@@ -145,7 +145,7 @@ func (h *powerRentalOrderHandler) updatePaymentTransfers(ctx context.Context) er
 }
 
 //nolint:gocritic
-func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
+func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
@@ -179,7 +179,7 @@ func (h *powerRentalOrderHandler) final(ctx context.Context, err *error) {
 }
 
 //nolint:gocritic
-func (h *powerRentalOrderHandler) exec(ctx context.Context) error {
+func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)

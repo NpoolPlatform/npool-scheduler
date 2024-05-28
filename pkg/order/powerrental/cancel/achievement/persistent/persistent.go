@@ -19,21 +19,21 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, notif, done chan interface{}) error {
-	_powerRentalOrder, ok := powerRentalOrder.(*types.PersistentPowerRentalOrder)
+func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+	_order, ok := order.(*types.PersistentPowerRentalOrder)
 	if !ok {
 		return wlog.Errorf("invalid powerrentalorder")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _powerRentalOrder, done)
+	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if err := achievementmwcli.ExpropriateAchievement(ctx, _powerRentalOrder.EntID); err != nil {
+	if err := achievementmwcli.ExpropriateAchievement(ctx, _order.EntID); err != nil {
 		return wlog.WrapError(err)
 	}
 
 	return wlog.WrapError(
 		powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
-			ID:         &_powerRentalOrder.ID,
+			ID:         &_order.ID,
 			OrderState: ordertypes.OrderState_OrderStateReturnCanceledBalance.Enum(),
 		}),
 	)

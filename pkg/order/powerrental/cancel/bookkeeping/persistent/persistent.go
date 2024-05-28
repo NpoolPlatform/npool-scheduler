@@ -26,13 +26,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, powerRentalOrder *types.PersistentPowerRentalOrder) {
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) {
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &powerRentalOrder.ID,
+		ID:         &order.ID,
 		OrderState: ordertypes.OrderState_OrderStateCancelUnlockPaymentAccount.Enum(),
 		Rollback:   func() *bool { b := true; return &b }(),
 		PaymentTransfers: func() (paymentTransfers []*paymentmwpb.PaymentTransferReq) {
-			for _, paymentTransfer := range powerRentalOrder.XPaymentTransfers {
+			for _, paymentTransfer := range order.XPaymentTransfers {
 				paymentTransfers = append(paymentTransfers, &paymentmwpb.PaymentTransferReq{
 					EntID:        &paymentTransfer.PaymentTransferID,
 					FinishAmount: &paymentTransfer.FinishAmount,
@@ -51,23 +51,23 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, powerRentalO
 	)
 }
 
-func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, powerRentalOrder *types.PersistentPowerRentalOrder) {
+func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) {
 	reqs := []*statementmwpb.StatementReq{}
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_Payment
 
-	for _, paymentTransfer := range powerRentalOrder.XPaymentTransfers {
+	for _, paymentTransfer := range order.XPaymentTransfers {
 		if paymentTransfer.IncomingAmount == nil {
 			continue
 		}
 		reqs = append(reqs, &statementmwpb.StatementReq{
-			AppID:      &powerRentalOrder.AppID,
-			UserID:     &powerRentalOrder.UserID,
+			AppID:      &order.AppID,
+			UserID:     &order.UserID,
 			CoinTypeID: &paymentTransfer.CoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     paymentTransfer.IncomingAmount,
-			IOExtra:    &powerRentalOrder.IncomingExtra,
+			IOExtra:    &order.IncomingExtra,
 		})
 	}
 	if len(reqs) == 0 {
@@ -83,13 +83,13 @@ func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, powe
 	)
 }
 
-func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, notif, done chan interface{}) error {
-	_powerRentalOrder, ok := powerRentalOrder.(*types.PersistentPowerRentalOrder)
+func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+	_order, ok := order.(*types.PersistentPowerRentalOrder)
 	if !ok {
 		return fmt.Errorf("invalid powerrentalorder")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _powerRentalOrder, done)
+	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -98,8 +98,8 @@ func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, noti
 		TimeoutToFail:  timeoutSeconds,
 		RetryInterval:  timeoutSeconds,
 	})
-	p.withUpdateOrderState(sagaDispose, _powerRentalOrder)
-	p.withCreateIncomingStatements(sagaDispose, _powerRentalOrder)
+	p.withUpdateOrderState(sagaDispose, _order)
+	p.withCreateIncomingStatements(sagaDispose, _order)
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}

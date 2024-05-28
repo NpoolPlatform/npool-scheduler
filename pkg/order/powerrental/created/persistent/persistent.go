@@ -18,16 +18,16 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, powerRentalOrder interface{}, notif, done chan interface{}) error {
-	_powerRentalOrder, ok := powerRentalOrder.(*types.PersistentPowerRentalOrder)
+func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+	_order, ok := order.(*types.PersistentPowerRentalOrder)
 	if !ok {
 		return fmt.Errorf("invalid powerrentalorder")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _powerRentalOrder, done)
+	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &_powerRentalOrder.ID,
+		ID:         &_order.ID,
 		OrderState: ordertypes.OrderState_OrderStateWaitPayment.Enum(),
 	})
 }

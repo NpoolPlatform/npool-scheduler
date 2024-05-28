@@ -25,19 +25,19 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, state ordertypes.Or
 	limit := constant.DefaultRowLimit
 
 	for {
-		powerRentalOrders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
+		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
 		}
-		if len(powerRentalOrders) == 0 {
+		if len(orders) == 0 {
 			return nil
 		}
 
-		for _, powerRentalOrder := range powerRentalOrders {
-			cancelablefeed.CancelableFeed(ctx, powerRentalOrder, exec)
+		for _, order := range orders {
+			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
 		offset += limit
@@ -57,8 +57,8 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
-	if powerRentalOrder, ok := ent.(*types.PersistentPowerRentalOrder); ok {
-		return powerRentalOrder.UserID
+	if order, ok := ent.(*types.PersistentPowerRentalOrder); ok {
+		return order.UserID
 	}
 	return ent.(*powerrentalordermwpb.PowerRentalOrder).UserID
 }

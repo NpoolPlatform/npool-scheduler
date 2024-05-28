@@ -14,14 +14,14 @@ func NewExecutor() baseexecutor.Exec {
 	return &handler{}
 }
 
-func (e *handler) Exec(ctx context.Context, powerRentalOrder interface{}, persistent, notif, done chan interface{}) error {
-	_powerRentalOrder, ok := powerRentalOrder.(*powerrentalordermwpb.PowerRentalOrder)
+func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif, done chan interface{}) error {
+	_order, ok := order.(*powerrentalordermwpb.PowerRentalOrder)
 	if !ok {
 		return fmt.Errorf("invalid order")
 	}
 
-	h := &powerRentalOrderHandler{
-		PowerRentalOrder: _powerRentalOrder,
+	h := &orderHandler{
+		PowerRentalOrder: _order,
 		persistent:       persistent,
 	}
 	return h.exec(ctx)
