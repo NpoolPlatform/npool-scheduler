@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/sentinel"
 )
@@ -25,6 +26,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithNotify(notif.NewNotif()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {
