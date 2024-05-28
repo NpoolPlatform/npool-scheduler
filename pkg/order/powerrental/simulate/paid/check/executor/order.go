@@ -9,14 +9,13 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/paid/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/paid/check/types"
 )
 
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	persistent    chan interface{}
 	done          chan interface{}
-	notif         chan interface{}
 	newOrderState ordertypes.OrderState
 }
 
@@ -54,10 +53,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	persistentOrder := &types.PersistentOrder{
 		PowerRentalOrder: h.PowerRentalOrder,
-		NewOrderState:    h.newOrderState,
-	}
-	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
 	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)

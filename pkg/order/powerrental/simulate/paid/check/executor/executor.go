@@ -24,7 +24,6 @@ func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif
 		PowerRentalOrder: _order,
 		persistent:       persistent,
 		done:             done,
-		notif:            notif,
 	}
 	return h.exec(ctx)
 }
