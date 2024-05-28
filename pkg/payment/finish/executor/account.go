@@ -6,7 +6,7 @@ import (
 
 	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
-	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
+	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -16,7 +16,7 @@ import (
 )
 
 type accountHandler struct {
-	*payaccmwpb.Account
+	*paymentaccountmwpb.Account
 	persistent chan interface{}
 	done       chan interface{}
 	coin       *coinmwpb.Coin

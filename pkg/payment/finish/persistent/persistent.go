@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	payaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
+	paymentaccountmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/payment"
 	accountlock "github.com/NpoolPlatform/account-middleware/pkg/lock"
-	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
+	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/finish/types"
@@ -37,7 +37,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, notif, done c
 
 	locked := false
 	collectingID := uuid.Nil.String()
-	if _, err := payaccmwcli.UpdateAccount(ctx, &payaccmwpb.AccountReq{
+	if _, err := paymentaccountmwcli.UpdateAccount(ctx, &paymentaccountmwpb.AccountReq{
 		ID:            &_account.ID,
 		CoinTypeID:    &_account.CoinTypeID,
 		AccountID:     &_account.AccountID,

@@ -6,12 +6,12 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/spend/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/spend/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
 type handler struct{}
@@ -25,7 +25,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	limit := constant.DefaultRowLimit
 
 	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 		}, offset, limit)
 		if err != nil {
@@ -59,5 +59,5 @@ func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
 		return order.EntID
 	}
-	return ent.(*ordermwpb.Order).EntID
+	return ent.(*powerrentalordermwpb.PowerRentalOrder).EntID
 }
