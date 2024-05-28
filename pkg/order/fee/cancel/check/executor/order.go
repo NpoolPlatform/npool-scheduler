@@ -4,13 +4,13 @@ import (
 	"context"
 
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/check/types"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent      chan interface{}
 	newPaymentState *ordertypes.PaymentState
 }
@@ -23,11 +23,11 @@ func (h *orderHandler) resolveNewPaymentState() {
 }
 
 func (h *orderHandler) final(ctx context.Context) {
-	persistentPowerRentalOrder := &types.PersistentPowerRentalOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		NewPaymentState:  h.newPaymentState,
+	persistentFeeOrder := &types.PersistentFeeOrder{
+		FeeOrder:        h.FeeOrder,
+		NewPaymentState: h.newPaymentState,
 	}
-	asyncfeed.AsyncFeed(ctx, persistentPowerRentalOrder, h.persistent)
+	asyncfeed.AsyncFeed(ctx, persistentFeeOrder, h.persistent)
 }
 
 func (h *orderHandler) exec(ctx context.Context) error {

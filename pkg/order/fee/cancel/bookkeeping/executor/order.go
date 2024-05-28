@@ -9,18 +9,18 @@ import (
 	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/bookkeeping/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent           chan interface{}
 	notif                chan interface{}
 	done                 chan interface{}
@@ -149,17 +149,17 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.PowerRentalOrder,
+			"Order", h.FeeOrder,
 			"PaymentTransferCoins", h.paymentTransferCoins,
 			"PaymentAccounts", h.paymentAccounts,
 			"PaymentTransfers", h.paymentTransfers,
 			"Error", *err,
 		)
 	}
-	persistentPowerRentalOrder := &types.PersistentPowerRentalOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+	persistentFeeOrder := &types.PersistentFeeOrder{
+		FeeOrder: h.FeeOrder,
 	}
-	persistentPowerRentalOrder.XPaymentTransfers = h.paymentTransfers
+	persistentFeeOrder.XPaymentTransfers = h.paymentTransfers
 	if len(h.paymentTransfers) > 0 {
 		ioExtra := fmt.Sprintf(
 			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
@@ -167,15 +167,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			h.UserID,
 			h.EntID,
 		)
-		persistentPowerRentalOrder.IncomingExtra = ioExtra
+		persistentFeeOrder.IncomingExtra = ioExtra
 	}
 
 	if *err == nil {
-		asyncfeed.AsyncFeed(ctx, persistentPowerRentalOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, persistentFeeOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentPowerRentalOrder, h.notif)
-	asyncfeed.AsyncFeed(ctx, persistentPowerRentalOrder, h.done)
+	asyncfeed.AsyncFeed(ctx, persistentFeeOrder, h.notif)
+	asyncfeed.AsyncFeed(ctx, persistentFeeOrder, h.done)
 }
 
 //nolint:gocritic

@@ -1,7 +1,7 @@
 package types
 
 import (
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 
 	"github.com/shopspring/decimal"
 )
@@ -17,8 +17,8 @@ type XPaymentTransfer struct {
 	FinishAmount          string
 }
 
-type PersistentPowerRentalOrder struct {
-	*powerrentalordermwpb.PowerRentalOrder
+type PersistentFeeOrder struct {
+	*feeordermwpb.FeeOrder
 	XPaymentTransfers []*XPaymentTransfer
 	IncomingExtra     string
 }

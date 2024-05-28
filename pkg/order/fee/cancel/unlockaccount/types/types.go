@@ -1,11 +1,11 @@
 package types
 
 import (
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 )
 
 type PersistentOrder struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	// ID of payment table but not account table
 	PaymentAccountIDs []uint32
 }

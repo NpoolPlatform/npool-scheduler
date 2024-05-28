@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/achievement/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/achievement/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/achievement/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/achievement/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/achievement/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/achievement/sentinel"
 )
 
-const subsystem = "orderpowerrentalcancelachievement"
+const subsystem = "orderfeecancelachievement"
 
 var h *base.Handler
 

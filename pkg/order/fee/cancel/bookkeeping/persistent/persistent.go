@@ -8,12 +8,12 @@ import (
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	paymentmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/payment"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/bookkeeping/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -26,8 +26,8 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) {
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentFeeOrder) {
+	req := &feeordermwpb.FeeOrderReq{
 		ID:         &order.ID,
 		OrderState: ordertypes.OrderState_OrderStateCancelUnlockPaymentAccount.Enum(),
 		Rollback:   func() *bool { b := true; return &b }(),
@@ -43,15 +43,15 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
-		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
-		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
+		"order.middleware.fee.v1.Middleware/UpdateFeeOrder",
+		"order.middleware.fee.v1.Middleware/UpdateFeeOrder",
+		&feeordermwpb.UpdateFeeOrderRequest{
 			Info: req,
 		},
 	)
 }
 
-func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) {
+func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, order *types.PersistentFeeOrder) {
 	reqs := []*statementmwpb.StatementReq{}
 	ioType := ledgertypes.IOType_Incoming
 	ioSubType := ledgertypes.IOSubType_Payment
@@ -84,9 +84,9 @@ func (p *handler) withCreateIncomingStatements(dispose *dtmcli.SagaDispose, orde
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
-	_order, ok := order.(*types.PersistentPowerRentalOrder)
+	_order, ok := order.(*types.PersistentFeeOrder)
 	if !ok {
-		return fmt.Errorf("invalid powerrentalorder")
+		return fmt.Errorf("invalid feeorder")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
