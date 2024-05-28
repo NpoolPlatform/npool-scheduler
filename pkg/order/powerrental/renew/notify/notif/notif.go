@@ -8,7 +8,7 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/notify/types"
 )
 
 type handler struct{}

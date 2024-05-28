@@ -10,8 +10,8 @@ import (
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
 	orderrenewpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order/renew"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/notify/types"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/notify/types"
 )
 
 type orderHandler struct {
@@ -44,7 +44,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"newRenewState", h.newRenewState,
 			"CheckElectricityFee", h.CheckElectricityFee,
 			"ElectricityFeeUSDAmount", h.ElectricityFeeUSDAmount,
@@ -58,9 +58,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+		PowerRentalOrder: h.PowerRentalOrder,
 		MsgOrderChildsRenewReq: &orderrenewpb.MsgOrderChildsRenewReq{
-			ParentOrder:         h.Order,
+			ParentOrder: &orderrenewpb.OrderInfo{
+				OrderID:  h.OrderID,
+				GoodType: h.GoodType,
+			},
 			Deductions:          h.Deductions,
 			InsufficientBalance: h.InsufficientBalance,
 			WillCreateOrder:     h.willCreateOrder,
@@ -77,7 +80,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic
@@ -89,16 +92,19 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	var yes bool
 	defer h.final(ctx, &err)
 
-	if err = h.GetRequireds(ctx); err != nil {
+	if err = h.GetAppPowerRental(ctx); err != nil {
 		return err
 	}
-	if err := h.GetAppGoods(ctx); err != nil {
+	if err = h.GetAppGoodRequireds(ctx); err != nil {
 		return err
 	}
-	if yes, err = h.RenewGoodExist(); err != nil || !yes {
+	if err := h.GetAppFees(ctx); err != nil {
 		return err
 	}
-	if err = h.GetRenewableOrders(ctx); err != nil {
+	if yes, err = h.Renewable(ctx); err != nil || !yes {
+		return err
+	}
+	if err = h.CalculateRenewDuration(ctx); err != nil {
 		return err
 	}
 	if err = h.GetDeductionCoins(ctx); err != nil {
