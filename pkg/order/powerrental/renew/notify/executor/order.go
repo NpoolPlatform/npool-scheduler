@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
+	schedorderpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order"
 	orderrenewpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order/renew"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
@@ -60,7 +61,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	persistentOrder := &types.PersistentOrder{
 		PowerRentalOrder: h.PowerRentalOrder,
 		MsgOrderChildsRenewReq: &orderrenewpb.MsgOrderChildsRenewReq{
-			ParentOrder: &orderrenewpb.OrderInfo{
+			ParentOrder: &schedorderpb.OrderInfo{
 				OrderID:  h.OrderID,
 				GoodType: h.GoodType,
 			},
