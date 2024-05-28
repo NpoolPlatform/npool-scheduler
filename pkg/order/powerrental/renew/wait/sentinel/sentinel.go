@@ -7,14 +7,12 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/types"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
-
-	"github.com/google/uuid"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/wait/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
 type handler struct{}
@@ -26,16 +24,14 @@ func NewSentinel() basesentinel.Scanner {
 func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	simulate := false
 
 	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			ParentOrderID: &basetypes.StringVal{Op: cruder.EQ, Value: uuid.Nil.String()},
+		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			RenewState:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewWait)},
 			RenewNotifyAt: &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix())},
 			OrderType:     &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderType_Normal)},
-			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
+			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -68,5 +64,5 @@ func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
 		return order.EntID
 	}
-	return ent.(*ordermwpb.Order).EntID
+	return ent.(*powerrentalordermwpb.PowerRentalOrder).EntID
 }

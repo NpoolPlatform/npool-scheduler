@@ -5,8 +5,8 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/renew/wait/types"
+	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/wait/types"
 )
 
 type orderHandler struct {
@@ -17,18 +17,12 @@ type orderHandler struct {
 	notifiable bool
 }
 
-func (h *orderHandler) checkNotifiable() bool {
-	// Here we always goto check state then we can update renew notify at
-	h.notifiable = true
-	return h.notifiable
-}
-
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"notifiable", h.notifiable,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"CheckElectricityFee", h.CheckElectricityFee,
@@ -36,35 +30,21 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
+		PowerRentalOrder: h.PowerRentalOrder,
 	}
 	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, h.Order, h.notif)
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
 	}
 	if h.notifiable {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.Order, h.done)
+	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
-	var yes bool
 	defer h.final(ctx, &err)
-
-	if err = h.GetRequireds(ctx); err != nil {
-		return err
-	}
-	if err := h.GetAppGoods(ctx); err != nil {
-		return err
-	}
-	if err = h.GetRenewableOrders(ctx); err != nil {
-		return err
-	}
-	if yes = h.checkNotifiable(); !yes {
-		return nil
-	}
 	return nil
 }
