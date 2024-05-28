@@ -3,17 +3,16 @@ package executor
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/paid/check/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/paid/check/types"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent    chan interface{}
 	done          chan interface{}
 	notif         chan interface{}
@@ -33,9 +32,6 @@ func (h *orderHandler) startable() (bool, error) {
 	default:
 		return false, fmt.Errorf("invalid paymentstate")
 	}
-	if uint32(time.Now().Unix()) < h.StartAt {
-		return false, nil
-	}
 	h.newOrderState = ordertypes.OrderState_OrderStateTransferGoodStockWaitStart
 	return true, nil
 }
@@ -45,7 +41,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"NewOrderState", h.newOrderState,
 			"AdminSetCanceled", h.AdminSetCanceled,
 			"UserSetCanceled", h.UserSetCanceled,
@@ -53,17 +49,16 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		NewOrderState:    h.newOrderState,
+		FeeOrder: h.FeeOrder,
 	}
 	if *err != nil {
-		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
+		asyncfeed.AsyncFeed(ctx, h.FeeOrder, h.notif)
 	}
 	if h.newOrderState != h.OrderState {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
+	asyncfeed.AsyncFeed(ctx, h.FeeOrder, h.done)
 }
 
 //nolint:gocritic
