@@ -2,33 +2,17 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/payment/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/stock/types"
 )
 
 type orderHandler struct {
-	*ordermwpb.Order
+	*powerrentalordermwpb.PowerRentalOrder
 	persistent chan interface{}
 	done       chan interface{}
-	appGood    *appgoodmwpb.Good
-}
-
-func (h *orderHandler) getAppGood(ctx context.Context) error {
-	good, err := appgoodmwcli.GetGood(ctx, h.AppGoodID)
-	if err != nil {
-		return err
-	}
-	if good == nil {
-		return fmt.Errorf("invalid good")
-	}
-	h.appGood = good
-	return nil
 }
 
 //nolint:gocritic
@@ -36,16 +20,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Order", h.Order,
-			"AppGood", h.appGood,
+			"PowerRentalOrder", h.PowerRentalOrder,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		Order: h.Order,
-	}
-	if h.appGood != nil {
-		persistentOrder.AppGoodStockID = h.appGood.AppGoodStockID
+		PowerRentalOrder: h.PowerRentalOrder,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
@@ -59,10 +39,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	var err error
 
 	defer h.final(ctx, &err)
-
-	if err = h.getAppGood(ctx); err != nil {
-		return err
-	}
 
 	return nil
 }
