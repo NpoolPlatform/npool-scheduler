@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/spend/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/spend/types"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent chan interface{}
 	done       chan interface{}
 }
@@ -21,12 +21,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+		FeeOrder: h.FeeOrder,
 	}
 	if len(h.PaymentBalances) > 0 {
 		persistentOrder.BalanceOutcomingExtra = fmt.Sprintf(
@@ -40,7 +40,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
+	asyncfeed.AsyncFeed(ctx, h.FeeOrder, h.done)
 }
 
 //nolint:gocritic

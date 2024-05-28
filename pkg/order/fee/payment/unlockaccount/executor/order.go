@@ -6,14 +6,14 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/unlockaccount/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/unlockaccount/types"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent      chan interface{}
 	notif           chan interface{}
 	done            chan interface{}
@@ -51,13 +51,13 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"PaymentAccounts", h.paymentAccounts,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+		FeeOrder: h.FeeOrder,
 		PaymentAccountIDs: func() (ids []uint32) {
 			for _, paymentAccount := range h.paymentAccounts {
 				ids = append(ids, paymentAccount.ID)

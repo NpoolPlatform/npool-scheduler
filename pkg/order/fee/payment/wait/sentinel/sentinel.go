@@ -6,12 +6,12 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/wait/types"
-	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/wait/types"
+	feeordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/fee"
 )
 
 type handler struct{}
@@ -26,7 +26,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 
 	for {
 		// If order is PayWithParentOrder, they will done or canceled with parent order
-		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
+		orders, _, err := feeordermwcli.GetFeeOrders(ctx, &feeordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			PaymentTypes: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
 				uint32(ordertypes.PaymentType_PayWithBalanceOnly),
@@ -67,5 +67,5 @@ func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
 		return order.EntID
 	}
-	return ent.(*powerrentalordermwpb.PowerRentalOrder).EntID
+	return ent.(*feeordermwpb.FeeOrder).EntID
 }

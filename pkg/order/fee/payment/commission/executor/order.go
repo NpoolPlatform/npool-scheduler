@@ -12,16 +12,16 @@ import (
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	orderpaymentstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement/order/payment"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/commission/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/commission/types"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent        chan interface{}
 	notif             chan interface{}
 	done              chan interface{}
@@ -87,12 +87,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+		FeeOrder:         h.FeeOrder,
 		LedgerStatements: h.ledgerStatements,
 	}
 	if *err == nil {

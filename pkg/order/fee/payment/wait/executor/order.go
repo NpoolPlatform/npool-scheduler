@@ -11,18 +11,18 @@ import (
 	payaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/wait/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/wait/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent           chan interface{}
 	notif                chan interface{}
 	done                 chan interface{}
@@ -145,7 +145,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"PaymentTransferCoins", h.paymentTransferCoins,
 			"PaymentAccounts", h.paymentAccounts,
 			"NewOrderState", h.newOrderState,
@@ -155,9 +155,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		NewOrderState:    h.newOrderState,
-		Error:            *err,
+		FeeOrder:      h.FeeOrder,
+		NewOrderState: h.newOrderState,
+		Error:         *err,
 	}
 	if h.newPaymentState != h.PaymentState {
 		persistentOrder.NewPaymentState = &h.newPaymentState

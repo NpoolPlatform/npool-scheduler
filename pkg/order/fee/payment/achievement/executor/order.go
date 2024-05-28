@@ -15,13 +15,15 @@ import (
 	goodcoinmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/coin"
 	orderstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement/order"
 	calculatemwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/calculate"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/achievement/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/achievement/types"
+
+	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent      chan interface{}
 	notif           chan interface{}
 	done            chan interface{}
@@ -59,7 +61,7 @@ func (h *orderHandler) calculateOrderStatements(ctx context.Context) (err error)
 		AppGoodID:        h.AppGoodID,
 		OrderID:          h.EntID,
 		GoodCoinTypeID:   h.goodMainCoin.CoinTypeID,
-		Units:            h.Units,
+		Units:            decimal.NewFromInt(0).String(),
 		PaymentAmountUSD: h.PaymentAmountUSD,
 		GoodValueUSD:     h.PaymentGoodValueUSD,
 		SettleType:       inspiretypes.SettleType_GoodOrderPayment,
@@ -74,14 +76,14 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"OrderStatements", h.orderStatements,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		OrderStatements:  h.orderStatements,
+		FeeOrder:        h.FeeOrder,
+		OrderStatements: h.orderStatements,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)

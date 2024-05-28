@@ -8,18 +8,18 @@ import (
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	paymentaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/payment"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/bookkeeping/types"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	done                 chan interface{}
 	persistent           chan interface{}
 	notif                chan interface{}
@@ -130,14 +130,14 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"PaymentTransfers", h.paymentTransfers,
 			"Error", *err,
 		)
 	}
 
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder:  h.PowerRentalOrder,
+		FeeOrder:          h.FeeOrder,
 		XPaymentTransfers: h.paymentTransfers,
 		Error:             *err,
 	}

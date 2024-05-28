@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/achievement/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/achievement/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/achievement/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/achievement/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/achievement/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/payment/achievement/sentinel"
 )
 
-const subsystem = "orderpowerrentalpaymentachievement"
+const subsystem = "orderfeepaymentachievement"
 
 var h *base.Handler
 

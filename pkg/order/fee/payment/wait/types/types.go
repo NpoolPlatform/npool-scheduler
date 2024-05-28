@@ -2,11 +2,11 @@ package types
 
 import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 )
 
 type PersistentOrder struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	NewOrderState   ordertypes.OrderState
 	NewPaymentState *ordertypes.PaymentState
 	Error           error

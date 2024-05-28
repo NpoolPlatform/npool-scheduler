@@ -43,9 +43,6 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	if order.Simulate {
-		return
-	}
 	switch order.CancelState {
 	case ordertypes.OrderState_OrderStatePaymentTimeout:
 		fallthrough //nolint
