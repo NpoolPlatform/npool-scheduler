@@ -8,14 +8,14 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/notif"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/sentinel"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/notif"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/types"
 )
 
-const subsystem = "benefitwait"
+const subsystem = "benefitpowerrentalwait"
 
 var h *base.Handler
 

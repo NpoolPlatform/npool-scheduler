@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
-	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
+	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
@@ -34,13 +34,13 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 	limit := constant.DefaultRowLimit
 
 	for {
-		conds := &goodmwpb.Conds{
+		conds := &powerrentalmwpb.Conds{
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 		}
 		if cond != nil {
-			conds.EntIDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}
+			conds.GoodIDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}
 		}
-		goods, _, err := goodmwcli.GetGoods(ctx, conds, offset, limit)
+		goods, _, err := powerrentalmwcli.GetPowerRentals(ctx, conds, offset, limit)
 		if err != nil {
 			return err
 		}
@@ -49,8 +49,8 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 		}
 
 		for _, good := range goods {
-			_good := &types.FeedGood{
-				Good: good,
+			_good := &types.FeedPowerRental{
+				PowerRental: good,
 			}
 			if cond != nil {
 				_good.TriggerBenefitTimestamp = cond.RewardAt
@@ -88,11 +88,11 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 }
 
 func (h *handler) ObjectID(ent interface{}) string {
-	if good, ok := ent.(*types.PersistentGood); ok {
-		return good.EntID
+	if good, ok := ent.(*types.PersistentPowerRental); ok {
+		return good.GoodID
 	}
-	if good, ok := ent.(*types.FeedGood); ok {
-		return good.EntID
+	if good, ok := ent.(*types.FeedPowerRental); ok {
+		return good.GoodID
 	}
-	return ent.(*goodmwpb.Good).EntID
+	return ent.(*powerrentalmwpb.PowerRental).GoodID
 }

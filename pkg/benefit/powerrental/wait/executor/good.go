@@ -7,7 +7,6 @@ import (
 
 	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
@@ -26,8 +25,9 @@ import (
 	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/common"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
+	common "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/common"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/types"
+	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
@@ -36,7 +36,7 @@ import (
 )
 
 type goodHandler struct {
-	*types.FeedGood
+	*types.FeedPowerRental
 	*common.Handler
 	persistent             chan interface{}
 	notif                  chan interface{}
@@ -53,12 +53,12 @@ type goodHandler struct {
 	userRewardAmount       decimal.Decimal
 	platformRewardAmount   decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
-	coin                   *coinmwpb.Coin
+	coins                  map[string]*coinmwpb.Coin
 	appGoods               map[string]map[string]*appgoodmwpb.Good
 	goodCreatedAt          uint32
 	techniqueFeeAppGoods   map[string]*appgoodmwpb.Good
 	techniqueFeeAmount     decimal.Decimal
-	userBenefitHotAccount  *pltfaccmwpb.Account
+	userBenefitHotAccounts map[string]*pltfaccmwpb.Account
 	goodBenefitAccount     *gbmwpb.Account
 	benefitOrderIDs        []uint32
 	benefitOrderEntIDs     []string
@@ -90,18 +90,20 @@ func (h *goodHandler) checkBenefitable() bool {
 	return true
 }
 
-func (h *goodHandler) getCoin(ctx context.Context) error {
-	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
+func (h *goodHandler) getCoins(ctx context.Context) error {
+	h.coins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
+		for _, goodCoin := range h.GoodCoins {
+			coinTypeIDs = append(coinTypeIDs, goodCoin.CoinTypeID)
+		}
+		return
+	})
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if coin == nil {
-		return fmt.Errorf("invalid coin")
-	}
-	h.coin = coin
-	h.reservedAmount, err = decimal.NewFromString(h.coin.ReservedAmount)
-	if err != nil {
-		return err
+	for _, goodCoin := range h.GoodCoins {
+		if _, ok := h.coins[goodCoin.CoinTypeID]; !ok {
+			return wlog.Errorf("invalid goodcoin")
+		}
 	}
 	return nil
 }
@@ -588,17 +590,13 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		err = fmt.Errorf("invalid stock")
 		return err
 	}
-	h.startRewardAmount, err = decimal.NewFromString(h.NextRewardStartAmount)
-	if err != nil {
-		return err
-	}
 	if benefitable := h.checkBenefitable(); !benefitable {
 		return nil
 	}
-	if err = h.getCoin(ctx); err != nil {
+	if err = h.getCoins(ctx); err != nil {
 		return err
 	}
-	if err = h.getUserBenefitHotAccount(ctx); err != nil {
+	if err = h.getUserBenefitHotAccounts(ctx); err != nil {
 		return err
 	}
 	if err = h.getGoodBenefitAccount(ctx); err != nil {
