@@ -8,6 +8,7 @@ import (
 	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
 	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
 	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
 	requiredmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good/required"
@@ -59,7 +60,7 @@ type goodHandler struct {
 	techniqueFeeAppGoods   map[string]*appgoodmwpb.Good
 	techniqueFeeAmount     decimal.Decimal
 	userBenefitHotAccounts map[string]*pltfaccmwpb.Account
-	goodBenefitAccount     *gbmwpb.Account
+	goodBenefitAccounts    map[string]*gbmwpb.Account
 	benefitOrderIDs        []uint32
 	benefitOrderEntIDs     []string
 	benefitResult          basetypes.Result
@@ -76,12 +77,12 @@ const (
 )
 
 func (h *goodHandler) checkBenefitable() bool {
-	if h.StartAt >= uint32(time.Now().Unix()) {
+	if h.ServiceStartAt >= uint32(time.Now().Unix()) {
 		h.benefitResult = basetypes.Result_Success
 		h.benefitMessage = fmt.Sprintf(
 			"%v (start at %v, now %v)",
 			resultNotMining,
-			time.Unix(int64(h.StartAt), 0),
+			time.Unix(int64(h.ServiceStartAt), 0),
 			time.Now(),
 		)
 		h.notifiable = true
@@ -90,13 +91,13 @@ func (h *goodHandler) checkBenefitable() bool {
 	return true
 }
 
-func (h *goodHandler) getCoins(ctx context.Context) error {
+func (h *goodHandler) getCoins(ctx context.Context) (err error) {
 	h.coins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
 		for _, goodCoin := range h.GoodCoins {
 			coinTypeIDs = append(coinTypeIDs, goodCoin.CoinTypeID)
 		}
 		return
-	})
+	}())
 	if err != nil {
 		return wlog.WrapError(err)
 	}
@@ -364,51 +365,32 @@ func (h *goodHandler) calculateTechniqueFee() error {
 	return h._calculateTechniqueFee()
 }
 
-func (h *goodHandler) getUserBenefitHotAccount(ctx context.Context) error {
-	account, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
-		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountUsedFor_UserBenefitHot)},
-		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		return fmt.Errorf(
-			"invalid account (coin %v | %v, usedfor %v)",
-			h.coin.Name,
-			h.CoinTypeID,
-			basetypes.AccountUsedFor_UserBenefitHot,
-		)
-	}
-	h.userBenefitHotAccount = account
-	return nil
+func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error) {
+	h.userBenefitHotAccounts, err = schedcommon.GetCoinPlatformAccounts(
+		ctx,
+		basetypes.AccountUsedFor_UserBenefitHot,
+		func() (conTypeIDs []string) {
+			for coinTypeID, _ := range h.coins {
+				coinTypeIDs = append(coinTypeIDs, coinTypeID)
+			}
+			return
+		}(),
+	)
+	return wlog.WrapError(err)
 }
 
-func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) error {
-	account, err := gbmwcli.GetAccountOnly(ctx, &gbmwpb.Conds{
-		GoodID:  &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
-		Backup:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Active:  &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Locked:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Blocked: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
-	if err != nil {
-		return err
-	}
-	if account == nil {
-		return fmt.Errorf(
-			"invalid account (good %v | %v, usedfor %v)",
-			h.Title,
-			h.ID,
-			basetypes.AccountUsedFor_GoodBenefit,
-		)
-	}
-	h.goodBenefitAccount = account
-	return nil
+func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) (err error) {
+	h.goodBenefitAccounts, err = schedcommon.GetGoodCoinBenefitAccounts(
+		ctx,
+		h.EntID,
+		func() (conTypeIDs []string) {
+			for coinTypeID, _ := range h.coins {
+				coinTypeIDs = append(coinTypeIDs, coinTypeID)
+			}
+			return
+		}(),
+	)
+	return wlog.WrapError(err)
 }
 
 func (h *goodHandler) checkTransferrable() error {
