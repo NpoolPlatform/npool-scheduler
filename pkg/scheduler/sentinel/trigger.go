@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	npool "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/sentinel"
-	benefitwait "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait"
-	benefitwaittypes "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
+	// benefitwait "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait"
+	// benefitwaittypes "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/wait/types"
 )
 
 func triggerBenefitWait(req *npool.BenefitWait) {

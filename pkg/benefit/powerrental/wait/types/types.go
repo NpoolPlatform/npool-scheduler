@@ -8,12 +8,13 @@ import (
 type CoinReward struct {
 	CoinTypeID              string
 	Amount                  string
-	NextStartRewardAmount   string
+	NextRewardStartAmount   string
 	GoodBenefitAccountID    string
 	GoodBenefitAddress      string
 	UserBenefitHotAccountID string
 	UserBenefitHotAddress   string
 	Extra                   string
+	BenefitMessage          string
 }
 
 type PersistentPowerRental struct {

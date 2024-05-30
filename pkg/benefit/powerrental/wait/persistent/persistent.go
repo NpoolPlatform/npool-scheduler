@@ -10,6 +10,7 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	goodcoinrewardmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/coin/reward"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -18,6 +19,7 @@ import (
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type handler struct{}
@@ -48,39 +50,51 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
-	if err := p.updateOrders(ctx, _good); err != nil {
-		return err
+	if len(_good.CoinRewards) > 0 {
+		if err := p.updateOrders(ctx, _good); err != nil {
+			return err
+		}
 	}
 
-	id := uuid.Nil.String()
-	if _good.Transferrable {
-		id = uuid.NewString()
+	rewardReqs := []*goodcoinrewardmwpb.RewardReq{}
+	for _, reward := range _good.CoinRewards {
+		rewardReqs = append(rewardReqs, &goodcoinrewardmwpb.RewardReq{
+			GoodID:                &_good.GoodID,
+			CoinTypeID:            &reward.CoinTypeID,
+			RewardTID:             func() *string { s := uuid.NewString(); return &s }(),
+			RewardAmount:          &reward.Amount,
+			NextRewardStartAmount: &reward.NextRewardStartAmount,
+		})
 	}
 
-	state := goodtypes.BenefitState_BenefitTransferring
 	if err := powerrentalmwcli.UpdatePowerRental(ctx, &powerrentalmwpb.PowerRentalReq{
 		ID:          &_good.ID,
+		RewardState: func() *goodtypes.BenefitState { e := goodtypes.BenefitState_BenefitTransferring; return &e }(),
 		RewardAt:    &_good.BenefitTimestamp,
-		RewardState: &state,
+		Rewards:     rewardReqs,
 	}); err != nil {
 		return err
 	}
 
-	if !_good.Transferrable {
+	if len(_good.CoinRewards) == 0 {
 		return nil
 	}
 
-	txType := basetypes.TxType_TxUserBenefit
-	if _, err := txmwcli.CreateTx(ctx, &txmwpb.TxReq{
-		EntID:         &id,
-		CoinTypeID:    &_good.CoinTypeID,
-		FromAccountID: &_good.GoodBenefitAccountID,
-		ToAccountID:   &_good.UserBenefitHotAccountID,
-		Amount:        &_good.TodayRewardAmount,
-		FeeAmount:     &_good.FeeAmount,
-		Extra:         &_good.Extra,
-		Type:          &txType,
-	}); err != nil {
+	txReqs := []*txmwpb.TxReq{}
+	for i, reward := range _good.CoinRewards {
+		txReqs = append(txReqs, &txmwpb.TxReq{
+			EntID:         rewardReqs[i].RewardTID,
+			CoinTypeID:    &reward.CoinTypeID,
+			FromAccountID: &reward.GoodBenefitAccountID,
+			ToAccountID:   &reward.UserBenefitHotAccountID,
+			Amount:        &reward.Amount,
+			FeeAmount:     func() *string { s := decimal.NewFromInt(0).String(); return &s }(),
+			Extra:         &reward.Extra,
+			Type:          func() *basetypes.TxType { e := basetypes.TxType_TxUserBenefit; return &e }(),
+		})
+	}
+
+	if _, err := txmwcli.CreateTxs(ctx, txReqs); err != nil {
 		return err
 	}
 

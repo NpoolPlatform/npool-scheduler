@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	powerrental "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental"
+	//powerrental "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 
