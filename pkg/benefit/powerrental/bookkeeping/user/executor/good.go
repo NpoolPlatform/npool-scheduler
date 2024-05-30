@@ -5,54 +5,60 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
-	requiredmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good/required"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
+	appfeemwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/fee"
+	requiredappgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good/required"
+	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	requiredmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/required"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	appfeemwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/fee"
+	requiredappgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/required"
+	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/user/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	ordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/order"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 
 	"github.com/shopspring/decimal"
 )
 
+type coinReward struct {
+	totalRewardAmount decimal.Decimal
+	userRewardAmount  decimal.Decimal
+}
+
 type goodHandler struct {
-	*goodmwpb.Good
-	persistent           chan interface{}
-	notif                chan interface{}
-	done                 chan interface{}
-	totalRewardAmount    decimal.Decimal
-	totalUnits           decimal.Decimal
-	totalOrderUnits      decimal.Decimal
-	appOrderUnits        map[string]map[string]decimal.Decimal
-	appGoods             map[string]map[string]*appgoodmwpb.Good
-	goodCreatedAt        uint32
-	techniqueFeeAppGoods map[string]*appgoodmwpb.Good
-	userRewardAmount     decimal.Decimal
-	appGoodUnitRewards   map[string]map[string]decimal.Decimal
-	orderRewards         []*types.OrderReward
+	*powerrentalmwpb.PowerRental
+	persistent         chan interface{}
+	notif              chan interface{}
+	done               chan interface{}
+	totalUnits         decimal.Decimal
+	totalOrderUnits    decimal.Decimal
+	appOrderUnits      map[string]map[string]decimal.Decimal
+	appPowerRentals    map[string]map[string]*apppowerrentalmwpb.PowerRental
+	requiredAppFees    []*requiredappgoodmwpb.Required
+	techniqueFees      map[string]*appfeemwpb.Fee
+	appGoodUnitRewards map[string]map[string]map[string]decimal.Decimal
+	orderRewards       []*types.OrderReward
+	coinRewards        map[string]*coinReward
 }
 
 //nolint:dupl
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	simulate := false
+	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
 
 	for {
-		orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
-			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
+			GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 			LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 			BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
-			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
+			Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -80,19 +86,13 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) getAppGoods(ctx context.Context) error {
-	good, err := goodmwcli.GetGood(ctx, h.EntID)
-	if err != nil {
-		return err
-	}
-
-	h.goodCreatedAt = good.CreatedAt
-
+func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	h.appPowerRentals = map[string]map[string]*apppowerrentalmwpb.PowerRental{}
 
 	for {
-		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+		goods, _, err := apppowerrentalmwcli.GetPowerRentals(ctx, &apppowerrentalmwpb.Conds{
 			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		}, offset, limit)
 		if err != nil {
@@ -102,110 +102,146 @@ func (h *goodHandler) getAppGoods(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			_goods, ok := h.appGoods[good.AppID]
+			_goods, ok := h.appPowerRentals[good.AppID]
 			if !ok {
-				_goods = map[string]*appgoodmwpb.Good{}
+				_goods = map[string]*apppowerrentalmwpb.PowerRental{}
 			}
 			_goods[good.EntID] = good
-			h.appGoods[good.AppID] = _goods
+			h.appPowerRentals[good.AppID] = _goods
 		}
 		offset += limit
 	}
 	return nil
 }
 
-func (h *goodHandler) calculateUnitRewardLegacy() {
+func (h *goodHandler) calculateUnitRewardsLegacy() {
 	for appID, appGoodUnits := range h.appOrderUnits {
-		goods, ok := h.appGoods[appID]
+		goods, ok := h.appPowerRentals[appID]
 		if !ok {
 			continue
 		}
-		unitRewards, ok := h.appGoodUnitRewards[appID]
+		appUnitRewards, ok := h.appGoodUnitRewards[appID]
 		if !ok {
-			unitRewards = map[string]decimal.Decimal{}
+			appUnitRewards = map[string]map[string]decimal.Decimal{}
 		}
 		for appGoodID, units := range appGoodUnits {
 			good, ok := goods[appGoodID]
 			if !ok {
 				continue
 			}
-			userRewardAmount := h.userRewardAmount.
-				Mul(units).
-				Div(h.totalOrderUnits)
-			techniqueFee := userRewardAmount.
-				Mul(decimal.RequireFromString(good.TechnicalFeeRatio)).
-				Div(decimal.NewFromInt(100))
-			unitRewards[appGoodID] = userRewardAmount.
-				Sub(techniqueFee).
-				Div(units)
+			appGoodUnitRewards, ok := appUnitRewards[appGoodID]
+			if !ok {
+				appGoodUnitRewards = map[string]decimal.Decimal{}
+			}
+			for coinTypeID, reward := range h.coinRewards {
+				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+					continue
+				}
+				userRewardAmount := reward.userRewardAmount.
+					Mul(units).
+					Div(h.totalOrderUnits)
+				techniqueFee := userRewardAmount.
+					Mul(decimal.RequireFromString(good.TechniqueFeeRatio)).
+					Div(decimal.NewFromInt(100))
+				appGoodUnitRewards[coinTypeID] = userRewardAmount.
+					Sub(techniqueFee).
+					Div(units)
+			}
+			appUnitRewards[appGoodID] = appGoodUnitRewards
 		}
-		h.appGoodUnitRewards[appID] = unitRewards
+		h.appGoodUnitRewards[appID] = appUnitRewards
 	}
 }
 
-func (h *goodHandler) _calculateUnitReward() error {
+func (h *goodHandler) _calculateUnitRewards() error {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		// For one good, event it's assign to multiple app goods,
 		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFeeAppGood, ok := h.techniqueFeeAppGoods[appID]
+		techniqueFee, ok := h.techniqueFees[appID]
 		feePercent := decimal.NewFromInt(0)
 		var err error
 
-		if ok && techniqueFeeAppGood.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfit {
-			feePercent, err = decimal.NewFromString(techniqueFeeAppGood.UnitPrice)
+		if ok && techniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+			feePercent, err = decimal.NewFromString(techniqueFee.UnitValue)
 			if err != nil {
 				return err
 			}
 		}
 
-		unitRewards, ok := h.appGoodUnitRewards[appID]
+		appUnitRewards, ok := h.appGoodUnitRewards[appID]
 		if !ok {
-			unitRewards = map[string]decimal.Decimal{}
+			appUnitRewards = map[string]map[string]decimal.Decimal{}
 		}
 		for appGoodID, units := range appGoodUnits {
-			userRewardAmount := h.userRewardAmount.
-				Mul(units).
-				Div(h.totalOrderUnits)
-			techniqueFee := userRewardAmount.
-				Mul(feePercent).
-				Div(decimal.NewFromInt(100))
-			unitRewards[appGoodID] = userRewardAmount.
-				Sub(techniqueFee).
-				Div(units)
+			appGoodUnitRewards, ok := appUnitRewards[appGoodID]
+			if !ok {
+				appGoodUnitRewards = map[string]decimal.Decimal{}
+			}
+			for coinTypeID, reward := range h.coinRewards {
+				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+					continue
+				}
+				userRewardAmount := reward.userRewardAmount.
+					Mul(units).
+					Div(h.totalOrderUnits)
+				techniqueFee := userRewardAmount.
+					Mul(feePercent).
+					Div(decimal.NewFromInt(100))
+				appGoodUnitRewards[coinTypeID] = userRewardAmount.
+					Sub(techniqueFee).
+					Div(units)
+			}
+			appUnitRewards[appGoodID] = appGoodUnitRewards
 		}
-		h.appGoodUnitRewards[appID] = unitRewards
+		h.appGoodUnitRewards[appID] = appUnitRewards
 	}
 	return nil
 }
 
-func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
+func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	requireds := []*requiredmwpb.Required{}
 
 	for {
-		_requireds, _, err := requiredmwcli.GetRequireds(ctx, &requiredmwpb.Conds{
-			MainGoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+		requireds, _, err := requiredappgoodmwcli.GetRequireds(ctx, &requiredappgoodmwpb.Conds{
+			MainAppGoodIDs: &basetypes.StringSliceVal{
+				Op: cruder.IN, Value: func() (appGoodIDs []string) {
+					for _, appPowerRentals := range h.appPowerRentals {
+						for _, appPowerRental := range appPowerRentals {
+							appGoodIDs = append(appGoodIDs, appPowerRental.AppGoodID)
+						}
+					}
+					return
+				}(),
+			},
+			RequiredGoodType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_TechniqueServiceFee)},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
-		if len(_requireds) == 0 {
-			break
+		if len(requireds) == 0 {
+			return nil
 		}
-		requireds = append(requireds, _requireds...)
+		h.requiredAppFees = append(h.requiredAppFees, requireds...)
 		offset += limit
 	}
+}
 
-	offset = 0
-	requiredGoodIDs := []string{}
-	for _, required := range requireds {
-		requiredGoodIDs = append(requiredGoodIDs, required.RequiredGoodID)
-	}
+func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
+	offset := int32(0)
+	limit := constant.DefaultRowLimit
+	h.techniqueFees = map[string]*appfeemwpb.Fee{}
 
 	for {
-		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
-			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: requiredGoodIDs},
+		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
+			AppGoodIDs: &basetypes.StringSliceVal{
+				Op: cruder.IN, Value: func() (appGoodIDs []string) {
+					for _, requiredAppFee := range h.requiredAppFees {
+						appGoodIDs = append(appGoodIDs, requiredAppFee.RequiredAppGoodID)
+					}
+					return
+				}(),
+			},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -214,14 +250,11 @@ func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
-				continue
-			}
-			_, ok := h.techniqueFeeAppGoods[good.AppID]
+			_, ok := h.techniqueFees[good.AppID]
 			if ok {
 				return fmt.Errorf("too many techniquefeegood")
 			}
-			h.techniqueFeeAppGoods[good.AppID] = good
+			h.techniqueFees[good.AppID] = good
 		}
 		offset += limit
 	}
@@ -229,41 +262,54 @@ func (h *goodHandler) getTechniqueFeeGoods(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateUnitReward(ctx context.Context) error {
+func (h *goodHandler) constructCoinRewards() error {
+	totalUnits, err := decimal.NewFromString(h.GoodTotal)
+	if err != nil {
+		return err
+	}
+	h.coinRewards = map[string]*coinReward{}
+	for _, reward := range h.Rewards {
+		totalRewardAmount, err := decimal.NewFromString(reward.LastRewardAmount)
+		if err != nil {
+			return err
+		}
+		userRewardAmount := totalRewardAmount.
+			Mul(h.totalOrderUnits).
+			Div(totalUnits)
+		h.coinRewards[reward.CoinTypeID] = &coinReward{
+			totalRewardAmount: totalRewardAmount,
+			userRewardAmount:  userRewardAmount,
+		}
+	}
+	return nil
+}
+
+func (h *goodHandler) calculateUnitRewards() error {
+	h.appGoodUnitRewards = map[string]map[string]map[string]decimal.Decimal{}
 	if h.totalOrderUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return nil
 	}
-	if h.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
+	if h.GoodType == goodtypes.GoodType_LegacyPowerRental {
+		h.calculateUnitRewardsLegacy()
 		return nil
 	}
-
-	const legacyTechniqueFeeTimestamp = 1704009402
-	if h.goodCreatedAt <= legacyTechniqueFeeTimestamp {
-		h.calculateUnitRewardLegacy()
-		return nil
-	}
-
-	if err := h.getTechniqueFeeGoods(ctx); err != nil {
-		return err
-	}
-
-	return h._calculateUnitReward()
+	return h._calculateUnitRewards()
 }
 
-func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
-	unitRewards, ok := h.appGoodUnitRewards[order.AppID]
+func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRentalOrder) error {
+	appUnitRewards, ok := h.appGoodUnitRewards[order.AppID]
 	if !ok {
 		return nil
 	}
-	unitReward, ok := unitRewards[order.AppGoodID]
+	appGoodUnitRewards, ok := appUnitRewards[order.AppGoodID]
 	if !ok {
 		return nil
 	}
 	ioExtra := fmt.Sprintf(
 		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
-		h.EntID,
+		h.GoodID,
 		order.AppGoodID,
-		order.EntID,
+		order.OrderID,
 		order.Units,
 		h.LastRewardAt,
 	)
@@ -271,25 +317,33 @@ func (h *goodHandler) calculateOrderReward(order *ordermwpb.Order) error {
 	if err != nil {
 		return err
 	}
-	amount := unitReward.Mul(units)
-	h.orderRewards = append(h.orderRewards, &types.OrderReward{
+	orderReward := &types.OrderReward{
 		AppID:   order.AppID,
 		UserID:  order.UserID,
-		OrderID: order.ID,
-		Amount:  amount.String(),
+		OrderID: order.OrderID,
 		Extra:   ioExtra,
-	})
+	}
+	for coinTypeID, _ := range h.coinRewards {
+		unitReward, ok := appGoodUnitRewards[coinTypeID]
+		if !ok {
+			return nil
+		}
+		orderReward.CoinRewards = append(orderReward.CoinRewards, &types.CoinReward{
+			CoinTypeID: coinTypeID,
+			Amount:     unitReward.Mul(units).String(),
+		})
+	}
+	h.orderRewards = append(h.orderRewards, orderReward)
 	return nil
 }
 
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
-	// If orderRewards is not empty, we do not update good benefit state, then we get get next 20 orders
-	simulate := false
-	orders, _, err := ordermwcli.GetOrders(ctx, &ordermwpb.Conds{
+	// If orderRewards is not empty, we do not update good benefit state, then we get next 20 orders
+	orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
-		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: simulate},
+		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	}, 0, int32(20))
 	if err != nil {
 		return err
@@ -311,16 +365,14 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Good", h.Good,
-			"TotalRewardAmount", h.totalRewardAmount,
-			"UserRewardAmount", h.userRewardAmount,
+			"PowerRental", h.PowerRental,
 			"OrderRewards", h.orderRewards,
 			"AppOrderUnits", h.appOrderUnits,
 			"Error", *err,
 		)
 	}
 	persistentGood := &types.PersistentGood{
-		Good:         h.Good,
+		PowerRental:  h.PowerRental,
 		OrderRewards: h.orderRewards,
 		Error:        *err,
 	}
@@ -331,7 +383,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentGood.BenefitResult = basetypes.Result_Fail
-	persistentGood.BenefitMessage = (*err).Error()
 
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
@@ -339,33 +390,26 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
-	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
-	h.techniqueFeeAppGoods = map[string]*appgoodmwpb.Good{}
-	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
-	h.appGoodUnitRewards = map[string]map[string]decimal.Decimal{}
 	var err error
 
 	defer h.final(ctx, &err)
 
-	h.totalRewardAmount, err = decimal.NewFromString(h.LastRewardAmount)
-	if err != nil {
+	if err = h.getAppPowerRentals(ctx); err != nil {
 		return err
 	}
-	if err = h.getAppGoods(ctx); err != nil {
+	if err := h.getRequiredTechniqueFees(ctx); err != nil {
 		return err
 	}
-	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)
-	if err != nil {
+	if err := h.getAppTechniqueFees(ctx); err != nil {
 		return err
 	}
 	if err = h.getOrderUnits(ctx); err != nil {
 		return err
 	}
-	h.userRewardAmount = h.totalRewardAmount.
-		Mul(h.totalOrderUnits).
-		Div(h.totalUnits)
-
-	if err := h.calculateUnitReward(ctx); err != nil {
+	if err = h.constructCoinRewards(); err != nil {
+		return err
+	}
+	if err := h.calculateUnitRewards(); err != nil {
 		return err
 	}
 	if err = h.calculateOrderRewards(ctx); err != nil {
