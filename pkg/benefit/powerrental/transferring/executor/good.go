@@ -5,39 +5,41 @@ import (
 	"encoding/json"
 	"fmt"
 
-	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
-	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	pltfaccmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
+	platformaccountmwpb "github.com/NpoolPlatform/message/npool/account/mw/v1/platform"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
+	goodcoinrewardmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/coin/reward"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/transferring/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/transferring/types"
+	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
 	"github.com/shopspring/decimal"
 )
 
+type coinReward struct {
+	types.CoinReward
+	toPlatformAmount decimal.Decimal
+}
+
 type goodHandler struct {
-	*goodmwpb.Good
-	persistent            chan interface{}
-	notif                 chan interface{}
-	done                  chan interface{}
-	coin                  *coinmwpb.Coin
-	newBenefitState       goodtypes.BenefitState
-	toPlatformAmount      decimal.Decimal
-	techniqueFee          decimal.Decimal
-	transferToPlatform    bool
-	userBenefitHotAccount *pltfaccmwpb.Account
-	platformColdAccount   *pltfaccmwpb.Account
-	benefitResult         basetypes.Result
-	benefitMessage        string
-	txExtra               string
+	*powerrentalmwpb.PowerRental
+	persistent             chan interface{}
+	notif                  chan interface{}
+	done                   chan interface{}
+	goodCoins              map[string]*coinmwpb.Coin
+	newBenefitState        goodtypes.BenefitState
+	coinRewards            []*coinReward
+	rewardTxs              map[string]*txmwpb.Tx
+	userBenefitHotAccounts map[string]*platformaccountmwpb.Account
+	platformColdAccounts   map[string]*platformaccountmwpb.Account
+	benefitResult          basetypes.Result
 }
 
 const (
@@ -45,136 +47,194 @@ const (
 	errorTxFail    = "Transaction fail"
 )
 
-func (h *goodHandler) getCoin(ctx context.Context) error {
-	coin, err := coinmwcli.GetCoin(ctx, h.CoinTypeID)
+func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
+	h.goodCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
+		for _, goodCoin := range h.GoodCoins {
+			coinTypeIDs = append(coinTypeIDs, goodCoin.CoinTypeID)
+		}
+		return
+	}())
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if coin == nil {
-		return fmt.Errorf("invalid coin")
+	for _, goodCoin := range h.GoodCoins {
+		if _, ok := h.goodCoins[goodCoin.CoinTypeID]; !ok {
+			return wlog.Errorf("invalid goodcoin")
+		}
 	}
-	h.coin = coin
 	return nil
 }
 
-func (h *goodHandler) checkTransfer(ctx context.Context) error {
-	tx, err := txmwcli.GetTx(ctx, h.RewardTID)
-	if err != nil {
-		return err
-	}
-	if tx == nil {
-		h.benefitResult = basetypes.Result_Fail
-		h.benefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, h.RewardTID)
-		h.newBenefitState = goodtypes.BenefitState_BenefitFail
-		return nil
-	}
+func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
+	h.rewardTxs, err = schedcommon.GetTxs(ctx, func() (txIDs []string) {
+		for _, reward := range h.Rewards {
+			txIDs = append(txIDs, reward.RewardTID)
+		}
+		return
+	}())
+	return wlog.WrapError(err)
+}
 
-	switch tx.State {
-	case basetypes.TxState_TxStateCreated:
-		fallthrough //nolint
-	case basetypes.TxState_TxStateWait:
-		fallthrough //nolint
-	case basetypes.TxState_TxStateTransferring:
-		return nil
-	case basetypes.TxState_TxStateFail:
-		h.benefitResult = basetypes.Result_Fail
-		h.benefitMessage = fmt.Sprintf("%v %v@%v(%v)", errorTxFail, tx.ChainTxID, h.LastRewardAt, h.RewardTID)
-		h.newBenefitState = goodtypes.BenefitState_BenefitFail
-	case basetypes.TxState_TxStateSuccessful:
-		h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
-	}
+func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
+	h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
 
-	if h.newBenefitState == goodtypes.BenefitState_BenefitBookKeeping {
-		type p struct {
+	for _, reward := range h.Rewards {
+		able, err := h.checkTransferred(reward)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		if !able {
+			continue
+		}
+
+		coinReward := &coinReward{
+			CoinReward: types.CoinReward{
+				CoinTypeID: reward.CoinTypeID,
+			},
+		}
+
+		tx, ok := h.rewardTxs[reward.RewardTID]
+		if !ok {
+			h.benefitResult = basetypes.Result_Fail
+			h.newBenefitState = goodtypes.BenefitState_BenefitFail
+			coinReward.BenefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, reward.RewardTID)
+			continue
+		}
+		switch tx.State {
+		case basetypes.TxState_TxStateCreated:
+			fallthrough //nolint
+		case basetypes.TxState_TxStateWait:
+			fallthrough //nolint
+		case basetypes.TxState_TxStateTransferring:
+			return nil
+		case basetypes.TxState_TxStateFail:
+			h.benefitResult = basetypes.Result_Fail
+			h.newBenefitState = goodtypes.BenefitState_BenefitFail
+			coinReward.BenefitMessage = fmt.Sprintf(
+				"%v %v@%v(%v)",
+				errorTxFail,
+				tx.ChainTxID,
+				h.LastRewardAt,
+				reward.RewardTID,
+			)
+		}
+
+		p := struct {
 			PlatformReward      decimal.Decimal
 			TechniqueServiceFee decimal.Decimal
-			GoodID              string
-		}
-		_p := p{}
-		err = json.Unmarshal([]byte(tx.Extra), &_p)
-		if err != nil {
+		}{}
+		if err := json.Unmarshal([]byte(tx.Extra), &p); err != nil {
 			return err
 		}
 
-		h.toPlatformAmount = _p.PlatformReward.Add(_p.TechniqueServiceFee)
-		h.techniqueFee = _p.TechniqueServiceFee
+		coinReward.Extra = tx.Extra
+		coinReward.toPlatformAmount = p.PlatformReward.Add(p.TechniqueServiceFee)
+		coinReward.ToPlatformAmount = coinReward.toPlatformAmount.String()
+
+		userBenefitHotAccount, ok := h.userBenefitHotAccounts[reward.CoinTypeID]
+		if ok {
+			coinReward.UserBenefitHotAccountID = userBenefitHotAccount.AccountID
+			coinReward.UserBenefitHotAddress = userBenefitHotAccount.Address
+		}
+		platformColdAccount, ok := h.platformColdAccounts[reward.CoinTypeID]
+		if ok {
+			coinReward.PlatformColdAccountID = platformColdAccount.AccountID
+			coinReward.PlatformColdAddress = platformColdAccount.Address
+		}
+
+		able, err = h.checkTransferrableToPlatform(ctx, coinReward)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		if !able {
+			continue
+		}
+
+		h.coinRewards = append(h.coinRewards, coinReward)
 	}
-	h.txExtra = tx.Extra
 	return nil
 }
 
-func (h *goodHandler) checkTransferToPlatform(ctx context.Context) error {
-	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
-	if err != nil {
-		return err
-	}
-	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return fmt.Errorf("invalid leasttransferamount")
-	}
-
-	if h.toPlatformAmount.Cmp(least) <= 0 {
-		return nil
-	}
-
-	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.coin.Name,
-		Address: h.userBenefitHotAccount.Address,
-	})
-	if err != nil {
-		return fmt.Errorf("fail check transfer amount (%v)", err)
-	}
-	if bal == nil {
-		return fmt.Errorf("invalid balance")
-	}
-
-	balance, err := decimal.NewFromString(bal.BalanceStr)
-	if err != nil {
-		return err
-	}
-	reserved, err := decimal.NewFromString(h.coin.ReservedAmount)
-	if err != nil {
-		return err
-	}
-	if balance.Cmp(h.toPlatformAmount.Add(reserved)) < 0 {
-		return nil
-	}
-
-	h.transferToPlatform = true
-	return nil
-}
-
-func (h *goodHandler) getPlatformAccount(ctx context.Context, usedFor basetypes.AccountUsedFor) (*pltfaccmwpb.Account, error) {
-	account, err := pltfaccmwcli.GetAccountOnly(ctx, &pltfaccmwpb.Conds{
-		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: h.CoinTypeID},
-		UsedFor:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(usedFor)},
-		Backup:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
-		Blocked:    &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-		Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	})
-	if err != nil {
-		return nil, err
-	}
-	if account == nil {
-		return nil, fmt.Errorf("invalid account (%v)", usedFor)
-	}
-	return account, nil
-}
-
-func (h *goodHandler) checkTransferred() (bool, error) {
-	least, err := decimal.NewFromString(h.coin.LeastTransferAmount)
+func (h *goodHandler) checkTransferrableToPlatform(ctx context.Context, reward *coinReward) (bool, error) {
+	coin, _ := h.goodCoins[reward.CoinTypeID]
+	least, err := decimal.NewFromString(coin.LeastTransferAmount)
 	if err != nil {
 		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return false, fmt.Errorf("invalid leasttransferamount")
 	}
-	todayRewardAmount, err := decimal.NewFromString(h.LastRewardAmount)
+	if reward.toPlatformAmount.Cmp(least) <= 0 {
+		return false, nil
+	}
+
+	bal, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+		Name:    coin.Name,
+		Address: reward.UserBenefitHotAddress,
+	})
+	if err != nil {
+		return false, fmt.Errorf("fail check transfer amount (%v)", err)
+	}
+	if bal == nil {
+		return false, fmt.Errorf("invalid balance")
+	}
+
+	balance, err := decimal.NewFromString(bal.BalanceStr)
+	if err != nil {
+		return false, err
+	}
+	reserved, err := decimal.NewFromString(coin.ReservedAmount)
+	if err != nil {
+		return false, err
+	}
+	if balance.Cmp(reward.toPlatformAmount.Add(reserved)) < 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error) {
+	h.userBenefitHotAccounts, err = schedcommon.GetCoinPlatformAccounts(
+		ctx,
+		basetypes.AccountUsedFor_UserBenefitHot,
+		func() (coinTypeIDs []string) {
+			for coinTypeID, _ := range h.goodCoins {
+				coinTypeIDs = append(coinTypeIDs, coinTypeID)
+			}
+			return
+		}(),
+	)
+	return wlog.WrapError(err)
+}
+
+func (h *goodHandler) getPlatformColdAccounts(ctx context.Context) (err error) {
+	h.platformColdAccounts, err = schedcommon.GetCoinPlatformAccounts(
+		ctx,
+		basetypes.AccountUsedFor_PlatformBenefitCold,
+		func() (coinTypeIDs []string) {
+			for coinTypeID, _ := range h.goodCoins {
+				coinTypeIDs = append(coinTypeIDs, coinTypeID)
+			}
+			return
+		}(),
+	)
+	return wlog.WrapError(err)
+}
+
+func (h *goodHandler) checkTransferred(reward *goodcoinrewardmwpb.RewardInfo) (bool, error) {
+	coin, _ := h.goodCoins[reward.CoinTypeID]
+	least, err := decimal.NewFromString(coin.LeastTransferAmount)
+	if err != nil {
+		return false, err
+	}
+	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
+		return false, fmt.Errorf("invalid leasttransferamount")
+	}
+	todayRewardAmount, err := decimal.NewFromString(reward.LastRewardAmount)
 	if err != nil {
 		return false, err
 	}
 	if todayRewardAmount.Cmp(least) <= 0 {
-		h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
 		return false, nil
 	}
 	return true, nil
@@ -185,46 +245,25 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"Good", h.Good,
-			"ToPlatformAmount", h.toPlatformAmount,
+			"PowerRental", h.PowerRental,
 			"NewBenefitState", h.newBenefitState,
-			"Extra", h.txExtra,
-			"UserBenefitHotAccount", h.userBenefitHotAccount,
-			"PlatformColdAccount", h.platformColdAccount,
 			"BenefitResult", h.benefitResult,
-			"BenefitMessage", h.benefitMessage,
 			"Error", *err,
 		)
 	}
-	persistentGood := &types.PersistentGood{
-		Good:               h.Good,
-		TransferToPlatform: h.transferToPlatform,
-		ToPlatformAmount:   h.toPlatformAmount.String(),
-		NewBenefitState:    h.newBenefitState,
-		FeeAmount:          decimal.NewFromInt(0).String(),
-		Extra:              h.txExtra,
-		Error:              *err,
-	}
-	if h.userBenefitHotAccount != nil {
-		persistentGood.UserBenefitHotAccountID = h.userBenefitHotAccount.AccountID
-		persistentGood.UserBenefitHotAddress = h.userBenefitHotAccount.Address
-	}
-	if h.platformColdAccount != nil {
-		persistentGood.PlatformColdAccountID = h.platformColdAccount.AccountID
-		persistentGood.PlatformColdAddress = h.platformColdAccount.Address
+	persistentGood := &types.PersistentPowerRental{
+		PowerRental:     h.PowerRental,
+		NewBenefitState: h.newBenefitState,
+		BenefitResult:   h.benefitResult,
+		Error:           *err,
 	}
 
 	if h.newBenefitState == h.RewardState && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	if h.newBenefitState == goodtypes.BenefitState_BenefitFail {
-		persistentGood.BenefitResult = h.benefitResult
-		persistentGood.BenefitMessage = h.benefitMessage
-	}
-	if *err != nil {
+	if *err != nil || persistentGood.BenefitResult == basetypes.Result_Fail {
 		persistentGood.BenefitResult = basetypes.Result_Fail
-		persistentGood.BenefitMessage = (*err).Error()
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 	if h.newBenefitState != h.RewardState {
@@ -240,32 +279,21 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	h.benefitResult = basetypes.Result_Success
 
 	var err error
-	var transferred bool
 	defer h.final(ctx, &err)
 
-	h.userBenefitHotAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_UserBenefitHot)
-	if err != nil {
-		err = fmt.Errorf("%v (%v)", err, basetypes.AccountUsedFor_UserBenefitHot)
+	if err := h.getUserBenefitHotAccounts(ctx); err != nil {
 		return err
 	}
-	h.platformColdAccount, err = h.getPlatformAccount(ctx, basetypes.AccountUsedFor_PlatformBenefitCold)
-	if err != nil {
-		err = fmt.Errorf("%v (%v)", err, basetypes.AccountUsedFor_PlatformBenefitCold)
+	if err := h.getPlatformColdAccounts(ctx); err != nil {
 		return err
 	}
-	if err = h.getCoin(ctx); err != nil {
+	if err = h.getGoodCoins(ctx); err != nil {
 		return err
 	}
-	if transferred, err = h.checkTransferred(); err != nil || !transferred {
+	if err := h.getRewardTxs(ctx); err != nil {
 		return err
 	}
-	if err = h.checkTransfer(ctx); err != nil {
-		return err
-	}
-	if h.newBenefitState == goodtypes.BenefitState_BenefitFail {
-		return nil
-	}
-	if err = h.checkTransferToPlatform(ctx); err != nil {
+	if err = h.constructCoinRewards(ctx); err != nil {
 		return err
 	}
 

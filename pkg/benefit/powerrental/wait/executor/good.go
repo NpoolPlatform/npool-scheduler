@@ -54,7 +54,6 @@ type goodHandler struct {
 	reservedAmount         decimal.Decimal
 	totalInServiceUnits    decimal.Decimal
 	totalBenefitOrderUnits decimal.Decimal
-	startRewardAmount      decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
 	goodCoins              map[string]*coinmwpb.Coin
 	coinRewards            []*coinReward
