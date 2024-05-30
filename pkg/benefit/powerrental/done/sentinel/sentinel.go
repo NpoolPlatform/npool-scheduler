@@ -3,14 +3,14 @@ package sentinel
 import (
 	"context"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/done/types"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
 )
 
@@ -26,7 +26,7 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 	limit := constant.DefaultRowLimit
 
 	for {
-		goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
+		goods, _, err := powerrentalmwcli.GetPowerRentals(ctx, &powerrentalmwpb.Conds{
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 		}, offset, limit)
 		if err != nil {
@@ -58,7 +58,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if good, ok := ent.(*types.PersistentGood); ok {
-		return good.EntID
+		return good.GoodID
 	}
-	return ent.(*goodmwpb.Good).EntID
+	return ent.(*powerrentalmwpb.PowerRental).GoodID
 }

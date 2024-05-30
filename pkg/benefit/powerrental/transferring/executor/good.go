@@ -106,7 +106,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 		case basetypes.TxState_TxStateWait:
 			fallthrough //nolint
 		case basetypes.TxState_TxStateTransferring:
-			h.newBenefitState = h.BenefitState
+			h.newBenefitState = h.RewardState
 			return nil
 		case basetypes.TxState_TxStateFail:
 			// If we have some transaction fail, we just go ahead with some notification
@@ -121,7 +121,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 				reward.RewardTID,
 			)
 			fallthrough //nolint
-		case basetypes.TxState_TxStateSuccess:
+		case basetypes.TxState_TxStateSuccessful:
 		}
 
 		p := struct {

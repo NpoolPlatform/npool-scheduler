@@ -10,7 +10,7 @@ import (
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/done/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/done/types"
 )
 
 type handler struct{}
@@ -24,12 +24,9 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 		now := uint32(time.Now().Unix())
 		result := basetypes.Result_Success
 		req := &notifbenefitmwpb.GoodBenefitReq{
-			GoodID:      &good.EntID,
-			GoodName:    &good.Title,
-			Amount:      &good.LastRewardAmount,
-			TxID:        &good.RewardTID,
+			GoodID:      &good.GoodID,
+			GoodName:    &good.Name,
 			State:       &result,
-			Message:     &good.BenefitMessage,
 			BenefitDate: &now,
 		}
 		return publisher.Update(
