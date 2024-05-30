@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
-	goodstmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
+	goodstatementmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/good/ledger/statement"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
-	goodstmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
+	goodstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/good/types"
 )
 
 type handler struct{}
@@ -21,11 +21,25 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
-	state := goodtypes.BenefitState_BenefitUserBookKeeping
-	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
+	return powerrentalmwcli.UpdatePowerRental(ctx, &powerrentalmwpb.PowerRentalReq{
 		ID:          &good.ID,
-		RewardState: &state,
-	}); err != nil {
+		RewardState: func() *goodtypes.BenefitState { e := goodtypes.BenefitState_BenefitUserBookKeeping; return &e }(),
+	})
+}
+
+func (p *handler) createGoodStatements(ctx context.Context, good *types.PersistentGood) error {
+	stReqs := []*goodstatementmwpb.GoodStatementReq{}
+	for _, reward := range good.CoinRewards {
+		stReqs = append(stReqs, &goodstatementmwpb.GoodStatementReq{
+			GoodID:                    &good.GoodID,
+			CoinTypeID:                &reward.CoinTypeID,
+			TotalAmount:               &reward.TotalRewardAmount,
+			UnsoldAmount:              &reward.UnsoldRewardAmount,
+			TechniqueServiceFeeAmount: &reward.TechniqueFeeAmount,
+			BenefitDate:               &good.LastRewardAt,
+		})
+	}
+	if _, err := goodstatementmwcli.CreateGoodStatements(ctx, stReqs); err != nil {
 		return err
 	}
 	return nil
@@ -39,25 +53,10 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
-	if _good.StatementExist {
-		if err := p.updateGood(ctx, _good); err != nil {
+	if len(_good.CoinRewards) > 0 {
+		if err := p.createGoodStatements(ctx, _good); err != nil {
 			return err
 		}
-		return nil
 	}
-
-	if _, err := goodstmwcli.CreateGoodStatement(ctx, &goodstmwpb.GoodStatementReq{
-		GoodID:                    &_good.EntID,
-		CoinTypeID:                &_good.CoinTypeID,
-		TotalAmount:               &_good.TotalRewardAmount,
-		UnsoldAmount:              &_good.UnsoldRewardAmount,
-		TechniqueServiceFeeAmount: &_good.TechniqueFeeAmount,
-		BenefitDate:               &_good.LastRewardAt,
-	}); err != nil {
-		return err
-	}
-	if err := p.updateGood(ctx, _good); err != nil {
-		return err
-	}
-	return nil
+	return p.updateGood(ctx, _good)
 }
