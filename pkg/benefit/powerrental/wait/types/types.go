@@ -13,6 +13,7 @@ type CoinReward struct {
 	GoodBenefitAddress      string
 	UserBenefitHotAccountID string
 	UserBenefitHotAddress   string
+	Extra                   string
 }
 
 type PersistentPowerRental struct {
@@ -20,10 +21,8 @@ type PersistentPowerRental struct {
 	BenefitOrderIDs  []uint32
 	CoinRewards      []*CoinReward
 	BenefitTimestamp uint32
-	Extra            string
 	BenefitResult    basetypes.Result
 	BenefitMessage   string
-	Transferrable    bool
 	Error            error
 }
 

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	gbmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/goodbenefit"
-	pltfaccmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/platform"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
@@ -43,7 +41,7 @@ type goodHandler struct {
 	notif                  chan interface{}
 	done                   chan interface{}
 	totalUnits             decimal.Decimal
-	benefitBalance         decimal.Decimal
+	coinBenefitBalances    map[string]decimal.Decimal
 	reservedAmount         decimal.Decimal
 	totalInServiceUnits    decimal.Decimal
 	totalBenefitOrderUnits decimal.Decimal
@@ -54,7 +52,8 @@ type goodHandler struct {
 	userRewardAmount       decimal.Decimal
 	platformRewardAmount   decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
-	coins                  map[string]*coinmwpb.Coin
+	goodCoins              map[string]*coinmwpb.Coin
+	coinRewards            []*types.CoinReward
 	appGoods               map[string]map[string]*appgoodmwpb.Good
 	goodCreatedAt          uint32
 	techniqueFeeAppGoods   map[string]*appgoodmwpb.Good
@@ -91,8 +90,8 @@ func (h *goodHandler) checkBenefitable() bool {
 	return true
 }
 
-func (h *goodHandler) getCoins(ctx context.Context) (err error) {
-	h.coins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
+func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
+	h.goodCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
 		for _, goodCoin := range h.GoodCoins {
 			coinTypeIDs = append(coinTypeIDs, goodCoin.CoinTypeID)
 		}
@@ -102,38 +101,42 @@ func (h *goodHandler) getCoins(ctx context.Context) (err error) {
 		return wlog.WrapError(err)
 	}
 	for _, goodCoin := range h.GoodCoins {
-		if _, ok := h.coins[goodCoin.CoinTypeID]; !ok {
+		if _, ok := h.goodCoins[goodCoin.CoinTypeID]; !ok {
 			return wlog.Errorf("invalid goodcoin")
 		}
 	}
 	return nil
 }
 
-func (h *goodHandler) checkBenefitBalance(ctx context.Context) error {
-	balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
-		Name:    h.coin.Name,
-		Address: h.goodBenefitAccount.Address,
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"%v (coin %v, address %v)",
-			err,
-			h.coin.Name,
-			h.goodBenefitAccount.Address,
-		)
+func (h *goodHandler) checkBenefitBalances(ctx context.Context) error {
+	h.coinBenefitBalances = map[string]decimal.Decimal{}
+	for coinTypeID, goodBenefitAccount := range h.goodBenefitAccounts {
+		coin, _ := h.goodCoins[coinTypeID]
+		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
+			Name:    coin.Name,
+			Address: goodBenefitAccount.Address,
+		})
+		if err != nil {
+			return fmt.Errorf(
+				"%v (coin %v, address %v)",
+				err,
+				h.coin.Name,
+				h.goodBenefitAccount.Address,
+			)
+		}
+		if balance == nil {
+			return fmt.Errorf(
+				"invalid balance (coin %v, address %v)",
+				h.coin.Name,
+				h.goodBenefitAccount.Address,
+			)
+		}
+		bal, err := decimal.NewFromString(balance.BalanceStr)
+		if err != nil {
+			return err
+		}
+		h.coinBenefitBalances[coinTypeID] = bal
 	}
-	if balance == nil {
-		return fmt.Errorf(
-			"invalid balance (coin %v, address %v)",
-			h.coin.Name,
-			h.goodBenefitAccount.Address,
-		)
-	}
-	bal, err := decimal.NewFromString(balance.BalanceStr)
-	if err != nil {
-		return err
-	}
-	h.benefitBalance = bal
 	return nil
 }
 
@@ -206,6 +209,35 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		offset += limit
 	}
 	return nil
+}
+
+func (h *goodHandler) constructCoinRewards() error {
+	for _, reward := range h.Rewards {
+		startRewardAmount, err := decimal.NewFromString(reward.NextRewardStartAmount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		benefitBalance, ok := h.coinBenefitBalances[reward.CoinTypeID]
+		if !ok {
+			continue
+		}
+		todayRewardAmount := benefitBalance.Sub(startRewardAmount)
+		coin, _ := h.goodCoins[reward.CoinTypeID]
+		reservedAmount, err := decimal.NewFromString(coin.ReservedAmount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		if startRewardAmount.Cmp(decimal.NewFromInt(0)) == 0 {
+			todayRewardAmount = todayRewardAmount.Sub(reservedAmount)
+		}
+		nextStartRewardAmount := h.benefitBalance
+		todayUnitRewardAmount := todayRewardAmount.Div(h.totalUnits)
+		userRewardAmount := todayRewardAmount.
+			Mul(h.totalBenefitOrderUnits).
+			Div(h.totalUnits)
+		platformRewardAmount = todayRewardAmount.
+			Sub(h.userRewardAmount)
+	}
 }
 
 func (h *goodHandler) getGoodCreatedAt(ctx context.Context) error {
@@ -370,7 +402,7 @@ func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error)
 		ctx,
 		basetypes.AccountUsedFor_UserBenefitHot,
 		func() (conTypeIDs []string) {
-			for coinTypeID, _ := range h.coins {
+			for coinTypeID, _ := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -379,12 +411,12 @@ func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error)
 	return wlog.WrapError(err)
 }
 
-func (h *goodHandler) getGoodBenefitAccount(ctx context.Context) (err error) {
+func (h *goodHandler) getGoodBenefitAccounts(ctx context.Context) (err error) {
 	h.goodBenefitAccounts, err = schedcommon.GetGoodCoinBenefitAccounts(
 		ctx,
 		h.EntID,
 		func() (conTypeIDs []string) {
-			for coinTypeID, _ := range h.coins {
+			for coinTypeID, _ := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -575,32 +607,24 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if benefitable := h.checkBenefitable(); !benefitable {
 		return nil
 	}
-	if err = h.getCoins(ctx); err != nil {
+	if err = h.getGoodCoins(ctx); err != nil {
 		return err
 	}
 	if err = h.getUserBenefitHotAccounts(ctx); err != nil {
 		return err
 	}
-	if err = h.getGoodBenefitAccount(ctx); err != nil {
+	if err = h.getGoodBenefitAccounts(ctx); err != nil {
 		return err
 	}
-	if err = h.checkBenefitBalance(ctx); err != nil {
+	if err = h.checkBenefitBalances(ctx); err != nil {
 		return err
 	}
 	if err = h.getOrderUnits(ctx); err != nil {
 		return err
 	}
-	h.todayRewardAmount = h.benefitBalance.Sub(h.startRewardAmount)
-	if h.startRewardAmount.Cmp(decimal.NewFromInt(0)) == 0 {
-		h.todayRewardAmount = h.todayRewardAmount.Sub(h.reservedAmount)
+	if err = h.constructCoinRewards(); err != nil {
+
 	}
-	h.nextStartRewardAmount = h.benefitBalance
-	h.todayUnitRewardAmount = h.todayRewardAmount.Div(h.totalUnits)
-	h.userRewardAmount = h.todayRewardAmount.
-		Mul(h.totalBenefitOrderUnits).
-		Div(h.totalUnits)
-	h.platformRewardAmount = h.todayRewardAmount.
-		Sub(h.userRewardAmount)
 	if err := h.getGoodCreatedAt(ctx); err != nil {
 		return err
 	}
