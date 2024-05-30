@@ -7,13 +7,13 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/notif"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/notif"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/sentinel"
 )
 
-const subsystem = "benefitbookkeepingsimulate"
+const subsystem = "benefitpowerrentalbookkeepingsimulate"
 
 var h *base.Handler
 

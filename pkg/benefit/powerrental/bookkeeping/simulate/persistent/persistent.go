@@ -6,20 +6,20 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	simstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/types"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
@@ -36,58 +36,58 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
-	reqs := []*ordermwpb.OrderReq{}
+	reqs := []*powerrentalordermwpb.PowerRentalOrderReq{}
 	state := ordertypes.BenefitState_BenefitBookKept
 	for _, order := range good.OrderRewards {
-		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:           &order.OrderID,
+		reqs = append(reqs, &powerrentalordermwpb.PowerRentalOrderReq{
+			OrderID:      &order.OrderID,
 			BenefitState: &state,
 		})
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrders",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrders",
 		"",
-		&ordermwpb.UpdateOrdersRequest{
+		&powerrentalordermwpb.UpdatePowerRentalOrdersRequest{
 			Infos: reqs,
 		},
 	)
 }
 
 func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
-	reqs := []*simstatementmwpb.StatementReq{}
-	RealReqs := []*statementmwpb.StatementReq{}
+	simReqs := []*simstatementmwpb.StatementReq{}
+	realReqs := []*statementmwpb.StatementReq{}
 
 	rollback := true
 	ioType := ledgertypes.IOType_Incoming
-	ioSubType := ledgertypes.IOSubType_MiningBenefit
-	realIoSubType := ledgertypes.IOSubType_SimulateMiningBenefit
 
 	for _, reward := range good.OrderRewards {
-		id := uuid.NewString()
-		reqs = append(reqs, &simstatementmwpb.StatementReq{
-			EntID:      &id,
-			AppID:      &reward.AppID,
-			UserID:     &reward.UserID,
-			CoinTypeID: &good.CoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &reward.Amount,
-			IOExtra:    &reward.Extra,
-			CreatedAt:  &good.LastRewardAt,
-			Rollback:   &rollback,
-			SendCoupon: &reward.SendCoupon,
-			Cashable:   &reward.Cashable,
-		})
-		if reward.Cashable {
-			RealReqs = append(RealReqs, &statementmwpb.StatementReq{
-				EntID:      &id,
+		for _, coinReward := range reward.CoinRewards {
+			simReqs = append(simReqs, &simstatementmwpb.StatementReq{
+				EntID:      func() *string { s := uuid.NewString(); return &s }(),
 				AppID:      &reward.AppID,
 				UserID:     &reward.UserID,
-				CoinTypeID: &good.CoinTypeID,
+				CoinTypeID: &coinReward.CoinTypeID,
 				IOType:     &ioType,
-				IOSubType:  &realIoSubType,
-				Amount:     &reward.Amount,
+				IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_MiningBenefit; return &e }(),
+				Amount:     &coinReward.Amount,
+				IOExtra:    &reward.Extra,
+				CreatedAt:  &good.LastRewardAt,
+				Rollback:   &rollback,
+				SendCoupon: &coinReward.SendCoupon,
+				Cashable:   &coinReward.Cashable,
+			})
+			if !coinReward.Cashable {
+				continue
+			}
+			realReqs = append(realReqs, &statementmwpb.StatementReq{
+				EntID:      func() *string { s := uuid.NewString(); return &s }(),
+				AppID:      &reward.AppID,
+				UserID:     &reward.UserID,
+				CoinTypeID: &coinReward.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_SimulateMiningBenefit; return &e }(),
+				Amount:     &coinReward.Amount,
 				IOExtra:    &reward.Extra,
 				CreatedAt:  &good.LastRewardAt,
 				Rollback:   &rollback,
@@ -95,24 +95,24 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 		}
 	}
 
-	if len(reqs) > 0 {
+	if len(simReqs) > 0 {
 		dispose.Add(
 			ledgersvcname.ServiceDomain,
 			"ledger.middleware.simulate.ledger.statement.v2.Middleware/CreateStatements",
 			"ledger.middleware.simulate.ledger.statement.v2.Middleware/DeleteStatements",
 			&simstatementmwpb.CreateStatementsRequest{
-				Infos: reqs,
+				Infos: simReqs,
 			},
 		)
 	}
 
-	if len(RealReqs) > 0 {
+	if len(realReqs) > 0 {
 		dispose.Add(
 			ledgersvcname.ServiceDomain,
 			"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",
 			"ledger.middleware.ledger.statement.v2.Middleware/DeleteStatements",
 			&statementmwpb.CreateStatementsRequest{
-				Infos: RealReqs,
+				Infos: realReqs,
 			},
 		)
 	}
@@ -120,18 +120,22 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
 	state := goodtypes.BenefitState_BenefitDone
-	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
+	return powerrentalmwcli.UpdatePowerRental(ctx, &powerrentalmwpb.PowerRentalReq{
 		ID:          &good.ID,
 		RewardState: &state,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func (p *handler) rewardProfit(good *types.PersistentGood) {
 	for _, reward := range good.OrderRewards {
-		if !reward.SendCoupon {
+		if !func() bool {
+			for _, coinReward := range reward.CoinRewards {
+				if coinReward.SendCoupon {
+					return true
+				}
+			}
+			return false
+		}() {
 			continue
 		}
 		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
