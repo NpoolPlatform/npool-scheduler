@@ -9,6 +9,7 @@ import (
 
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	notifbenefitmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
@@ -46,6 +47,7 @@ func (h *handler) scanGoodBenefits(ctx context.Context, exec chan interface{}) e
 	for {
 		_benefits, _, err := notifbenefitmwcli.GetGoodBenefits(ctx, &notifbenefitmwpb.Conds{
 			Generated: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			GoodType:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_PowerRental)},
 		}, offset, limit)
 		if err != nil {
 			return err

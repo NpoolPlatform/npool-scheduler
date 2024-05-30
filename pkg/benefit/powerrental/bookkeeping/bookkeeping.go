@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	goodbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/good"
-	simulatebookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/simulate"
-	userbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user"
+	goodbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/good"
+	simulatebookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate"
+	userbookkeeping "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/user"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 

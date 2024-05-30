@@ -1,22 +1,26 @@
-package fail
+package benefit
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/fail/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/fail/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/fail/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental/sentinel"
 )
 
-const subsystem = "benefitpowerrentalfail"
+const subsystem = "notifbenefitpowerrental"
 
-var h *base.Handler
+var (
+	h       *base.Handler
+	running sync.Map
+)
 
-func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
+func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	_h, err := base.NewHandler(
 		ctx,
 		cancel,
@@ -24,8 +28,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithScanInterval(1*time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
+		base.WithRunningConcurrent(math.MaxInt),
 		base.WithPersistenter(persistent.NewPersistent()),
-		base.WithRunningMap(running),
+		base.WithRunningMap(&running),
 	)
 	if err != nil || _h == nil {
 		logger.Sugar().Errorw(
@@ -35,7 +40,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		)
 		return
 	}
-
 	h = _h
 	go h.Run(ctx, cancel)
 }

@@ -12,7 +12,7 @@ import (
 	notifbenefitmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif/goodbenefit"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental/types"
 )
 
 type handler struct{}

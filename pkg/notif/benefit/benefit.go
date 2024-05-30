@@ -2,50 +2,28 @@ package benefit
 
 import (
 	"context"
-	"math"
-	"sync"
-	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	powerrental "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental"
 )
 
-const subsystem = "notifbenefit"
-
-var (
-	h       *base.Handler
-	running sync.Map
-)
+const subsystem = "notifybenefit"
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
-	_h, err := base.NewHandler(
-		ctx,
-		cancel,
-		base.WithSubsystem(subsystem),
-		base.WithScanInterval(1*time.Minute),
-		base.WithScanner(sentinel.NewSentinel()),
-		base.WithExec(executor.NewExecutor()),
-		base.WithRunningConcurrent(math.MaxInt),
-		base.WithPersistenter(persistent.NewPersistent()),
-		base.WithRunningMap(&running),
-	)
-	if err != nil || _h == nil {
-		logger.Sugar().Errorw(
-			"Initialize",
-			"Subsystem", subsystem,
-			"Error", err,
-		)
+	if b := config.SupportSubsystem(subsystem); !b {
 		return
 	}
-	h = _h
-	go h.Run(ctx, cancel)
+	logger.Sugar().Infow(
+		"Initialize",
+		"Subsystem", subsystem,
+	)
+	powerrental.Initialize(ctx, cancel)
 }
 
 func Finalize(ctx context.Context) {
-	if h != nil {
-		h.Finalize(ctx)
+	if b := config.SupportSubsystem(subsystem); !b {
+		return
 	}
+	powerrental.Finalize(ctx)
 }

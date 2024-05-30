@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
 
@@ -15,15 +15,16 @@ func NewExecutor() baseexecutor.Exec {
 }
 
 func (e *handler) Exec(ctx context.Context, good interface{}, persistent, notif, done chan interface{}) error {
-	_good, ok := good.(*goodmwpb.Good)
+	_good, ok := good.(*powerrentalmwpb.PowerRental)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
 	h := &goodHandler{
-		Good:       _good,
-		persistent: persistent,
-		done:       done,
+		PowerRental: _good,
+		persistent:  persistent,
+		notif:       notif,
+		done:        done,
 	}
 	return h.exec(ctx)
 }

@@ -1,11 +1,17 @@
 package types
 
 import (
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 )
 
+type CoinNextReward struct {
+	CoinTypeID            string
+	NextRewardStartAmount string
+	BenefitMessage        string
+}
+
 type PersistentGood struct {
-	*goodmwpb.Good
-	NextStartRewardAmount string
-	BenefitOrderIDs       []uint32
+	*powerrentalmwpb.PowerRental
+	CoinNextRewards []*CoinNextReward
+	BenefitOrderIDs []uint32
 }

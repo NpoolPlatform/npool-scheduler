@@ -6,49 +6,49 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	appgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good"
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	appgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental/types"
 
 	"github.com/shopspring/decimal"
 )
 
 type benefitHandler struct {
-	benefits      []*notifbenefitmwpb.GoodBenefit
-	persistent    chan interface{}
-	notif         chan interface{}
-	done          chan interface{}
-	notifContents []*types.NotifContent
-	content       string
-	appGoods      map[string]map[string]*appgoodmwpb.Good
-	goods         map[string]*goodmwpb.Good
+	benefits        []*notifbenefitmwpb.GoodBenefit
+	persistent      chan interface{}
+	notif           chan interface{}
+	done            chan interface{}
+	notifContents   []*types.NotifContent
+	content         string
+	appPowerRentals map[string]map[string]*apppowerrentalmwpb.PowerRental
+	powerRentals    map[string]*powerrentalmwpb.PowerRental
 }
 
-func (h *benefitHandler) getGoods(ctx context.Context) error {
+func (h *benefitHandler) getPowerRentals(ctx context.Context) error {
 	goodIDs := []string{}
 	for _, benefit := range h.benefits {
 		goodIDs = append(goodIDs, benefit.GoodID)
 	}
-	goods, _, err := goodmwcli.GetGoods(ctx, &goodmwpb.Conds{
-		EntIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
+	goods, _, err := powerrentalmwcli.GetPowerRentals(ctx, &powerrentalmwpb.Conds{
+		GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
 	}, int32(0), int32(len(goodIDs)))
 	if err != nil {
 		return err
 	}
 	for _, good := range goods {
-		h.goods[good.EntID] = good
+		h.powerRentals[good.EntID] = good
 	}
 	return nil
 }
 
-func (h *benefitHandler) getAppGoods(ctx context.Context) error {
+func (h *benefitHandler) getAppPowerRentals(ctx context.Context) error {
 	goodIDs := []string{}
 	for _, benefit := range h.benefits {
 		goodIDs = append(goodIDs, benefit.GoodID)
@@ -57,7 +57,7 @@ func (h *benefitHandler) getAppGoods(ctx context.Context) error {
 	limit := constant.DefaultRowLimit
 
 	for {
-		goods, _, err := appgoodmwcli.GetGoods(ctx, &appgoodmwpb.Conds{
+		goods, _, err := apppowerrentalmwcli.GetPowerRentals(ctx, &apppowerrentalmwpb.Conds{
 			GoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: goodIDs},
 		}, offset, limit)
 		if err != nil {
@@ -67,12 +67,12 @@ func (h *benefitHandler) getAppGoods(ctx context.Context) error {
 			return nil
 		}
 		for _, good := range goods {
-			appGoods, ok := h.appGoods[good.GoodID]
+			appPowerRentals, ok := h.appPowerRentals[good.GoodID]
 			if !ok {
-				appGoods = map[string]*appgoodmwpb.Good{}
+				appPowerRentals = map[string]*apppowerrentalmwpb.PowerRental{}
 			}
-			appGoods[good.EntID] = good
-			h.appGoods[good.GoodID] = appGoods
+			appPowerRentals[good.EntID] = good
+			h.appPowerRentals[good.GoodID] = appPowerRentals
 		}
 		offset += limit
 	}
@@ -90,16 +90,16 @@ func (h *benefitHandler) generateHTMLHeader() {
 }
 
 //nolint
-func (h *benefitHandler) generateTableHeader(goodTypeName string, appGood bool) {
+func (h *benefitHandler) generateTableHeader(goodTypeName string, appPowerRental bool) {
 	h.content += "<tr>"
-	if appGood {
+	if appPowerRental {
 		h.content += fmt.Sprintf(`<th colspan="8">%v</th>`, goodTypeName)
 	} else {
 		h.content += fmt.Sprintf(`<th colspan="7">%v</th>`, goodTypeName)
 	}
 	h.content += "</tr>"
 	h.content += "<tr>"
-	if appGood {
+	if appPowerRental {
 		h.content += "<th>AppGoodID</th>"
 	}
 	h.content += "<th>GoodID</th>"
@@ -116,7 +116,7 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 	h.generateTableHeader("Platform Products", false)
 	for _, benefit := range h.benefits {
 		tm := time.Unix(int64(benefit.BenefitDate), 0)
-		good, ok := h.goods[benefit.GoodID]
+		good, ok := h.powerRentals[benefit.GoodID]
 		if !ok {
 			return fmt.Errorf("invalid good")
 		}
@@ -151,12 +151,16 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 	h.generateTableHeader("Application Products", true)
 	for _, benefit := range h.benefits {
 		tm := time.Unix(int64(benefit.BenefitDate), 0)
-		appGoods, ok := h.appGoods[benefit.GoodID]
+		appPowerRentals, ok := h.appPowerRentals[benefit.GoodID]
 		if !ok {
 			continue
 		}
-		for appGoodID, appGood := range appGoods {
-			appGoodInService, err := decimal.NewFromString(appGood.AppGoodInService)
+		powerRental, ok := h.powerRentals[benefit.GoodID]
+		if !ok {
+			continue
+		}
+		for appGoodID, appPowerRental := range appPowerRentals {
+			appGoodInService, err := decimal.NewFromString(appPowerRental.AppGoodInService)
 			if err != nil {
 				return err
 			}
@@ -164,7 +168,7 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 				continue
 			}
 
-			total, err := decimal.NewFromString(appGood.GoodTotal)
+			total, err := decimal.NewFromString(appPowerRental.GoodTotal)
 			if err != nil {
 				return err
 			}
@@ -172,7 +176,8 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 			if err != nil {
 				return err
 			}
-			goodInService, err := decimal.NewFromString(appGood.GoodInService)
+
+			goodInService, err := decimal.NewFromString(powerRental.GoodInService)
 			if err != nil {
 				return err
 			}
@@ -183,8 +188,8 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 			h.content += fmt.Sprintf(
 				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				appGoodID,
-				appGood.GoodID,
-				appGood.GoodName,
+				appPowerRental.GoodID,
+				appPowerRental.GoodName,
 				amount.Mul(appGoodInService).Div(goodInService),
 				amount.Div(total),
 				benefit.State,
@@ -198,9 +203,9 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 
 func (h *benefitHandler) generateNotifContents() {
 	appIDs := map[string]struct{}{}
-	for _, appGoods := range h.appGoods {
-		for _, appGood := range appGoods {
-			appIDs[appGood.AppID] = struct{}{}
+	for _, appPowerRentals := range h.appPowerRentals {
+		for _, appPowerRental := range appPowerRentals {
+			appIDs[appPowerRental.AppID] = struct{}{}
 		}
 	}
 	for appID := range appIDs {
@@ -234,16 +239,16 @@ func (h *benefitHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *benefitHandler) exec(ctx context.Context) error {
-	h.appGoods = map[string]map[string]*appgoodmwpb.Good{}
-	h.goods = map[string]*goodmwpb.Good{}
+	h.appPowerRentals = map[string]map[string]*apppowerrentalmwpb.PowerRental{}
+	h.powerRentals = map[string]*powerrentalmwpb.PowerRental{}
 
 	var err error
 	defer h.final(ctx, &err)
 
-	if err = h.getGoods(ctx); err != nil {
+	if err = h.getPowerRentals(ctx); err != nil {
 		return err
 	}
-	if err = h.getAppGoods(ctx); err != nil {
+	if err = h.getAppPowerRentals(ctx); err != nil {
 		return err
 	}
 	h.generateHTMLHeader()
