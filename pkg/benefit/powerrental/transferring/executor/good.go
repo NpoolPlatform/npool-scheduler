@@ -106,8 +106,11 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 		case basetypes.TxState_TxStateWait:
 			fallthrough //nolint
 		case basetypes.TxState_TxStateTransferring:
+			h.newBenefitState = h.BenefitState
 			return nil
 		case basetypes.TxState_TxStateFail:
+			// If we have some transaction fail, we just go ahead with some notification
+			// Following steps should check tx state when they update benefit info
 			h.benefitResult = basetypes.Result_Fail
 			h.newBenefitState = goodtypes.BenefitState_BenefitFail
 			coinReward.BenefitMessage = fmt.Sprintf(
@@ -117,6 +120,8 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 				h.LastRewardAt,
 				reward.RewardTID,
 			)
+			fallthrough //nolint
+		case basetypes.TxState_TxStateSuccess:
 		}
 
 		p := struct {

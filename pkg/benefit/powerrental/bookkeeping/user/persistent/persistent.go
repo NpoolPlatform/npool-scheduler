@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	goodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/good"
+	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	goodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good"
+	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/bookkeeping/user/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/user/types"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
@@ -31,19 +31,19 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
-	reqs := []*ordermwpb.OrderReq{}
+	reqs := []*powerrentalordermwpb.PowerRentalOrderReq{}
 	state := ordertypes.BenefitState_BenefitBookKept
 	for _, order := range good.OrderRewards {
-		reqs = append(reqs, &ordermwpb.OrderReq{
-			ID:           &order.OrderID,
+		reqs = append(reqs, &powerrentalordermwpb.PowerRentalOrderReq{
+			OrderID:      &order.OrderID,
 			BenefitState: &state,
 		})
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrders",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrders",
 		"",
-		&ordermwpb.UpdateOrdersRequest{
+		&powerrentalordermwpb.UpdatePowerRentalOrdersRequest{
 			Infos: reqs,
 		},
 	)
@@ -57,20 +57,20 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 	ioSubType := ledgertypes.IOSubType_MiningBenefit
 
 	for _, reward := range good.OrderRewards {
-		id := uuid.NewString()
-
-		reqs = append(reqs, &statementmwpb.StatementReq{
-			EntID:      &id,
-			AppID:      &reward.AppID,
-			UserID:     &reward.UserID,
-			CoinTypeID: &good.CoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &reward.Amount,
-			IOExtra:    &reward.Extra,
-			CreatedAt:  &good.LastRewardAt,
-			Rollback:   &rollback,
-		})
+		for _, coinReward := range reward.CoinRewards {
+			reqs = append(reqs, &statementmwpb.StatementReq{
+				EntID:      func() *string { s := uuid.NewString(); return &s }(),
+				AppID:      &reward.AppID,
+				UserID:     &reward.UserID,
+				CoinTypeID: &coinReward.CoinTypeID,
+				IOType:     &ioType,
+				IOSubType:  &ioSubType,
+				Amount:     &coinReward.Amount,
+				IOExtra:    &reward.Extra,
+				CreatedAt:  &good.LastRewardAt,
+				Rollback:   &rollback,
+			})
+		}
 	}
 
 	dispose.Add(
@@ -85,17 +85,11 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
 	state := goodtypes.BenefitState_BenefitSimulateBookKeeping
-	if _, err := goodmwcli.UpdateGood(ctx, &goodmwpb.GoodReq{
-		ID:               &good.ID,
-		RewardState:      &state,
-		RewardTID:        &good.RewardTID,
-		RewardAmount:     &good.LastRewardAmount,
-		UnitRewardAmount: &good.LastUnitRewardAmount,
-		RewardAt:         &good.LastRewardAt,
-	}); err != nil {
-		return err
-	}
-	return nil
+	return powerrentalmwcli.UpdatePowerRental(ctx, &powerrentalmwpb.PowerRentalReq{
+		ID:          &good.ID,
+		RewardState: &state,
+		RewardAt:    &good.LastRewardAt,
+	})
 }
 
 func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
