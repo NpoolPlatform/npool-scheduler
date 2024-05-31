@@ -113,8 +113,14 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 
 func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 	for _, paymentTransfer := range h.paymentTransfers {
-		paymentCoin, _ := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
-		paymentAccount, _ := h.paymentAccounts[paymentTransfer.AccountID]
+		paymentCoin, ok := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
+		if !ok {
+			return wlog.Errorf("invalid paymentcoin")
+		}
+		paymentAccount, ok := h.paymentAccounts[paymentTransfer.AccountID]
+		if !ok {
+			return wlog.Errorf("invalid paymentaccount")
+		}
 
 		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 			Name:    paymentCoin.Name,

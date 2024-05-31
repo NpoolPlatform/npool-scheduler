@@ -40,7 +40,6 @@ type coinReward struct {
 	todayRewardAmount  decimal.Decimal
 	userRewardAmount   decimal.Decimal
 	techniqueFeeAmount decimal.Decimal
-	transferrable      bool
 }
 
 type goodHandler struct {
@@ -51,7 +50,6 @@ type goodHandler struct {
 	done                   chan interface{}
 	totalUnits             decimal.Decimal
 	coinBenefitBalances    map[string]decimal.Decimal
-	reservedAmount         decimal.Decimal
 	totalInServiceUnits    decimal.Decimal
 	totalBenefitOrderUnits decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
@@ -112,13 +110,16 @@ func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
 func (h *goodHandler) checkBenefitBalances(ctx context.Context) error {
 	h.coinBenefitBalances = map[string]decimal.Decimal{}
 	for coinTypeID, goodBenefitAccount := range h.goodBenefitAccounts {
-		coin, _ := h.goodCoins[coinTypeID]
+		coin, ok := h.goodCoins[coinTypeID]
+		if !ok {
+			return wlog.Errorf("invalid coin")
+		}
 		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 			Name:    coin.Name,
 			Address: goodBenefitAccount.Address,
 		})
 		if err != nil {
-			return fmt.Errorf(
+			return wlog.Errorf(
 				"%v (coin %v, address %v)",
 				err,
 				coin.Name,
@@ -126,7 +127,7 @@ func (h *goodHandler) checkBenefitBalances(ctx context.Context) error {
 			)
 		}
 		if balance == nil {
-			return fmt.Errorf(
+			return wlog.Errorf(
 				"invalid balance (coin %v, address %v)",
 				coin.Name,
 				goodBenefitAccount.Address,
@@ -213,6 +214,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	return nil
 }
 
+//nolint:gocognit
 func (h *goodHandler) constructCoinRewards() error {
 	for _, reward := range h.Rewards {
 		startRewardAmount, err := decimal.NewFromString(reward.NextRewardStartAmount)
@@ -224,7 +226,10 @@ func (h *goodHandler) constructCoinRewards() error {
 			continue
 		}
 		todayRewardAmount := benefitBalance.Sub(startRewardAmount)
-		coin, _ := h.goodCoins[reward.CoinTypeID]
+		coin, ok := h.goodCoins[reward.CoinTypeID]
+		if !ok {
+			continue
+		}
 		reservedAmount, err := decimal.NewFromString(coin.ReservedAmount)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -273,7 +278,13 @@ func (h *goodHandler) constructCoinRewards() error {
 			platformRewardAmount,
 			coinReward.techniqueFeeAmount,
 		)
-		h.checkTransferrable(coinReward)
+		able, err := h.checkTransferrable(coinReward)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		if !able {
+			continue
+		}
 		h.coinRewards = append(h.coinRewards, coinReward)
 	}
 	return nil
@@ -395,12 +406,13 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
-			AppGoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: func() (appGoodIDs []string) {
-				for _, requiredAppFee := range h.requiredAppFees {
-					appGoodIDs = append(appGoodIDs, requiredAppFee.RequiredAppGoodID)
-				}
-				return
-			}(),
+			AppGoodIDs: &basetypes.StringSliceVal{
+				Op: cruder.IN, Value: func() (appGoodIDs []string) {
+					for _, requiredAppFee := range h.requiredAppFees {
+						appGoodIDs = append(appGoodIDs, requiredAppFee.RequiredAppGoodID)
+					}
+					return
+				}(),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -415,7 +427,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			}
 			_, ok := h.techniqueFees[good.AppID]
 			if ok {
-				return fmt.Errorf("too many techniquefeegood")
+				return wlog.Errorf("too many techniquefeegood")
 			}
 			h.techniqueFees[good.AppID] = good
 		}
@@ -446,7 +458,7 @@ func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error)
 		ctx,
 		basetypes.AccountUsedFor_UserBenefitHot,
 		func() (coinTypeIDs []string) {
-			for coinTypeID, _ := range h.goodCoins {
+			for coinTypeID := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -460,7 +472,7 @@ func (h *goodHandler) getGoodBenefitAccounts(ctx context.Context) (err error) {
 		ctx,
 		h.EntID,
 		func() (coinTypeIDs []string) {
-			for coinTypeID, _ := range h.goodCoins {
+			for coinTypeID := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -479,7 +491,7 @@ func (h *goodHandler) checkTransferrable(reward *coinReward) (bool, error) {
 		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, fmt.Errorf("invalid leasttransferamount")
+		return false, wlog.Errorf("invalid leasttransferamount")
 	}
 	if reward.todayRewardAmount.Cmp(least) <= 0 {
 		reward.BenefitMessage = fmt.Sprintf(
@@ -492,7 +504,6 @@ func (h *goodHandler) checkTransferrable(reward *coinReward) (bool, error) {
 		h.notifiable = true
 		return false, nil
 	}
-	reward.transferrable = true
 	return true, nil
 }
 
@@ -523,7 +534,7 @@ func (h *goodHandler) validateInServiceUnits() error {
 			goodInService,
 		)
 		h.notifiable = true
-		return fmt.Errorf("invalid inservice")
+		return wlog.Errorf("invalid inservice")
 	}
 	return nil
 }
@@ -567,9 +578,6 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		BenefitOrderIDs: h.benefitOrderIDs,
 		CoinRewards: func() (rewards []*types.CoinReward) {
 			for _, reward := range h.coinRewards {
-				if !reward.transferrable {
-					continue
-				}
 				rewards = append(rewards, &reward.CoinReward)
 			}
 			return
@@ -614,7 +622,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if h.totalUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
-		err = fmt.Errorf("invalid stock")
+		err = wlog.Errorf("invalid stock")
 		return err
 	}
 	if benefitable := h.checkBenefitable(); !benefitable {

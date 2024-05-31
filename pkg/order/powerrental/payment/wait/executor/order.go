@@ -36,10 +36,6 @@ func (h *orderHandler) paymentNoPayment() bool {
 	return len(h.PaymentTransfers) == 0 && len(h.PaymentBalances) == 0
 }
 
-func (h *orderHandler) payWithTransfer() bool {
-	return len(h.PaymentTransfers) > 0
-}
-
 func (h *orderHandler) timeout() bool {
 	const timeoutSeconds = 6 * timedef.SecondsPerHour
 	return h.CreatedAt+timeoutSeconds < uint32(time.Now().Unix())
@@ -88,8 +84,14 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 
 func (h *orderHandler) checkPaymentTransferBalance(ctx context.Context) error {
 	for _, paymentTransfer := range h.PaymentTransfers {
-		paymentCoin, _ := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
-		paymentAccount, _ := h.paymentAccounts[paymentTransfer.AccountID]
+		paymentCoin, ok := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
+		if !ok {
+			return wlog.Errorf("invalid paymenttransfercoin")
+		}
+		paymentAccount, ok := h.paymentAccounts[paymentTransfer.AccountID]
+		if !ok {
+			return wlog.Errorf("invalid paymentaccount")
+		}
 
 		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 			Name:    paymentCoin.Name,

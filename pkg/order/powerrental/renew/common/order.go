@@ -164,14 +164,12 @@ func (h *OrderHandler) CalculateRenewDuration(ctx context.Context) error {
 	}
 
 	if h.ElectricityFee != nil && h.ElectricityFeeEndAt < h.EndAt {
-		h.CheckElectricityFee =
-			h.ElectricityFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
-				h.ElectricityFeeEndAt < now+secondsBeforeFeeExhausted
+		h.CheckElectricityFee = h.ElectricityFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
+			h.ElectricityFeeEndAt < now+secondsBeforeFeeExhausted
 	}
 	if h.TechniqueFee != nil && h.TechniqueFeeEndAt < h.EndAt {
-		h.CheckTechniqueFee =
-			h.TechniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
-				h.TechniqueFeeEndAt < now+secondsBeforeFeeExhausted
+		h.CheckTechniqueFee = h.TechniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByPaymentAmount &&
+			h.TechniqueFeeEndAt < now+secondsBeforeFeeExhausted
 	}
 	return nil
 }
@@ -291,7 +289,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	}
 
 	now := uint32(time.Now().Unix())
-	remainSeconds := uint32(h.EndAt - now)
+	remainSeconds := h.EndAt - now
 	durationSeconds := uint32(3 * timedef.SecondsPerDay) //nolint
 	if durationSeconds > remainSeconds {
 		durationSeconds = remainSeconds
@@ -312,7 +310,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 				GoodType:  h.ElectricityFee.GoodType,
 			},
 			EndAt:         h.ElectricityFeeEndAt,
-			RenewDuration: uint32(durations),
+			RenewDuration: durations,
 		})
 	}
 
@@ -331,7 +329,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 				GoodType:  h.TechniqueFee.GoodType,
 			},
 			EndAt:         h.TechniqueFeeEndAt,
-			RenewDuration: uint32(durations),
+			RenewDuration: durations,
 		})
 	}
 

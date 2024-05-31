@@ -37,17 +37,16 @@ type coinReward struct {
 
 type goodHandler struct {
 	*powerrentalmwpb.PowerRental
-	persistent              chan interface{}
-	notif                   chan interface{}
-	done                    chan interface{}
-	totalOrderUnits         decimal.Decimal
-	appOrderUnits           map[string]map[string]decimal.Decimal
-	coinRewards             []*coinReward
-	appPowerRentals         map[string]map[string]*apppowerrentalmwpb.PowerRental
-	requiredAppFees         []*requiredappgoodmwpb.Required
-	techniqueFees           map[string]*appfeemwpb.Fee
-	totalBenefitOrderUnits  decimal.Decimal
-	totalTechniqueFeeAmount decimal.Decimal
+	persistent             chan interface{}
+	notif                  chan interface{}
+	done                   chan interface{}
+	totalOrderUnits        decimal.Decimal
+	appOrderUnits          map[string]map[string]decimal.Decimal
+	coinRewards            []*coinReward
+	appPowerRentals        map[string]map[string]*apppowerrentalmwpb.PowerRental
+	requiredAppFees        []*requiredappgoodmwpb.Required
+	techniqueFees          map[string]*appfeemwpb.Fee
+	totalBenefitOrderUnits decimal.Decimal
 }
 
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
@@ -152,12 +151,13 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
-			AppGoodIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: func() (appGoodIDs []string) {
-				for _, requiredAppFee := range h.requiredAppFees {
-					appGoodIDs = append(appGoodIDs, requiredAppFee.RequiredAppGoodID)
-				}
-				return
-			}(),
+			AppGoodIDs: &basetypes.StringSliceVal{
+				Op: cruder.IN, Value: func() (appGoodIDs []string) {
+					for _, requiredAppFee := range h.requiredAppFees {
+						appGoodIDs = append(appGoodIDs, requiredAppFee.RequiredAppGoodID)
+					}
+					return
+				}(),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -248,7 +248,7 @@ func (h *goodHandler) calculateTechniqueFee(reward *coinReward) error {
 	return h._calculateTechniqueFee(reward)
 }
 
-func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
+func (h *goodHandler) constructCoinRewards() error {
 	totalUnits, err := decimal.NewFromString(h.GoodTotal)
 	if err != nil {
 		return err
@@ -350,7 +350,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getAppTechniqueFees(ctx); err != nil {
 		return err
 	}
-	if err = h.constructCoinRewards(ctx); err != nil {
+	if err = h.constructCoinRewards(); err != nil {
 		return err
 	}
 

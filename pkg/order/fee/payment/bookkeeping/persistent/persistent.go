@@ -66,8 +66,7 @@ func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types
 			IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_Payment; return &e }(),
 			Amount:     paymentTransfer.IncomingAmount,
 			IOExtra:    &paymentTransfer.IncomingExtra,
-		})
-		reqs = append(reqs, &statementmwpb.StatementReq{
+		}, &statementmwpb.StatementReq{
 			AppID:      &order.AppID,
 			UserID:     &order.UserID,
 			CoinTypeID: &paymentTransfer.CoinTypeID,

@@ -52,7 +52,7 @@ func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *typ
 		&ledgermwpb.SettleBalancesRequest{
 			LockID: order.LedgerLockID,
 			StatementIDs: func() (statementIDs []string) {
-				for _, _ = range order.PaymentBalances {
+				for range order.PaymentBalances {
 					statementIDs = append(statementIDs, uuid.NewString())
 				}
 				return

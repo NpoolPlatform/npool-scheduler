@@ -161,7 +161,10 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 }
 
 func (h *goodHandler) checkTransferrableToPlatform(ctx context.Context, reward *coinReward) (bool, error) {
-	coin, _ := h.goodCoins[reward.CoinTypeID]
+	coin, ok := h.goodCoins[reward.CoinTypeID]
+	if !ok {
+		return false, wlog.Errorf("invalid goodcoin")
+	}
 	least, err := decimal.NewFromString(coin.LeastTransferAmount)
 	if err != nil {
 		return false, err
@@ -203,7 +206,7 @@ func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error)
 		ctx,
 		basetypes.AccountUsedFor_UserBenefitHot,
 		func() (coinTypeIDs []string) {
-			for coinTypeID, _ := range h.goodCoins {
+			for coinTypeID := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -217,7 +220,7 @@ func (h *goodHandler) getPlatformColdAccounts(ctx context.Context) (err error) {
 		ctx,
 		basetypes.AccountUsedFor_PlatformBenefitCold,
 		func() (coinTypeIDs []string) {
-			for coinTypeID, _ := range h.goodCoins {
+			for coinTypeID := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
 			}
 			return
@@ -227,7 +230,10 @@ func (h *goodHandler) getPlatformColdAccounts(ctx context.Context) (err error) {
 }
 
 func (h *goodHandler) checkTransferred(reward *goodcoinrewardmwpb.RewardInfo) (bool, error) {
-	coin, _ := h.goodCoins[reward.CoinTypeID]
+	coin, ok := h.goodCoins[reward.CoinTypeID]
+	if !ok {
+		return false, wlog.Errorf("invalid goodcoin")
+	}
 	least, err := decimal.NewFromString(coin.LeastTransferAmount)
 	if err != nil {
 		return false, err

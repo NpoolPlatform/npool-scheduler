@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
@@ -23,8 +22,7 @@ import (
 
 type coinNextReward struct {
 	types.CoinNextReward
-	lastRewardAmount      decimal.Decimal
-	nextStartRewardAmount decimal.Decimal
+	lastRewardAmount decimal.Decimal
 }
 
 type goodHandler struct {
@@ -78,11 +76,11 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 			},
 			lastRewardAmount: lastRewardAmount,
 		}
-		transfered, err := h.checkLeastTransferAmount(coinNextReward)
+		transferred, err := h.checkLeastTransferAmount(coinNextReward)
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		if !transfered {
+		if !transferred {
 			continue
 		}
 		tx, ok := h.rewardTxs[reward.RewardTID]
@@ -103,13 +101,16 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 }
 
 func (h *goodHandler) checkLeastTransferAmount(reward *coinNextReward) (bool, error) {
-	coin, _ := h.goodCoins[reward.CoinTypeID]
+	coin, ok := h.goodCoins[reward.CoinTypeID]
+	if !ok {
+		return false, wlog.Errorf("invalid coin")
+	}
 	least, err := decimal.NewFromString(coin.LeastTransferAmount)
 	if err != nil {
 		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, fmt.Errorf("invalid leasttransferamount")
+		return false, wlog.Errorf("invalid leasttransferamount")
 	}
 	if reward.lastRewardAmount.Cmp(least) <= 0 {
 		return false, nil

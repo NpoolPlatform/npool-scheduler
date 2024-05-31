@@ -73,7 +73,7 @@ func (p *handler) lockPaymentTransferAccounts(order *types.PersistentOrder) erro
 
 func (p *handler) unlockPaymentTransferAccounts(order *types.PersistentOrder) {
 	for _, paymentTransfer := range order.PaymentTransfers {
-		_ = accountlock.Unlock(paymentTransfer.AccountID)
+		_ = accountlock.Unlock(paymentTransfer.AccountID) //nolint
 	}
 }
 

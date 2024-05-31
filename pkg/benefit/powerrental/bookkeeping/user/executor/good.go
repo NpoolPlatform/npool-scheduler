@@ -36,7 +36,6 @@ type goodHandler struct {
 	persistent         chan interface{}
 	notif              chan interface{}
 	done               chan interface{}
-	totalUnits         decimal.Decimal
 	totalOrderUnits    decimal.Decimal
 	appOrderUnits      map[string]map[string]decimal.Decimal
 	appPowerRentals    map[string]map[string]*apppowerrentalmwpb.PowerRental
@@ -153,6 +152,7 @@ func (h *goodHandler) calculateUnitRewardsLegacy() {
 	}
 }
 
+//nolint:gocognit
 func (h *goodHandler) _calculateUnitRewards() error {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		// For one good, event it's assign to multiple app goods,
@@ -323,7 +323,7 @@ func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRent
 		OrderID: order.OrderID,
 		Extra:   ioExtra,
 	}
-	for coinTypeID, _ := range h.coinRewards {
+	for coinTypeID := range h.coinRewards {
 		unitReward, ok := appGoodUnitRewards[coinTypeID]
 		if !ok {
 			return nil

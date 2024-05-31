@@ -11,7 +11,6 @@ import (
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	persistent chan interface{}
-	notif      chan interface{}
 	done       chan interface{}
 }
 

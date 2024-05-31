@@ -28,10 +28,6 @@ type orderHandler struct {
 	paymentAccounts      map[string]*paymentaccountmwpb.Account
 }
 
-func (h *orderHandler) payWithTransfer() bool {
-	return len(h.PaymentTransfers) > 0
-}
-
 func (h *orderHandler) getPaymentCoins(ctx context.Context) (err error) {
 	h.paymentTransferCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
 		for _, paymentTransfer := range h.PaymentTransfers {
@@ -75,8 +71,14 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 
 func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 	for _, paymentTransfer := range h.paymentTransfers {
-		paymentCoin, _ := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
-		paymentAccount, _ := h.paymentAccounts[paymentTransfer.AccountID]
+		paymentCoin, ok := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
+		if !ok {
+			return wlog.Errorf("invalid paymentcoin")
+		}
+		paymentAccount, ok := h.paymentAccounts[paymentTransfer.AccountID]
+		if !ok {
+			return wlog.Errorf("invalid paymentaccount")
+		}
 
 		balance, err := sphinxproxycli.GetBalance(ctx, &sphinxproxypb.GetBalanceRequest{
 			Name:    paymentCoin.Name,
