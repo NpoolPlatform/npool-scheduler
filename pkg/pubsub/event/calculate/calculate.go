@@ -14,8 +14,7 @@ import (
 )
 
 type calculateHandler struct {
-	req    *eventmwpb.CalcluateEventRewardsRequest
-	reward *eventmwpb.Reward
+	req *eventmwpb.CalcluateEventRewardsRequest
 }
 
 func Prepare(body string) (interface{}, error) {
@@ -41,7 +40,7 @@ func Apply(ctx context.Context, req interface{}) error {
 	}
 
 	// calculate reward
-	reward, err := eventmwcli.CalcluateEventRewards(ctx, &eventmwpb.CalcluateEventRewardsRequest{
+	rewards, err := eventmwcli.CalcluateEventRewards(ctx, &eventmwpb.CalcluateEventRewardsRequest{
 		AppID:       in.AppID,
 		UserID:      in.UserID,
 		EventType:   in.EventType,
@@ -50,66 +49,75 @@ func Apply(ctx context.Context, req interface{}) error {
 		Consecutive: in.Consecutive,
 		Amount:      in.Amount,
 	})
+	fmt.Printf("AppID: %v, UserID: %v, EventType: %v, GoodID: %v, AppGoodID: %v, Consecutive: %v, Amount: %v;\n",
+		in.AppID, in.UserID, in.EventType, in.GoodID, in.AppGoodID, in.Consecutive, in.Amount)
 	if err != nil {
 		return err
 	}
-	if reward == nil || reward.TaskID == "" {
+	if len(rewards) == 0 {
 		return fmt.Errorf("miss reward")
 	}
+
 	handler := &calculateHandler{
-		req:    in,
-		reward: reward,
+		req: in,
 	}
 
-	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := &eventmwpb.RewardReliableRequest{
-			AppID:       in.AppID,
-			UserID:      in.UserID,
-			TaskID:      reward.TaskID,
-			EventID:     ev.EntID,
-			Credits:     reward.Credits,
-			CoinRewards: reward.CoinRewards,
+	for _, reward := range rewards {
+		if reward == nil || reward.TaskID == "" {
+			return fmt.Errorf("miss reward")
 		}
-		return publisher.Update(
-			basetypes.MsgID_ReliableEventRewardReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
-	}); err != nil {
-		logger.Sugar().Errorw(
-			"ReliableEventReward",
-			"AppID", handler.req.AppID,
-			"UserID", handler.req.UserID,
-			"EventType", handler.req.EventType,
-			"Error", err,
-		)
-	}
+		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+			req := &eventmwpb.RewardReliableRequest{
+				AppID:       in.AppID,
+				UserID:      reward.UserID,
+				TaskID:      reward.TaskID,
+				EventID:     ev.EntID,
+				Credits:     reward.Credits,
+				CoinRewards: reward.CoinRewards,
+			}
+			return publisher.Update(
+				basetypes.MsgID_ReliableEventRewardReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			)
+		}); err != nil {
+			logger.Sugar().Errorw(
+				"ReliableEventReward",
+				"AppID", handler.req.AppID,
+				"UserID", handler.req.UserID,
+				"RewardUserID", reward.UserID,
+				"EventType", handler.req.EventType,
+				"Error", err,
+			)
+		}
 
-	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := &eventmwpb.RewardUnReliableRequest{
-			AppID:   in.AppID,
-			UserID:  in.UserID,
-			TaskID:  reward.TaskID,
-			EventID: ev.EntID,
-			Coupons: reward.CouponRewards,
+		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+			req := &eventmwpb.RewardUnReliableRequest{
+				AppID:   in.AppID,
+				UserID:  reward.UserID,
+				TaskID:  reward.TaskID,
+				EventID: ev.EntID,
+				Coupons: reward.CouponRewards,
+			}
+			return publisher.Update(
+				basetypes.MsgID_UnReliableEventRewardReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			)
+		}); err != nil {
+			logger.Sugar().Errorw(
+				"UnReliableEventReward",
+				"AppID", handler.req.AppID,
+				"UserID", handler.req.UserID,
+				"RewardUserID", reward.UserID,
+				"EventType", handler.req.EventType,
+				"Error", err,
+			)
 		}
-		return publisher.Update(
-			basetypes.MsgID_UnReliableEventRewardReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
-	}); err != nil {
-		logger.Sugar().Errorw(
-			"UnReliableEventReward",
-			"AppID", handler.req.AppID,
-			"UserID", handler.req.UserID,
-			"EventType", handler.req.EventType,
-			"Error", err,
-		)
 	}
 
 	return nil
