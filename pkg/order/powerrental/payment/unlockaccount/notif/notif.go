@@ -26,8 +26,29 @@ func (p *handler) notifyPaid(order *types.PersistentOrder) error {
 			nil,
 			nil,
 			&schedorderpb.OrderInfo{
-				OrderID:  order.OrderID,
-				GoodType: order.GoodType,
+				AppID:            order.AppID,
+				UserID:           order.UserID,
+				OrderID:          order.OrderID,
+				GoodType:         order.GoodType,
+				Units:            order.Units,
+				PaymentAmountUSD: order.PaymentAmountUSD,
+				Payments: func() (payments []*schedorderpb.PaymentInfo) {
+					for _, _payment := range order.PaymentBalances {
+						payments = append(payments, &schedorderpb.PaymentInfo{
+							CoinTypeID:  _payment.CoinTypeID,
+							Amount:      _payment.Amount,
+							PaymentType: schedorderpb.PaymentType_PayWithBalance,
+						})
+					}
+					for _, _payment := range order.PaymentTransfers {
+						payments = append(payments, &schedorderpb.PaymentInfo{
+							CoinTypeID:  _payment.CoinTypeID,
+							Amount:      _payment.Amount,
+							PaymentType: schedorderpb.PaymentType_PayWithTransfer,
+						})
+					}
+					return
+				}(),
 			},
 		)
 	})

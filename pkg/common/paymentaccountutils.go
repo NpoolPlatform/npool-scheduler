@@ -21,7 +21,7 @@ func GetPaymentAccounts(ctx context.Context, accountIDs []string) (map[string]*p
 	}
 
 	paymentAccounts, _, err := paymentaccountmwcli.GetAccounts(ctx, &paymentaccountmwpb.Conds{
-		AccountIDs: &basetypes.StringSliceVal{Op: cruder.EQ, Value: accountIDs},
+		AccountIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: accountIDs},
 		Active:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		Locked:     &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		LockedBy:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(basetypes.AccountLockedBy_Payment)},

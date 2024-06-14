@@ -32,7 +32,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 			return err
 		}
 	}
-	state := ordertypes.OrderState_OrderStatePaymentUnlockAccount
+	state := ordertypes.OrderState_OrderStateAddCommission
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
 		OrderState: &state,

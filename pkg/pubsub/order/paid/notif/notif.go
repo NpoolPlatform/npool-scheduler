@@ -3,9 +3,9 @@ package notif
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	templatemwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
@@ -24,7 +24,7 @@ func Prepare(body string) (interface{}, error) {
 func Apply(ctx context.Context, req interface{}) error {
 	in, ok := req.(*schedorderpb.OrderInfo)
 	if !ok {
-		return fmt.Errorf("invalid request in apply")
+		return wlog.Errorf("invalid request in apply")
 	}
 
 	// TODO: generate payment table
@@ -40,7 +40,7 @@ func Apply(ctx context.Context, req interface{}) error {
 			Timestamp: &now,
 		},
 	}); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil
