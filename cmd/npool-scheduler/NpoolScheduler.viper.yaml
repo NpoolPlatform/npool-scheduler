@@ -28,6 +28,9 @@ config:
     - deposituser
     - gasfeeder
     - limitation
+    - paymentcollector
+    - paymentcollectortransfer
+    - paymentcollectorfinish
     - order
     - orderpowerrental
     - orderpowerrentalrenewwait
@@ -43,10 +46,8 @@ config:
     - orderpowerrentalpaymentcommission
     - orderpowerrentalpaymentachievement
     - orderpowerrentalpaymentunlockaccount
-    - orderpowerrentalpaymentupdatechilds
     - orderpowerrentalpaidcheck
     - orderpowerrentalpaidstock
-    - orderpowerrentalpaidupdatechilds
     - orderpowerrentalpaymenttimeout
     - orderpowerrentalcancelcheck
     - orderpowerrentalcancelprecancel
@@ -56,17 +57,32 @@ config:
     - orderpowerrentalcancelreturnbalance
     - orderpowerrentalcancelbookkeeping
     - orderpowerrentalcancelunlockaccount
-    - orderpowerrentalcancelupdatechilds
     - orderpowerrentalexpirycheck
     - orderpowerrentalexpirypreexpired
     - orderpowerrentalexpiryrestorestock
-    - orderpowerrentalexpiryupdatechilds
-    - orderpowerrentalpaymenttransfer
-    - orderpowerrentalpaymentfinish
-    - orderpowerrentalcancelchildcanceledparent
-    - orderpowerrentalexpirychildexpiredparent
-    - orderpowerrentalpaidchildinserviceparent
-    - orderpowerrentalpaymentchildpaidparent
+    - orderpowerrentalsimulate
+    - orderpowerrentalsimulatecreated
+    - orderpowerrentalsimulatepaymentwait
+    - orderpowerrentalsimulatepaymentreceived
+    - orderpowerrentalsimulatepaymentbookkeeping
+    - orderpowerrentalsimulatepaymentspend
+    - orderpowerrentalsimulatepaymentstock
+    - orderpowerrentalsimulatepaymentcommission
+    - orderpowerrentalsimulatepaymentachievement
+    - orderpowerrentalsimulatepaymentunlockaccount
+    - orderpowerrentalsimulatepaidcheck
+    - orderpowerrentalsimulatepaidstock
+    - orderpowerrentalsimulatecancelcheck
+    - orderpowerrentalsimulatecancelprecancel
+    - orderpowerrentalsimulatecancelrestorestock
+    - orderpowerrentalsimulatecancelcommission
+    - orderpowerrentalsimulatecancelachievement
+    - orderpowerrentalsimulatecancelreturnbalance
+    - orderpowerrentalsimulatecancelbookkeeping
+    - orderpowerrentalsimulatecancelunlockaccount
+    - orderpowerrentalsimulateexpirycheck
+    - orderpowerrentalsimulateexpirypreexpired
+    - orderpowerrentalsimulateexpiryrestorestock
     - txqueue
     - txqueuecreated
     - txqueuetransferring
