@@ -83,6 +83,34 @@ config:
     - orderpowerrentalsimulateexpirycheck
     - orderpowerrentalsimulateexpirypreexpired
     - orderpowerrentalsimulateexpiryrestorestock
+    - orderfee
+    - orderfeerenewwait
+    - orderfeerenewcheck
+    - orderfeerenewnotify
+    - orderfeerenewexecute
+    - orderfeecreated
+    - orderfeepaymentwait
+    - orderfeepaymentreceived
+    - orderfeepaymentbookkeeping
+    - orderfeepaymentspend
+    - orderfeepaymentstock
+    - orderfeepaymentcommission
+    - orderfeepaymentachievement
+    - orderfeepaymentunlockaccount
+    - orderfeepaidcheck
+    - orderfeepaidstock
+    - orderfeepaymenttimeout
+    - orderfeecancelcheck
+    - orderfeecancelprecancel
+    - orderfeecancelrestorestock
+    - orderfeecancelcommission
+    - orderfeecancelachievement
+    - orderfeecancelreturnbalance
+    - orderfeecancelbookkeeping
+    - orderfeecancelunlockaccount
+    - orderfeeexpirycheck
+    - orderfeeexpirypreexpired
+    - orderfeeexpiryrestorestock
     - txqueue
     - txqueuecreated
     - txqueuetransferring
