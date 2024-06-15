@@ -28,7 +28,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
-		OrderState: ordertypes.OrderState_OrderStateAchievementBookKeeping.Enum(),
+		OrderState: ordertypes.OrderState_OrderStatePaymentUnlockAccount.Enum(),
 	}
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, req)
 }

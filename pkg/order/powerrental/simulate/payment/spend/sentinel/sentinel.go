@@ -10,7 +10,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/spend/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/payment/spend/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
@@ -27,6 +27,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	for {
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -36,6 +37,9 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
+			if order.OrderID != "c935b2f4-db10-4c4c-b984-2d294164bf80" {
+				continue
+			}
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 

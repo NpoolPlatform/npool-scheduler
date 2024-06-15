@@ -8,7 +8,7 @@ import (
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/payment/stock/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
@@ -28,7 +28,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
-		OrderState: ordertypes.OrderState_OrderStateAddCommission.Enum(),
+		OrderState: ordertypes.OrderState_OrderStateAchievementBookKeeping.Enum(),
 	}
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, req)
 }

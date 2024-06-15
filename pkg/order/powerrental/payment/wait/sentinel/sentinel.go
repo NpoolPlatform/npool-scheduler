@@ -25,16 +25,9 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	limit := constant.DefaultRowLimit
 
 	for {
-		// If order is PayWithParentOrder, they will done or canceled with parent order
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			PaymentTypes: &basetypes.Uint32SliceVal{Op: cruder.IN, Value: []uint32{
-				uint32(ordertypes.PaymentType_PayWithBalanceOnly),
-				uint32(ordertypes.PaymentType_PayWithTransferOnly),
-				uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
-				uint32(ordertypes.PaymentType_PayWithOffline),
-				uint32(ordertypes.PaymentType_PayWithNoPayment),
-			}},
+			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
