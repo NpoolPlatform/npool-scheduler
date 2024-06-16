@@ -14,14 +14,15 @@ config:
     - announcement
     - notifbenefit
     - benefit
-    - benefitwait
-    - benefittransferring
-    - benefitbookkeeping
-    - benefitbookkeepinggood
-    - benefitbookkeepinguser
-    - benefitbookkeepingsimulate
-    - benefitfail
-    - benefitdone
+    - benefitpowerrental
+    - benefitpowerrentalwait
+    - benefitpowerrentaltransferring
+    - benefitpowerrentalbookkeeping
+    - benefitpowerrentalbookkeepinggood
+    - benefitpowerrentalbookkeepinguser
+    - benefitpowerrentalbookkeepingsimulate
+    - benefitpowerrentalfail
+    - benefitpowerrentaldone
     - deposit
     - depositfinish
     - deposittransfer
