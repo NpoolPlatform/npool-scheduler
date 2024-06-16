@@ -11,7 +11,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
 
-const subsystem = "benefitbookkeeping"
+const subsystem = "benefitpowerrentalbookkeeping"
 
 func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Map) {
 	if b := config.SupportSubsystem(subsystem); !b {

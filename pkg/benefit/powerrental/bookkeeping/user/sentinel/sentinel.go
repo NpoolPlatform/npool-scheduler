@@ -37,6 +37,9 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 		}
 
 		for _, good := range goods {
+			if good.GoodID != "1ccc0187-975e-404c-829d-748f0a4faad8" {
+				continue
+			}
 			cancelablefeed.CancelableFeed(ctx, good, exec)
 		}
 
