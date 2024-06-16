@@ -109,8 +109,8 @@ func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
 
 func (h *goodHandler) getBenefitBalances(ctx context.Context) error {
 	h.coinBenefitBalances = map[string]decimal.Decimal{}
-	for _, goodBenefitAccount := range h.goodBenefitAccounts {
-		coin, ok := h.goodCoins[goodBenefitAccount.CoinTypeID]
+	for coinTypeID, goodBenefitAccount := range h.goodBenefitAccounts {
+		coin, ok := h.goodCoins[coinTypeID]
 		if !ok {
 			return wlog.Errorf("invalid coin")
 		}
@@ -137,7 +137,7 @@ func (h *goodHandler) getBenefitBalances(ctx context.Context) error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		h.coinBenefitBalances[goodBenefitAccount.CoinTypeID] = bal
+		h.coinBenefitBalances[coinTypeID] = bal
 	}
 	return nil
 }

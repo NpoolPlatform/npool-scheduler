@@ -2,13 +2,11 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	coinmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin"
 	txmwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/tx"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -31,28 +29,9 @@ type goodHandler struct {
 	persistent      chan interface{}
 	notif           chan interface{}
 	done            chan interface{}
-	goodCoins       map[string]*coinmwpb.Coin
 	rewardTxs       map[string]*txmwpb.Tx
 	benefitOrderIDs []uint32
 	coinNextRewards []*coinNextReward
-}
-
-func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
-	h.goodCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
-		for _, goodCoin := range h.GoodCoins {
-			coinTypeIDs = append(coinTypeIDs, goodCoin.CoinTypeID)
-		}
-		return
-	}())
-	if err != nil {
-		return wlog.WrapError(err)
-	}
-	for _, goodCoin := range h.GoodCoins {
-		if _, ok := h.goodCoins[goodCoin.CoinTypeID]; !ok {
-			return wlog.Errorf("invalid goodcoin")
-		}
-	}
-	return nil
 }
 
 func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
@@ -82,39 +61,12 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 			},
 			lastRewardAmount: lastRewardAmount,
 		}
-		transferred, err := h.checkLeastTransferAmount(coinNextReward)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-		if !transferred {
+		if _, ok := h.rewardTxs[reward.RewardTID]; !ok {
 			coinNextReward.NextRewardStartAmount = nextRewardStartAmount.String()
-		} else {
-			tx, ok := h.rewardTxs[reward.RewardTID]
-			if !ok || tx.State != basetypes.TxState_TxStateSuccessful {
-				coinNextReward.NextRewardStartAmount = nextRewardStartAmount.String()
-			}
 		}
 		h.coinNextRewards = append(h.coinNextRewards, coinNextReward)
 	}
 	return nil
-}
-
-func (h *goodHandler) checkLeastTransferAmount(reward *coinNextReward) (bool, error) {
-	coin, ok := h.goodCoins[reward.CoinTypeID]
-	if !ok {
-		return false, wlog.Errorf("invalid goodcoin")
-	}
-	least, err := decimal.NewFromString(coin.LeastTransferAmount)
-	if err != nil {
-		return false, err
-	}
-	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, fmt.Errorf("invalid leasttransferamount")
-	}
-	if reward.lastRewardAmount.Cmp(least) <= 0 {
-		return false, nil
-	}
-	return true, nil
 }
 
 func (h *goodHandler) getBenefitOrders(ctx context.Context) error {
@@ -175,9 +127,6 @@ func (h *goodHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	if err = h.getGoodCoins(ctx); err != nil {
-		return err
-	}
 	if err = h.getRewardTxs(ctx); err != nil {
 		return err
 	}

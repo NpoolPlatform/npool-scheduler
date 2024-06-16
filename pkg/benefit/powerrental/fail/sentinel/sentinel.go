@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 
 	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -41,7 +40,6 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 			if good.GoodID != "1ccc0187-975e-404c-829d-748f0a4faad8" {
 				continue
 			}
-			fmt.Printf("Fail GoodID %v\n", good.GoodID)
 			cancelablefeed.CancelableFeed(ctx, good, exec)
 		}
 

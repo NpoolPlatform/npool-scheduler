@@ -33,7 +33,7 @@ func GetGoodCoinBenefitAccounts(ctx context.Context, goodID string, coinTypeIDs 
 	}
 	goodBenefitAccountMap := map[string]*goodbenefitaccountmwpb.Account{}
 	for _, goodBenefitAccount := range goodBenefitAccounts {
-		goodBenefitAccountMap[goodBenefitAccount.AccountID] = goodBenefitAccount
+		goodBenefitAccountMap[goodBenefitAccount.CoinTypeID] = goodBenefitAccount
 	}
 	return goodBenefitAccountMap, nil
 }
