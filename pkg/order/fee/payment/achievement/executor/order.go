@@ -67,6 +67,21 @@ func (h *orderHandler) calculateOrderStatements(ctx context.Context) (err error)
 		SettleType:       inspiretypes.SettleType_GoodOrderPayment,
 		HasCommission:    hasCommission,
 		OrderCreatedAt:   h.CreatedAt,
+		Payments: func() (payments []*calculatemwpb.Payment) {
+			for _, _payment := range h.PaymentBalances {
+				payments = append(payments, &calculatemwpb.Payment{
+					CoinTypeID: _payment.CoinTypeID,
+					Amount:     _payment.Amount,
+				})
+			}
+			for _, _payment := range h.PaymentTransfers {
+				payments = append(payments, &calculatemwpb.Payment{
+					CoinTypeID: _payment.CoinTypeID,
+					Amount:     _payment.Amount,
+				})
+			}
+			return
+		}(),
 	})
 	return wlog.WrapError(err)
 }

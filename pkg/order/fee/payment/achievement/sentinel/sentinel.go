@@ -46,9 +46,6 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 		}
 
 		for _, order := range orders {
-			if order.OrderID != "4d4bb47e-8933-4455-8202-2fda7e04640b" {
-				continue
-			}
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
