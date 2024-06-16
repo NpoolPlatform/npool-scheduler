@@ -265,6 +265,10 @@ func (h *Handler) retryLock(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Minute):
+			logger.Sugar().Infow(
+				"RetryLock",
+				"Subsystem", h.subsystem,
+			)
 			if err := redis2.TryLock(h.lockKey(), 0); err == nil {
 				h.locked = true
 				return

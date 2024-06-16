@@ -71,9 +71,14 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
+		nextRewardStartAmount, err := decimal.NewFromString(reward.NextRewardStartAmount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
 		coinNextReward := &coinNextReward{
 			CoinNextReward: types.CoinNextReward{
-				CoinTypeID: reward.CoinTypeID,
+				CoinTypeID:            reward.CoinTypeID,
+				NextRewardStartAmount: nextRewardStartAmount.Sub(lastRewardAmount).String(),
 			},
 			lastRewardAmount: lastRewardAmount,
 		}
@@ -82,20 +87,13 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 			return wlog.WrapError(err)
 		}
 		if !transferred {
-			continue
+			coinNextReward.NextRewardStartAmount = nextRewardStartAmount.String()
+		} else {
+			tx, ok := h.rewardTxs[reward.RewardTID]
+			if !ok || tx.State != basetypes.TxState_TxStateSuccessful {
+				coinNextReward.NextRewardStartAmount = nextRewardStartAmount.String()
+			}
 		}
-		tx, ok := h.rewardTxs[reward.RewardTID]
-		if !ok {
-			continue
-		}
-		if tx.State != basetypes.TxState_TxStateSuccessful {
-			continue
-		}
-		nextRewardStartAmount, err := decimal.NewFromString(reward.NextRewardStartAmount)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-		coinNextReward.NextRewardStartAmount = nextRewardStartAmount.Sub(lastRewardAmount).String()
 		h.coinNextRewards = append(h.coinNextRewards, coinNextReward)
 	}
 	return nil

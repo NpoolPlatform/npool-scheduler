@@ -107,10 +107,10 @@ func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
 	return nil
 }
 
-func (h *goodHandler) checkBenefitBalances(ctx context.Context) error {
+func (h *goodHandler) getBenefitBalances(ctx context.Context) error {
 	h.coinBenefitBalances = map[string]decimal.Decimal{}
-	for coinTypeID, goodBenefitAccount := range h.goodBenefitAccounts {
-		coin, ok := h.goodCoins[coinTypeID]
+	for _, goodBenefitAccount := range h.goodBenefitAccounts {
+		coin, ok := h.goodCoins[goodBenefitAccount.CoinTypeID]
 		if !ok {
 			return wlog.Errorf("invalid coin")
 		}
@@ -135,9 +135,9 @@ func (h *goodHandler) checkBenefitBalances(ctx context.Context) error {
 		}
 		bal, err := decimal.NewFromString(balance.BalanceStr)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
-		h.coinBenefitBalances[coinTypeID] = bal
+		h.coinBenefitBalances[goodBenefitAccount.CoinTypeID] = bal
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(orders) == 0 {
 			break
@@ -186,7 +186,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		for _, order := range orders {
 			units, err := decimal.NewFromString(order.Units)
 			if err != nil {
-				return err
+				return wlog.WrapError(err)
 			}
 			if !order.Simulate {
 				h.totalInServiceUnits = h.totalInServiceUnits.Add(units)
@@ -223,12 +223,12 @@ func (h *goodHandler) constructCoinRewards() error {
 		}
 		benefitBalance, ok := h.coinBenefitBalances[reward.CoinTypeID]
 		if !ok {
-			continue
+			return wlog.Errorf("Invalid benefit balance %v", reward.CoinTypeID)
 		}
 		todayRewardAmount := benefitBalance.Sub(startRewardAmount)
 		coin, ok := h.goodCoins[reward.CoinTypeID]
 		if !ok {
-			continue
+			return wlog.Errorf("Invalid goodcoin")
 		}
 		reservedAmount, err := decimal.NewFromString(coin.ReservedAmount)
 		if err != nil {
@@ -300,7 +300,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(goods) == 0 {
 			break
@@ -354,7 +354,7 @@ func (h *goodHandler) _calculateTechniqueFee(reward *coinReward) error {
 		}
 		feePercent, err := decimal.NewFromString(techniqueFee.UnitValue)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 
 		for _, units := range appGoodUnits {
@@ -416,7 +416,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(goods) == 0 {
 			break
@@ -470,7 +470,7 @@ func (h *goodHandler) getUserBenefitHotAccounts(ctx context.Context) (err error)
 func (h *goodHandler) getGoodBenefitAccounts(ctx context.Context) (err error) {
 	h.goodBenefitAccounts, err = schedcommon.GetGoodCoinBenefitAccounts(
 		ctx,
-		h.EntID,
+		h.GoodID,
 		func() (coinTypeIDs []string) {
 			for coinTypeID := range h.goodCoins {
 				coinTypeIDs = append(coinTypeIDs, coinTypeID)
@@ -510,7 +510,7 @@ func (h *goodHandler) checkTransferrable(reward *coinReward) (bool, error) {
 func (h *goodHandler) validateInServiceUnits() error {
 	goodInService, err := decimal.NewFromString(h.GoodInService)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	inService := decimal.NewFromInt(0)
@@ -518,7 +518,7 @@ func (h *goodHandler) validateInServiceUnits() error {
 		for _, appPowerRental := range appPowerRentals {
 			_inService, err := decimal.NewFromString(appPowerRental.AppGoodInService)
 			if err != nil {
-				return err
+				return wlog.WrapError(err)
 			}
 			inService = inService.Add(_inService)
 		}
@@ -569,6 +569,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"Notifiable", h.notifiable,
 			"BenefitTimestamp", h.benefitTimestamp,
 			"BenefitOrderIDs", len(h.benefitOrderIDs),
+			"CoinRewards", h.coinRewards,
 			"Error", *err,
 		)
 	}
@@ -615,48 +616,48 @@ func (h *goodHandler) exec(ctx context.Context) error {
 
 	h.resolveBenefitTimestamp()
 	if exist, err = h.checkGoodStatement(ctx); err != nil || exist {
-		return err
+		return wlog.WrapError(err)
 	}
 	h.totalUnits, err = decimal.NewFromString(h.GoodTotal)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if h.totalUnits.Cmp(decimal.NewFromInt(0)) <= 0 {
 		err = wlog.Errorf("invalid stock")
-		return err
+		return wlog.WrapError(err)
 	}
 	if benefitable := h.checkBenefitable(); !benefitable {
 		return nil
 	}
 	if err = h.getGoodCoins(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.getUserBenefitHotAccounts(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.getGoodBenefitAccounts(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if err = h.checkBenefitBalances(ctx); err != nil {
-		return err
+	if err = h.getBenefitBalances(ctx); err != nil {
+		return wlog.WrapError(err)
 	}
 	if err = h.getOrderUnits(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err := h.getAppPowerRentals(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err := h.validateInServiceUnits(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err := h.getRequiredTechniqueFees(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err := h.getAppTechniqueFees(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.constructCoinRewards(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

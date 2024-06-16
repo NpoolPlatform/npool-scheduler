@@ -2,9 +2,9 @@ package persistent
 
 import (
 	"context"
-	"fmt"
 
 	txmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/tx"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -45,14 +45,14 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentPowerR
 func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentPowerRental)
 	if !ok {
-		return fmt.Errorf("invalid good")
+		return wlog.Errorf("invalid good")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
 	if len(_good.CoinRewards) > 0 {
 		if err := p.updateOrders(ctx, _good); err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 	}
 
@@ -73,7 +73,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 		RewardAt:    &_good.BenefitTimestamp,
 		Rewards:     rewardReqs,
 	}); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if len(_good.CoinRewards) == 0 {
@@ -95,7 +95,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	if _, err := txmwcli.CreateTxs(ctx, txReqs); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil
