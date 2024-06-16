@@ -26,9 +26,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	state := ordertypes.OrderState_OrderStateAddCommission
 	return feeordermwcli.UpdateFeeOrder(ctx, &feeordermwpb.FeeOrderReq{
 		ID:         &_order.ID,
-		OrderState: &state,
+		OrderState: ordertypes.OrderState_OrderStateAchievementBookKeeping.Enum(),
 	})
 }

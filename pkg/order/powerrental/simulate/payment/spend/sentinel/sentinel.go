@@ -37,9 +37,6 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
-			if order.OrderID != "c935b2f4-db10-4c4c-b984-2d294164bf80" {
-				continue
-			}
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 

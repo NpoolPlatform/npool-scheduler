@@ -32,9 +32,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 			return err
 		}
 	}
-	state := ordertypes.OrderState_OrderStatePaymentUnlockAccount
 	return feeordermwcli.UpdateFeeOrder(ctx, &feeordermwpb.FeeOrderReq{
 		ID:         &_order.ID,
-		OrderState: &state,
+		OrderState: ordertypes.OrderState_OrderStateAddCommission.Enum(),
 	})
 }

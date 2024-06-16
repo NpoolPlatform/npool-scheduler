@@ -39,7 +39,7 @@ func (h *orderHandler) checkAchievementExist(ctx context.Context) (bool, error) 
 
 func (h *orderHandler) getGoodMainCoin(ctx context.Context) (err error) {
 	h.goodMainCoin, err = goodcoinmwcli.GetGoodCoinOnly(ctx, &goodcoinmwpb.Conds{
-		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
+		GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.ParentGoodID},
 		Main:   &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 	})
 	return wlog.WrapError(err)

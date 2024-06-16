@@ -27,6 +27,16 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 	for {
 		orders, _, err := feeordermwcli.GetFeeOrders(ctx, &feeordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			PaymentTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+					uint32(ordertypes.PaymentType_PayWithOffline),
+					uint32(ordertypes.PaymentType_PayWithNoPayment),
+				},
+			},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -36,6 +46,9 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
+			if order.OrderID != "4d4bb47e-8933-4455-8202-2fda7e04640b" {
+				continue
+			}
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
