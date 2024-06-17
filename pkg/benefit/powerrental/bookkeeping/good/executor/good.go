@@ -268,15 +268,18 @@ func (h *goodHandler) constructCoinRewards() error {
 				CoinTypeID:         reward.CoinTypeID,
 				TotalRewardAmount:  totalRewardAmount.String(),
 				UnsoldRewardAmount: unsoldRewardAmount.String(),
+				TechniqueFeeAmount: decimal.NewFromInt(0).String(),
 			},
-			totalRewardAmount:  totalRewardAmount,
-			unsoldRewardAmount: unsoldRewardAmount,
-			userRewardAmount:   userRewardAmount,
+			totalRewardAmount:       totalRewardAmount,
+			unsoldRewardAmount:      unsoldRewardAmount,
+			userRewardAmount:        userRewardAmount,
+			totalTechniqueFeeAmount: decimal.NewFromInt(0),
 		}
 		if reward.MainCoin {
 			if err := h.calculateTechniqueFee(coinReward); err != nil {
 				return err
 			}
+			coinReward.TechniqueFeeAmount = coinReward.totalTechniqueFeeAmount.String()
 		}
 		h.coinRewards = append(h.coinRewards, coinReward)
 	}
