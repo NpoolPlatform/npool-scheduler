@@ -44,11 +44,11 @@ func (h *handler) scanPayments(ctx context.Context, state ordertypes.PaymentObse
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanPayments(ctx, ordertypes.PaymentObseleteState_PaymentObseleteTransferBookKeeping, exec)
+	return h.scanPayments(ctx, ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {
-	return h.scanPayments(ctx, ordertypes.PaymentObseleteState_PaymentObseleteTransferBookKeeping, exec)
+	return h.scanPayments(ctx, ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount, exec)
 }
 
 func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan interface{}) error {

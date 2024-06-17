@@ -14,6 +14,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/notification"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order"
 	paymentcollector "github.com/NpoolPlatform/npool-scheduler/pkg/payment/collector"
+	paymentobselete "github.com/NpoolPlatform/npool-scheduler/pkg/payment/obselete"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/txqueue"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw"
 )
@@ -31,9 +32,11 @@ func Finalize(ctx context.Context) {
 	gasfeeder.Finalize(ctx)
 	order.Finalize(ctx)
 	paymentcollector.Finalize(ctx)
+	paymentobselete.Finalize(ctx)
 }
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
+	paymentobselete.Initialize(ctx, cancel)
 	paymentcollector.Initialize(ctx, cancel)
 	order.Initialize(ctx, cancel)
 	gasfeeder.Initialize(ctx, cancel)
@@ -55,6 +58,7 @@ type initializer struct {
 }
 
 var subsystems = map[string]initializer{
+	"paymentobselete":  {paymentobselete.Initialize, paymentobselete.Finalize},
 	"paymentcollector": {paymentcollector.Initialize, paymentcollector.Finalize},
 	"order":            {order.Initialize, order.Finalize},
 	"gasfeeder":        {gasfeeder.Initialize, gasfeeder.Finalize},
