@@ -46,5 +46,6 @@ func (h *paymentHandler) final(ctx context.Context, err *error) {
 func (h *paymentHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)
+	h.resolveLedgerLockID()
 	return nil
 }
