@@ -72,12 +72,12 @@ github.com/NpoolPlatform/ledger-middleware v0.0.0-20240304030403-1e129dfe4e3f h1
 github.com/NpoolPlatform/ledger-middleware v0.0.0-20240304030403-1e129dfe4e3f/go.mod h1:5Zz5ru2HPN8M7xTB7gBhfyRLTOtK6GsFWd3CgSt2jEM=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20240514082633-598d5fc7b1e3 h1:/KSPKS4kVn031QTPpdxjPnp+Yykmde25Zya0krZdk/Y=
 github.com/NpoolPlatform/libent-cruder v0.0.0-20240514082633-598d5fc7b1e3/go.mod h1:EXCihQpRNNyWaPu1IphiZFLTyyUK/CJMZdW4My7y48Q=
-github.com/NpoolPlatform/message v0.0.0-20240616040026-717511d6e22c h1:l3K1l7DgZWW8HM4+9xyLShjK+RVLA9v1eQDJ0i4DFK8=
-github.com/NpoolPlatform/message v0.0.0-20240616040026-717511d6e22c/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
+github.com/NpoolPlatform/message v0.0.0-20240617021145-94fb1d39c25e h1:E4rlV86oqCUIiUZeraGGUdv/2pwxt8BratK+5W/EN60=
+github.com/NpoolPlatform/message v0.0.0-20240617021145-94fb1d39c25e/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240530112808-1906674219b1 h1:ZvLcmyFzL9wjOO5To+COE0mPv9vrqjixg3JC0ojMCwo=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240530112808-1906674219b1/go.mod h1:bpG7FPEuErmuUNyrkat55flv3Ov6Qg46IZ+my1ibCdw=
-github.com/NpoolPlatform/order-middleware v0.0.0-20240616040351-b64602ba2e83 h1:WVqm12Di1lDKDxL9/SLC9Srm/jvH28lofsaWjDZRqno=
-github.com/NpoolPlatform/order-middleware v0.0.0-20240616040351-b64602ba2e83/go.mod h1:cCUeoqbEA9IbPmku29hm9PrvZpgWCnBb6tyv+ow8b58=
+github.com/NpoolPlatform/order-middleware v0.0.0-20240617022557-b7bbd05961f9 h1:mqPbTqHu2w5y02OprGZnzpOt93tNyme0WPMJ/keAd0M=
+github.com/NpoolPlatform/order-middleware v0.0.0-20240617022557-b7bbd05961f9/go.mod h1:5T6LE2sGa2SJQldJBMJWScXCH+WwWZhyHrcNGcFnTao=
 github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2 h1:qXBRJjUzscoz2Sn2ceEmjweHVXZIqGBw2SgJDu/Tk2k=
 github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2/go.mod h1:31T/JYYgE/9w5uHYXqbrd9/a5DU0NEaV5CxBeBOBAHQ=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9 h1:TljSgLyyHCAi/8cCOCf8WyOenmnbDJvqku627x4udyo=
