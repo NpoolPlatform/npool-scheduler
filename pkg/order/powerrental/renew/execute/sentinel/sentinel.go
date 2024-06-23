@@ -28,6 +28,17 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			RenewState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderRenewState_OrderRenewExecute)},
+			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			PaymentTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+					uint32(ordertypes.PaymentType_PayWithOffline),
+					uint32(ordertypes.PaymentType_PayWithNoPayment),
+				},
+			},
 		}, offset, limit)
 		if err != nil {
 			return err

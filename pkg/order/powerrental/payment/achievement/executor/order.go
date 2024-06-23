@@ -57,7 +57,7 @@ func (h *orderHandler) calculateOrderStatements(ctx context.Context) (err error)
 		UserID:           h.UserID,
 		GoodID:           h.GoodID,
 		AppGoodID:        h.AppGoodID,
-		OrderID:          h.EntID,
+		OrderID:          h.OrderID,
 		GoodCoinTypeID:   h.goodMainCoin.CoinTypeID,
 		Units:            h.Units,
 		PaymentAmountUSD: h.PaymentAmountUSD,

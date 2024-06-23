@@ -35,7 +35,9 @@ func (h *orderHandler) constructPayments() error {
 	case ordertypes.OrderState_OrderStateWaitPayment:
 		fallthrough //nolint
 	case ordertypes.OrderState_OrderStatePaymentTimeout:
-		h.paymentOp = types.Unlock
+		if len(h.PaymentBalances) > 0 {
+			h.paymentOp = types.Unlock
+		}
 	case ordertypes.OrderState_OrderStatePaid:
 		fallthrough //nolint
 	case ordertypes.OrderState_OrderStateInService:
@@ -51,6 +53,13 @@ func (h *orderHandler) constructPayments() error {
 		h.payments = append(h.payments, &types.Payment{
 			CoinTypeID: paymentTransfer.CoinTypeID,
 			Amount:     paymentTransfer.Amount,
+			SpentExtra: fmt.Sprintf(
+				`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true,"PaymentTransferID":"%v"}`,
+				h.AppID,
+				h.UserID,
+				h.OrderID,
+				paymentTransfer.EntID,
+			),
 		})
 	}
 	for _, paymentBalance := range h.PaymentBalances {
@@ -60,6 +69,13 @@ func (h *orderHandler) constructPayments() error {
 		h.payments = append(h.payments, &types.Payment{
 			CoinTypeID: paymentBalance.CoinTypeID,
 			Amount:     paymentBalance.Amount,
+			SpentExtra: fmt.Sprintf(
+				`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true,"PaymentBalanceID":"%v"}`,
+				h.AppID,
+				h.UserID,
+				h.OrderID,
+				paymentBalance.EntID,
+			),
 		})
 	}
 	return nil
@@ -79,15 +95,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		PowerRentalOrder: h.PowerRentalOrder,
 		Payments:         h.payments,
 		PaymentOp:        h.paymentOp,
-	}
-	if len(h.payments) > 0 && h.paymentOp == types.Unspend {
-		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
-			h.AppID,
-			h.UserID,
-			h.EntID,
-		)
-		persistentOrder.SpentExtra = ioExtra
 	}
 
 	if *err == nil {

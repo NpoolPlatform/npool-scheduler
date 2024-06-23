@@ -12,7 +12,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check/sentinel"
 )
 
-const subsystem = "orderexpirycheck"
+const subsystem = "orderpowerrentalexpirycheck"
 
 var h *base.Handler
 

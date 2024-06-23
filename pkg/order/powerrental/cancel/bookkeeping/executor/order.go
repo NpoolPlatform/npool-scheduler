@@ -105,7 +105,7 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 	}
 	for _, paymentTransfer := range h.PaymentTransfers {
 		if _, ok := h.paymentAccounts[paymentTransfer.AccountID]; !ok {
-			return wlog.Errorf("invalid paymentaccount")
+			return wlog.Errorf("invalid paymentaccount %v", paymentTransfer)
 		}
 	}
 	return nil
@@ -163,15 +163,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentPowerRentalOrder := &types.PersistentPowerRentalOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+		PowerRentalOrder:  h.PowerRentalOrder,
+		XPaymentTransfers: h.paymentTransfers,
 	}
-	persistentPowerRentalOrder.XPaymentTransfers = h.paymentTransfers
 	if len(h.paymentTransfers) > 0 {
 		ioExtra := fmt.Sprintf(
 			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
-			h.EntID,
+			h.OrderID,
 		)
 		persistentPowerRentalOrder.IncomingExtra = ioExtra
 	}

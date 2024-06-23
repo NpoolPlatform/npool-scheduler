@@ -52,7 +52,7 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/UnlockBalances",
 		"",
-		&ledgermwpb.UnlockBalanceRequest{
+		&ledgermwpb.UnlockBalancesRequest{
 			LockID: order.LedgerLockID,
 		},
 	)
@@ -75,7 +75,7 @@ func (p *handler) withReturnSpent(dispose *dtmcli.SagaDispose, order *types.Pers
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     &payment.Amount,
-			IOExtra:    &order.SpentExtra,
+			IOExtra:    &payment.SpentExtra,
 		})
 	}
 

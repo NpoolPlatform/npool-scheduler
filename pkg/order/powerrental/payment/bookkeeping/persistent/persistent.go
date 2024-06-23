@@ -72,7 +72,7 @@ func (p *handler) withCreateStatements(dispose *dtmcli.SagaDispose, order *types
 			CoinTypeID: &paymentTransfer.CoinTypeID,
 			IOType:     func() *ledgertypes.IOType { e := ledgertypes.IOType_Outcoming; return &e }(),
 			IOSubType:  func() *ledgertypes.IOSubType { e := ledgertypes.IOSubType_Payment; return &e }(),
-			Amount:     func() *string { s := paymentTransfer.Amount.String(); return &s }(),
+			Amount:     &paymentTransfer.Amount,
 			IOExtra:    &paymentTransfer.OutcomingExtra,
 		})
 	}

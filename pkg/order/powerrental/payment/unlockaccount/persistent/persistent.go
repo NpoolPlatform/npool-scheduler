@@ -84,6 +84,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, notif)
+	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	if err := p.lockPaymentTransferAccounts(_order); err != nil {
 		return err

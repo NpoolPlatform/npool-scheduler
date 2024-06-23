@@ -27,6 +27,7 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, state ordertypes.Or
 	for {
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		}, offset, limit)
 		if err != nil {
 			return err

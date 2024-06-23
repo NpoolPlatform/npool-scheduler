@@ -28,6 +28,19 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			OrderID:    &basetypes.StringVal{Op: cruder.EQ, Value: "c3100aca-c0d3-4a6f-b8c8-61d03036341c"},
+			PaymentTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+					uint32(ordertypes.PaymentType_PayWithOffline),
+					uint32(ordertypes.PaymentType_PayWithNoPayment),
+				},
+			},
+			AdminSetCanceled: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			UserSetCanceled:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -37,6 +50,9 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
+			if order.OrderID != "c3100aca-c0d3-4a6f-b8c8-61d03036341c" {
+				continue
+			}
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 

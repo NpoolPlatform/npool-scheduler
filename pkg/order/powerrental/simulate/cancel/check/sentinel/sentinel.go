@@ -34,9 +34,8 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, admin bool, exec ch
 				uint32(ordertypes.OrderState_OrderStateWaitPayment),
 				uint32(ordertypes.OrderState_OrderStateInService),
 			}},
-			UpdatedAt:   &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
-			PaymentType: &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
-			Simulate:    &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+			UpdatedAt: &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
+			Simulate:  &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		}
 		if admin {
 			conds.AdminSetCanceled = &basetypes.BoolVal{Op: cruder.EQ, Value: true}

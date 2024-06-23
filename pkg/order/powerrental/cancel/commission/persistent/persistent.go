@@ -35,8 +35,8 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
-		"order.middleware.order1.v1.Middleware/UpdateOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
+		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
 		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
 		},

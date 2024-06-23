@@ -26,6 +26,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
+	fmt.Printf("PreCancel order %v\n", _order.OrderID)
+
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:           &_order.ID,
 		OrderState:   ordertypes.OrderState_OrderStatePreCancel.Enum(),

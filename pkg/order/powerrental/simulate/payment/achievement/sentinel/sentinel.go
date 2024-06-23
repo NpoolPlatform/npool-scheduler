@@ -28,6 +28,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+			OrderID:    &basetypes.StringVal{Op: cruder.EQ, Value: "c3100aca-c0d3-4a6f-b8c8-61d03036341c"},
 		}, offset, limit)
 		if err != nil {
 			return err

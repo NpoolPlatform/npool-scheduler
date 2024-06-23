@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
@@ -34,8 +35,19 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, admin bool, exec ch
 				uint32(ordertypes.OrderState_OrderStateWaitPayment),
 				uint32(ordertypes.OrderState_OrderStateInService),
 			}},
-			UpdatedAt:   &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
-			PaymentType: &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
+			Simulate:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			UpdatedAt: &basetypes.Uint32Val{Op: cruder.LT, Value: updatedAt},
+			OrderID:   &basetypes.StringVal{Op: cruder.EQ, Value: "c3100aca-c0d3-4a6f-b8c8-61d03036341c"},
+			PaymentTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+					uint32(ordertypes.PaymentType_PayWithOffline),
+					uint32(ordertypes.PaymentType_PayWithNoPayment),
+				},
+			},
 		}
 		if admin {
 			conds.AdminSetCanceled = &basetypes.BoolVal{Op: cruder.EQ, Value: true}
@@ -51,6 +63,7 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, admin bool, exec ch
 		}
 
 		for _, order := range orders {
+			fmt.Printf("CancelCheck %v\n", order.OrderID)
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 

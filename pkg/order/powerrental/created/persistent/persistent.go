@@ -24,6 +24,8 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		return fmt.Errorf("invalid powerrentalorder")
 	}
 
+	fmt.Printf("Persistent %v\n", _order.OrderID)
+
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{

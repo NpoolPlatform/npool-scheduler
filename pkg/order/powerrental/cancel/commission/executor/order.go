@@ -127,7 +127,7 @@ func (h *orderHandler) constructCommissionRevoke() error {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
+	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
 			"Order", h.PowerRentalOrder,

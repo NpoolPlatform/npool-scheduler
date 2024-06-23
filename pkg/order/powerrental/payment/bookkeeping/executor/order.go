@@ -70,7 +70,15 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 }
 
 func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
-	for _, paymentTransfer := range h.paymentTransfers {
+	for _, _paymentTransfer := range h.PaymentTransfers {
+		paymentTransfer := &types.XPaymentTransfer{
+			PaymentTransferID: _paymentTransfer.EntID,
+			CoinTypeID:        _paymentTransfer.CoinTypeID,
+			AccountID:         _paymentTransfer.AccountID,
+			Amount:            _paymentTransfer.Amount,
+			StartAmount:       _paymentTransfer.StartAmount,
+		}
+
 		paymentCoin, ok := h.paymentTransferCoins[paymentTransfer.CoinTypeID]
 		if !ok {
 			return wlog.Errorf("invalid paymentcoin")
@@ -95,8 +103,13 @@ func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
+		paymentTransfer.PaymentAccountBalance = bal.String()
+		startAmount, err := decimal.NewFromString(paymentTransfer.StartAmount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
 		paymentTransfer.IncomingAmount = func() *string {
-			amount := bal.Sub(paymentTransfer.StartAmount)
+			amount := bal.Sub(startAmount)
 			if amount.Cmp(decimal.NewFromInt(0)) <= 0 {
 				return nil
 			}
@@ -108,7 +121,7 @@ func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 			paymentTransfer.IncomingExtra = fmt.Sprintf(
 				`{"PaymentID": "%v","OrderID":"%v","PaymentState":"%v","GoodID":"%v","AppGoodID":"%v"}`,
 				h.PaymentID,
-				h.EntID,
+				h.OrderID,
 				h.PaymentState,
 				h.GoodID,
 				h.AppGoodID,
@@ -116,20 +129,22 @@ func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 			paymentTransfer.OutcomingExtra = fmt.Sprintf(
 				`{"PaymentID":"%v","OrderID": "%v","FromTransfer":true,"GoodID":"%v","AppGoodID":"%v","PaymentType":"%v"}`,
 				h.PaymentID,
-				h.EntID,
+				h.OrderID,
 				h.GoodID,
 				h.AppGoodID,
 				h.PaymentType,
 			)
 		}
 		paymentTransfer.FinishAmount = balance.BalanceStr
+
+		h.paymentTransfers = append(h.paymentTransfers, paymentTransfer)
 	}
 	return nil
 }
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil {
+	if *err != nil || true {
 		logger.Sugar().Errorw(
 			"final",
 			"PowerRentalOrder", h.PowerRentalOrder,

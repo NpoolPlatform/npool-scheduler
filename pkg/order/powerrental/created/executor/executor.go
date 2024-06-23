@@ -15,6 +15,7 @@ func NewExecutor() baseexecutor.Exec {
 }
 
 func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif, done chan interface{}) error {
+	fmt.Printf("Exec Order %v\n", order)
 	_order, ok := order.(*powerrentalordermwpb.PowerRentalOrder)
 	if !ok {
 		return fmt.Errorf("invalid powerrentalorder")

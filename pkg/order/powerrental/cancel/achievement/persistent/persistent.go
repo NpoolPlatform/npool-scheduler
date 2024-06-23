@@ -27,7 +27,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	if err := achievementmwcli.ExpropriateAchievement(ctx, _order.EntID); err != nil {
+	if err := achievementmwcli.ExpropriateAchievement(ctx, _order.OrderID); err != nil {
 		return wlog.WrapError(err)
 	}
 

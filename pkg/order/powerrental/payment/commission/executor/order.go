@@ -35,7 +35,7 @@ func (h *orderHandler) getOrderPaymentStatements(ctx context.Context) error {
 
 	for {
 		statements, _, err := orderpaymentstatementmwcli.GetStatements(ctx, &orderpaymentstatementmwpb.Conds{
-			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -63,7 +63,7 @@ func (h *orderHandler) constructLedgerStatements() error {
 		ioExtra := fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v","PaymentStatementID":"%v"}`,
 			h.PaymentID,
-			h.EntID,
+			h.OrderID,
 			h.UserID,
 			statement.AppConfigID,
 			statement.CommissionConfigID,
@@ -89,6 +89,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"PowerRentalOrder", h.PowerRentalOrder,
+			"LedgerStatements", h.ledgerStatements,
+			"OrderStatements", h.paymentStatements,
 			"Error", *err,
 		)
 	}

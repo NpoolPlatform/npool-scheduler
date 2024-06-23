@@ -2,8 +2,8 @@ package persistent
 
 import (
 	"context"
-	"fmt"
 
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -12,6 +12,7 @@ import (
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/spend/types"
+	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -24,6 +25,13 @@ type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
+}
+
+func (p *handler) updateOrderState(ctx context.Context, order *types.PersistentOrder) error {
+	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &order.ID,
+		OrderState: ordertypes.OrderState_OrderStateTransferGoodStockLocked.Enum(),
+	})
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
@@ -66,10 +74,14 @@ func (p *handler) withSpendLockedBalance(dispose *dtmcli.SagaDispose, order *typ
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentOrder)
 	if !ok {
-		return fmt.Errorf("invalid order")
+		return wlog.Errorf("invalid order")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
+
+	if len(_order.PaymentBalances) == 0 {
+		return wlog.WrapError(p.updateOrderState(ctx, _order))
+	}
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -79,7 +91,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	p.withUpdateOrderState(sagaDispose, _order)
 	p.withSpendLockedBalance(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil
