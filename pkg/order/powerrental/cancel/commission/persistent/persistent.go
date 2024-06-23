@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -43,23 +44,16 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 }
 
 func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) error {
-	if len(order.LedgerStatements) == 0 {
-		return nil
-	}
-	for _, statement := range order.LedgerStatements {
-		lock, ok := order.CommissionLocks[*statement.UserID]
-		if !ok {
-			return fmt.Errorf("invalid commission lock")
-		}
+	for _, revoke := range order.CommissionRevokes {
 		dispose.Add(
 			ledgersvcname.ServiceDomain,
-			"ledger.middleware.ledger.v2.Middleware/SettleBalance",
+			"ledger.middleware.ledger.v2.Middleware/SettleBalances",
 			"",
-			&ledgermwpb.SettleBalanceRequest{
-				LockID:      lock.EntID,
-				StatementID: *statement.EntID,
-				IOSubType:   *statement.IOSubType,
-				IOExtra:     *statement.IOExtra,
+			&ledgermwpb.SettleBalancesRequest{
+				LockID:       revoke.LockID,
+				IOSubType:    ledgertypes.IOSubType_CommissionRevoke,
+				IOExtra:      revoke.IOExtra,
+				StatementIDs: revoke.StatementIDs,
 			},
 		)
 	}

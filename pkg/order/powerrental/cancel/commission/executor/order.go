@@ -2,16 +2,15 @@ package executor
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	achievementstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
+	achievementorderpaymentstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement/order/payment"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
-	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
+	achievementorderpaymentstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement/order/payment"
 	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/lock"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -25,12 +24,12 @@ import (
 
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	persistent       chan interface{}
-	notif            chan interface{}
-	done             chan interface{}
-	statements       []*achievementstatementmwpb.Statement
-	ledgerStatements []*ledgerstatementmwpb.StatementReq
-	commissionLocks  []*orderlockmwpb.OrderLock
+	persistent        chan interface{}
+	notif             chan interface{}
+	done              chan interface{}
+	statements        []*achievementorderpaymentstatementmwpb.Statement
+	commissionLocks   map[string]*orderlockmwpb.OrderLock
+	commissionRevokes map[string]*types.CommissionRevoke
 }
 
 func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
@@ -43,12 +42,14 @@ func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 			LockType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderLockType_LockCommission)},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(locks) == 0 {
 			break
 		}
-		h.commissionLocks = append(h.commissionLocks, locks...)
+		for _, lock := range locks {
+			h.commissionLocks[lock.UserID] = lock
+		}
 		offset += limit
 	}
 	return nil
@@ -59,11 +60,11 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	limit := constant.DefaultRowLimit
 
 	for {
-		statements, _, err := achievementstatementmwcli.GetStatements(ctx, &achievementstatementmwpb.Conds{
+		statements, _, err := achievementorderpaymentstatementmwcli.GetStatements(ctx, &achievementorderpaymentstatementmwpb.Conds{
 			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(statements) == 0 {
 			return nil
@@ -73,35 +74,53 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	}
 }
 
-func (h *orderHandler) toLedgerStatements() error {
-	ioType := ledgertypes.IOType_Outcoming
-	ioSubType := ledgertypes.IOSubType_CommissionRevoke
+func (h *orderHandler) constructCommissionRevoke() error {
+	h.commissionRevokes = map[string]*types.CommissionRevoke{}
+
 	for _, statement := range h.statements {
-		amount, err := decimal.NewFromString(statement.Commission)
+		amount, err := decimal.NewFromString(statement.CommissionAmount)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if amount.Cmp(decimal.NewFromInt(0)) <= 0 {
 			continue
 		}
-		ioExtra := fmt.Sprintf(
-			`{"AppID":"%v","UserID":"%v","ArchivementStatementID":"%v","Amount":"%v","CancelOrder":true}`,
-			statement.AppID,
-			statement.UserID,
-			statement.EntID,
-			statement.Commission,
-		)
-		id := uuid.NewString()
-		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
-			EntID:      &id,
-			AppID:      &statement.AppID,
-			UserID:     &statement.UserID,
-			CoinTypeID: &statement.PaymentCoinTypeID,
-			IOType:     &ioType,
-			IOSubType:  &ioSubType,
-			Amount:     &statement.Commission,
-			IOExtra:    &ioExtra,
-		})
+		extra := struct {
+			AppID                   string          `json:"AppID"`
+			UserID                  string          `json:"UserID"`
+			AchievementStatementIDs []string        `json:"AchievementStatementIDs"`
+			Amount                  decimal.Decimal `json:"Amount"`
+			CancelOrder             bool            `json:"CancelOrder"`
+		}{
+			CancelOrder: true,
+		}
+		revoke, ok := h.commissionRevokes[statement.UserID]
+		if !ok {
+			lock, ok := h.commissionLocks[statement.UserID]
+			if !ok {
+				return wlog.Errorf("invalid commission lock")
+			}
+			revoke = &types.CommissionRevoke{
+				LockID: lock.EntID,
+			}
+			extra.AppID = statement.AppID
+			extra.UserID = statement.UserID
+			extra.AchievementStatementIDs = []string{statement.EntID}
+			extra.Amount = amount
+		} else {
+			if err := json.Unmarshal([]byte(revoke.IOExtra), &extra); err != nil {
+				return wlog.WrapError(err)
+			}
+			extra.AchievementStatementIDs = append(extra.AchievementStatementIDs, statement.EntID)
+			extra.Amount = extra.Amount.Add(amount)
+		}
+		_extra, err := json.Marshal(&extra)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		revoke.IOExtra = string(_extra)
+		revoke.StatementIDs = append(revoke.StatementIDs, uuid.NewString())
+		h.commissionRevokes[statement.UserID] = revoke
 	}
 	return nil
 }
@@ -113,7 +132,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"final",
 			"Order", h.PowerRentalOrder,
 			"CommissionStatements", h.statements,
-			"LedgerStatements", h.ledgerStatements,
 			"CommissionLocks", h.commissionLocks,
 			"Error", *err,
 		)
@@ -121,11 +139,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 	persistentOrder := &types.PersistentPowerRentalOrder{
 		PowerRentalOrder: h.PowerRentalOrder,
-		LedgerStatements: h.ledgerStatements,
-		CommissionLocks:  map[string]*orderlockmwpb.OrderLock{},
-	}
-	for _, lock := range h.commissionLocks {
-		persistentOrder.CommissionLocks[lock.UserID] = lock
+		CommissionRevokes: func() (revokes []*types.CommissionRevoke) {
+			for _, revoke := range h.commissionRevokes {
+				revokes = append(revokes, revoke)
+			}
+			return
+		}(),
 	}
 
 	if *err == nil {
@@ -143,13 +162,13 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.getOrderCommissionLock(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.getOrderAchievement(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
-	if err = h.toLedgerStatements(); err != nil {
-		return err
+	if err = h.constructCommissionRevoke(); err != nil {
+		return wlog.WrapError(err)
 	}
 
 	return nil

@@ -61,13 +61,14 @@ func (h *orderHandler) constructLedgerStatements() error {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v"}`,
+			`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v","PaymentStatementID":"%v"}`,
 			h.PaymentID,
 			h.EntID,
 			h.UserID,
 			statement.AppConfigID,
 			statement.CommissionConfigID,
 			statement.CommissionConfigType,
+			statement.EntID,
 		)
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
 			AppID:      &h.AppID,

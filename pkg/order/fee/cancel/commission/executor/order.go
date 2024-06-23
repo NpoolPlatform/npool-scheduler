@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	achievementstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement"
+	achievementorderpaymentstatementmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/achievement/statement/order/payment"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	achievementstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement"
+	achievementorderpaymentstatementmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/achievement/statement/order/payment"
 	ledgerstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	orderlockmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order/lock"
@@ -28,7 +28,7 @@ type orderHandler struct {
 	persistent       chan interface{}
 	notif            chan interface{}
 	done             chan interface{}
-	statements       []*achievementstatementmwpb.Statement
+	statements       []*achievementorderpaymentstatementmwpb.Statement
 	ledgerStatements []*ledgerstatementmwpb.StatementReq
 	commissionLocks  []*orderlockmwpb.OrderLock
 }
@@ -59,7 +59,7 @@ func (h *orderHandler) getOrderAchievement(ctx context.Context) error {
 	limit := constant.DefaultRowLimit
 
 	for {
-		statements, _, err := achievementstatementmwcli.GetStatements(ctx, &achievementstatementmwpb.Conds{
+		statements, _, err := achievementorderpaymentstatementmwcli.GetStatements(ctx, &achievementorderpaymentstatementmwpb.Conds{
 			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 		}, offset, limit)
 		if err != nil {
@@ -77,7 +77,7 @@ func (h *orderHandler) toLedgerStatements() error {
 	ioType := ledgertypes.IOType_Outcoming
 	ioSubType := ledgertypes.IOSubType_CommissionRevoke
 	for _, statement := range h.statements {
-		amount, err := decimal.NewFromString(statement.Commission)
+		amount, err := decimal.NewFromString(statement.CommissionAmount)
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ func (h *orderHandler) toLedgerStatements() error {
 			statement.AppID,
 			statement.UserID,
 			statement.EntID,
-			statement.Commission,
+			statement.CommissionAmount,
 		)
 		id := uuid.NewString()
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
@@ -99,7 +99,7 @@ func (h *orderHandler) toLedgerStatements() error {
 			CoinTypeID: &statement.PaymentCoinTypeID,
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
-			Amount:     &statement.Commission,
+			Amount:     &statement.CommissionAmount,
 			IOExtra:    &ioExtra,
 		})
 	}
