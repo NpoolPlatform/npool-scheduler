@@ -35,6 +35,7 @@ type orderHandler struct {
 func (h *orderHandler) getOrderCommissionLock(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	h.commissionLocks = map[string]*orderlockmwpb.OrderLock{}
 
 	for {
 		locks, _, err := orderlockmwcli.GetOrderLocks(ctx, &orderlockmwpb.Conds{
@@ -86,11 +87,10 @@ func (h *orderHandler) constructCommissionRevoke() error {
 			continue
 		}
 		extra := struct {
-			AppID                   string          `json:"AppID"`
-			UserID                  string          `json:"UserID"`
-			AchievementStatementIDs []string        `json:"AchievementStatementIDs"`
-			Amount                  decimal.Decimal `json:"Amount"`
-			CancelOrder             bool            `json:"CancelOrder"`
+			AppID                   string   `json:"AppID"`
+			UserID                  string   `json:"UserID"`
+			AchievementStatementIDs []string `json:"AchievementStatementIDs"`
+			CancelOrder             bool     `json:"CancelOrder"`
 		}{
 			CancelOrder: true,
 		}
@@ -106,13 +106,11 @@ func (h *orderHandler) constructCommissionRevoke() error {
 			extra.AppID = statement.AppID
 			extra.UserID = statement.UserID
 			extra.AchievementStatementIDs = []string{statement.EntID}
-			extra.Amount = amount
 		} else {
 			if err := json.Unmarshal([]byte(revoke.IOExtra), &extra); err != nil {
 				return wlog.WrapError(err)
 			}
 			extra.AchievementStatementIDs = append(extra.AchievementStatementIDs, statement.EntID)
-			extra.Amount = extra.Amount.Add(amount)
 		}
 		_extra, err := json.Marshal(&extra)
 		if err != nil {
@@ -133,6 +131,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"Order", h.PowerRentalOrder,
 			"CommissionStatements", h.statements,
 			"CommissionLocks", h.commissionLocks,
+			"CommissionRevokes", h.commissionRevokes,
 			"Error", *err,
 		)
 	}

@@ -33,7 +33,6 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, state ordertypes.Or
 			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
 			Simulate:   &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 			CreatedAt:  &basetypes.Uint32Val{Op: cruder.LT, Value: createdAt},
-			OrderID:    &basetypes.StringVal{Op: cruder.EQ, Value: "c3100aca-c0d3-4a6f-b8c8-61d03036341c"},
 			PaymentTypes: &basetypes.Uint32SliceVal{
 				Op: cruder.IN,
 				Value: []uint32{
