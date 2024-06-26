@@ -26,8 +26,19 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 
 	for {
 		orders, _, err := feeordermwcli.GetFeeOrders(ctx, &feeordermwpb.Conds{
-			OrderState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
-			PaymentType: &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(ordertypes.PaymentType_PayWithParentOrder)},
+			OrderState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			PaymentTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(ordertypes.PaymentType_PayWithBalanceOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferOnly),
+					uint32(ordertypes.PaymentType_PayWithTransferAndBalance),
+					uint32(ordertypes.PaymentType_PayWithOffline),
+					uint32(ordertypes.PaymentType_PayWithNoPayment),
+				},
+			},
+			AdminSetCanceled: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			UserSetCanceled:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err

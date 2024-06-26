@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
@@ -62,7 +61,6 @@ func (h *handler) scanPowerRentalOrders(ctx context.Context, admin bool, exec ch
 		}
 
 		for _, order := range orders {
-			fmt.Printf("CancelCheck %v\n", order.OrderID)
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 

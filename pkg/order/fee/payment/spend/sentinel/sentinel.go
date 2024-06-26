@@ -37,6 +37,8 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 					uint32(ordertypes.PaymentType_PayWithNoPayment),
 				},
 			},
+			AdminSetCanceled: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+			UserSetCanceled:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -67,7 +69,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
-		return order.EntID
+		return order.UserID
 	}
-	return ent.(*feeordermwpb.FeeOrder).EntID
+	return ent.(*feeordermwpb.FeeOrder).UserID
 }

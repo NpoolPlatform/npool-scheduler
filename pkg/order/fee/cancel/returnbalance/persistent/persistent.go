@@ -9,11 +9,11 @@ import (
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	ledgermwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/returnbalance/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -29,16 +29,16 @@ func NewPersistent() basepersistent.Persistenter {
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
 	state := ordertypes.OrderState_OrderStateCanceledTransferBookKeeping
 	rollback := true
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
+	req := &feeordermwpb.FeeOrderReq{
 		ID:         &order.ID,
 		OrderState: &state,
 		Rollback:   &rollback,
 	}
 	dispose.Add(
 		ordersvcname.ServiceDomain,
-		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
-		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
-		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
+		"order.middleware.fee.v1.Middleware/UpdateFeeOrder",
+		"order.middleware.fee.v1.Middleware/UpdateFeeOrder",
+		&feeordermwpb.UpdateFeeOrderRequest{
 			Info: req,
 		},
 	)
@@ -52,7 +52,7 @@ func (p *handler) withReturnLockedBalance(dispose *dtmcli.SagaDispose, order *ty
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.v2.Middleware/UnlockBalances",
 		"",
-		&ledgermwpb.UnlockBalanceRequest{
+		&ledgermwpb.UnlockBalancesRequest{
 			LockID: order.LedgerLockID,
 		},
 	)
@@ -75,7 +75,7 @@ func (p *handler) withReturnSpent(dispose *dtmcli.SagaDispose, order *types.Pers
 			IOType:     &ioType,
 			IOSubType:  &ioSubType,
 			Amount:     &payment.Amount,
-			IOExtra:    &order.SpentExtra,
+			IOExtra:    &payment.SpentExtra,
 		})
 	}
 

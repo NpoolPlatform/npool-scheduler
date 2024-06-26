@@ -32,7 +32,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		persistentOrder.BalanceOutcomingExtra = fmt.Sprintf(
 			`{"PaymentID":"%v","OrderID": "%v","FromBalance":true,"PaymentType":"%v"}`,
 			h.PaymentID,
-			h.EntID,
+			h.OrderID,
 			h.PaymentType,
 		)
 	}

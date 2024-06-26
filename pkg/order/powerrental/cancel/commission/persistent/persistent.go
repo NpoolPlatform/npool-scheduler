@@ -43,7 +43,7 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 	)
 }
 
-func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) error {
+func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order *types.PersistentPowerRentalOrder) {
 	for _, revoke := range order.CommissionRevokes {
 		dispose.Add(
 			ledgersvcname.ServiceDomain,
@@ -57,7 +57,6 @@ func (p *handler) withDeductLockedCommission(dispose *dtmcli.SagaDispose, order 
 			},
 		)
 	}
-	return nil
 }
 
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
@@ -76,9 +75,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RetryInterval:  timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
-	if err := p.withDeductLockedCommission(sagaDispose, _order); err != nil {
-		return err
-	}
+	p.withDeductLockedCommission(sagaDispose, _order)
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}

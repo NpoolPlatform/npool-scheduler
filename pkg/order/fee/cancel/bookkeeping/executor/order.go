@@ -163,7 +163,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentFeeOrder := &types.PersistentFeeOrder{
-		FeeOrder: h.FeeOrder,
+		FeeOrder:          h.FeeOrder,
+		XPaymentTransfers: h.paymentTransfers,
 	}
 	persistentFeeOrder.XPaymentTransfers = h.paymentTransfers
 	if len(h.paymentTransfers) > 0 {
@@ -171,7 +172,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			`{"AppID":"%v","UserID":"%v","OrderID":"%v","CancelOrder":true}`,
 			h.AppID,
 			h.UserID,
-			h.EntID,
+			h.OrderID,
 		)
 		persistentFeeOrder.IncomingExtra = ioExtra
 	}

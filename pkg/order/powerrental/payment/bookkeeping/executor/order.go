@@ -144,7 +144,7 @@ func (h *orderHandler) updatePaymentTransfers(ctx context.Context) error {
 
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"PowerRentalOrder", h.PowerRentalOrder,

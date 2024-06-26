@@ -105,7 +105,7 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 	}
 	for _, paymentTransfer := range h.PaymentTransfers {
 		if _, ok := h.paymentAccounts[paymentTransfer.AccountID]; !ok {
-			return wlog.Errorf("invalid paymentaccount %v", paymentTransfer)
+			return wlog.Errorf("invalid paymentaccount")
 		}
 	}
 	return nil

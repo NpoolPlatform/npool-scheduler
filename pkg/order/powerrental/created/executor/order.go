@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -15,7 +14,6 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) final(ctx context.Context) {
-	fmt.Printf("Execute %v\n", h.OrderID)
 	persistentPowerRentalOrder := &types.PersistentPowerRentalOrder{
 		PowerRentalOrder: h.PowerRentalOrder,
 	}

@@ -35,7 +35,7 @@ func (h *orderHandler) getOrderPaymentStatements(ctx context.Context) error {
 
 	for {
 		statements, _, err := orderpaymentstatementmwcli.GetStatements(ctx, &orderpaymentstatementmwpb.Conds{
-			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -61,13 +61,14 @@ func (h *orderHandler) constructLedgerStatements() error {
 			continue
 		}
 		ioExtra := fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v"}`,
+			`{"PaymentID":"%v","OrderID":"%v","OrderUserID":"%v","InspireAppConfigID":"%v","CommissionConfigID":"%v","CommissionConfigType":"%v","PaymentStatementID":"%v"}`,
 			h.PaymentID,
-			h.EntID,
+			h.OrderID,
 			h.UserID,
 			statement.AppConfigID,
 			statement.CommissionConfigID,
 			statement.CommissionConfigType,
+			statement.EntID,
 		)
 		h.ledgerStatements = append(h.ledgerStatements, &ledgerstatementmwpb.StatementReq{
 			AppID:      &h.AppID,
@@ -88,6 +89,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"FeeOrder", h.FeeOrder,
+			"LedgerStatements", h.ledgerStatements,
+			"OrderStatements", h.paymentStatements,
 			"Error", *err,
 		)
 	}

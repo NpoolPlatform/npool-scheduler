@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -48,7 +47,6 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 		}
 
 		for _, order := range orders {
-			fmt.Printf("PaymentUnlockAccount %v\n", order.OrderID)
 			cancelablefeed.CancelableFeed(ctx, order, exec)
 		}
 
