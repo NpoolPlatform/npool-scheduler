@@ -14,7 +14,6 @@ type orderHandler struct {
 	persistent chan interface{}
 	done       chan interface{}
 	notif      chan interface{}
-	notifiable bool
 }
 
 //nolint:gocritic
@@ -23,7 +22,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"PowerRentalOrder", h.PowerRentalOrder,
-			"notifiable", h.notifiable,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
 			"CheckElectricityFee", h.CheckElectricityFee,
 			"Error", *err,
@@ -34,12 +32,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	if *err != nil {
 		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
-	}
-	if h.notifiable {
-		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
+	asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
 }
 
 //nolint:gocritic
