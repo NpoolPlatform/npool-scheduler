@@ -1,7 +1,7 @@
 package types
 
 import (
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 )
 
 type Payment struct {
@@ -19,7 +19,7 @@ const (
 type PaymentOp = int
 
 type PersistentOrder struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	Payments  []*Payment
 	PaymentOp PaymentOp
 }

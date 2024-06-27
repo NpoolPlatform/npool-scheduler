@@ -7,15 +7,15 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
+	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/returnbalance/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/fee/cancel/returnbalance/types"
 
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
-	*powerrentalordermwpb.PowerRentalOrder
+	*feeordermwpb.FeeOrder
 	persistent chan interface{}
 	notif      chan interface{}
 	done       chan interface{}
@@ -86,13 +86,13 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
-			"PowerRentalOrder", h.PowerRentalOrder,
+			"FeeOrder", h.FeeOrder,
 			"Payments", h.payments,
 			"Error", *err,
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
+		FeeOrder: h.FeeOrder,
 		Payments:         h.payments,
 		PaymentOp:        h.paymentOp,
 	}

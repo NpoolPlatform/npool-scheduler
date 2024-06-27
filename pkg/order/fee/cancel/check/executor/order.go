@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
@@ -23,6 +24,7 @@ func (h *orderHandler) resolveNewPaymentState() {
 }
 
 func (h *orderHandler) final(ctx context.Context) {
+	fmt.Printf("Cancel %v\n", h.OrderID)
 	persistentFeeOrder := &types.PersistentFeeOrder{
 		FeeOrder:        h.FeeOrder,
 		NewPaymentState: h.newPaymentState,
