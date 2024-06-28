@@ -68,7 +68,7 @@ func (h *handler) TriggerScan(ctx context.Context, cond interface{}, exec chan i
 
 func (h *handler) ObjectID(ent interface{}) string {
 	if order, ok := ent.(*types.PersistentOrder); ok {
-		return order.UserID
+		return order.OrderID
 	}
-	return ent.(*powerrentalordermwpb.PowerRentalOrder).UserID
+	return ent.(*powerrentalordermwpb.PowerRentalOrder).OrderID
 }

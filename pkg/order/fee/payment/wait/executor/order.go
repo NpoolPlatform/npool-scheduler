@@ -152,6 +152,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"PaymentAccounts", h.paymentAccounts,
 			"NewOrderState", h.newOrderState,
 			"NewPaymentState", h.newPaymentState,
+			"Timeout", h.timeout(),
 			"Error", *err,
 		)
 	}
