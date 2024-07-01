@@ -266,17 +266,24 @@ func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 	return nil
 }
 
-func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint32) (units uint32) {
+func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint32) (units decimal.Decimal) {
+	dSeconds := decimal.NewFromInt(int64(seconds))
+
 	switch _type {
 	case goodtypes.GoodDurationType_GoodDurationByHour:
-		units = seconds / timedef.SecondsPerHour
+		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerHour)))
 	case goodtypes.GoodDurationType_GoodDurationByDay:
-		units = seconds / timedef.SecondsPerDay
+		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerDay)))
 	case goodtypes.GoodDurationType_GoodDurationByMonth:
-		units = seconds / timedef.SecondsPerMonth
+		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerMonth)))
 	case goodtypes.GoodDurationType_GoodDurationByYear:
-		units = seconds / timedef.SecondsPerYear
+		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerYear)))
 	}
+
+	if units.GreaterThan(decimal.NewFromInt(0)) {
+		return units.Floor()
+	}
+
 	return units
 }
 
@@ -302,14 +309,14 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		}
 		durations := goodDurationDisplay2Duration(h.ElectricityFee.DurationDisplayType, durationSeconds)
 		h.ElectricityFeeExtendSeconds = durationSeconds
-		h.ElectricityFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
+		h.ElectricityFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
 				AppGoodID: h.ElectricityFee.AppGoodID,
 				GoodType:  h.ElectricityFee.GoodType,
 			},
-			EndAt:         h.ElectricityFeeEndAt,
-			RenewDuration: durations,
+			EndAt:          h.ElectricityFeeEndAt,
+			RenewDurations: durations.String(),
 		})
 	}
 
@@ -321,14 +328,14 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		}
 		durations := goodDurationDisplay2Duration(h.TechniqueFee.DurationDisplayType, durationSeconds)
 		h.TechniqueFeeExtendSeconds = durationSeconds
-		h.TechniqueFeeUSDAmount = unitPrice.Mul(decimal.NewFromInt(int64(durations))).Mul(orderUnits)
+		h.TechniqueFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
 				AppGoodID: h.TechniqueFee.AppGoodID,
 				GoodType:  h.TechniqueFee.GoodType,
 			},
-			EndAt:         h.TechniqueFeeEndAt,
-			RenewDuration: durations,
+			EndAt:          h.TechniqueFeeEndAt,
+			RenewDurations: durations.String(),
 		})
 	}
 
