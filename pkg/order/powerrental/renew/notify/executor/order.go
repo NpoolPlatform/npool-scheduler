@@ -5,7 +5,8 @@ import (
 	"time"
 
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	currencymwpb "github.com/NpoolPlatform/message/npool/chain/mw/v1/coin/currency"
 	schedorderpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order"
@@ -94,37 +95,37 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.GetAppPowerRental(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.GetAppGoodRequireds(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err := h.GetAppFees(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if yes, err = h.Renewable(ctx); err != nil || !yes {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.CalculateRenewDuration(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.GetDeductionCoins(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.GetDeductionAppCoins(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.GetUserLedgers(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.GetCoinUSDCurrency(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.CalculateUSDAmount(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if _, err = h.CalculateDeduction(); err != nil { // yes means insufficient balance
-		return err
+		return wlog.WrapError(err)
 	}
 	h.resolveRenewState()
 

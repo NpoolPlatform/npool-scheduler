@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"time"
 
@@ -85,7 +84,7 @@ func (h *OrderHandler) GetAppGoodRequireds(ctx context.Context) error {
 			MainAppGoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.AppGoodID},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(requireds) == 0 {
 			break
@@ -110,7 +109,7 @@ func (h *OrderHandler) GetAppFees(ctx context.Context) error {
 		}()},
 	}, offset, limit)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	for _, appFee := range appFees {
 		switch appFee.GoodType {
@@ -183,7 +182,7 @@ func (h *OrderHandler) GetDeductionCoins(ctx context.Context) error {
 			UsedFor: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(chaintypes.CoinUsedFor_CoinUsedForGoodFee)},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(coinUsedFors) == 0 {
 			break
@@ -193,7 +192,7 @@ func (h *OrderHandler) GetDeductionCoins(ctx context.Context) error {
 	}
 
 	if len(h.DeductionCoins) == 0 {
-		return fmt.Errorf("invalid feedudectioncoins")
+		return wlog.Errorf("invalid feedudectioncoins")
 	}
 	sort.Slice(h.DeductionCoins, func(i, j int) bool {
 		return h.DeductionCoins[i].Priority < h.DeductionCoins[j].Priority
@@ -215,7 +214,7 @@ func (h *OrderHandler) GetDeductionAppCoins(ctx context.Context) error {
 		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
 	}, 0, int32(len(coinTypeIDs)))
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	for _, coin := range coins {
 		h.DeductionAppCoins[coin.CoinTypeID] = coin
@@ -237,7 +236,7 @@ func (h *OrderHandler) GetUserLedgers(ctx context.Context) error {
 		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
 	}, 0, int32(len(coinTypeIDs)))
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	for _, ledger := range ledgers {
 		h.UserLedgers[ledger.CoinTypeID] = ledger
@@ -258,7 +257,7 @@ func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
 	}, 0, int32(len(coinTypeIDs)))
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	for _, currency := range currencies {
 		h.Currencies[currency.CoinTypeID] = currency
@@ -285,7 +284,7 @@ func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint
 func (h *OrderHandler) CalculateUSDAmount() error {
 	orderUnits, err := decimal.NewFromString(h.Units)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	now := uint32(time.Now().Unix())
@@ -299,7 +298,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	if h.CheckElectricityFee {
 		unitPrice, err := decimal.NewFromString(h.ElectricityFee.UnitValue)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		durations := goodDurationDisplay2Duration(h.ElectricityFee.DurationDisplayType, durationSeconds)
 		h.ElectricityFeeExtendSeconds = durationSeconds
@@ -318,7 +317,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	if h.CheckTechniqueFee {
 		unitPrice, err := decimal.NewFromString(h.TechniqueFee.UnitValue)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		durations := goodDurationDisplay2Duration(h.TechniqueFee.DurationDisplayType, durationSeconds)
 		h.TechniqueFeeExtendSeconds = durationSeconds
@@ -348,14 +347,14 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 		}
 		currency, ok := h.Currencies[coin.CoinTypeID]
 		if !ok {
-			return true, fmt.Errorf("invalid coincurrency")
+			return true, wlog.Errorf("invalid coincurrency")
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {
 			return true, err
 		}
 		if currencyValue.Cmp(decimal.NewFromInt(0)) <= 0 {
-			return true, fmt.Errorf("invalid coinusdcurrency")
+			return true, wlog.Errorf("invalid coinusdcurrency")
 		}
 		spendable, err := decimal.NewFromString(ledger.Spendable)
 		if err != nil {
@@ -367,7 +366,7 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 		feeCoinAmount := feeUSDAmount.Div(currencyValue)
 		appCoin, ok := h.DeductionAppCoins[ledger.CoinTypeID]
 		if !ok {
-			return true, fmt.Errorf("invalid deductioncoin")
+			return true, wlog.Errorf("invalid deductioncoin")
 		}
 		if spendable.Cmp(feeCoinAmount) >= 0 {
 			h.Deductions = append(h.Deductions, &orderrenewpb.Deduction{
