@@ -63,8 +63,29 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		PowerRentalOrder: h.PowerRentalOrder,
 		MsgOrderChildsRenewReq: &orderrenewpb.MsgOrderChildsRenewReq{
 			ParentOrder: &schedorderpb.OrderInfo{
-				OrderID:  h.OrderID,
-				GoodType: h.GoodType,
+				AppID:            h.AppID,
+				UserID:           h.UserID,
+				OrderID:          h.OrderID,
+				GoodType:         h.GoodType,
+				Units:            h.Units,
+				PaymentAmountUSD: h.PaymentAmountUSD,
+				Payments: func() (payments []*schedorderpb.PaymentInfo) {
+					for _, payment := range h.PaymentBalances {
+						payments = append(payments, &schedorderpb.PaymentInfo{
+							CoinTypeID:  payment.CoinTypeID,
+							Amount:      payment.Amount,
+							PaymentType: schedorderpb.PaymentType_PayWithBalance,
+						})
+					}
+					for _, payment := range h.PaymentTransfers {
+						payments = append(payments, &schedorderpb.PaymentInfo{
+							CoinTypeID:  payment.CoinTypeID,
+							Amount:      payment.Amount,
+							PaymentType: schedorderpb.PaymentType_PayWithTransfer,
+						})
+					}
+					return
+				}(),
 			},
 			Deductions:          h.Deductions,
 			InsufficientBalance: h.InsufficientBalance,

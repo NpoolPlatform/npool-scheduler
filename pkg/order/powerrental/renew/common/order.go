@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -139,8 +140,10 @@ func (h *OrderHandler) FormalizeFeeDurationSeconds() {
 	for _, feeDuration := range h.FeeDurations {
 		if h.ElectricityFee != nil && h.ElectricityFee.AppGoodID == feeDuration.AppGoodID {
 			h.ElectricityFeeSeconds = feeDuration.TotalDurationSeconds
+			fmt.Printf("Electricity AppGoodID %v, TotalDurationSeconds %v, FeeDurationAppGoodID %v\n", h.ElectricityFee.AppGoodID, feeDuration.TotalDurationSeconds, feeDuration.AppGoodID)
 		}
 		if h.TechniqueFee != nil && h.TechniqueFee.AppGoodID == feeDuration.AppGoodID {
+			fmt.Printf("Technique AppGoodID %v, TotalDurationSeconds %v, FeeDurationAppGoodID %v\n", h.TechniqueFee.AppGoodID, feeDuration.TotalDurationSeconds, feeDuration.AppGoodID)
 			h.TechniqueFeeSeconds = feeDuration.TotalDurationSeconds
 		}
 	}
@@ -255,7 +258,7 @@ func (h *OrderHandler) GetCoinUSDCurrency(ctx context.Context) error {
 
 	currencies, _, err := currencymwcli.GetCurrencies(ctx, &currencymwpb.Conds{
 		CoinTypeIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: coinTypeIDs},
-	}, 0, int32(len(coinTypeIDs)))
+	}, 0, int32(len(coinTypeIDs)*2))
 	if err != nil {
 		return wlog.WrapError(err)
 	}
@@ -342,7 +345,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	return nil
 }
 
-func (h *OrderHandler) CalculateDeduction() (bool, error) {
+func (h *OrderHandler) CalculateDeduction() (insufficientFunds bool, err error) {
 	feeUSDAmount := h.ElectricityFeeUSDAmount.Add(h.TechniqueFeeUSDAmount)
 	if feeUSDAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
 		return false, nil
@@ -354,7 +357,7 @@ func (h *OrderHandler) CalculateDeduction() (bool, error) {
 		}
 		currency, ok := h.Currencies[coin.CoinTypeID]
 		if !ok {
-			return true, wlog.Errorf("invalid coincurrency")
+			return true, wlog.Errorf("invalid coincurrency %v | %v", h.Currencies, coin.CoinTypeID)
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {

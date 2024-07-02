@@ -144,6 +144,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if yes, err = h.Renewable(ctx); err != nil || !yes {
 		return err
 	}
+	h.FormalizeFeeDurationSeconds()
 	if err = h.CalculateRenewDuration(ctx); err != nil {
 		return err
 	}
@@ -160,6 +161,12 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.CalculateUSDAmount(); err != nil {
+		return err
+	}
+	if yes, err = h.CalculateDeduction(); err != nil || yes {
+		if yes {
+			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		}
 		return err
 	}
 	h.constructRenewOrders()
