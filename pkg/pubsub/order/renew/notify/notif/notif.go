@@ -63,7 +63,8 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <th style="border: 1px solid #dddddd;">Product Name</th>`
-	content += `  <th style="border: 1px solid #dddddd;">Price</th>`
+	content += `  <th style="border: 1px solid #dddddd;">SettlementType</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Value</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Duration</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Units</th>`
 	content += `  <th style="border: 1px solid #dddddd;">EndAt</th>`
@@ -71,7 +72,8 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	for _, renewInfo := range req.RenewInfos {
 		content += "<tr>"
 		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.GoodName + `</td>`
-		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.UnitPrice + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.SettlementType.String() + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.UnitValue + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.RenewDurations) + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + req.ParentOrder.Units + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`

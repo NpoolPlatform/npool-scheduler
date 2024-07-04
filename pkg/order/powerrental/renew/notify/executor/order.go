@@ -127,6 +127,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if yes, err = h.Renewable(ctx); err != nil || !yes {
 		return wlog.WrapError(err)
 	}
+	h.FormalizeFeeDurationSeconds()
 	if err = h.CalculateRenewDuration(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
