@@ -12,4 +12,7 @@ type PersistentOrder struct {
 	FeeOrderReqs        []*feeordermwpb.FeeOrderReq
 	NewRenewState       ordertypes.OrderRenewState
 	LedgerLockID        string
+	CreateOutOfGas      bool
+	FeeEndAt            uint32
+	OutOfGasEntID       *string
 }
