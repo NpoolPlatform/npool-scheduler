@@ -10,7 +10,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/obselete/transfer/bookkeeping/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/payment/obselete/transfer/unlockaccount/types"
 	paymentmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/payment"
 )
 

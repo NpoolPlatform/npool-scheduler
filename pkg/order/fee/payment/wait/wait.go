@@ -21,7 +21,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		ctx,
 		cancel,
 		base.WithSubsystem(subsystem),
-		base.WithScanInterval(time.Second),
+		base.WithScanInterval(10*time.Second),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithExecutorNumber(4),

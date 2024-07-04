@@ -134,8 +134,11 @@ func (h *orderHandler) preResolveNewState() bool {
 	}
 	if h.paymentNoPayment() {
 		h.newOrderState = ordertypes.OrderState_OrderStatePaymentTransferReceived
-		if h.OrderType == ordertypes.OrderType_Offline {
+		switch h.OrderType {
+		case ordertypes.OrderType_Offline:
 			h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
+		case ordertypes.OrderType_Airdrop:
+			h.newPaymentState = ordertypes.PaymentState_PaymentStateNoPayment
 		}
 		return true
 	}

@@ -27,8 +27,9 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &_order.ID,
-		OrderState: ordertypes.OrderState_OrderStatePaymentTransferReceived.Enum(),
+		ID:           &_order.ID,
+		OrderState:   ordertypes.OrderState_OrderStatePaymentTransferReceived.Enum(),
+		PaymentState: ordertypes.PaymentState_PaymentStateNoPayment.Enum(),
 	}
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, req)
 }

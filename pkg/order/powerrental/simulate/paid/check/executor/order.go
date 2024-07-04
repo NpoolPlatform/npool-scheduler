@@ -48,6 +48,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"NewOrderState", h.newOrderState,
 			"AdminSetCanceled", h.AdminSetCanceled,
 			"UserSetCanceled", h.UserSetCanceled,
+			"Now", uint32(time.Now().Unix()),
 			"Error", *err,
 		)
 	}
