@@ -44,6 +44,16 @@ func (h *orderHandler) checkNotifiable(ctx context.Context) (bool, error) {
 
 	nextNotifyAt := now
 
+	if ((h.ElectricityFee == nil ||
+		(h.ElectricityFee != nil && h.ElectricityFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount)) &&
+		(h.TechniqueFee == nil ||
+			(h.TechniqueFee != nil && h.TechniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount))) ||
+		h.AppPowerRental.PackageWithRequireds {
+		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
+		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
+		return false, nil
+	}
+
 	if able, err := h.Renewable(ctx); err != nil || !able {
 		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		h.nextRenewNotifyAt = now + noNotifyTicker
@@ -96,15 +106,6 @@ func (h *orderHandler) checkNotifiable(ctx context.Context) (bool, error) {
 
 	h.notifiable = h.CheckElectricityFee || h.CheckTechniqueFee
 	h.nextRenewNotifyAt = nextNotifyAt
-
-	if ((h.ElectricityFee == nil ||
-		(h.ElectricityFee != nil && h.ElectricityFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount)) &&
-		(h.TechniqueFee == nil ||
-			(h.TechniqueFee != nil && h.TechniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByPaymentAmount))) ||
-		h.AppPowerRental.PackageWithRequireds {
-		h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
-		h.nextRenewNotifyAt = h.EndAt + noNotifyTicker
-	}
 
 	return h.notifiable, nil
 }
