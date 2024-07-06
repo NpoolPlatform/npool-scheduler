@@ -366,7 +366,7 @@ func (h *OrderHandler) CalculateDeduction() (insufficientFunds bool, err error) 
 		}
 		currency, ok := h.Currencies[coin.CoinTypeID]
 		if !ok {
-			return true, wlog.Errorf("invalid coincurrency %v | %v", h.Currencies, coin.CoinTypeID)
+			return true, wlog.Errorf("invalid coincurrency")
 		}
 		currencyValue, err := decimal.NewFromString(currency.MarketValueLow)
 		if err != nil {

@@ -3,7 +3,6 @@ package executor
 
 import (
 	"context"
-	"math"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
@@ -22,16 +21,14 @@ import (
 
 type orderHandler struct {
 	*renewcommon.OrderHandler
-	persistent     chan interface{}
-	done           chan interface{}
-	notif          chan interface{}
-	newRenewState  ordertypes.OrderRenewState
-	feeOrderReqs   []*feeordermwpb.FeeOrderReq
-	paymentID      *string
-	ledgerLockID   string
-	createOutOfGas bool
-	feeEndAt       uint32
-	outOfGasEntID  *string
+	persistent    chan interface{}
+	done          chan interface{}
+	notif         chan interface{}
+	newRenewState ordertypes.OrderRenewState
+	feeOrderReqs  []*feeordermwpb.FeeOrderReq
+	paymentID     *string
+	ledgerLockID  string
+	outOfGasEntID *string
 }
 
 func (h *orderHandler) formalizePayment(req *feeordermwpb.FeeOrderReq) {
@@ -112,7 +109,6 @@ func (h *orderHandler) getOutOfGas(ctx context.Context) error {
 		return err
 	}
 	if info == nil {
-		h.createOutOfGas = true
 		return nil
 	}
 	h.outOfGasEntID = &info.EntID
@@ -139,8 +135,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		FeeOrderReqs:        h.feeOrderReqs,
 		NewRenewState:       h.newRenewState,
 		LedgerLockID:        h.ledgerLockID,
-		CreateOutOfGas:      h.createOutOfGas,
-		FeeEndAt:            h.feeEndAt,
 		OutOfGasEntID:       h.outOfGasEntID,
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
@@ -195,9 +189,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	}
 	if yes, err = h.CalculateDeduction(); err != nil || yes {
 		if yes {
-			if h.createOutOfGas {
-				h.feeEndAt = uint32(math.Min(float64(h.TechniqueFeeEndAt), float64(h.ElectricityFeeEndAt)))
-			}
 			h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 		}
 		return err

@@ -14,7 +14,6 @@ import (
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/execute/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
-	powerrentaloutofgasmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental/outofgas"
 	ordermwsvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
@@ -93,14 +92,6 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		return err
 	}
 	if _order.InsufficientBalance {
-		if _order.CreateOutOfGas {
-			if err := powerrentaloutofgasmwcli.CreateOutOfGas(ctx, &powerrentaloutofgasmwpb.OutOfGasReq{
-				OrderID: &_order.OrderID,
-				StartAt: &_order.FeeEndAt,
-			}); err != nil {
-				return err
-			}
-		}
 		return nil
 	}
 

@@ -7,11 +7,15 @@ import (
 
 	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
+	outofgasmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/outofgas"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/check/types"
 	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
+	outofgasmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/outofgas"
 )
 
 type orderHandler struct {
@@ -22,6 +26,8 @@ type orderHandler struct {
 	newRenewState     ordertypes.OrderRenewState
 	notifiable        bool
 	nextRenewNotifyAt uint32
+	createOutOfGas    bool
+	feeEndAt          uint32
 }
 
 //nolint:gocognit
@@ -110,6 +116,18 @@ func (h *orderHandler) checkNotifiable(ctx context.Context) (bool, error) {
 	return h.notifiable, nil
 }
 
+func (h *orderHandler) checkOutOfGas(ctx context.Context) error {
+	exist, err := outofgasmwcli.ExistOutOfGasConds(ctx, &outofgasmwpb.Conds{
+		OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
+		EndAt:   &basetypes.Uint32Val{Op: cruder.EQ, Value: 0},
+	})
+	if err != nil {
+		return err
+	}
+	h.createOutOfGas = !exist
+	return nil
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -128,6 +146,8 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		PowerRentalOrder:  h.PowerRentalOrder,
 		NewRenewState:     h.newRenewState,
 		NextRenewNotifyAt: h.nextRenewNotifyAt,
+		CreateOutOfGas:    h.createOutOfGas,
+		FeeEndAt:          h.feeEndAt,
 	}
 	if *err != nil || h.notifiable {
 		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
@@ -160,8 +180,24 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.CalculateRenewDuration(ctx); err != nil {
 		return err
 	}
+	if err = h.CalculateUSDAmount(); err != nil {
+		return err
+	}
 	if yes, err = h.checkNotifiable(ctx); err != nil || !yes {
 		return err
+	}
+	if yes, err = h.CalculateDeduction(); err != nil || yes {
+		if err != nil {
+			return err
+		}
+		if yes {
+			if err := h.checkOutOfGas(ctx); err != nil {
+				return err
+			}
+			if h.createOutOfGas {
+				h.feeEndAt = uint32(math.Min(float64(h.TechniqueFeeEndAt), float64(h.ElectricityFeeEndAt)))
+			}
+		}
 	}
 	return nil
 }

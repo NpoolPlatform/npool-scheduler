@@ -9,4 +9,6 @@ type PersistentOrder struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	NewRenewState     ordertypes.OrderRenewState
 	NextRenewNotifyAt uint32
+	CreateOutOfGas    bool
+	FeeEndAt          uint32
 }
