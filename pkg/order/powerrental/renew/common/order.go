@@ -283,7 +283,7 @@ func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint
 		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerYear)))
 	}
 
-	if units.GreaterThan(decimal.NewFromInt(0)) {
+	if units.GreaterThan(decimal.NewFromInt(1)) {
 		return units.Floor()
 	}
 
@@ -297,15 +297,14 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		return wlog.WrapError(err)
 	}
 
-	now := uint32(time.Now().Unix())
-	remainSeconds := h.EndAt - now
 	durationSeconds := uint32(3 * timedef.SecondsPerDay) //nolint
-	if durationSeconds > remainSeconds {
-		durationSeconds = remainSeconds
-	}
 
 	//nolint:dupl
-	if h.CheckElectricityFee {
+	if h.CheckElectricityFee && h.EndAt > h.ElectricityFeeEndAt {
+		remainSeconds := h.EndAt - h.ElectricityFeeEndAt
+		if durationSeconds > remainSeconds {
+			durationSeconds = remainSeconds
+		}
 		unitPrice, err := decimal.NewFromString(h.ElectricityFee.UnitValue)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -327,7 +326,11 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 	}
 
 	//nolint:dupl
-	if h.CheckTechniqueFee {
+	if h.CheckTechniqueFee && h.EndAt > h.TechniqueFeeEndAt {
+		remainSeconds := h.EndAt - h.TechniqueFeeEndAt
+		if durationSeconds > remainSeconds {
+			durationSeconds = remainSeconds
+		}
 		unitPrice, err := decimal.NewFromString(h.TechniqueFee.UnitValue)
 		if err != nil {
 			return wlog.WrapError(err)
