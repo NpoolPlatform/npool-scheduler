@@ -3,6 +3,7 @@ package persistent
 import (
 	"context"
 	"fmt"
+	"time"
 
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	powerrentaloutofgasmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental/outofgas"
@@ -33,6 +34,15 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 			StartAt: &_order.FeeEndAt,
 		}); err != nil {
 			return err
+		}
+	}
+
+	if _order.FinishOutOfGas {
+		if err := powerrentaloutofgasmwcli.UpdateOutOfGas(ctx, &powerrentaloutofgasmwpb.OutOfGasReq{
+			EntID: &_order.OutOfGasEntID,
+			EndAt: func() *uint32 { u := uint32(time.Now().Unix()); return &u }(),
+		}); err != nil {
+			return nil
 		}
 	}
 

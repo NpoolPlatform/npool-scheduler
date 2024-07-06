@@ -7,8 +7,11 @@ import (
 
 type PersistentOrder struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	NewRenewState     ordertypes.OrderRenewState
-	NextRenewNotifyAt uint32
-	CreateOutOfGas    bool
-	FeeEndAt          uint32
+	NewRenewState      ordertypes.OrderRenewState
+	NextRenewNotifyAt  uint32
+	CreateOutOfGas     bool
+	FeeEndAt           uint32
+	OutOfGasEntID      string
+	FinishOutOfGas     bool
+	OutOfGasFinishedAt uint32
 }
