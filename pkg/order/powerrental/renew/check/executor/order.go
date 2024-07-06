@@ -124,7 +124,8 @@ func (h *orderHandler) checkOutOfGas(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	h.createOutOfGas = !exist
+	now := uint32(time.Now().Unix())
+	h.createOutOfGas = !exist && (h.ElectricityFeeEndAt < now || h.TechniqueFeeEndAt < now)
 	return nil
 }
 
