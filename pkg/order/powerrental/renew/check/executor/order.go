@@ -162,7 +162,7 @@ func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
 
 func (h *orderHandler) resolveCreateOutOfGas() {
 	now := uint32(time.Now().Unix())
-	h.createOutOfGas = h.outOfGas == nil && (h.ElectricityFeeEndAt < now || h.TechniqueFeeEndAt < now)
+	h.createOutOfGas = h.outOfGas == nil && (h.ElectricityFeeEndAt < now || h.TechniqueFeeEndAt < now) && h.InsufficientBalance
 }
 
 //nolint:gocritic
@@ -172,10 +172,12 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 			"final",
 			"PowerRentalOrder", h.PowerRentalOrder,
 			"NewRenewState", h.newRenewState,
-			"notifiable", h.notifiable,
+			"Notifiable", h.notifiable,
 			"CheckElectricityFee", h.CheckElectricityFee,
 			"CheckTechniqueFee", h.CheckTechniqueFee,
-			"nextRenewNotifyAt", h.nextRenewNotifyAt,
+			"NextRenewNotifyAt", h.nextRenewNotifyAt,
+			"Deductions", h.Deductions,
+			"InsufficientBalance", h.InsufficientBalance,
 			"Error", *err,
 		)
 	}
@@ -185,9 +187,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		NextRenewNotifyAt:  h.nextRenewNotifyAt,
 		CreateOutOfGas:     h.createOutOfGas,
 		FeeEndAt:           h.feeEndAt,
-		OutOfGasEntID:      h.outOfGas.EntID,
 		FinishOutOfGas:     h.finishOutOfGas,
 		OutOfGasFinishedAt: h.outOfGasFinishedAt,
+	}
+	if h.outOfGas != nil {
+		persistentOrder.OutOfGasEntID = h.outOfGas.EntID
 	}
 	if *err != nil || h.notifiable {
 		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.notif)
@@ -223,16 +227,28 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.CalculateUSDAmount(); err != nil {
 		return err
 	}
-	if yes, err = h.checkNotifiable(ctx); err != nil || !yes {
-		return err
-	}
 	if err := h.getOutOfGas(ctx); err != nil {
 		return err
 	}
 	if h.outOfGas != nil {
-		if err := h.calculateOutOfGasFinishedAt(ctx); err != nil {
+		if err = h.calculateOutOfGasFinishedAt(ctx); err != nil {
 			return err
 		}
+	}
+	if yes, err = h.checkNotifiable(ctx); err != nil || !yes {
+		return err
+	}
+	if err = h.GetDeductionCoins(ctx); err != nil {
+		return err
+	}
+	if err = h.GetDeductionAppCoins(ctx); err != nil {
+		return err
+	}
+	if err = h.GetUserLedgers(ctx); err != nil {
+		return err
+	}
+	if err = h.GetCoinUSDCurrency(ctx); err != nil {
+		return err
 	}
 	if yes, err = h.CalculateDeduction(); err != nil || yes {
 		if err != nil {
@@ -242,6 +258,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 			h.resolveCreateOutOfGas()
 			if h.createOutOfGas {
 				h.feeEndAt = uint32(math.Min(float64(h.TechniqueFeeEndAt), float64(h.ElectricityFeeEndAt)))
+				h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 			}
 		}
 	}
