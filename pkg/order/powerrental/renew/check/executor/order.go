@@ -159,13 +159,14 @@ func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
 		offset += limit
 	}
 
+	now := uint32(time.Now().Unix())
 	if h.TechniqueFee != nil {
-		if _, ok := finishedAt[h.TechniqueFee.GoodType]; !ok {
+		if _, ok := finishedAt[h.TechniqueFee.GoodType]; !ok && h.TechniqueFeeEndAt <= now {
 			return nil
 		}
 	}
 	if h.ElectricityFee != nil {
-		if _, ok := finishedAt[h.ElectricityFee.GoodType]; !ok {
+		if _, ok := finishedAt[h.ElectricityFee.GoodType]; !ok && h.ElectricityFeeEndAt <= now {
 			return nil
 		}
 	}
