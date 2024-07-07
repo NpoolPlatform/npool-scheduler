@@ -137,6 +137,7 @@ func (h *orderHandler) getOutOfGas(ctx context.Context) error {
 func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
+	finishedAt := map[goodtypes.GoodType]uint32{}
 
 	for {
 		feeOrders, _, err := feeordermwcli.GetFeeOrders(ctx, &feeordermwpb.Conds{
@@ -147,17 +148,25 @@ func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
 			return err
 		}
 		if len(feeOrders) == 0 {
-			return nil
+			break
 		}
 		for _, feeOrder := range feeOrders {
-			// TODO: check electricity and technique separately
-			if h.outOfGasFinishedAt == 0 || h.outOfGasFinishedAt > feeOrder.PaidAt {
-				h.outOfGasFinishedAt = feeOrder.PaidAt
+			_finishedAt, ok := finishedAt[feeOrder.GoodType]
+			if !ok || _finishedAt == 0 || _finishedAt > feeOrder.PaidAt {
+				finishedAt[feeOrder.GoodType] = feeOrder.PaidAt
 			}
 		}
 		h.finishOutOfGas = true
 		offset += limit
 	}
+
+	for _, _finishedAt := range finishedAt {
+		if h.outOfGasFinishedAt == 0 || h.outOfGasFinishedAt < _finishedAt {
+			h.outOfGasFinishedAt = _finishedAt
+		}
+	}
+
+	return nil
 }
 
 func (h *orderHandler) resolveCreateOutOfGas() {
