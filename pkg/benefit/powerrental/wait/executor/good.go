@@ -22,6 +22,7 @@ import (
 	requiredappgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/required"
 	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	goodstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/good/ledger/statement"
+	outofgasmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/outofgas"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	sphinxproxypb "github.com/NpoolPlatform/message/npool/sphinxproxy"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -29,6 +30,7 @@ import (
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/wait/types"
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
+	outofgasmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/outofgas"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
@@ -50,7 +52,6 @@ type goodHandler struct {
 	done                   chan interface{}
 	totalUnits             decimal.Decimal
 	coinBenefitBalances    map[string]decimal.Decimal
-	totalInServiceUnits    decimal.Decimal
 	totalBenefitOrderUnits decimal.Decimal
 	appOrderUnits          map[string]map[string]decimal.Decimal
 	goodCoins              map[string]*coinmwpb.Coin
@@ -61,6 +62,7 @@ type goodHandler struct {
 	userBenefitHotAccounts map[string]*platformaccountmwpb.Account
 	goodBenefitAccounts    map[string]*goodbenefitmwpb.Account
 	benefitOrderIDs        []uint32
+	orderOutOfGases        map[string]*outofgasmwpb.OutOfGas
 	benefitOrderEntIDs     []string
 	benefitResult          basetypes.Result
 	benefitMessage         string
@@ -143,6 +145,14 @@ func (h *goodHandler) getBenefitBalances(ctx context.Context) error {
 }
 
 func (h *goodHandler) orderBenefitable(order *powerrentalordermwpb.PowerRentalOrder) bool {
+	if order.Simulate {
+		return false
+	}
+
+	if _, ok := h.orderOutOfGases[order.OrderID]; ok {
+		return false
+	}
+
 	now := uint32(time.Now().Unix())
 	switch order.PaymentState {
 	case ordertypes.PaymentState_PaymentStateDone:
@@ -165,6 +175,21 @@ func (h *goodHandler) orderBenefitable(order *powerrentalordermwpb.PowerRentalOr
 	return true
 }
 
+func (h *goodHandler) getOutOfGasesWithOrderIDs(ctx context.Context, orderIDs []string) error {
+	h.orderOutOfGases = map[string]*outofgasmwpb.OutOfGas{}
+	infos, _, err := outofgasmwcli.GetOutOfGases(ctx, &outofgasmwpb.Conds{
+		OrderIDs: &basetypes.StringSliceVal{Op: cruder.IN, Value: orderIDs},
+		EndAt:    &basetypes.Uint32Val{Op: cruder.EQ, Value: 0},
+	}, 0, int32(len(orderIDs)))
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	for _, info := range infos {
+		h.orderOutOfGases[info.OrderID] = info
+	}
+	return nil
+}
+
 //nolint:gocognit
 func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
@@ -183,22 +208,24 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 		if len(orders) == 0 {
 			break
 		}
+		if err := h.getOutOfGasesWithOrderIDs(ctx, func() (orderIDs []string) {
+			for _, order := range orders {
+				orderIDs = append(orderIDs, order.OrderID)
+			}
+			return
+		}()); err != nil {
+			return wlog.WrapError(err)
+		}
 		for _, order := range orders {
 			units, err := decimal.NewFromString(order.Units)
 			if err != nil {
 				return wlog.WrapError(err)
-			}
-			if !order.Simulate {
-				h.totalInServiceUnits = h.totalInServiceUnits.Add(units)
 			}
 			if !h.orderBenefitable(order) {
 				continue
 			}
 			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
 			h.benefitOrderEntIDs = append(h.benefitOrderEntIDs, order.EntID)
-			if order.Simulate {
-				continue
-			}
 			h.totalBenefitOrderUnits = h.totalBenefitOrderUnits.Add(units)
 			appGoodUnits, ok := h.appOrderUnits[order.AppID]
 			if !ok {
