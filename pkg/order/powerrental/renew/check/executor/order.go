@@ -156,10 +156,21 @@ func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
 				finishedAt[feeOrder.GoodType] = feeOrder.PaidAt
 			}
 		}
-		h.finishOutOfGas = true
 		offset += limit
 	}
 
+	if h.TechniqueFee != nil {
+		if _, ok := finishedAt[h.TechniqueFee.GoodType]; !ok {
+			return nil
+		}
+	}
+	if h.ElectricityFee != nil {
+		if _, ok := finishedAt[h.ElectricityFee.GoodType]; !ok {
+			return nil
+		}
+	}
+
+	h.finishOutOfGas = true
 	for _, _finishedAt := range finishedAt {
 		if h.outOfGasFinishedAt == 0 || h.outOfGasFinishedAt < _finishedAt {
 			h.outOfGasFinishedAt = _finishedAt
