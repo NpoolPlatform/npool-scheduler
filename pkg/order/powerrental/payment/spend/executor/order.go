@@ -30,9 +30,11 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	if len(h.PaymentBalances) > 0 {
 		persistentOrder.BalanceOutcomingExtra = fmt.Sprintf(
-			`{"PaymentID":"%v","OrderID": "%v","FromBalance":true,"PaymentType":"%v"}`,
+			`{"PaymentID":"%v","OrderID": "%v","FromBalance":true, GoodID":"%v","AppGoodID":"%v","PaymentType":"%v"}`,
 			h.PaymentID,
 			h.OrderID,
+			h.GoodID,
+			h.AppGoodID,
 			h.PaymentType,
 		)
 	}
