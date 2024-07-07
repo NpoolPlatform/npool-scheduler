@@ -5,16 +5,12 @@ import (
 	"context"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	feeordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/fee"
-	outofgasmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/outofgas"
 	paymentmwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/payment"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	renewcommon "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/common"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/renew/execute/types"
-	outofgasmwcli "github.com/NpoolPlatform/order-middleware/pkg/client/outofgas"
 
 	"github.com/google/uuid"
 )
@@ -28,7 +24,6 @@ type orderHandler struct {
 	feeOrderReqs  []*feeordermwpb.FeeOrderReq
 	paymentID     *string
 	ledgerLockID  string
-	outOfGasEntID *string
 }
 
 func (h *orderHandler) formalizePayment(req *feeordermwpb.FeeOrderReq) {
@@ -100,21 +95,6 @@ func (h *orderHandler) constructRenewOrders() {
 	h.newRenewState = ordertypes.OrderRenewState_OrderRenewWait
 }
 
-func (h *orderHandler) getOutOfGas(ctx context.Context) error {
-	info, err := outofgasmwcli.GetOutOfGasOnly(ctx, &outofgasmwpb.Conds{
-		OrderID: &basetypes.StringVal{Op: cruder.EQ, Value: h.OrderID},
-		EndAt:   &basetypes.Uint32Val{Op: cruder.EQ, Value: 0},
-	})
-	if err != nil {
-		return err
-	}
-	if info == nil {
-		return nil
-	}
-	h.outOfGasEntID = &info.EntID
-	return nil
-}
-
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -135,7 +115,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		FeeOrderReqs:        h.feeOrderReqs,
 		NewRenewState:       h.newRenewState,
 		LedgerLockID:        h.ledgerLockID,
-		OutOfGasEntID:       h.outOfGasEntID,
 	}
 	asyncfeed.AsyncFeed(ctx, persistentOrder, h.notif)
 	if h.newRenewState != h.RenewState {
@@ -182,9 +161,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return err
 	}
 	if err = h.CalculateUSDAmount(); err != nil {
-		return err
-	}
-	if err = h.getOutOfGas(ctx); err != nil {
 		return err
 	}
 	if yes, err = h.CalculateDeduction(); err != nil || yes {
