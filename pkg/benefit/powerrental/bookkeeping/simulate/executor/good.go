@@ -153,7 +153,7 @@ func (h *goodHandler) shouldSendCoupon(ctx context.Context, config *orderappconf
 func (h *goodHandler) calculateSimulateOrderReward(ctx context.Context, order *powerrentalordermwpb.PowerRentalOrder) error {
 	ioExtra := fmt.Sprintf(
 		`{"GoodID":"%v","AppGoodID":"%v","OrderID":"%v","Units":"%v","BenefitDate":"%v"}`,
-		h.EntID,
+		h.GoodID,
 		order.AppGoodID,
 		order.OrderID,
 		order.Units,
@@ -181,9 +181,13 @@ func (h *goodHandler) calculateSimulateOrderReward(ctx context.Context, order *p
 		if err != nil {
 			return wlog.WrapError(err)
 		}
+		amount := unitRewardAmount.Mul(units)
+		if amount.LessThanOrEqual(decimal.NewFromInt(0)) {
+			continue
+		}
 		orderReward.CoinRewards = append(orderReward.CoinRewards, &types.CoinReward{
 			CoinTypeID: reward.CoinTypeID,
-			Amount:     unitRewardAmount.Mul(units).String(),
+			Amount:     amount.String(),
 			Cashable:   reward.MainCoin && cashable,
 			SendCoupon: reward.MainCoin && sendCoupon,
 		})

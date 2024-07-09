@@ -63,7 +63,6 @@ type goodHandler struct {
 	goodBenefitAccounts    map[string]*goodbenefitmwpb.Account
 	benefitOrderIDs        []uint32
 	orderOutOfGases        map[string]*outofgasmwpb.OutOfGas
-	benefitOrderEntIDs     []string
 	benefitResult          basetypes.Result
 	benefitMessage         string
 	notifiable             bool
@@ -222,10 +221,12 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 				return wlog.WrapError(err)
 			}
 			if !h.orderBenefitable(order) {
+				if order.Simulate {
+					h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
+				}
 				continue
 			}
 			h.benefitOrderIDs = append(h.benefitOrderIDs, order.ID)
-			h.benefitOrderEntIDs = append(h.benefitOrderEntIDs, order.EntID)
 			h.totalBenefitOrderUnits = h.totalBenefitOrderUnits.Add(units)
 			appGoodUnits, ok := h.appOrderUnits[order.AppID]
 			if !ok {
@@ -250,7 +251,7 @@ func (h *goodHandler) constructCoinRewards() error {
 		}
 		benefitBalance, ok := h.coinBenefitBalances[reward.CoinTypeID]
 		if !ok {
-			return wlog.Errorf("Invalid benefit balance %v", reward.CoinTypeID)
+			return wlog.Errorf("Invalid benefit balance")
 		}
 		todayRewardAmount := benefitBalance.Sub(startRewardAmount)
 		coin, ok := h.goodCoins[reward.CoinTypeID]
@@ -261,10 +262,17 @@ func (h *goodHandler) constructCoinRewards() error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		if startRewardAmount.Cmp(decimal.NewFromInt(0)) == 0 {
+		if startRewardAmount.Equal(decimal.NewFromInt(0)) {
 			todayRewardAmount = todayRewardAmount.Sub(reservedAmount)
 		}
-		nextRewardStartAmount := benefitBalance
+		if todayRewardAmount.LessThan(decimal.NewFromInt(0)) {
+			todayRewardAmount = decimal.NewFromInt(0)
+		}
+
+		nextRewardStartAmount := startRewardAmount
+		if todayRewardAmount.GreaterThan(decimal.NewFromInt(0)) {
+			nextRewardStartAmount = benefitBalance
+		}
 		userRewardAmount := todayRewardAmount.
 			Mul(h.totalBenefitOrderUnits).
 			Div(h.totalUnits)
@@ -305,12 +313,8 @@ func (h *goodHandler) constructCoinRewards() error {
 			platformRewardAmount,
 			coinReward.techniqueFeeAmount,
 		)
-		able, err := h.checkTransferrable(coinReward)
-		if err != nil {
+		if err := h.checkTransferrable(coinReward); err != nil {
 			return wlog.WrapError(err)
-		}
-		if !able {
-			continue
 		}
 		h.coinRewards = append(h.coinRewards, coinReward)
 	}
@@ -508,17 +512,17 @@ func (h *goodHandler) getGoodBenefitAccounts(ctx context.Context) (err error) {
 	return wlog.WrapError(err)
 }
 
-func (h *goodHandler) checkTransferrable(reward *coinReward) (bool, error) {
+func (h *goodHandler) checkTransferrable(reward *coinReward) error {
 	coin, ok := h.goodCoins[reward.CoinTypeID]
 	if !ok {
-		return false, nil
+		return nil
 	}
 	least, err := decimal.NewFromString(coin.LeastTransferAmount)
 	if err != nil {
-		return false, err
+		return err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, wlog.Errorf("invalid leasttransferamount")
+		return wlog.Errorf("invalid leasttransferamount")
 	}
 	if reward.todayRewardAmount.Cmp(least) <= 0 {
 		reward.BenefitMessage = fmt.Sprintf(
@@ -529,9 +533,10 @@ func (h *goodHandler) checkTransferrable(reward *coinReward) (bool, error) {
 			reward.todayRewardAmount,
 		)
 		h.notifiable = true
-		return false, nil
+		return nil
 	}
-	return true, nil
+	reward.Transferrable = true
+	return nil
 }
 
 func (h *goodHandler) validateInServiceUnits() error {
@@ -575,7 +580,7 @@ func (h *goodHandler) resolveBenefitTimestamp() {
 
 func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
 	exist, err := goodstatementmwcli.ExistGoodStatementConds(ctx, &goodstatementmwpb.Conds{
-		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+		GoodID:      &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 		BenefitDate: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.benefitTimestamp},
 	})
 	if err != nil {

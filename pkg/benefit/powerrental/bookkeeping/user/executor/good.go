@@ -27,6 +27,7 @@ import (
 )
 
 type coinReward struct {
+	mainCoin          bool
 	totalRewardAmount decimal.Decimal
 	userRewardAmount  decimal.Decimal
 }
@@ -92,7 +93,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 
 	for {
 		goods, _, err := apppowerrentalmwcli.GetPowerRentals(ctx, &apppowerrentalmwpb.Conds{
-			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -105,7 +106,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 			if !ok {
 				_goods = map[string]*apppowerrentalmwpb.PowerRental{}
 			}
-			_goods[good.EntID] = good
+			_goods[good.AppGoodID] = good
 			h.appPowerRentals[good.AppID] = _goods
 		}
 		offset += limit
@@ -113,7 +114,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateUnitRewardsLegacy() {
+func (h *goodHandler) calculateUnitRewardsLegacy() error {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		goods, ok := h.appPowerRentals[appID]
 		if !ok {
@@ -133,15 +134,18 @@ func (h *goodHandler) calculateUnitRewardsLegacy() {
 				appGoodUnitRewards = map[string]decimal.Decimal{}
 			}
 			for coinTypeID, reward := range h.coinRewards {
-				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-					continue
+				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) < 0 {
+					return wlog.Errorf("invalid userrewardamount")
 				}
 				userRewardAmount := reward.userRewardAmount.
 					Mul(units).
 					Div(h.totalOrderUnits)
-				techniqueFee := userRewardAmount.
-					Mul(decimal.RequireFromString(good.TechniqueFeeRatio)).
-					Div(decimal.NewFromInt(100))
+				techniqueFee := decimal.NewFromInt(0)
+				if reward.mainCoin {
+					techniqueFee = userRewardAmount.
+						Mul(decimal.RequireFromString(good.TechniqueFeeRatio)).
+						Div(decimal.NewFromInt(100))
+				}
 				appGoodUnitRewards[coinTypeID] = userRewardAmount.
 					Sub(techniqueFee).
 					Div(units)
@@ -150,6 +154,7 @@ func (h *goodHandler) calculateUnitRewardsLegacy() {
 		}
 		h.appGoodUnitRewards[appID] = appUnitRewards
 	}
+	return nil
 }
 
 //nolint:gocognit
@@ -178,15 +183,18 @@ func (h *goodHandler) _calculateUnitRewards() error {
 				appGoodUnitRewards = map[string]decimal.Decimal{}
 			}
 			for coinTypeID, reward := range h.coinRewards {
-				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) <= 0 {
-					continue
+				if reward.userRewardAmount.Cmp(decimal.NewFromInt(0)) < 0 {
+					return wlog.Errorf("invalid userrewardamount")
 				}
 				userRewardAmount := reward.userRewardAmount.
 					Mul(units).
 					Div(h.totalOrderUnits)
-				techniqueFee := userRewardAmount.
-					Mul(feePercent).
-					Div(decimal.NewFromInt(100))
+				techniqueFee := decimal.NewFromInt(0)
+				if reward.mainCoin {
+					techniqueFee = userRewardAmount.
+						Mul(feePercent).
+						Div(decimal.NewFromInt(100))
+				}
 				appGoodUnitRewards[coinTypeID] = userRewardAmount.
 					Sub(techniqueFee).
 					Div(units)
@@ -276,10 +284,17 @@ func (h *goodHandler) constructCoinRewards() error {
 		userRewardAmount := totalRewardAmount.
 			Mul(h.totalOrderUnits).
 			Div(totalUnits)
-		h.coinRewards[reward.CoinTypeID] = &coinReward{
+		_coinReward := &coinReward{
 			totalRewardAmount: totalRewardAmount,
 			userRewardAmount:  userRewardAmount,
 		}
+		for _, goodCoin := range h.GoodCoins {
+			if goodCoin.CoinTypeID == reward.CoinTypeID && goodCoin.Main {
+				_coinReward.mainCoin = true
+				break
+			}
+		}
+		h.coinRewards[reward.CoinTypeID] = _coinReward
 	}
 	return nil
 }
@@ -290,8 +305,7 @@ func (h *goodHandler) calculateUnitRewards() error {
 		return nil
 	}
 	if h.GoodType == goodtypes.GoodType_LegacyPowerRental {
-		h.calculateUnitRewardsLegacy()
-		return nil
+		return h.calculateUnitRewardsLegacy()
 	}
 	return h._calculateUnitRewards()
 }
@@ -326,11 +340,15 @@ func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRent
 	for coinTypeID := range h.coinRewards {
 		unitReward, ok := appGoodUnitRewards[coinTypeID]
 		if !ok {
-			return nil
+			continue
+		}
+		amount := unitReward.Mul(units)
+		if amount.LessThanOrEqual(decimal.NewFromInt(0)) {
+			continue
 		}
 		orderReward.CoinRewards = append(orderReward.CoinRewards, &types.CoinReward{
 			CoinTypeID: coinTypeID,
-			Amount:     unitReward.Mul(units).String(),
+			Amount:     amount.String(),
 		})
 	}
 	h.orderRewards = append(h.orderRewards, orderReward)
@@ -340,7 +358,7 @@ func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRent
 func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	// If orderRewards is not empty, we do not update good benefit state, then we get next 20 orders
 	orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
-		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+		GoodID:        &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
@@ -368,6 +386,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"PowerRental", h.PowerRental,
 			"OrderRewards", h.orderRewards,
 			"AppOrderUnits", h.appOrderUnits,
+			"LastRewardAt", h.LastRewardAt,
 			"Error", *err,
 		)
 	}

@@ -15,6 +15,7 @@ type CoinReward struct {
 	UserBenefitHotAddress   string
 	Extra                   string
 	BenefitMessage          string
+	Transferrable           bool
 }
 
 type PersistentPowerRental struct {
