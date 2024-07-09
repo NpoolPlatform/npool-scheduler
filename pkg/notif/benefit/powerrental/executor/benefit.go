@@ -135,7 +135,7 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 			return err
 		}
 		h.content += fmt.Sprintf(
-			`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
+			`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 			benefit.GoodID,
 			benefit.GoodType,
 			benefit.GoodName,
@@ -190,10 +190,12 @@ func (h *benefitHandler) generateAppGoodNotifContent() error {
 			}
 
 			h.content += fmt.Sprintf(
-				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
+				`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 				appGoodID,
 				appPowerRental.GoodID,
+				appPowerRental.GoodType,
 				appPowerRental.GoodName,
+				benefit.CoinTypeID,
 				amount.Mul(appGoodInService).Div(goodInService),
 				amount.Div(total),
 				benefit.State,
