@@ -103,7 +103,9 @@ func (h *benefitHandler) generateTableHeader(goodTypeName string, appPowerRental
 		h.content += "<th>AppGoodID</th>"
 	}
 	h.content += "<th>GoodID</th>"
+	h.content += "<th>GoodType</th>"
 	h.content += "<th>GoodName</th>"
+	h.content += "<th>CoinTypeID</th>"
 	h.content += "<th>Amount</th>"
 	h.content += "<th>AmountPerUnit</th>"
 	h.content += "<th>State</th>"
@@ -135,7 +137,9 @@ func (h *benefitHandler) generateGoodNotifContent() error {
 		h.content += fmt.Sprintf(
 			`<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>`,
 			benefit.GoodID,
+			benefit.GoodType,
 			benefit.GoodName,
+			benefit.CoinTypeID,
 			benefit.Amount,
 			amount.Div(total),
 			benefit.State,
