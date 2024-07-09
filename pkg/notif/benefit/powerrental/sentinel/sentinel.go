@@ -47,7 +47,13 @@ func (h *handler) scanGoodBenefits(ctx context.Context, exec chan interface{}) e
 	for {
 		_benefits, _, err := notifbenefitmwcli.GetGoodBenefits(ctx, &notifbenefitmwpb.Conds{
 			Generated: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-			GoodType:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_PowerRental)},
+			GoodTypes: &basetypes.Uint32SliceVal{
+				Op: cruder.IN,
+				Value: []uint32{
+					uint32(goodtypes.GoodType_PowerRental),
+					uint32(goodtypes.GoodType_LegacyPowerRental),
+				},
+			},
 		}, offset, limit)
 		if err != nil {
 			return err
