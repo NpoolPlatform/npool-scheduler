@@ -27,6 +27,7 @@ import (
 )
 
 type coinReward struct {
+	mainCoin          bool
 	totalRewardAmount decimal.Decimal
 	userRewardAmount  decimal.Decimal
 }
@@ -139,9 +140,12 @@ func (h *goodHandler) calculateUnitRewardsLegacy() error {
 				userRewardAmount := reward.userRewardAmount.
 					Mul(units).
 					Div(h.totalOrderUnits)
-				techniqueFee := userRewardAmount.
-					Mul(decimal.RequireFromString(good.TechniqueFeeRatio)).
-					Div(decimal.NewFromInt(100))
+				techniqueFee := decimal.NewFromInt(0)
+				if reward.mainCoin {
+					techniqueFee = userRewardAmount.
+						Mul(decimal.RequireFromString(good.TechniqueFeeRatio)).
+						Div(decimal.NewFromInt(100))
+				}
 				appGoodUnitRewards[coinTypeID] = userRewardAmount.
 					Sub(techniqueFee).
 					Div(units)
@@ -185,9 +189,12 @@ func (h *goodHandler) _calculateUnitRewards() error {
 				userRewardAmount := reward.userRewardAmount.
 					Mul(units).
 					Div(h.totalOrderUnits)
-				techniqueFee := userRewardAmount.
-					Mul(feePercent).
-					Div(decimal.NewFromInt(100))
+				techniqueFee := decimal.NewFromInt(0)
+				if reward.mainCoin {
+					techniqueFee = userRewardAmount.
+						Mul(feePercent).
+						Div(decimal.NewFromInt(100))
+				}
 				appGoodUnitRewards[coinTypeID] = userRewardAmount.
 					Sub(techniqueFee).
 					Div(units)
@@ -277,10 +284,17 @@ func (h *goodHandler) constructCoinRewards() error {
 		userRewardAmount := totalRewardAmount.
 			Mul(h.totalOrderUnits).
 			Div(totalUnits)
-		h.coinRewards[reward.CoinTypeID] = &coinReward{
+		_coinReward := &coinReward{
 			totalRewardAmount: totalRewardAmount,
 			userRewardAmount:  userRewardAmount,
 		}
+		for _, goodCoin := range h.GoodCoins {
+			if goodCoin.CoinTypeID == reward.CoinTypeID && goodCoin.Main {
+				_coinReward.mainCoin = true
+				break
+			}
+		}
+		h.coinRewards[reward.CoinTypeID] = _coinReward
 	}
 	return nil
 }

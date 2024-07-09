@@ -107,7 +107,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 			if !ok {
 				_goods = map[string]*apppowerrentalmwpb.PowerRental{}
 			}
-			_goods[good.EntID] = good
+			_goods[good.AppGoodID] = good
 			h.appPowerRentals[good.AppID] = _goods
 		}
 		offset += limit
@@ -307,6 +307,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"final",
 			"PowerRental", h.PowerRental,
 			"AppOrderUnits", h.appOrderUnits,
+			"CoinRewards", h.coinRewards,
 			"Error", *err,
 		)
 	}
