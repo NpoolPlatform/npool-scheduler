@@ -178,7 +178,7 @@ func (h *goodHandler) checkTransferrableToPlatform(ctx context.Context, reward *
 		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, fmt.Errorf("invalid leasttransferamount")
+		return false, wlog.Errorf("invalid leasttransferamount")
 	}
 	if reward.toPlatformAmount.Cmp(least) <= 0 {
 		return false, nil
@@ -189,10 +189,10 @@ func (h *goodHandler) checkTransferrableToPlatform(ctx context.Context, reward *
 		Address: reward.UserBenefitHotAddress,
 	})
 	if err != nil {
-		return false, fmt.Errorf("fail check transfer amount (%v)", err)
+		return false, wlog.WrapError(err)
 	}
 	if bal == nil {
-		return false, fmt.Errorf("invalid balance")
+		return false, wlog.Errorf("invalid balance")
 	}
 
 	balance, err := decimal.NewFromString(bal.BalanceStr)
@@ -247,7 +247,7 @@ func (h *goodHandler) checkTransferred(reward *goodcoinrewardmwpb.RewardInfo) (b
 		return false, err
 	}
 	if least.Cmp(decimal.NewFromInt(0)) <= 0 {
-		return false, fmt.Errorf("invalid leasttransferamount")
+		return false, wlog.Errorf("invalid leasttransferamount")
 	}
 	todayRewardAmount, err := decimal.NewFromString(reward.LastRewardAmount)
 	if err != nil {
@@ -274,7 +274,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		PowerRental:     h.PowerRental,
 		NewBenefitState: h.newBenefitState,
 		BenefitResult:   h.benefitResult,
-		Error:           *err,
+		CoinRewards: func() (rewards []*types.CoinReward) {
+			for _, reward := range h.coinRewards {
+				rewards = append(rewards, &reward.CoinReward)
+			}
+			return
+		}(),
+		Error: *err,
 	}
 
 	if h.newBenefitState == h.RewardState && *err == nil {
@@ -300,13 +306,13 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
 	defer h.final(ctx, &err)
 
+	if err = h.getGoodCoins(ctx); err != nil {
+		return err
+	}
 	if err := h.getUserBenefitHotAccounts(ctx); err != nil {
 		return err
 	}
 	if err := h.getPlatformColdAccounts(ctx); err != nil {
-		return err
-	}
-	if err = h.getGoodCoins(ctx); err != nil {
 		return err
 	}
 	if err := h.getRewardTxs(ctx); err != nil {
