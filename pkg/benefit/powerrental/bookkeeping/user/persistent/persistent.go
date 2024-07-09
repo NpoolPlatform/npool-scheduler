@@ -73,6 +73,10 @@ func (p *handler) withCreateLedgerStatements(dispose *dtmcli.SagaDispose, good *
 		}
 	}
 
+	if len(reqs) == 0 {
+		return
+	}
+
 	dispose.Add(
 		ledgersvcname.ServiceDomain,
 		"ledger.middleware.ledger.statement.v2.Middleware/CreateStatements",

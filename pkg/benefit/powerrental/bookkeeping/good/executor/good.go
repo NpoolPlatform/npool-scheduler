@@ -94,7 +94,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 
 	for {
 		goods, _, err := apppowerrentalmwcli.GetPowerRentals(ctx, &apppowerrentalmwpb.Conds{
-			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.EntID},
+			GoodID: &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 		}, offset, limit)
 		if err != nil {
 			return err

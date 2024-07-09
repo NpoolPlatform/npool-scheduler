@@ -24,6 +24,7 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 		now := uint32(time.Now().Unix())
 		req := &notifbenefitmwpb.GoodBenefitReq{
 			GoodID:      &good.GoodID,
+			GoodType:    &good.GoodType,
 			GoodName:    &good.Name,
 			State:       &good.BenefitResult,
 			BenefitDate: &now,

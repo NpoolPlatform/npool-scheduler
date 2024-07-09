@@ -20,6 +20,7 @@ import (
 	schedcommon "github.com/NpoolPlatform/npool-scheduler/pkg/common"
 	sphinxproxycli "github.com/NpoolPlatform/sphinx-proxy/pkg/client"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -68,6 +69,9 @@ func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
 func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
 	h.rewardTxs, err = schedcommon.GetTxs(ctx, func() (txIDs []string) {
 		for _, reward := range h.Rewards {
+			if reward.RewardTID == uuid.Nil.String() {
+				continue
+			}
 			txIDs = append(txIDs, reward.RewardTID)
 		}
 		return
@@ -103,7 +107,11 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 		switch tx.State {
 		case basetypes.TxState_TxStateCreated:
 			fallthrough //nolint
+		case basetypes.TxState_TxStateCreatedCheck:
+			fallthrough //nolint
 		case basetypes.TxState_TxStateWait:
+			fallthrough //nolint
+		case basetypes.TxState_TxStateWaitCheck:
 			fallthrough //nolint
 		case basetypes.TxState_TxStateTransferring:
 			h.newBenefitState = h.RewardState

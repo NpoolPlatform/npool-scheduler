@@ -59,9 +59,15 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	rewardReqs := []*goodcoinrewardmwpb.RewardReq{}
 	for _, reward := range _good.CoinRewards {
 		rewardReqs = append(rewardReqs, &goodcoinrewardmwpb.RewardReq{
-			GoodID:                &_good.GoodID,
-			CoinTypeID:            &reward.CoinTypeID,
-			RewardTID:             func() *string { s := uuid.NewString(); return &s }(),
+			GoodID:     &_good.GoodID,
+			CoinTypeID: &reward.CoinTypeID,
+			RewardTID: func() *string {
+				s := uuid.NewString()
+				if !reward.Transferrable {
+					s = uuid.Nil.String()
+				}
+				return &s
+			}(),
 			RewardAmount:          &reward.Amount,
 			NextRewardStartAmount: &reward.NextRewardStartAmount,
 		})
@@ -82,6 +88,9 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	txReqs := []*txmwpb.TxReq{}
 	for i, reward := range _good.CoinRewards {
+		if !reward.Transferrable {
+			continue
+		}
 		txReqs = append(txReqs, &txmwpb.TxReq{
 			EntID:         rewardReqs[i].RewardTID,
 			CoinTypeID:    &reward.CoinTypeID,
