@@ -24,18 +24,25 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentPowerRental) error {
 		now := uint32(time.Now().Unix())
 		req := &notifbenefitmwpb.GoodBenefitReq{
 			GoodID:      &good.GoodID,
+			GoodType:    &good.GoodType,
 			GoodName:    &good.Name,
 			State:       &good.BenefitResult,
 			Message:     &good.BenefitMessage,
 			BenefitDate: &now,
 		}
-		return publisher.Update(
-			basetypes.MsgID_CreateGoodBenefitReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
+		for _, goodCoin := range good.GoodCoins {
+			req.CoinTypeID = &goodCoin.CoinTypeID
+			if err := publisher.Update(
+				basetypes.MsgID_CreateGoodBenefitReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
