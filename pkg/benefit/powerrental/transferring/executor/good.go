@@ -101,6 +101,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			h.benefitResult = basetypes.Result_Fail
 			h.newBenefitState = goodtypes.BenefitState_BenefitFail
 			coinReward.BenefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, reward.RewardTID)
+			h.coinRewards = append(h.coinRewards, coinReward)
 			continue
 		}
 		switch tx.State {
@@ -159,9 +160,11 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			return wlog.WrapError(err)
 		}
 		if !able {
+			h.coinRewards = append(h.coinRewards, coinReward)
 			continue
 		}
 
+		coinReward.Transferrable = true
 		h.coinRewards = append(h.coinRewards, coinReward)
 	}
 	return nil

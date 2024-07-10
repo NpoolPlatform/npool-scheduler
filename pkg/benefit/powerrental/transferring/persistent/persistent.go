@@ -43,6 +43,9 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	txReqs := []*txmwpb.TxReq{}
 	for _, reward := range _good.CoinRewards {
+		if !reward.Transferrable {
+			continue
+		}
 		txReqs = append(txReqs, &txmwpb.TxReq{
 			CoinTypeID:    &reward.CoinTypeID,
 			FromAccountID: &reward.UserBenefitHotAccountID,
@@ -52,6 +55,9 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 			Extra:         &reward.Extra,
 			Type:          func() *basetypes.TxType { e := basetypes.TxType_TxPlatformBenefit; return &e }(),
 		})
+	}
+	if len(txReqs) == 0 {
+		return nil
 	}
 
 	if _, err := txmwcli.CreateTxs(ctx, txReqs); err != nil {
