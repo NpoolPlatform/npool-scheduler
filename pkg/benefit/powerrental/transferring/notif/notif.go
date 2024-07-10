@@ -31,6 +31,18 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentPowerRental) error {
 		}
 		for _, reward := range good.Rewards {
 			req.CoinTypeID = &reward.CoinTypeID
+			req.Message = func() *string {
+				for _, _reward := range good.CoinRewards {
+					if reward.CoinTypeID == _reward.CoinTypeID {
+						return &_reward.BenefitMessage
+					}
+				}
+				if good.Error != nil {
+					s := good.Error.Error()
+					return &s
+				}
+				return nil
+			}()
 			if err := publisher.Update(
 				basetypes.MsgID_CreateGoodBenefitReq.String(),
 				nil,

@@ -8,7 +8,7 @@ import (
 	powerrental "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit/powerrental"
 )
 
-const subsystem = "notifybenefit"
+const subsystem = "notifbenefit"
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	if b := config.SupportSubsystem(subsystem); !b {
