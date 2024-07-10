@@ -81,6 +81,10 @@ func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
 
 func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 	h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
+
+	successes := 0
+	fails := 0
+
 	for _, reward := range h.Rewards {
 		able, err := h.checkTransferred(reward)
 		if err != nil {
@@ -102,6 +106,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			h.newBenefitState = goodtypes.BenefitState_BenefitFail
 			coinReward.BenefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, reward.RewardTID)
 			h.coinRewards = append(h.coinRewards, coinReward)
+			fails += 1
 			continue
 		}
 		switch tx.State {
@@ -128,8 +133,9 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 				h.LastRewardAt,
 				reward.RewardTID,
 			)
-			fallthrough //nolint
+			fails += 1
 		case basetypes.TxState_TxStateSuccessful:
+			successes += 1
 		}
 
 		p := struct {
@@ -166,6 +172,9 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 
 		coinReward.Transferrable = true
 		h.coinRewards = append(h.coinRewards, coinReward)
+	}
+	if fails > 0 && successes > 0 {
+		h.newBenefitState = h.RewardState
 	}
 	return nil
 }
