@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
@@ -85,10 +86,16 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 			h.coinNextRewards = append(h.coinNextRewards, coinNextReward)
 			continue
 		}
-		if _, ok := h.rewardTxs[reward.RewardTID]; !ok {
-			h.coinNextRewards = append(h.coinNextRewards, coinNextReward)
-			continue
+		rewardTx, ok := h.rewardTxs[reward.RewardTID]
+		if !ok {
+			return wlog.Errorf("invalid rewardtx")
 		}
+		coinNextReward.BenefitMessage = fmt.Sprintf(
+			"%v@%v(%v)",
+			rewardTx.ChainTxID,
+			h.LastRewardAt,
+			reward.RewardTID,
+		)
 		nextRewardStartAmount, err := decimal.NewFromString(reward.NextRewardStartAmount)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -112,6 +119,12 @@ func (h *goodHandler) checkLeastTransferAmount(reward *coinNextReward) (bool, er
 		return false, wlog.Errorf("invalid leasttransferamount")
 	}
 	if reward.lastRewardAmount.Cmp(least) <= 0 {
+		reward.BenefitMessage = fmt.Sprintf(
+			"Reward amount %v, least transfer amount %v (%v)",
+			reward.lastRewardAmount,
+			least,
+			h.LastRewardAt,
+		)
 		return false, nil
 	}
 	return true, nil
