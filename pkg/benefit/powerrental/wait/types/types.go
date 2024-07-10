@@ -24,7 +24,6 @@ type PersistentPowerRental struct {
 	CoinRewards      []*CoinReward
 	BenefitTimestamp uint32
 	BenefitResult    basetypes.Result
-	BenefitMessage   string
 	Error            error
 }
 

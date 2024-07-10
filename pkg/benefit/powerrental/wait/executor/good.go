@@ -623,12 +623,18 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 
 	if h.notifiable {
 		persistentGood.BenefitResult = h.benefitResult
-		persistentGood.BenefitMessage = h.benefitMessage
+		for _, reward := range persistentGood.CoinRewards {
+			if reward.BenefitMessage == "" {
+				reward.BenefitMessage = h.benefitMessage
+			}
+		}
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
-		persistentGood.BenefitMessage = (*err).Error()
+		for _, reward := range persistentGood.CoinRewards {
+			reward.BenefitMessage = (*err).Error()
+		}
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return

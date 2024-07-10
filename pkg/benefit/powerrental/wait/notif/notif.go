@@ -27,11 +27,11 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentPowerRental) error {
 			GoodType:    &good.GoodType,
 			GoodName:    &good.Name,
 			State:       &good.BenefitResult,
-			Message:     &good.BenefitMessage,
 			BenefitDate: &now,
 		}
-		for _, goodCoin := range good.GoodCoins {
-			req.CoinTypeID = &goodCoin.CoinTypeID
+		for _, reward := range good.CoinRewards {
+			req.CoinTypeID = &reward.CoinTypeID
+			req.Message = &reward.BenefitMessage
 			if err := publisher.Update(
 				basetypes.MsgID_CreateGoodBenefitReq.String(),
 				nil,
