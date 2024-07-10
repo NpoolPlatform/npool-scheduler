@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
-	goodcoinrewardmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/good/coin/reward"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	retry1 "github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
@@ -23,34 +23,29 @@ func NewNotif() basenotif.Notify {
 func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 	return pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		now := uint32(time.Now().Unix())
-		result := basetypes.Result_Success
-
-		for _, reward := range good.CoinNextRewards {
-			_reward := func() *goodcoinrewardmwpb.RewardInfo {
-				for _, r := range good.Rewards {
-					if r.CoinTypeID == reward.CoinTypeID {
-						return r
-					}
-				}
-				return nil
-			}()
-
-			if _reward == nil {
-				return fmt.Errorf("invalid reward")
-			}
-
+		for _, reward := range good.Rewards {
 			req := &notifbenefitmwpb.GoodBenefitReq{
 				GoodID:      &good.GoodID,
 				GoodType:    &good.GoodType,
 				GoodName:    &good.Name,
 				CoinTypeID:  &reward.CoinTypeID,
-				Amount:      &_reward.LastRewardAmount,
-				TxID:        &_reward.RewardTID,
-				State:       &result,
+				Amount:      &reward.LastRewardAmount,
+				TxID:        &reward.RewardTID,
+				State:       &good.BenefitResult,
 				BenefitDate: &now,
-				Message:     &reward.BenefitMessage,
+				Message: func() *string {
+					for _, _reward := range good.CoinNextRewards {
+						if reward.CoinTypeID == _reward.CoinTypeID {
+							return &_reward.BenefitMessage
+						}
+					}
+					if good.Error != nil {
+						s := wlog.Unwrap(good.Error).Error()
+						return &s
+					}
+					return nil
+				}(),
 			}
-
 			if err := publisher.Update(
 				basetypes.MsgID_CreateGoodBenefitReq.String(),
 				nil,
