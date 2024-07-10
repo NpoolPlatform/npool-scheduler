@@ -81,7 +81,6 @@ func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
 
 func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 	h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
-
 	for _, reward := range h.Rewards {
 		able, err := h.checkTransferred(reward)
 		if err != nil {
@@ -287,7 +286,10 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	if *err != nil || persistentGood.BenefitResult == basetypes.Result_Fail {
+	if persistentGood.BenefitResult == basetypes.Result_Fail {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	}
+	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}

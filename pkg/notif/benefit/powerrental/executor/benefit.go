@@ -43,7 +43,7 @@ func (h *benefitHandler) getPowerRentals(ctx context.Context) error {
 		return err
 	}
 	for _, good := range goods {
-		h.powerRentals[good.EntID] = good
+		h.powerRentals[good.GoodID] = good
 	}
 	return nil
 }
@@ -71,7 +71,7 @@ func (h *benefitHandler) getAppPowerRentals(ctx context.Context) error {
 			if !ok {
 				appPowerRentals = map[string]*apppowerrentalmwpb.PowerRental{}
 			}
-			appPowerRentals[good.EntID] = good
+			appPowerRentals[good.AppGoodID] = good
 			h.appPowerRentals[good.GoodID] = appPowerRentals
 		}
 		offset += limit
