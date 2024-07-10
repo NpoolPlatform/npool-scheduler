@@ -278,6 +278,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"PowerRental", h.PowerRental,
 			"NewBenefitState", h.newBenefitState,
 			"BenefitResult", h.benefitResult,
+			"CoinReward", h.coinRewards,
 			"Error", *err,
 		)
 	}
@@ -294,12 +295,12 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error: *err,
 	}
 
+	if persistentGood.BenefitResult == basetypes.Result_Fail {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
+	}
 	if h.newBenefitState == h.RewardState && *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
-	}
-	if persistentGood.BenefitResult == basetypes.Result_Fail {
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	}
 	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
