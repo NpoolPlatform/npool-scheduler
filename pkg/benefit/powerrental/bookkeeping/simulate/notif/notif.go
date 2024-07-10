@@ -30,13 +30,19 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 			Message:     &good.BenefitMessage,
 			BenefitDate: &now,
 		}
-		return publisher.Update(
-			basetypes.MsgID_CreateGoodBenefitReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
+		for _, reward := range good.Rewards {
+			req.CoinTypeID = &reward.CoinTypeID
+			if err := publisher.Update(
+				basetypes.MsgID_CreateGoodBenefitReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 

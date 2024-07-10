@@ -43,11 +43,11 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 				GoodID:      &good.GoodID,
 				GoodType:    &good.GoodType,
 				GoodName:    &good.Name,
+				CoinTypeID:  &reward.CoinTypeID,
 				Amount:      &_reward.LastRewardAmount,
 				TxID:        &_reward.RewardTID,
 				State:       &result,
 				BenefitDate: &now,
-				CoinTypeID:  &reward.CoinTypeID,
 				Message:     &reward.BenefitMessage,
 			}
 
