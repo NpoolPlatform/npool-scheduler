@@ -31,6 +31,13 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentGood) error {
 		}
 		for _, reward := range good.Rewards {
 			req.CoinTypeID = &reward.CoinTypeID
+			req.Message = func() *string {
+				if good.Error == nil {
+					return nil
+				}
+				s := good.Error.Error()
+				return &s
+			}()
 			if err := publisher.Update(
 				basetypes.MsgID_CreateGoodBenefitReq.String(),
 				nil,
