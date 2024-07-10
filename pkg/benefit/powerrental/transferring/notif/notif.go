@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
@@ -38,7 +39,7 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentPowerRental) error {
 					}
 				}
 				if good.Error != nil {
-					s := good.Error.Error()
+					s := wlog.Unwrap(good.Error).Error()
 					return &s
 				}
 				return nil
