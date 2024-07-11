@@ -79,7 +79,7 @@ func (h *goodHandler) getRewardTxs(ctx context.Context) (err error) {
 	return wlog.WrapError(err)
 }
 
-func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
+func (h *goodHandler) constructCoinRewards(ctx context.Context) error { //nolint:gocognit
 	h.newBenefitState = goodtypes.BenefitState_BenefitBookKeeping
 
 	successes := 0
@@ -106,7 +106,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			h.newBenefitState = goodtypes.BenefitState_BenefitFail
 			coinReward.BenefitMessage = fmt.Sprintf("%v (%v)", errorInvalidTx, reward.RewardTID)
 			h.coinRewards = append(h.coinRewards, coinReward)
-			fails += 1
+			fails++
 			continue
 		}
 		switch tx.State {
@@ -133,10 +133,10 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 				h.LastRewardAt,
 				reward.RewardTID,
 			)
-			fails += 1
+			fails++
 		case basetypes.TxState_TxStateSuccessful:
 			coinReward.Transferrable = true
-			successes += 1
+			successes++
 		}
 
 		p := struct {

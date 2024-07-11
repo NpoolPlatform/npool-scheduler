@@ -134,7 +134,7 @@ func (h *orderHandler) getOutOfGas(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error {
+func (h *orderHandler) calculateOutOfGasFinishedAt(ctx context.Context) error { //nolint:gocognit
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	finishedAt := map[goodtypes.GoodType]uint32{}
@@ -224,7 +224,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
-//nolint:gocritic
+//nolint:gocritic,gocognit
 func (h *orderHandler) exec(ctx context.Context) error {
 	h.newRenewState = h.RenewState
 

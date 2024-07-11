@@ -92,9 +92,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		FeeOrder: h.FeeOrder,
-		Payments:         h.payments,
-		PaymentOp:        h.paymentOp,
+		FeeOrder:  h.FeeOrder,
+		Payments:  h.payments,
+		PaymentOp: h.paymentOp,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)

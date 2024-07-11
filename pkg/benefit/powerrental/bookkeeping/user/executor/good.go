@@ -114,7 +114,7 @@ func (h *goodHandler) getAppPowerRentals(ctx context.Context) error {
 	return nil
 }
 
-func (h *goodHandler) calculateUnitRewardsLegacy() error {
+func (h *goodHandler) calculateUnitRewardsLegacy() error { //nolint:gocognit
 	for appID, appGoodUnits := range h.appOrderUnits {
 		goods, ok := h.appPowerRentals[appID]
 		if !ok {
