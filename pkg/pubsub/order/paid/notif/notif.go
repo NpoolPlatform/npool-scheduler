@@ -3,19 +3,18 @@ package notif
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
-	coinmwcli "github.com/NpoolPlatform/chain-middleware/pkg/client/coin"
+	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif"
 	templatemwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/template"
-	ordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/order"
+	schedorderpb "github.com/NpoolPlatform/message/npool/scheduler/mw/v1/order"
 	notifmwcli "github.com/NpoolPlatform/notif-middleware/pkg/client/notif"
 )
 
 func Prepare(body string) (interface{}, error) {
-	req := ordermwpb.Order{}
+	req := schedorderpb.OrderInfo{}
 	if err := json.Unmarshal([]byte(body), &req); err != nil {
 		return nil, err
 	}
@@ -23,18 +22,12 @@ func Prepare(body string) (interface{}, error) {
 }
 
 func Apply(ctx context.Context, req interface{}) error {
-	in, ok := req.(*ordermwpb.Order)
+	in, ok := req.(*schedorderpb.OrderInfo)
 	if !ok {
-		return fmt.Errorf("invalid request in apply")
+		return wlog.Errorf("invalid request in apply")
 	}
 
-	coin, err := coinmwcli.GetCoin(ctx, in.PaymentCoinTypeID)
-	if err != nil {
-		return err
-	}
-	if coin == nil {
-		return fmt.Errorf("invalid payment coin")
-	}
+	// TODO: generate payment table
 
 	now := uint32(time.Now().Unix())
 	if _, err := notifmwcli.GenerateNotifs(ctx, &notifmwpb.GenerateNotifsRequest{
@@ -43,12 +36,11 @@ func Apply(ctx context.Context, req interface{}) error {
 		EventType: basetypes.UsedFor_OrderCompleted,
 		NotifType: basetypes.NotifType_NotifUnicast,
 		Vars: &templatemwpb.TemplateVars{
-			Amount:    &in.PaymentAmount,
-			CoinUnit:  &coin.Unit,
+			Amount:    &in.PaymentAmountUSD,
 			Timestamp: &now,
 		},
 	}); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

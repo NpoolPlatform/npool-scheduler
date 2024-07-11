@@ -39,7 +39,7 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content += "<tr>"
 	content += `  <td style="border: 1px solid #dddddd;">Order ID</td>`
 	// TODO: add order link and some other order info
-	content += `  <td style="border: 1px solid #dddddd;" colspan="3"><strong>` + req.ParentOrder.EntID + `</strong></td>`
+	content += `  <td style="border: 1px solid #dddddd;" colspan="3"><strong>` + req.ParentOrder.OrderID + `</strong></td>`
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <th style="border: 1px solid #dddddd;">CoinName</th>`
@@ -63,16 +63,18 @@ func req2content(req *orderrenewpb.MsgOrderChildsRenewReq) string {
 	content += "</tr>"
 	content += "<tr>"
 	content += `  <th style="border: 1px solid #dddddd;">Product Name</th>`
-	content += `  <th style="border: 1px solid #dddddd;">Price</th>`
+	content += `  <th style="border: 1px solid #dddddd;">SettlementType</th>`
+	content += `  <th style="border: 1px solid #dddddd;">Value</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Duration</th>`
 	content += `  <th style="border: 1px solid #dddddd;">Units</th>`
 	content += `  <th style="border: 1px solid #dddddd;">EndAt</th>`
 	content += "</tr>"
 	for _, renewInfo := range req.RenewInfos {
 		content += "<tr>"
-		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.GoodName + `</td>`
-		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGood.UnitPrice + `</td>`
-		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.RenewDuration) + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.GoodName + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.SettlementType.String() + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + renewInfo.AppGoodInfo.UnitValue + `</td>`
+		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.RenewDurations) + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + req.ParentOrder.Units + `</td>`
 		content += `  <td style="border: 1px solid #dddddd;">` + fmt.Sprintf("%v", renewInfo.EndAt) + `</td>`
 		content += "</tr>"

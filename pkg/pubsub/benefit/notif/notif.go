@@ -26,8 +26,9 @@ func Apply(ctx context.Context, req interface{}) error {
 	}
 
 	exist, err := notifbenefitmwcli.ExistGoodBenefitConds(ctx, &notifbenefitmwpb.Conds{
-		GoodID:    &basetypes.StringVal{Op: cruder.EQ, Value: *in.GoodID},
-		Generated: &basetypes.BoolVal{Op: cruder.EQ, Value: false},
+		GoodID:     &basetypes.StringVal{Op: cruder.EQ, Value: *in.GoodID},
+		CoinTypeID: &basetypes.StringVal{Op: cruder.EQ, Value: *in.CoinTypeID},
+		Generated:  &basetypes.BoolVal{Op: cruder.EQ, Value: false},
 	})
 	if err != nil {
 		return err

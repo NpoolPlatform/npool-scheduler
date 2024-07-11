@@ -80,6 +80,13 @@ func (h *accountHandler) checkBalance(ctx context.Context) error {
 	if balance.Cmp(reserved) <= 0 {
 		return nil
 	}
+	collectAmount, err := decimal.NewFromString(h.coin.PaymentAccountCollectAmount)
+	if err != nil {
+		return err
+	}
+	if collectAmount.GreaterThan(balance) {
+		return nil
+	}
 	h.amount = balance.Sub(reserved)
 	return nil
 }

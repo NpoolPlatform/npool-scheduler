@@ -4,21 +4,21 @@ go 1.17
 
 require (
 	entgo.io/ent v0.12.0
-	github.com/NpoolPlatform/account-middleware v0.0.0-20231205074056-0cc5ad44fac5
+	github.com/NpoolPlatform/account-middleware v0.0.0-20240711084532-91d043378264
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20240119021359-948c8504d662
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20231015112137-254853c60eec
-	github.com/NpoolPlatform/chain-middleware v0.0.0-20240206054529-d5a31563da6c
+	github.com/NpoolPlatform/chain-middleware v0.0.0-20240711085642-93249f191575
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20231026021135-ec3cd368fc24
-	github.com/NpoolPlatform/go-service-framework v0.0.0-20240406043308-5bc31e227d8e
-	github.com/NpoolPlatform/good-middleware v0.0.0-20240304020309-62b1a5735832
-	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240423090602-a86ba4e22f49
-	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240304032258-18c040f653e0
-	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240304030403-1e129dfe4e3f
-	github.com/NpoolPlatform/libent-cruder v0.0.0-20240323085036-7679b4818ce7
-	github.com/NpoolPlatform/message v0.0.0-20240423081421-ad76772e7ac0
-	github.com/NpoolPlatform/notif-middleware v0.0.0-20240307094841-664e4a89a3f3
-	github.com/NpoolPlatform/order-middleware v0.0.0-20240304020155-1225d1f15992
+	github.com/NpoolPlatform/go-service-framework v0.0.0-20240710095805-e6137d987fcc
+	github.com/NpoolPlatform/good-middleware v0.0.0-20240711084810-89bd6b946526
+	github.com/NpoolPlatform/inspire-middleware v0.0.0-20240711084912-bda64205c476
+	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240711092837-6d60d37a3064
+	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240711091502-eaf1d4c83d6d
+	github.com/NpoolPlatform/libent-cruder v0.0.0-20240514082633-598d5fc7b1e3
+	github.com/NpoolPlatform/message v0.0.0-20240711072021-f19e78dccbfb
+	github.com/NpoolPlatform/notif-middleware v0.0.0-20240711094100-57fe099fcd64
+	github.com/NpoolPlatform/order-middleware v0.0.0-20240711091705-d8489ca569a2
 	github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
