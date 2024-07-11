@@ -13,6 +13,7 @@ config:
     - notification
     - announcement
     - notifbenefit
+    - notifbenefitpowerrental
     - benefit
     - benefitpowerrental
     - benefitpowerrentalwait
@@ -32,6 +33,11 @@ config:
     - paymentcollector
     - paymentcollectortransfer
     - paymentcollectorfinish
+    - paymentobselete
+    - paymentobseletetransferbookkeeping
+    - paymentobseletetransferunlockaccount
+    - paymentobseleteunlockbalance
+    - paymentobseletewait
     - order
     - orderpowerrental
     - orderpowerrentalrenewwait
@@ -44,8 +50,8 @@ config:
     - orderpowerrentalpaymentbookkeeping
     - orderpowerrentalpaymentspend
     - orderpowerrentalpaymentstock
-    - orderpowerrentalpaymentcommission
     - orderpowerrentalpaymentachievement
+    - orderpowerrentalpaymentcommission
     - orderpowerrentalpaymentunlockaccount
     - orderpowerrentalpaidcheck
     - orderpowerrentalpaidstock
@@ -85,18 +91,14 @@ config:
     - orderpowerrentalsimulateexpirypreexpired
     - orderpowerrentalsimulateexpiryrestorestock
     - orderfee
-    - orderfeerenewwait
-    - orderfeerenewcheck
-    - orderfeerenewnotify
-    - orderfeerenewexecute
     - orderfeecreated
     - orderfeepaymentwait
     - orderfeepaymentreceived
     - orderfeepaymentbookkeeping
     - orderfeepaymentspend
     - orderfeepaymentstock
-    - orderfeepaymentcommission
     - orderfeepaymentachievement
+    - orderfeepaymentcommission
     - orderfeepaymentunlockaccount
     - orderfeepaidcheck
     - orderfeepaidstock
