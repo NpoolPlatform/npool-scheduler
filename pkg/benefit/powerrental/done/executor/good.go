@@ -176,6 +176,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		Error:           *err,
 	}
 	if *err == nil {
+		persistentGood.BenefitResult = basetypes.Result_Success
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
