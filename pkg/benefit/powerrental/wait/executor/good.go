@@ -526,11 +526,13 @@ func (h *goodHandler) checkTransferrable(reward *coinReward) error {
 	}
 	if reward.todayRewardAmount.Cmp(least) <= 0 {
 		reward.BenefitMessage = fmt.Sprintf(
-			"%v (coin %v, address %v, amount %v)",
+			"%v (coin %v, reward amount %v [@%v], least transfer amount %v [#%v])",
 			resultMinimumReward,
 			coin.Name,
-			reward.GoodBenefitAddress,
 			reward.todayRewardAmount,
+			reward.GoodBenefitAddress,
+			least,
+			h.LastRewardAt,
 		)
 		h.notifiable = true
 		return nil
