@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
@@ -203,6 +204,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: true},
+		CreatedAt:     &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
 	}, 0, int32(20))
 	if err != nil {
 		return err

@@ -37,6 +37,8 @@ type goodHandler struct {
 	coinNextRewards []*coinNextReward
 }
 
+const resultMinimumReward = "Mining reward not transferred"
+
 func (h *goodHandler) getGoodCoins(ctx context.Context) (err error) {
 	h.goodCoins, err = schedcommon.GetCoins(ctx, func() (coinTypeIDs []string) {
 		for _, goodCoin := range h.GoodCoins {
@@ -120,7 +122,9 @@ func (h *goodHandler) checkLeastTransferAmount(reward *coinNextReward) (bool, er
 	}
 	if reward.lastRewardAmount.Cmp(least) <= 0 {
 		reward.BenefitMessage = fmt.Sprintf(
-			"Reward amount %v, least transfer amount %v (%v)",
+			"%v (coin %v, reward amount %v, least transfer amount %v [#%v])",
+			resultMinimumReward,
+			coin.Name,
 			reward.lastRewardAmount,
 			least,
 			h.LastRewardAt,
