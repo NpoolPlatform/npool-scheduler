@@ -135,6 +135,7 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			)
 			fails += 1
 		case basetypes.TxState_TxStateSuccessful:
+			coinReward.Transferrable = true
 			successes += 1
 		}
 
@@ -170,7 +171,6 @@ func (h *goodHandler) constructCoinRewards(ctx context.Context) error {
 			continue
 		}
 
-		coinReward.Transferrable = true
 		h.coinRewards = append(h.coinRewards, coinReward)
 	}
 	if fails > 0 && successes > 0 {
