@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	notifbenefitmwpb "github.com/NpoolPlatform/message/npool/notif/mw/v1/notif/goodbenefit"
 	basenotif "github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
@@ -29,9 +30,20 @@ func (p *handler) notifyGoodBenefit(good *types.PersistentPowerRental) error {
 			State:       &good.BenefitResult,
 			BenefitDate: &now,
 		}
-		for _, reward := range good.CoinRewards {
+		for _, reward := range good.Rewards {
 			req.CoinTypeID = &reward.CoinTypeID
-			req.Message = &reward.BenefitMessage
+			req.Message = func() *string {
+				for _, _reward := range good.CoinRewards {
+					if reward.CoinTypeID == _reward.CoinTypeID {
+						return &_reward.BenefitMessage
+					}
+				}
+				if good.Error != nil {
+					s := wlog.Unwrap(good.Error).Error()
+					return &s
+				}
+				return nil
+			}()
 			if err := publisher.Update(
 				basetypes.MsgID_CreateGoodBenefitReq.String(),
 				nil,

@@ -241,7 +241,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentGood.BenefitResult = basetypes.Result_Fail
-	persistentGood.BenefitMessage = (*err).Error()
+	persistentGood.BenefitMessage = wlog.Unwrap(*err).Error()
 
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
@@ -257,7 +257,7 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getAppPowerRentals(ctx); err != nil {
 		return err
 	}
-	if err := h.getAppOrderConfig(ctx); err != nil {
+	if err = h.getAppOrderConfig(ctx); err != nil {
 		return err
 	}
 	if err = h.calculateOrderRewards(ctx); err != nil {

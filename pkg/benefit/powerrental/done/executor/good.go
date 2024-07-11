@@ -177,11 +177,13 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			return
 		}(),
 		BenefitOrderIDs: h.benefitOrderIDs,
+		Error:           *err,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 		return
 	}
+	persistentGood.BenefitResult = basetypes.Result_Fail
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 }

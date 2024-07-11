@@ -328,6 +328,9 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	}
 
 	persistentGood.BenefitResult = basetypes.Result_Fail
+	for _, reward := range persistentGood.CoinRewards {
+		reward.BenefitMessage = wlog.Unwrap(*err).Error()
+	}
 
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
@@ -336,10 +339,11 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 //nolint:gocritic
 func (h *goodHandler) exec(ctx context.Context) error {
 	var err error
+	var exist bool
 
 	defer h.final(ctx, &err)
 
-	if exist, err := h.checkGoodStatement(ctx); err != nil || exist {
+	if exist, err = h.checkGoodStatement(ctx); err != nil || exist {
 		return err
 	}
 	if err = h.getAppPowerRentals(ctx); err != nil {

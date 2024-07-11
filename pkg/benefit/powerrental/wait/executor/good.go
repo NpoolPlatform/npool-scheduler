@@ -635,7 +635,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
 		persistentGood.BenefitResult = basetypes.Result_Fail
 		for _, reward := range persistentGood.CoinRewards {
-			reward.BenefitMessage = (*err).Error()
+			reward.BenefitMessage = wlog.Unwrap(*err).Error()
 		}
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.notif)
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
