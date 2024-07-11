@@ -36,9 +36,6 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentGood) 
 }
 
 func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) error {
-	if len(good.CoinNextRewards) == 0 {
-		return nil
-	}
 	reqs := []*goodcoinrewardmwpb.RewardReq{}
 	for _, reward := range good.CoinNextRewards {
 		reqs = append(reqs, &goodcoinrewardmwpb.RewardReq{

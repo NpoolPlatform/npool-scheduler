@@ -641,11 +641,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	if len(h.coinRewards) > 0 {
-		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
-		return
-	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+	asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
 }
 
 //nolint:gocritic
