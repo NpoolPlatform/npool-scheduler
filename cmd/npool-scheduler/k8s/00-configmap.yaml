@@ -20,59 +20,107 @@ data:
           - notification
           - announcement
           - notifbenefit
+          - notifbenefitpowerrental
           - benefit
-          - benefitwait
-          - benefittransferring
-          - benefitbookkeeping
-          - benefitbookkeepinggood
-          - benefitbookkeepinguser
-          - benefitbookkeepingsimulate
-          - benefitfail
-          - benefitdone
+          - benefitpowerrental
+          - benefitpowerrentalwait
+          - benefitpowerrentaltransferring
+          - benefitpowerrentalbookkeeping
+          - benefitpowerrentalbookkeepinggood
+          - benefitpowerrentalbookkeepinguser
+          - benefitpowerrentalbookkeepingsimulate
+          - benefitpowerrentalfail
+          - benefitpowerrentaldone
           - deposit
           - depositfinish
           - deposittransfer
           - deposituser
           - gasfeeder
           - limitation
+          - paymentcollector
+          - paymentcollectortransfer
+          - paymentcollectorfinish
+          - paymentobselete
+          - paymentobseletetransferbookkeeping
+          - paymentobseletetransferunlockaccount
+          - paymentobseleteunlockbalance
+          - paymentobseletewait
           - order
-          - orderrenewwait
-          - orderrenewcheck
-          - orderrenewnotify
-          - orderrenewexecute
-          - ordercreated
-          - orderpaymentwait
-          - orderpaymentreceived
-          - orderpaymentbookkeeping
-          - orderpaymentspend
-          - orderpaymentstock
-          - orderpaymentcommission
-          - orderpaymentachievement
-          - orderpaymentunlockaccount
-          - orderpaymentupdatechilds
-          - orderpaidcheck
-          - orderpaidstock
-          - orderpaidupdatechilds
-          - orderpaymenttimeout
-          - ordercancelcheck
-          - ordercancelprecancel
-          - ordercancelrestorestock
-          - ordercancelcommission
-          - ordercancelachievement
-          - ordercancelreturnbalance
-          - ordercancelbookkeeping
-          - ordercancelunlockaccount
-          - ordercancelupdatechilds
-          - orderexpirycheck
-          - orderexpirypreexpired
-          - orderexpiryrestorestock
-          - orderexpiryupdatechilds
-          - orderpaymenttransfer
-          - orderpaymentfinish
-          - ordercancelchildcanceledparent
-          - orderexpirychildexpiredparent
-          - orderpaidchildinserviceparent
-          - orderpaymentchildpaidparent
+          - orderpowerrental
+          - orderpowerrentalrenewwait
+          - orderpowerrentalrenewcheck
+          - orderpowerrentalrenewnotify
+          - orderpowerrentalrenewexecute
+          - orderpowerrentalcreated
+          - orderpowerrentalpaymentwait
+          - orderpowerrentalpaymentreceived
+          - orderpowerrentalpaymentbookkeeping
+          - orderpowerrentalpaymentspend
+          - orderpowerrentalpaymentstock
+          - orderpowerrentalpaymentachievement
+          - orderpowerrentalpaymentcommission
+          - orderpowerrentalpaymentunlockaccount
+          - orderpowerrentalpaidcheck
+          - orderpowerrentalpaidstock
+          - orderpowerrentalpaymenttimeout
+          - orderpowerrentalcancelcheck
+          - orderpowerrentalcancelprecancel
+          - orderpowerrentalcancelrestorestock
+          - orderpowerrentalcancelcommission
+          - orderpowerrentalcancelachievement
+          - orderpowerrentalcancelreturnbalance
+          - orderpowerrentalcancelbookkeeping
+          - orderpowerrentalcancelunlockaccount
+          - orderpowerrentalexpirycheck
+          - orderpowerrentalexpirypreexpired
+          - orderpowerrentalexpiryrestorestock
+          - orderpowerrentalsimulate
+          - orderpowerrentalsimulatecreated
+          - orderpowerrentalsimulatepaymentwait
+          - orderpowerrentalsimulatepaymentreceived
+          - orderpowerrentalsimulatepaymentbookkeeping
+          - orderpowerrentalsimulatepaymentspend
+          - orderpowerrentalsimulatepaymentstock
+          - orderpowerrentalsimulatepaymentcommission
+          - orderpowerrentalsimulatepaymentachievement
+          - orderpowerrentalsimulatepaymentunlockaccount
+          - orderpowerrentalsimulatepaidcheck
+          - orderpowerrentalsimulatepaidstock
+          - orderpowerrentalsimulatecancelcheck
+          - orderpowerrentalsimulatecancelprecancel
+          - orderpowerrentalsimulatecancelrestorestock
+          - orderpowerrentalsimulatecancelcommission
+          - orderpowerrentalsimulatecancelachievement
+          - orderpowerrentalsimulatecancelreturnbalance
+          - orderpowerrentalsimulatecancelbookkeeping
+          - orderpowerrentalsimulatecancelunlockaccount
+          - orderpowerrentalsimulateexpirycheck
+          - orderpowerrentalsimulateexpirypreexpired
+          - orderpowerrentalsimulateexpiryrestorestock
+          - orderfee
+          - orderfeecreated
+          - orderfeepaymentwait
+          - orderfeepaymentreceived
+          - orderfeepaymentbookkeeping
+          - orderfeepaymentspend
+          - orderfeepaymentstock
+          - orderfeepaymentachievement
+          - orderfeepaymentcommission
+          - orderfeepaymentunlockaccount
+          - orderfeepaidcheck
+          - orderfeepaidstock
+          - orderfeepaymenttimeout
+          - orderfeecancelcheck
+          - orderfeecancelprecancel
+          - orderfeecancelrestorestock
+          - orderfeecancelcommission
+          - orderfeecancelachievement
+          - orderfeecancelreturnbalance
+          - orderfeecancelbookkeeping
+          - orderfeecancelunlockaccount
+          - orderfeeexpirycheck
+          - orderfeeexpirypreexpired
+          - orderfeeexpiryrestorestock
           - txqueue
           - txqueuecreated
           - txqueuetransferring
