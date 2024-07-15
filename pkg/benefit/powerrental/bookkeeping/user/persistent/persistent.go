@@ -4,12 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
+	statementmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/statement"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
+	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
+	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
+	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -28,6 +35,63 @@ type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
+}
+
+func (p *handler) checkBenefitStatement(ctx context.Context, reward *types.OrderReward) (bool, error) {
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_MiningBenefit
+	exist, err := statementmwcli.ExistStatementConds(
+		ctx,
+		&statementmwpb.Conds{
+			AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: reward.AppID},
+			UserID:    &basetypes.StringVal{Op: cruder.EQ, Value: reward.UserID},
+			IOType:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
+			IOSubType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
+		})
+	if err != nil {
+		return false, wlog.WrapError(err)
+	}
+	return exist, nil
+}
+
+func (p *handler) rewardFirstBenefit(ctx context.Context, good *types.PersistentGood) {
+	for _, reward := range good.OrderRewards {
+		existBenefit, err := p.checkBenefitStatement(ctx, reward)
+		if err != nil {
+			logger.Sugar().Errorw(
+				"checkBenefitStatement",
+				"AppID", reward.AppID,
+				"UserID", reward.UserID,
+				"Error", err,
+			)
+			continue
+		}
+		if existBenefit {
+			continue
+		}
+		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+			req := &eventmwpb.CalcluateEventRewardsRequest{
+				AppID:       reward.AppID,
+				UserID:      reward.UserID,
+				EventType:   basetypes.UsedFor_FirstBenefit,
+				Consecutive: 1,
+			}
+			return publisher.Update(
+				basetypes.MsgID_CalculateEventRewardReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			)
+		}); err != nil {
+			logger.Sugar().Errorw(
+				"rewardFirstBenefit",
+				"AppID", reward.AppID,
+				"UserID", reward.UserID,
+				"Error", err,
+			)
+		}
+	}
 }
 
 func (p *handler) withUpdateOrderBenefitState(dispose *dtmcli.SagaDispose, good *types.PersistentGood) {
@@ -121,6 +185,8 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}
+
+	p.rewardFirstBenefit(ctx, _good)
 
 	return nil
 }
