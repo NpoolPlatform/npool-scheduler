@@ -26,7 +26,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (h *handler) rewardDeposit(_account *types.PersistentAccount) {
+func (p *handler) rewardDeposit(_account *types.PersistentAccount) {
 	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		req := &eventmwpb.CalcluateEventRewardsRequest{
 			AppID:       _account.AppID,
@@ -51,7 +51,7 @@ func (h *handler) rewardDeposit(_account *types.PersistentAccount) {
 	}
 }
 
-func (h *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")
@@ -83,7 +83,7 @@ func (h *handler) Update(ctx context.Context, account interface{}, notif, done c
 		return err
 	}
 
-	h.rewardDeposit(_account)
+	p.rewardDeposit(_account)
 
 	return nil
 }

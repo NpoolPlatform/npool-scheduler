@@ -22,7 +22,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (h *handler) rewardWithdraw(_withdraw *types.PersistentWithdraw) {
+func (p *handler) rewardWithdraw(_withdraw *types.PersistentWithdraw) {
 	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		req := &eventmwpb.CalcluateEventRewardsRequest{
 			AppID:       _withdraw.AppID,
@@ -47,7 +47,7 @@ func (h *handler) rewardWithdraw(_withdraw *types.PersistentWithdraw) {
 	}
 }
 
-func (h *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, withdraw interface{}, notif, done chan interface{}) error {
 	_withdraw, ok := withdraw.(*types.PersistentWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid withdraw")
@@ -63,7 +63,7 @@ func (h *handler) Update(ctx context.Context, withdraw interface{}, notif, done 
 		return err
 	}
 
-	h.rewardWithdraw(_withdraw)
+	p.rewardWithdraw(_withdraw)
 
 	return nil
 }
