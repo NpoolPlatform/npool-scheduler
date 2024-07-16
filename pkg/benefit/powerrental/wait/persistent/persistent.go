@@ -42,7 +42,7 @@ func (p *handler) updateOrders(ctx context.Context, good *types.PersistentPowerR
 	return powerrentalordermwcli.UpdatePowerRentalOrders(ctx, reqs)
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, reward, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentPowerRental)
 	if !ok {
 		return wlog.Errorf("invalid good")

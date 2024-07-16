@@ -16,6 +16,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/retry"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/base/reward"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
 )
@@ -88,6 +89,7 @@ func (s *syncMap) Delete(key interface{}) {
 
 type Handler struct {
 	persistent        chan interface{}
+	reward            chan interface{}
 	notif             chan interface{}
 	done              chan interface{}
 	w                 *watcher.Watcher
@@ -99,6 +101,8 @@ type Handler struct {
 	executorIndex     int
 	persistenter      persistent.Persistent
 	persistentor      persistent.Persistenter
+	rewards           reward.Reward
+	rewarded          reward.Rewarded
 	notifier          notif.Notif
 	notify            notif.Notify
 	subsystem         string
@@ -131,6 +135,7 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	}
 
 	h.persistent = make(chan interface{})
+	h.reward = make(chan interface{})
 	h.notif = make(chan interface{})
 	h.done = make(chan interface{})
 	ctx, h.cancel = context.WithCancel(ctx)
@@ -139,8 +144,9 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	for i := 0; i < h.executorNumber; i++ {
 		h.executors = append(h.executors, executor.NewExecutor(ctx, cancel, h.persistent, h.notif, h.done, h.execer, h.subsystem))
 	}
-	h.persistenter = persistent.NewPersistent(ctx, cancel, h.notif, h.done, h.persistentor, h.subsystem)
+	h.persistenter = persistent.NewPersistent(ctx, cancel, h.reward, h.notif, h.done, h.persistentor, h.subsystem)
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)
+	h.rewards = reward.NewReward(ctx, cancel, h.notif, h.done, h.rewarded, h.subsystem)
 
 	h.w = watcher.NewWatcher()
 	if err := redis2.TryLock(h.lockKey(), 0); err == nil {
@@ -188,6 +194,12 @@ func WithExecutorNumber(n int) func(*Handler) {
 func WithPersistenter(persistenter persistent.Persistenter) func(*Handler) {
 	return func(h *Handler) {
 		h.persistentor = persistenter
+	}
+}
+
+func WithRewarded(rewarded reward.Rewarded) func(*Handler) {
+	return func(h *Handler) {
+		h.rewarded = rewarded
 	}
 }
 
@@ -240,6 +252,9 @@ func (h *Handler) handler(ctx context.Context) bool {
 		return false
 	case ent := <-h.persistent:
 		h.persistenter.Feed(ctx, ent)
+		return false
+	case ent := <-h.reward:
+		h.rewards.Feed(ctx, ent)
 		return false
 	case ent := <-h.notif:
 		h.notifier.Feed(ctx, ent)
@@ -320,6 +335,7 @@ func (h *Handler) Finalize(ctx context.Context) {
 		e.Finalize(ctx)
 	}
 	h.persistenter.Finalize(ctx)
+	h.rewards.Finalize(ctx)
 	h.notifier.Finalize(ctx)
 	logger.Sugar().Infow(
 		"Finalize",

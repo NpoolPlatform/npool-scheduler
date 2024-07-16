@@ -69,7 +69,7 @@ func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.Pers
 	}
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentOrder)
 	if !ok {
 		return fmt.Errorf("invalid order")

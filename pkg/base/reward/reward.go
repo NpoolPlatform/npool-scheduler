@@ -1,4 +1,4 @@
-package persistent
+package reward
 
 import (
 	"context"
@@ -9,34 +9,32 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 )
 
-type Persistent interface {
+type Reward interface {
 	Feed(context.Context, interface{})
 	Finalize(context.Context)
 }
 
-type Persistenter interface {
-	Update(context.Context, interface{}, chan interface{}, chan interface{}, chan interface{}) error
+type Rewarded interface {
+	Update(context.Context, interface{}, chan interface{}, chan interface{}) error
 }
 
 type handler struct {
-	feeder       chan interface{}
-	reward       chan interface{}
-	notif        chan interface{}
-	done         chan interface{}
-	w            *watcher.Watcher
-	persistenter Persistenter
-	subsystem    string
+	feeder    chan interface{}
+	notif     chan interface{}
+	done      chan interface{}
+	w         *watcher.Watcher
+	rewarded  Rewarded
+	subsystem string
 }
 
-func NewPersistent(ctx context.Context, cancel context.CancelFunc, reward, notif, done chan interface{}, persistenter Persistenter, subsystem string) Persistent {
+func NewReward(ctx context.Context, cancel context.CancelFunc, notif, done chan interface{}, rewarded Rewarded, subsystem string) Reward {
 	p := &handler{
-		feeder:       make(chan interface{}),
-		reward:       reward,
-		notif:        notif,
-		done:         done,
-		w:            watcher.NewWatcher(),
-		persistenter: persistenter,
-		subsystem:    subsystem,
+		feeder:    make(chan interface{}),
+		notif:     notif,
+		done:      done,
+		w:         watcher.NewWatcher(),
+		rewarded:  rewarded,
+		subsystem: subsystem,
 	}
 	go action.Watch(ctx, cancel, p.run, p.paniced)
 	return p
@@ -45,7 +43,7 @@ func NewPersistent(ctx context.Context, cancel context.CancelFunc, reward, notif
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.persistenter.Update(ctx, ent, p.reward, p.notif, p.done); err != nil {
+		if err := p.rewarded.Update(ctx, ent, p.notif, p.done); err != nil {
 			logger.Sugar().Errorw(
 				"handler",
 				"State", "Update",

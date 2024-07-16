@@ -51,7 +51,7 @@ func (p *handler) rewardDeposit(_account *types.PersistentAccount) {
 	}
 }
 
-func (p *handler) Update(ctx context.Context, account interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, account interface{}, reward, notif, done chan interface{}) error {
 	_account, ok := account.(*types.PersistentAccount)
 	if !ok {
 		return fmt.Errorf("invalid account")

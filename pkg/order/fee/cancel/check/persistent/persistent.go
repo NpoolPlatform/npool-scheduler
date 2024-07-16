@@ -18,7 +18,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentFeeOrder)
 	if !ok {
 		return fmt.Errorf("invalid feeorder")
