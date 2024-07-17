@@ -4,13 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
-	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -25,56 +21,6 @@ type handler struct{}
 
 func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
-}
-
-func (p *handler) rewardOrderCompleted(order *types.PersistentOrder) {
-	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := &eventmwpb.CalcluateEventRewardsRequest{
-			AppID:       order.AppID,
-			UserID:      order.UserID,
-			EventType:   basetypes.UsedFor_OrderCompleted,
-			Consecutive: 1,
-		}
-		return publisher.Update(
-			basetypes.MsgID_CalculateEventRewardReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
-	}); err != nil {
-		logger.Sugar().Errorw(
-			"rewardOrderCompleted",
-			"AppID", order.AppID,
-			"UserID", order.UserID,
-			"Error", err,
-		)
-	}
-}
-
-func (p *handler) rewardFirstOrderCompleted(order *types.PersistentOrder) {
-	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-		req := &eventmwpb.CalcluateEventRewardsRequest{
-			AppID:       order.AppID,
-			UserID:      order.UserID,
-			EventType:   basetypes.UsedFor_FirstOrderCompleted,
-			Consecutive: 1,
-		}
-		return publisher.Update(
-			basetypes.MsgID_CalculateEventRewardReq.String(),
-			nil,
-			nil,
-			nil,
-			req,
-		)
-	}); err != nil {
-		logger.Sugar().Errorw(
-			"rewardFirstOrderCompleted",
-			"AppID", order.AppID,
-			"UserID", order.UserID,
-			"Error", err,
-		)
-	}
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
@@ -112,7 +58,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 		return fmt.Errorf("invalid order")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _order, done)
+	defer asyncfeed.AsyncFeed(ctx, _order, reward)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
@@ -124,9 +70,6 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}
-
-	p.rewardFirstOrderCompleted(_order)
-	p.rewardOrderCompleted(_order)
 
 	return nil
 }
