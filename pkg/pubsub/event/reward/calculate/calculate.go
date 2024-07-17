@@ -5,17 +5,47 @@ import (
 	"encoding/json"
 	"fmt"
 
+	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	eventmwcli "github.com/NpoolPlatform/inspire-middleware/pkg/client/event"
+	inspiremwsvcname "github.com/NpoolPlatform/inspire-middleware/pkg/servicename"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
+	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
+	taskusermwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/task/user"
+	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
+	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
 	"github.com/google/uuid"
 )
 
 type calculateHandler struct {
 	req *eventmwpb.CalcluateEventRewardsRequest
+}
+
+func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose, taskUserID, eventID *string, reward *eventmwpb.Reward) {
+	taskState := inspiretypes.TaskState_Done
+	rewardState := inspiretypes.RewardState_Issued
+	rewardInfo := ""
+	req := &taskusermwpb.TaskUserReq{
+		EntID:       taskUserID,
+		AppID:       &h.req.AppID,
+		UserID:      &reward.UserID,
+		TaskID:      &reward.TaskID,
+		EventID:     eventID,
+		TaskState:   &taskState,
+		RewardState: &rewardState,
+		RewardInfo:  &rewardInfo,
+	}
+	dispose.Add(
+		inspiremwsvcname.ServiceDomain,
+		"inspire.middleware.task.user.v1.Middleware/CreateTaskUser",
+		"inspire.middleware.task.user.v1.Middleware/DeleteTaskUser",
+		&taskusermwpb.CreateTaskUserRequest{
+			Info: req,
+		},
+	)
 }
 
 func Prepare(body string) (interface{}, error) {
@@ -68,6 +98,20 @@ func Apply(ctx context.Context, req interface{}) error {
 			return fmt.Errorf("miss reward")
 		}
 		taskUserID := uuid.NewString()
+
+		// create task user
+		const timeoutSeconds = 30
+		sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
+			WaitResult:     true,
+			RequestTimeout: timeoutSeconds,
+			TimeoutToFail:  timeoutSeconds,
+		})
+		handler.WithCreateTaskUser(sagaDispose, &taskUserID, &ev.EntID, reward)
+		if err := dtm1.Do(ctx, sagaDispose); err != nil {
+			return err
+		}
+
+		// reward pubsub
 		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 			req := &eventmwpb.CreditRewardRequest{
 				AppID:      in.AppID,

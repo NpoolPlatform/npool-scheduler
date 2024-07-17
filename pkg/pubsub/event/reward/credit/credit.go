@@ -72,8 +72,8 @@ func (h *calculateHandler) withCreateCredit(dispose *dtmcli.SagaDispose) {
 	}
 	dispose.Add(
 		inspiremwsvcname.ServiceDomain,
-		"inspire.middleware.user.credit.history.v1.Middleware/CreateUserCreditHistory",
-		"inspire.middleware.user.credit.history.v1.Middleware/DeleteUserCreditHistory",
+		"inspire.middleware.credit.allocated.v1.Middleware/CreateCreditAllocated",
+		"inspire.middleware.credit.allocated.v1.Middleware/DeleteCreditAllocated",
 		&creditallocatedmwpb.CreateCreditAllocatedRequest{
 			Info: req,
 		},
