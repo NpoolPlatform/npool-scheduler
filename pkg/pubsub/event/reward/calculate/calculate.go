@@ -18,13 +18,14 @@ import (
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type calculateHandler struct {
 	req *eventmwpb.CalcluateEventRewardsRequest
 }
 
-func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose, taskUserID, eventID *string, reward *eventmwpb.Reward) {
+func (h *calculateHandler) withCreateTaskUser(dispose *dtmcli.SagaDispose, taskUserID, eventID *string, reward *eventmwpb.Reward) {
 	taskState := inspiretypes.TaskState_Done
 	rewardState := inspiretypes.RewardState_Issued
 	rewardInfo := ""
@@ -46,6 +47,69 @@ func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose, taskU
 			Info: req,
 		},
 	)
+}
+
+func (h *calculateHandler) rewardCredit(req *eventmwpb.CreditRewardRequest) {
+	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+		return publisher.Update(
+			basetypes.MsgID_EventRewardCreditReq.String(),
+			nil,
+			nil,
+			nil,
+			req,
+		)
+	}); err != nil {
+		logger.Sugar().Errorw(
+			"EventRewardCredit",
+			"AppID", h.req.AppID,
+			"UserID", h.req.UserID,
+			"RewardUserID", req.UserID,
+			"EventType", h.req.EventType,
+			"Error", err,
+		)
+	}
+}
+
+func (h *calculateHandler) rewardCoupon(req *eventmwpb.CouponRewardRequest) {
+	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+		return publisher.Update(
+			basetypes.MsgID_EventRewardCouponReq.String(),
+			nil,
+			nil,
+			nil,
+			req,
+		)
+	}); err != nil {
+		logger.Sugar().Errorw(
+			"EventRewardCoupon",
+			"AppID", h.req.AppID,
+			"UserID", h.req.UserID,
+			"RewardUserID", req.UserID,
+			"EventType", h.req.EventType,
+			"Error", err,
+		)
+	}
+}
+
+func (h *calculateHandler) rewardCoin(req *eventmwpb.CoinRewardRequest) {
+	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+		return publisher.Update(
+			basetypes.MsgID_EventRewardCoinReq.String(),
+			nil,
+			nil,
+			nil,
+			req,
+		)
+	}); err != nil {
+		logger.Sugar().Errorw(
+			"EventRewardCoin",
+			"AppID", h.req.AppID,
+			"UserID", h.req.UserID,
+			"RewardUserID", req.UserID,
+			"EventType", h.req.EventType,
+			"Error", err,
+		)
+	}
 }
 
 func Prepare(body string) (interface{}, error) {
@@ -106,13 +170,18 @@ func Apply(ctx context.Context, req interface{}) error {
 			RequestTimeout: timeoutSeconds,
 			TimeoutToFail:  timeoutSeconds,
 		})
-		handler.WithCreateTaskUser(sagaDispose, &taskUserID, &ev.EntID, reward)
+		handler.withCreateTaskUser(sagaDispose, &taskUserID, &ev.EntID, reward)
 		if err := dtm1.Do(ctx, sagaDispose); err != nil {
 			return err
 		}
 
 		// reward pubsub
-		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+		// reward credits
+		credits, err := decimal.NewFromString(reward.Credits)
+		if err != nil {
+			return err
+		}
+		if credits.Cmp(decimal.NewFromInt(0)) > 0 {
 			req := &eventmwpb.CreditRewardRequest{
 				AppID:      in.AppID,
 				UserID:     reward.UserID,
@@ -122,24 +191,11 @@ func Apply(ctx context.Context, req interface{}) error {
 				Credits:    reward.Credits,
 				RetryCount: 1,
 			}
-			return publisher.Update(
-				basetypes.MsgID_EventRewardCreditReq.String(),
-				nil,
-				nil,
-				nil,
-				req,
-			)
-		}); err != nil {
-			logger.Sugar().Errorw(
-				"EventRewardCredit",
-				"AppID", handler.req.AppID,
-				"UserID", handler.req.UserID,
-				"RewardUserID", reward.UserID,
-				"EventType", handler.req.EventType,
-				"Error", err,
-			)
+			handler.rewardCredit(req)
 		}
-		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+
+		// reward coin
+		if len(reward.CoinRewards) > 0 {
 			req := &eventmwpb.CoinRewardRequest{
 				AppID:       in.AppID,
 				UserID:      reward.UserID,
@@ -148,25 +204,11 @@ func Apply(ctx context.Context, req interface{}) error {
 				EventID:     ev.EntID,
 				CoinRewards: reward.CoinRewards,
 			}
-			return publisher.Update(
-				basetypes.MsgID_EventRewardCoinReq.String(),
-				nil,
-				nil,
-				nil,
-				req,
-			)
-		}); err != nil {
-			logger.Sugar().Errorw(
-				"EventRewardCoin",
-				"AppID", handler.req.AppID,
-				"UserID", handler.req.UserID,
-				"RewardUserID", reward.UserID,
-				"EventType", handler.req.EventType,
-				"Error", err,
-			)
+			handler.rewardCoin(req)
 		}
 
-		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+		// reward coupon
+		if len(reward.CouponRewards) > 0 {
 			req := &eventmwpb.CouponRewardRequest{
 				AppID:      in.AppID,
 				UserID:     reward.UserID,
@@ -175,22 +217,7 @@ func Apply(ctx context.Context, req interface{}) error {
 				EventID:    ev.EntID,
 				Coupons:    reward.CouponRewards,
 			}
-			return publisher.Update(
-				basetypes.MsgID_EventRewardCouponReq.String(),
-				nil,
-				nil,
-				nil,
-				req,
-			)
-		}); err != nil {
-			logger.Sugar().Errorw(
-				"EventRewardCoupon",
-				"AppID", handler.req.AppID,
-				"UserID", handler.req.UserID,
-				"RewardUserID", reward.UserID,
-				"EventType", handler.req.EventType,
-				"Error", err,
-			)
+			handler.rewardCoupon(req)
 		}
 	}
 
