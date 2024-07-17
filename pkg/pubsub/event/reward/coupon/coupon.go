@@ -82,7 +82,6 @@ func Prepare(body string) (interface{}, error) {
 }
 
 func Apply(ctx context.Context, req interface{}) error {
-	fmt.Println("apply unreliable reward")
 	in, ok := req.(*eventmwpb.CouponRewardRequest)
 	if !ok {
 		return fmt.Errorf("invalid request in apply")
