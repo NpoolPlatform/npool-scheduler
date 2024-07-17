@@ -11,6 +11,7 @@ import (
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
+	"github.com/google/uuid"
 )
 
 type calculateHandler struct {
@@ -66,17 +67,19 @@ func Apply(ctx context.Context, req interface{}) error {
 		if reward == nil || reward.TaskID == "" {
 			return fmt.Errorf("miss reward")
 		}
+		taskUserID := uuid.NewString()
 		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-			req := &eventmwpb.RewardReliableRequest{
-				AppID:       in.AppID,
-				UserID:      reward.UserID,
-				TaskID:      reward.TaskID,
-				EventID:     ev.EntID,
-				Credits:     reward.Credits,
-				CoinRewards: reward.CoinRewards,
+			req := &eventmwpb.CreditRewardRequest{
+				AppID:      in.AppID,
+				UserID:     reward.UserID,
+				TaskID:     reward.TaskID,
+				TaskUserID: taskUserID,
+				EventID:    ev.EntID,
+				Credits:    reward.Credits,
+				RetryCount: 1,
 			}
 			return publisher.Update(
-				basetypes.MsgID_ReliableEventRewardReq.String(),
+				basetypes.MsgID_EventRewardCreditReq.String(),
 				nil,
 				nil,
 				nil,
@@ -84,7 +87,33 @@ func Apply(ctx context.Context, req interface{}) error {
 			)
 		}); err != nil {
 			logger.Sugar().Errorw(
-				"ReliableEventReward",
+				"EventRewardCredit",
+				"AppID", handler.req.AppID,
+				"UserID", handler.req.UserID,
+				"RewardUserID", reward.UserID,
+				"EventType", handler.req.EventType,
+				"Error", err,
+			)
+		}
+		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
+			req := &eventmwpb.CoinRewardRequest{
+				AppID:       in.AppID,
+				UserID:      reward.UserID,
+				TaskID:      reward.TaskID,
+				TaskUserID:  taskUserID,
+				EventID:     ev.EntID,
+				CoinRewards: reward.CoinRewards,
+			}
+			return publisher.Update(
+				basetypes.MsgID_EventRewardCoinReq.String(),
+				nil,
+				nil,
+				nil,
+				req,
+			)
+		}); err != nil {
+			logger.Sugar().Errorw(
+				"EventRewardCoin",
 				"AppID", handler.req.AppID,
 				"UserID", handler.req.UserID,
 				"RewardUserID", reward.UserID,
@@ -94,15 +123,16 @@ func Apply(ctx context.Context, req interface{}) error {
 		}
 
 		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-			req := &eventmwpb.RewardUnReliableRequest{
-				AppID:   in.AppID,
-				UserID:  reward.UserID,
-				TaskID:  reward.TaskID,
-				EventID: ev.EntID,
-				Coupons: reward.CouponRewards,
+			req := &eventmwpb.CouponRewardRequest{
+				AppID:      in.AppID,
+				UserID:     reward.UserID,
+				TaskID:     reward.TaskID,
+				TaskUserID: taskUserID,
+				EventID:    ev.EntID,
+				Coupons:    reward.CouponRewards,
 			}
 			return publisher.Update(
-				basetypes.MsgID_UnReliableEventRewardReq.String(),
+				basetypes.MsgID_EventRewardCouponReq.String(),
 				nil,
 				nil,
 				nil,
@@ -110,7 +140,7 @@ func Apply(ctx context.Context, req interface{}) error {
 			)
 		}); err != nil {
 			logger.Sugar().Errorw(
-				"UnReliableEventReward",
+				"EventRewardCoupon",
 				"AppID", handler.req.AppID,
 				"UserID", handler.req.UserID,
 				"RewardUserID", reward.UserID,
