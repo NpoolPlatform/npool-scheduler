@@ -9,6 +9,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/reward"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/withdraw/successful/presuccessful/sentinel"
 )
 
@@ -26,6 +27,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithExec(executor.NewExecutor()),
 		base.WithExecutorNumber(1),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRewarded(reward.NewReward()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {

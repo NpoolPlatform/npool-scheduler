@@ -19,7 +19,7 @@ func NewReward() basereward.Rewarded {
 	return &handler{}
 }
 
-func (p *handler) rewardFirstBenefit(ctx context.Context, good *types.PersistentGood) {
+func (p *handler) rewardFirstBenefit(good *types.PersistentGood) {
 	for _, reward := range good.OrderRewards {
 		if !reward.FirstBenefit {
 			continue
@@ -57,7 +57,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
-	p.rewardFirstBenefit(ctx, _good)
+	p.rewardFirstBenefit(_good)
 
 	return nil
 }
