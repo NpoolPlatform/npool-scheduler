@@ -10,11 +10,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	inspiremwsvcname "github.com/NpoolPlatform/inspire-middleware/pkg/servicename"
-	inspiretypes "github.com/NpoolPlatform/message/npool/basetypes/inspire/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	creditallocatedmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/credit/allocated"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
-	taskusermwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/task/user"
 	userrewardmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/user/reward"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
 	"github.com/dtm-labs/dtm/client/dtmcli/dtmimp"
@@ -84,30 +82,6 @@ func (h *calculateHandler) withCreateCredit(dispose *dtmcli.SagaDispose) {
 		"inspire.middleware.user.reward.v1.Middleware/SubUserReward",
 		&userrewardmwpb.AddUserRewardRequest{
 			Info: rewardReq,
-		},
-	)
-}
-
-func (h *calculateHandler) WithCreateTaskUser(dispose *dtmcli.SagaDispose) {
-	taskState := inspiretypes.TaskState_Done
-	rewardState := inspiretypes.RewardState_Issued
-	rewardInfo := ""
-	req := &taskusermwpb.TaskUserReq{
-		EntID:       &h.req.TaskUserID,
-		AppID:       &h.req.AppID,
-		UserID:      &h.req.UserID,
-		TaskID:      &h.req.TaskID,
-		EventID:     &h.req.EventID,
-		TaskState:   &taskState,
-		RewardState: &rewardState,
-		RewardInfo:  &rewardInfo,
-	}
-	dispose.Add(
-		inspiremwsvcname.ServiceDomain,
-		"inspire.middleware.task.user.v1.Middleware/CreateTaskUser",
-		"inspire.middleware.task.user.v1.Middleware/DeleteTaskUser",
-		&taskusermwpb.CreateTaskUserRequest{
-			Info: req,
 		},
 	)
 }
