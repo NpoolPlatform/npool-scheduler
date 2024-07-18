@@ -28,7 +28,6 @@ type calculateHandler struct {
 func (h *calculateHandler) withCreateTaskUser(dispose *dtmcli.SagaDispose, taskUserID, eventID *string, reward *eventmwpb.Reward) {
 	taskState := inspiretypes.TaskState_Done
 	rewardState := inspiretypes.RewardState_Issued
-	rewardInfo := ""
 	req := &taskusermwpb.TaskUserReq{
 		EntID:       taskUserID,
 		AppID:       &h.req.AppID,
@@ -37,7 +36,6 @@ func (h *calculateHandler) withCreateTaskUser(dispose *dtmcli.SagaDispose, taskU
 		EventID:     eventID,
 		TaskState:   &taskState,
 		RewardState: &rewardState,
-		RewardInfo:  &rewardInfo,
 	}
 	dispose.Add(
 		inspiremwsvcname.ServiceDomain,

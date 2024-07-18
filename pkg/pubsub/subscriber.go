@@ -16,8 +16,6 @@ import (
 	eventrewardcoin "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reward/coin"
 	eventrewardcoupon "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reward/coupon"
 	eventrewardcredit "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reward/credit"
-	eventrewardreliable "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reward/reliable"
-	eventrewardunreliable "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/event/reward/unreliable"
 	orderpaidnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/paid/notif"
 	orderrenewnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/order/renew/notify/notif"
 	withdrawnotif "github.com/NpoolPlatform/npool-scheduler/pkg/pubsub/withdraw/notif"
@@ -76,10 +74,6 @@ func prepare(mid, body string) (req interface{}, err error) {
 		req, err = withdrawreviewnotifynotif.Prepare(body)
 	case basetypes.MsgID_CalculateEventRewardReq.String():
 		req, err = eventrewardcalculate.Prepare(body)
-	case basetypes.MsgID_ReliableEventRewardReq.String():
-		req, err = eventrewardreliable.Prepare(body)
-	case basetypes.MsgID_UnReliableEventRewardReq.String():
-		req, err = eventrewardunreliable.Prepare(body)
 	case basetypes.MsgID_EventRewardCreditReq.String():
 		req, err = eventrewardcredit.Prepare(body)
 	case basetypes.MsgID_EventRewardCoinReq.String():
@@ -160,10 +154,6 @@ func statMsg(ctx context.Context, mid string, uid uuid.UUID, rid *uuid.UUID) (bo
 		fallthrough //nolint
 	case basetypes.MsgID_CalculateEventRewardReq.String():
 		fallthrough //nolint
-	case basetypes.MsgID_ReliableEventRewardReq.String():
-		fallthrough //nolint
-	case basetypes.MsgID_UnReliableEventRewardReq.String():
-		fallthrough //nolint
 	case basetypes.MsgID_EventRewardCreditReq.String():
 		fallthrough //nolint
 	case basetypes.MsgID_EventRewardCoinReq.String():
@@ -205,10 +195,6 @@ func process(ctx context.Context, mid string, uid uuid.UUID, req interface{}) (e
 		err = withdrawreviewnotifynotif.Apply(ctx, req)
 	case basetypes.MsgID_CalculateEventRewardReq.String():
 		err = eventrewardcalculate.Apply(ctx, req)
-	case basetypes.MsgID_ReliableEventRewardReq.String():
-		err = eventrewardreliable.Apply(ctx, req)
-	case basetypes.MsgID_UnReliableEventRewardReq.String():
-		err = eventrewardunreliable.Apply(ctx, req)
 	case basetypes.MsgID_EventRewardCreditReq.String():
 		err = eventrewardcredit.Apply(ctx, req)
 	case basetypes.MsgID_EventRewardCoinReq.String():
