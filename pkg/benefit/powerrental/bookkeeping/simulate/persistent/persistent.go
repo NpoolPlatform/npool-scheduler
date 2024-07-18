@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
-	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
 	powerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/powerrental"
 	ledgersvcname "github.com/NpoolPlatform/ledger-middleware/pkg/servicename"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
-	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	simstatementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/simulate/ledger/statement"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -126,50 +122,13 @@ func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) er
 	})
 }
 
-func (p *handler) rewardProfit(good *types.PersistentGood) {
-	for _, reward := range good.OrderRewards {
-		if !func() bool {
-			for _, coinReward := range reward.CoinRewards {
-				if coinReward.SendCoupon {
-					return true
-				}
-			}
-			return false
-		}() {
-			continue
-		}
-		if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
-			req := &eventmwpb.RewardEventRequest{
-				AppID:       reward.AppID,
-				UserID:      reward.UserID,
-				EventType:   basetypes.UsedFor_SimulateOrderProfit,
-				Consecutive: 1,
-			}
-			return publisher.Update(
-				basetypes.MsgID_RewardEventReq.String(),
-				nil,
-				nil,
-				nil,
-				req,
-			)
-		}); err != nil {
-			logger.Sugar().Errorw(
-				"rewardSimulateOrderProfit",
-				"AppID", reward.AppID,
-				"UserID", reward.UserID,
-				"Error", err,
-			)
-		}
-	}
-}
-
 func (p *handler) Update(ctx context.Context, good interface{}, reward, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _good, done)
+	defer asyncfeed.AsyncFeed(ctx, _good, reward)
 
 	if len(_good.OrderRewards) == 0 {
 		if err := p.updateGood(ctx, _good); err != nil {
@@ -188,8 +147,6 @@ func (p *handler) Update(ctx context.Context, good interface{}, reward, notif, d
 	if err := dtm1.Do(ctx, sagaDispose); err != nil {
 		return err
 	}
-
-	p.rewardProfit(_good)
 
 	return nil
 }
