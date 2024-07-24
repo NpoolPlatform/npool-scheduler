@@ -23,7 +23,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, couponwithdraw interface{}, reward, notif, done chan interface{}) error {
 	_couponwithdraw, ok := couponwithdraw.(*types.PersistentCouponWithdraw)
 	if !ok {
 		return fmt.Errorf("invalid coupon withdraw")

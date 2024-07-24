@@ -20,7 +20,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, announcement interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, announcement interface{}, reward, notif, done chan interface{}) error {
 	_announcement, ok := announcement.(*types.PersistentAnnouncement)
 	if !ok {
 		return fmt.Errorf("invalid announcement")
