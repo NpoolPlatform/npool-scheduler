@@ -15,7 +15,7 @@ import (
 
 type handler struct{}
 
-func NewReward() basereward.Rewarded {
+func NewReward() basereward.Rewarder {
 	return &handler{}
 }
 

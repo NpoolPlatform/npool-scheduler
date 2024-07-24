@@ -27,7 +27,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithExec(executor.NewExecutor()),
 		base.WithExecutorNumber(1),
 		base.WithPersistenter(persistent.NewPersistent()),
-		base.WithRewarded(reward.NewReward()),
+		base.WithRewarder(reward.NewReward()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {

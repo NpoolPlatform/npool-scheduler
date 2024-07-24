@@ -101,8 +101,8 @@ type Handler struct {
 	executorIndex     int
 	persistenter      persistent.Persistent
 	persistentor      persistent.Persistenter
-	rewards           reward.Reward
-	rewarded          reward.Rewarded
+	rewarder          reward.Reward
+	rewardor          reward.Rewarder
 	notifier          notif.Notif
 	notify            notif.Notify
 	subsystem         string
@@ -146,7 +146,7 @@ func NewHandler(ctx context.Context, cancel context.CancelFunc, options ...func(
 	}
 	h.persistenter = persistent.NewPersistent(ctx, cancel, h.reward, h.notif, h.done, h.persistentor, h.subsystem)
 	h.notifier = notif.NewNotif(ctx, cancel, h.notify, h.subsystem)
-	h.rewards = reward.NewReward(ctx, cancel, h.notif, h.done, h.rewarded, h.subsystem)
+	h.rewarder = reward.NewReward(ctx, cancel, h.notif, h.done, h.rewardor, h.subsystem)
 
 	h.w = watcher.NewWatcher()
 	if err := redis2.TryLock(h.lockKey(), 0); err == nil {
@@ -197,9 +197,9 @@ func WithPersistenter(persistenter persistent.Persistenter) func(*Handler) {
 	}
 }
 
-func WithRewarded(rewarded reward.Rewarded) func(*Handler) {
+func WithRewarder(rewarder reward.Rewarder) func(*Handler) {
 	return func(h *Handler) {
-		h.rewarded = rewarded
+		h.rewardor = rewarder
 	}
 }
 
@@ -254,7 +254,7 @@ func (h *Handler) handler(ctx context.Context) bool {
 		h.persistenter.Feed(ctx, ent)
 		return false
 	case ent := <-h.reward:
-		h.rewards.Feed(ctx, ent)
+		h.rewarder.Feed(ctx, ent)
 		return false
 	case ent := <-h.notif:
 		h.notifier.Feed(ctx, ent)
@@ -335,7 +335,7 @@ func (h *Handler) Finalize(ctx context.Context) {
 		e.Finalize(ctx)
 	}
 	h.persistenter.Finalize(ctx)
-	h.rewards.Finalize(ctx)
+	h.rewarder.Finalize(ctx)
 	h.notifier.Finalize(ctx)
 	logger.Sugar().Infow(
 		"Finalize",

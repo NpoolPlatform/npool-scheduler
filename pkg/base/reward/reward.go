@@ -14,7 +14,7 @@ type Reward interface {
 	Finalize(context.Context)
 }
 
-type Rewarded interface {
+type Rewarder interface {
 	Update(context.Context, interface{}, chan interface{}, chan interface{}) error
 }
 
@@ -23,17 +23,17 @@ type handler struct {
 	notif     chan interface{}
 	done      chan interface{}
 	w         *watcher.Watcher
-	rewarded  Rewarded
+	rewarder  Rewarder
 	subsystem string
 }
 
-func NewReward(ctx context.Context, cancel context.CancelFunc, notif, done chan interface{}, rewarded Rewarded, subsystem string) Reward {
+func NewReward(ctx context.Context, cancel context.CancelFunc, notif, done chan interface{}, rewarder Rewarder, subsystem string) Reward {
 	p := &handler{
 		feeder:    make(chan interface{}),
 		notif:     notif,
 		done:      done,
 		w:         watcher.NewWatcher(),
-		rewarded:  rewarded,
+		rewarder:  rewarder,
 		subsystem: subsystem,
 	}
 	go action.Watch(ctx, cancel, p.run, p.paniced)
@@ -43,7 +43,7 @@ func NewReward(ctx context.Context, cancel context.CancelFunc, notif, done chan 
 func (p *handler) handler(ctx context.Context) bool {
 	select {
 	case ent := <-p.feeder:
-		if err := p.rewarded.Update(ctx, ent, p.notif, p.done); err != nil {
+		if err := p.rewarder.Update(ctx, ent, p.notif, p.done); err != nil {
 			logger.Sugar().Errorw(
 				"handler",
 				"State", "Update",
