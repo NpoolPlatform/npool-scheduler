@@ -11,7 +11,7 @@ import (
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
 	dtm1 "github.com/NpoolPlatform/npool-scheduler/pkg/dtm"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/cancel/restorestock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/cancel/restorestock/types"
 	ordersvcname "github.com/NpoolPlatform/order-middleware/pkg/servicename"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
