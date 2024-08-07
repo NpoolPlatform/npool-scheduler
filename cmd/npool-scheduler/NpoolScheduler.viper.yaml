@@ -133,3 +133,8 @@ config:
     - couponwithdraw
     - couponwithdrawreviewing
     - couponwithdrawapproved
+    - good
+    - goodpowerrental
+    - goodpowerrentalwait
+    - goodpowerrentalcreategooduser
+    - goodpowerrentalcheckhashrate
