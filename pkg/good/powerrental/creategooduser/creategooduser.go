@@ -1,4 +1,4 @@
-package wait
+package creategooduser
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/creategooduser/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/creategooduser/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/creategooduser/sentinel"
 )
 
-const subsystem = "goodpowerrentalwait"
+const subsystem = "goodpowerrentalcreategooduser"
 
 var h *base.Handler
 

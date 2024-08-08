@@ -11,7 +11,7 @@ import (
 	goodpowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/creategooduser/types"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/checkhashrate/types"
 )
 
 type handler struct{}
@@ -54,7 +54,7 @@ func (h *handler) scanPowerRentals(ctx context.Context, state goodbasepb.GoodSta
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 	return h.scanPowerRentals(ctx,
-		goodbasepb.GoodState_GoodStateCreateGoodUser,
+		goodbasepb.GoodState_GoodStateCheckHashRate,
 		goodbasepb.GoodType_PowerRental,
 		goodbasepb.GoodStockMode_GoodStockByMiningpool,
 		exec)

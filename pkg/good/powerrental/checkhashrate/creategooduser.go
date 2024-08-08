@@ -1,4 +1,4 @@
-package powerrental
+package checkhashrate
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/checkhashrate/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/checkhashrate/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/checkhashrate/sentinel"
 )
 
-const subsystem = "goodpowerrentalwait"
+const subsystem = "goodpowerrentalcheckhashrate"
 
 var h *base.Handler
 
@@ -21,7 +21,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		ctx,
 		cancel,
 		base.WithSubsystem(subsystem),
-		base.WithScanInterval(30*time.Second),
+		base.WithScanInterval(time.Minute),
 		base.WithScanner(sentinel.NewSentinel()),
 		base.WithExec(executor.NewExecutor()),
 		base.WithPersistenter(persistent.NewPersistent()),

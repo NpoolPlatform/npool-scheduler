@@ -6,6 +6,8 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/checkhashrate"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/creategooduser"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental/wait"
 )
 
@@ -20,6 +22,8 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		"Subsystem", subsystem,
 	)
 	wait.Initialize(ctx, cancel, running)
+	creategooduser.Initialize(ctx, cancel, running)
+	checkhashrate.Initialize(ctx, cancel, running)
 }
 
 func Finalize(ctx context.Context) {
@@ -27,4 +31,6 @@ func Finalize(ctx context.Context) {
 		return
 	}
 	wait.Finalize(ctx)
+	creategooduser.Finalize(ctx)
+	checkhashrate.Finalize(ctx)
 }
