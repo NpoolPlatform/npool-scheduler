@@ -11,7 +11,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/paid/stock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/waitstart/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
@@ -40,7 +40,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 				},
 			},
 			GoodStockMode: &basetypes.Uint32Val{
-				Op:    cruder.NEQ,
+				Op:    cruder.EQ,
 				Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningpool),
 			},
 		}, offset, limit)
