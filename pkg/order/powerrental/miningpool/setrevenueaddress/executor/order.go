@@ -2,10 +2,10 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	orderbenefitmwcli "github.com/NpoolPlatform/account-middleware/pkg/client/orderbenefit"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	"github.com/NpoolPlatform/message/npool/account/mw/v1/orderbenefit"
@@ -35,10 +35,10 @@ type orderHandler struct {
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 	good, err := apppowerrentalmwcli.GetPowerRental(ctx, h.AppGoodID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if good == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	h.appPowerRental = good
 	return nil
@@ -52,7 +52,7 @@ func (h *orderHandler) getOrderBenefits(ctx context.Context) error {
 		},
 	}, 0, 0)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	h.orderbenefitAccounts = make(map[string]*orderbenefit.Account)
@@ -64,10 +64,10 @@ func (h *orderHandler) getOrderBenefits(ctx context.Context) error {
 
 func (h *orderHandler) checkAppPowerRental() error {
 	if h.appPowerRental == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	if h.appPowerRental.State != goodtypes.GoodState_GoodStateReady {
-		return fmt.Errorf("powerrental good not ready")
+		return wlog.Errorf("powerrental good not ready")
 	}
 	return nil
 }
@@ -78,22 +78,22 @@ func (h *orderHandler) getCoinTypeIDs() error {
 	}
 
 	if len(h.coinTypeIDs) == 0 {
-		return fmt.Errorf("have no goodcoins")
+		return wlog.Errorf("have no goodcoins")
 	}
 	return nil
 }
 
 func (h *orderHandler) validatePoolOrderUserID(ctx context.Context) error {
 	if h.PowerRentalOrder.PoolOrderUserID == nil {
-		return fmt.Errorf("invalid poolorderuserid")
+		return wlog.Errorf("invalid poolorderuserid")
 	}
 
 	info, err := orderusermwcli.GetOrderUser(ctx, *h.PowerRentalOrder.PoolOrderUserID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if info == nil {
-		return fmt.Errorf("invalid poolorderuserid")
+		return wlog.Errorf("invalid poolorderuserid")
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (h *orderHandler) constructOrderUserReqs() error {
 	for _, coinTypeID := range h.coinTypeIDs {
 		acc, ok := h.orderbenefitAccounts[coinTypeID]
 		if !ok {
-			return fmt.Errorf("cannot find orderbenefit account for cointypeid: %v", coinTypeID)
+			return wlog.Errorf("cannot find orderbenefit account for cointypeid: %v", coinTypeID)
 		}
 		h.orderUserReqs = append(h.orderUserReqs, &orderusermwpb.OrderUserReq{
 			EntID:          h.PowerRentalOrder.PoolOrderUserID,
@@ -146,27 +146,27 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.getAppPowerRental(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.checkAppPowerRental(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.getCoinTypeIDs(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.getOrderBenefits(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.validatePoolOrderUserID(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.constructOrderUserReqs(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

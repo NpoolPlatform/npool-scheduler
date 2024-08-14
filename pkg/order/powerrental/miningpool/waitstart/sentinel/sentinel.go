@@ -3,6 +3,7 @@ package sentinel
 import (
 	"context"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
@@ -45,7 +46,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 			},
 		}, offset, limit)
 		if err != nil {
-			return err
+			return wlog.WrapError(err)
 		}
 		if len(orders) == 0 {
 			return nil

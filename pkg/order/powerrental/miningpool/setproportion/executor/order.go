@@ -2,9 +2,9 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
@@ -29,10 +29,10 @@ type orderHandler struct {
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 	good, err := apppowerrentalmwcli.GetPowerRental(ctx, h.AppGoodID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if good == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	h.appPowerRental = good
 	return nil
@@ -40,10 +40,10 @@ func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 
 func (h *orderHandler) checkAppPowerRental() error {
 	if h.appPowerRental == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	if h.appPowerRental.State != goodtypes.GoodState_GoodStateReady {
-		return fmt.Errorf("powerrental good not ready")
+		return wlog.Errorf("powerrental good not ready")
 	}
 	return nil
 }
@@ -54,29 +54,29 @@ func (h *orderHandler) getCoinTypeIDs() error {
 	}
 
 	if len(h.coinTypeIDs) == 0 {
-		return fmt.Errorf("have no goodcoins")
+		return wlog.Errorf("have no goodcoins")
 	}
 	return nil
 }
 
 func (h *orderHandler) validatePoolOrderUserID(ctx context.Context) error {
 	if h.PowerRentalOrder.PoolOrderUserID == nil {
-		return fmt.Errorf("invalid poolorderuserid")
+		return wlog.Errorf("invalid poolorderuserid")
 	}
 
 	info, err := orderusermwcli.GetOrderUser(ctx, *h.PowerRentalOrder.PoolOrderUserID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if info == nil {
-		return fmt.Errorf("invalid poolorderuserid")
+		return wlog.Errorf("invalid poolorderuserid")
 	}
 	return nil
 }
 
 func (h *orderHandler) getProportion() error {
 	if h.appPowerRental == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 
 	var miningGoodStockID *string
@@ -89,7 +89,7 @@ func (h *orderHandler) getProportion() error {
 	}
 
 	if miningGoodStockID == nil {
-		return fmt.Errorf("cannot find appmininggoodstock, appgoodstockid: %v", h.PowerRentalOrder.AppGoodStockID)
+		return wlog.Errorf("cannot find appmininggoodstock, appgoodstockid: %v", h.PowerRentalOrder.AppGoodStockID)
 	}
 
 	for _, miningGoodStock := range h.appPowerRental.MiningGoodStocks {
@@ -100,22 +100,22 @@ func (h *orderHandler) getProportion() error {
 	}
 
 	if total == nil {
-		return fmt.Errorf("cannot find mininggoodstock, mininggoodstockid: %v", miningGoodStockID)
+		return wlog.Errorf("cannot find mininggoodstock, mininggoodstockid: %v", miningGoodStockID)
 	}
 
 	unitsDec, err := decimal.NewFromString(h.PowerRentalOrder.Units)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	totalDec, err := decimal.NewFromString(*total)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	percentDec, err := decimal.NewFromString("100")
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	precision := 2
@@ -153,22 +153,22 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.getAppPowerRental(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.checkAppPowerRental(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.getCoinTypeIDs(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if err = h.getProportion(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.validatePoolOrderUserID(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

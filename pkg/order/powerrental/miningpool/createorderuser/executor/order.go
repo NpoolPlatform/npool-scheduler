@@ -2,9 +2,9 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
@@ -31,10 +31,10 @@ type orderHandler struct {
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 	good, err := apppowerrentalmwcli.GetPowerRental(ctx, h.AppGoodID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if good == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	h.appPowerRental = good
 	return nil
@@ -42,17 +42,17 @@ func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 
 func (h *orderHandler) checkAppPowerRental() error {
 	if h.appPowerRental == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	if h.appPowerRental.State != goodtypes.GoodState_GoodStateReady {
-		return fmt.Errorf("powerrental good not ready")
+		return wlog.Errorf("powerrental good not ready")
 	}
 	return nil
 }
 
 func (h *orderHandler) getPoolGoodUserID() error {
 	if h.appPowerRental == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 
 	var miningGoodStockID *string
@@ -65,7 +65,7 @@ func (h *orderHandler) getPoolGoodUserID() error {
 	}
 
 	if miningGoodStockID == nil {
-		return fmt.Errorf("cannot find appmininggoodstock, appgoodstockid: %v", h.PowerRentalOrder.AppGoodStockID)
+		return wlog.Errorf("cannot find appmininggoodstock, appgoodstockid: %v", h.PowerRentalOrder.AppGoodStockID)
 	}
 
 	for _, miningGoodStock := range h.appPowerRental.MiningGoodStocks {
@@ -76,7 +76,7 @@ func (h *orderHandler) getPoolGoodUserID() error {
 	}
 
 	if poolGoodOrderID == nil {
-		return fmt.Errorf("cannot find mininggoodstock, mininggoodstockid: %v", miningGoodStockID)
+		return wlog.Errorf("cannot find mininggoodstock, mininggoodstockid: %v", miningGoodStockID)
 	}
 
 	h.poolGoodUserID = poolGoodOrderID
@@ -85,14 +85,14 @@ func (h *orderHandler) getPoolGoodUserID() error {
 
 func (h *orderHandler) validatePoolGoodUserID(ctx context.Context) error {
 	if h.poolGoodUserID == nil {
-		return fmt.Errorf("invalid poolgooduserid")
+		return wlog.Errorf("invalid poolgooduserid")
 	}
 	info, err := goodusermwcli.GetGoodUser(ctx, *h.poolGoodUserID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if info == nil {
-		return fmt.Errorf("invalid poolgooduserid")
+		return wlog.Errorf("invalid poolgooduserid")
 	}
 	return nil
 }
@@ -144,19 +144,19 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.getAppPowerRental(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.checkAppPowerRental(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.validatePoolGoodUserID(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	if err = h.getPoolGoodUserID(); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	h.constructCreateOrderUserReq()

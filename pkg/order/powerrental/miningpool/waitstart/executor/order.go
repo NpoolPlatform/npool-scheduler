@@ -2,9 +2,9 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	logger "github.com/NpoolPlatform/go-service-framework/pkg/logger"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -22,10 +22,10 @@ type orderHandler struct {
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 	good, err := apppowerrentalmwcli.GetPowerRental(ctx, h.AppGoodID)
 	if err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 	if good == nil {
-		return fmt.Errorf("invalid powerrental")
+		return wlog.Errorf("invalid powerrental")
 	}
 	h.appPowerRental = good
 	return nil
@@ -56,7 +56,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	defer h.final(ctx, &err)
 
 	if err = h.getAppPowerRental(ctx); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

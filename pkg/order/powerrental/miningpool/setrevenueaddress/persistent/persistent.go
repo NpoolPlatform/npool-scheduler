@@ -2,9 +2,9 @@ package persistent
 
 import (
 	"context"
-	"fmt"
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
@@ -70,7 +70,7 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *power
 func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentOrder)
 	if !ok {
-		return fmt.Errorf("invalid order")
+		return wlog.Errorf("invalid order")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
@@ -85,7 +85,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 	p.withUpdateStock(sagaDispose, _order)
 	p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrder)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
-		return err
+		return wlog.WrapError(err)
 	}
 
 	return nil

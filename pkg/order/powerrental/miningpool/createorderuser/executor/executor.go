@@ -2,8 +2,8 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	baseexecutor "github.com/NpoolPlatform/npool-scheduler/pkg/base/executor"
 )
@@ -17,7 +17,7 @@ func NewExecutor() baseexecutor.Exec {
 func (e *handler) Exec(ctx context.Context, order interface{}, persistent, notif, done chan interface{}) error {
 	_order, ok := order.(*powerrentalordermwpb.PowerRentalOrder)
 	if !ok {
-		return fmt.Errorf("invalid order")
+		return wlog.Errorf("invalid order")
 	}
 
 	h := &orderHandler{
