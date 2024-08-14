@@ -94,6 +94,9 @@ config:
     - orderpowerrentalminingpoolcreateorderuser
     - orderpowerrentalminingpoolsetproportion
     - orderpowerrentalminingpoolsetrevenueaddress
+    - orderpowerrentalminingpooldeleteproportion
+    - orderpowerrentalminingpoolpreexpired
+    - orderpowerrentalminingpoolrestorestock
     - orderfee
     - orderfeecreated
     - orderfeepaymentwait

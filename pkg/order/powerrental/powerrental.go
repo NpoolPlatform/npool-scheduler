@@ -19,6 +19,9 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/restorestock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/createorderuser"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/deleteproportion"
+	miningpoolpreexpired "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/preexpired"
+	miningpoolrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/restorestock"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/setproportion"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/setrevenueaddress"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/waitstart"
@@ -85,6 +88,9 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	createorderuser.Initialize(ctx, cancel, &running)
 	setproportion.Initialize(ctx, cancel, &running)
 	setrevenueaddress.Initialize(ctx, cancel, &running)
+	miningpoolpreexpired.Initialize(ctx, cancel, &running)
+	deleteproportion.Initialize(ctx, cancel, &running)
+	miningpoolrestorestock.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
@@ -124,4 +130,7 @@ func Finalize(ctx context.Context) {
 	createorderuser.Finalize(ctx)
 	setproportion.Finalize(ctx)
 	setrevenueaddress.Finalize(ctx)
+	miningpoolpreexpired.Finalize(ctx)
+	deleteproportion.Finalize(ctx)
+	miningpoolrestorestock.Finalize(ctx)
 }
