@@ -174,7 +174,6 @@ func (h *orderHandler) constructFractionReqs() error {
 			OrderUserID: &h.orderUser.EntID,
 			CoinTypeID:  &coinTypeID,
 		})
-
 	}
 
 	return nil
