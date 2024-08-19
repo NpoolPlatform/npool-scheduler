@@ -283,10 +283,6 @@ func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint
 		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerYear)))
 	}
 
-	if units.GreaterThan(decimal.NewFromInt(1)) {
-		return units.Floor()
-	}
-
 	return units
 }
 
