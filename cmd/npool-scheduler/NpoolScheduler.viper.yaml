@@ -90,6 +90,14 @@ config:
     - orderpowerrentalsimulateexpirycheck
     - orderpowerrentalsimulateexpirypreexpired
     - orderpowerrentalsimulateexpiryrestorestock
+    - orderpowerrentalminingpoolwaitstart
+    - orderpowerrentalminingpoolcreateorderuser
+    - orderpowerrentalminingpoolsetproportion
+    - orderpowerrentalminingpoolsetrevenueaddress
+    - orderpowerrentalminingpooldeleteproportion
+    - orderpowerrentalminingpoolpreexpired
+    - orderpowerrentalminingpoolrestorestock
+    - orderpowerrentalminingpoolcheckpoolbalance
     - orderfee
     - orderfeecreated
     - orderfeepaymentwait
@@ -133,3 +141,8 @@ config:
     - couponwithdraw
     - couponwithdrawreviewing
     - couponwithdrawapproved
+    - good
+    - goodpowerrental
+    - goodpowerrentalwait
+    - goodpowerrentalcreategooduser
+    - goodpowerrentalcheckhashrate

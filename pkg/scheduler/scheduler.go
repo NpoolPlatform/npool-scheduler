@@ -8,6 +8,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/couponwithdraw"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/gasfeeder"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/limitation"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/notif/announcement"
 	notifbenefit "github.com/NpoolPlatform/npool-scheduler/pkg/notif/benefit"
@@ -33,6 +34,7 @@ func Finalize(ctx context.Context) {
 	order.Finalize(ctx)
 	paymentcollector.Finalize(ctx)
 	paymentobselete.Finalize(ctx)
+	good.Finalize(ctx)
 }
 
 func Initialize(ctx context.Context, cancel context.CancelFunc) {
@@ -50,6 +52,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	benefit.Initialize(ctx, cancel)
 	notifbenefit.Initialize(ctx, cancel)
 	retry.Initialize(ctx)
+	good.Initialize(ctx, cancel)
 }
 
 type initializer struct {
@@ -71,6 +74,7 @@ var subsystems = map[string]initializer{
 	"deposit":          {deposit.Initialize, deposit.Finalize},
 	"benefit":          {benefit.Initialize, benefit.Finalize},
 	"notifbenefit":     {notifbenefit.Initialize, notifbenefit.Finalize},
+	"good":             {good.Initialize, good.Finalize},
 }
 
 func FinalizeSubsystem(ctx context.Context, system string) {
