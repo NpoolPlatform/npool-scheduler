@@ -12,7 +12,7 @@ import (
 	cancelablefeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/cancelablefeed"
 	basesentinel "github.com/NpoolPlatform/npool-scheduler/pkg/base/sentinel"
 	constant "github.com/NpoolPlatform/npool-scheduler/pkg/const"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/restorestock/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance/types"
 	powerrentalordermwcli "github.com/NpoolPlatform/order-middleware/pkg/client/powerrental"
 )
 
@@ -22,7 +22,7 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
+func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -61,7 +61,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrders(ctx, ordertypes.OrderState_OrderStateRestoreExpiredStock, exec)
+	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateRestoreExpiredStock, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

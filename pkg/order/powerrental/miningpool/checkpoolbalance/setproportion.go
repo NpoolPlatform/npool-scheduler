@@ -1,4 +1,4 @@
-package preexpired
+package checkpoolbalance
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/base"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/preexpired/executor"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/preexpired/persistent"
-	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/preexpired/sentinel"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance/executor"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance/sentinel"
 )
 
-const subsystem = "orderpowerrentalminingpoolpreexpired"
+const subsystem = "orderpowerrentalminingpoolcheckpoolbalance"
 
 var h *base.Handler
 
@@ -35,7 +35,6 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		)
 		return
 	}
-
 	h = _h
 	go h.Run(ctx, cancel)
 }

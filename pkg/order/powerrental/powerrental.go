@@ -18,6 +18,7 @@ import (
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/restorestock"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/createorderuser"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/deleteproportion"
 	miningpoolpreexpired "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/preexpired"
@@ -91,6 +92,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	miningpoolpreexpired.Initialize(ctx, cancel, &running)
 	deleteproportion.Initialize(ctx, cancel, &running)
 	miningpoolrestorestock.Initialize(ctx, cancel, &running)
+	checkpoolbalance.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
@@ -133,4 +135,5 @@ func Finalize(ctx context.Context) {
 	miningpoolpreexpired.Finalize(ctx)
 	deleteproportion.Finalize(ctx)
 	miningpoolrestorestock.Finalize(ctx)
+	checkpoolbalance.Finalize(ctx)
 }
