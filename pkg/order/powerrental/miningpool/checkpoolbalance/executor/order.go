@@ -42,9 +42,11 @@ func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
 	if err != nil {
 		return wlog.WrapError(err)
 	}
+
 	if good == nil {
 		return wlog.Errorf("invalid powerrental")
 	}
+
 	h.appPowerRental = good
 	return nil
 }
@@ -79,6 +81,7 @@ func (h *orderHandler) getOrderUser(ctx context.Context) error {
 	if err != nil {
 		return wlog.WrapError(err)
 	}
+
 	h.orderUser = info
 	return nil
 }
@@ -113,9 +116,11 @@ func (h *orderHandler) getFractionRules(ctx context.Context) error {
 	if err != nil {
 		return wlog.WrapError(err)
 	}
+
 	for _, info := range infos {
 		h.fractionRules[info.CoinTypeID] = info
 	}
+
 	return nil
 }
 
@@ -125,6 +130,7 @@ func (h *orderHandler) checkOrderUserBalanceInfos() error {
 			return wlog.Errorf("cannot find balanceinfo in miningpool for cointypeid %v", cointypeid)
 		}
 	}
+
 	return nil
 }
 
@@ -134,6 +140,7 @@ func (h *orderHandler) checkFractionRules() error {
 			return wlog.Errorf("cannot find fractionrule in miningpool for cointypeid %v", cointypeid)
 		}
 	}
+
 	return nil
 }
 
