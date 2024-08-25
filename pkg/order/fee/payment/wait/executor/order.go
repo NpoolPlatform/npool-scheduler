@@ -137,6 +137,9 @@ func (h *orderHandler) preResolveNewState() bool {
 		if h.OrderType == ordertypes.OrderType_Offline {
 			h.newPaymentState = ordertypes.PaymentState_PaymentStateDone
 		}
+		if h.OrderType == ordertypes.OrderType_Airdrop {
+			h.newPaymentState = ordertypes.PaymentState_PaymentStateNoPayment
+		}
 		return true
 	}
 	return false
