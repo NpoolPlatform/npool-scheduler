@@ -20,6 +20,10 @@ func NewHandler() *Handler {
 	return h
 }
 
+func (h *Handler) SetBenefitIntervalHours(benefitIntervalHours uint32) {
+	h.benefitInterval = time.Duration(benefitIntervalHours) * time.Hour
+}
+
 func (h *Handler) prepareInterval() {
 	if duration, err := time.ParseDuration(
 		fmt.Sprintf("%vs", os.Getenv("ENV_BENEFIT_INTERVAL_SECONDS"))); err == nil && duration > 0 {
