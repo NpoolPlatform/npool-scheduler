@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	appfeemwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/fee"
@@ -202,6 +203,7 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
+			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
