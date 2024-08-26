@@ -35,8 +35,8 @@ type orderHandler struct {
 func (h *orderHandler) paymentNoPayment() bool {
 	return len(h.PaymentTransfers) == 0 &&
 		len(h.PaymentBalances) == 0 &&
-		h.PaymentType != ordertypes.PaymentType_PayWithOffline &&
-		h.PaymentType != ordertypes.PaymentType_PayWithNoPayment
+		(h.PaymentType == ordertypes.PaymentType_PayWithOffline ||
+			h.PaymentType == ordertypes.PaymentType_PayWithNoPayment)
 }
 
 func (h *orderHandler) timeout() bool {
