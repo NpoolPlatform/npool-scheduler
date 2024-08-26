@@ -310,7 +310,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
-				GoodName:       h.ElectricityFee.Name,
+				GoodName:       h.ElectricityFee.AppGoodName,
 				UnitValue:      h.ElectricityFee.UnitValue,
 				SettlementType: h.ElectricityFee.SettlementType,
 				AppGoodID:      h.ElectricityFee.AppGoodID,
@@ -336,7 +336,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
-				GoodName:       h.TechniqueFee.Name,
+				GoodName:       h.TechniqueFee.AppGoodName,
 				UnitValue:      h.TechniqueFee.UnitValue,
 				SettlementType: h.TechniqueFee.SettlementType,
 				AppGoodID:      h.TechniqueFee.AppGoodID,
