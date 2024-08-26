@@ -171,6 +171,9 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			if !ok {
 				techniqueFees = map[string]*appfeemwpb.Fee{}
 			}
+			if _, ok := techniqueFees[good.AppGoodID]; ok {
+				return wlog.Errorf("duplicated techniquefee")
+			}
 			techniqueFees[good.AppGoodID] = good
 			h.techniqueFees[good.AppID] = techniqueFees
 		}
