@@ -148,6 +148,8 @@ func (h *paymentHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Payment", h,
+			"PaymentTransfer", h.paymentTransfers,
+			"Error", *err,
 		)
 	}
 	persistentPayment := &types.PersistentPayment{
