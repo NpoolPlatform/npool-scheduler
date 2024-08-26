@@ -106,6 +106,10 @@ func (h *paymentHandler) constructStatement(ctx context.Context, transfer *payme
 	if err != nil {
 		return err
 	}
+	h.paymentTransfers = append(h.paymentTransfers, &paymentmwpb.PaymentTransferReq{
+		EntID:        &transfer.EntID,
+		FinishAmount: &balance.BalanceStr,
+	})
 	if bal.Cmp(startAmount) <= 0 {
 		return nil
 	}
@@ -125,10 +129,6 @@ func (h *paymentHandler) constructStatement(ctx context.Context, transfer *payme
 			)
 			return &s
 		}(),
-	})
-	h.paymentTransfers = append(h.paymentTransfers, &paymentmwpb.PaymentTransferReq{
-		EntID:        &transfer.EntID,
-		FinishAmount: &balance.BalanceStr,
 	})
 	return nil
 }
