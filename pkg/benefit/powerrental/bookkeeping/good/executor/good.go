@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
@@ -45,7 +44,7 @@ type goodHandler struct {
 	coinRewards            []*coinReward
 	appPowerRentals        map[string]map[string]*apppowerrentalmwpb.PowerRental
 	requiredAppFees        []*requiredappgoodmwpb.Required
-	techniqueFees          map[string]*appfeemwpb.Fee
+	techniqueFees          map[string]map[string]*appfeemwpb.Fee
 	totalBenefitOrderUnits decimal.Decimal
 }
 
@@ -147,7 +146,7 @@ func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	h.techniqueFees = map[string]*appfeemwpb.Fee{}
+	h.techniqueFees = map[string]map[string]*appfeemwpb.Fee{}
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
@@ -159,6 +158,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 					return
 				}(),
 			},
+			GoodType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_TechniqueServiceFee)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -167,14 +167,12 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
-				continue
+			techniqueFees, ok := h.techniqueFees[good.AppID]
+			if !ok {
+				techniqueFees = map[string]*appfeemwpb.Fee{}
 			}
-			_, ok := h.techniqueFees[good.AppID]
-			if ok {
-				return fmt.Errorf("too many techniquefeegood")
-			}
-			h.techniqueFees[good.AppID] = good
+			techniqueFees[good.AppGoodID] = good
+			h.techniqueFees[good.AppID] = techniqueFees
 		}
 		offset += limit
 	}
@@ -209,19 +207,22 @@ func (h *goodHandler) _calculateTechniqueFee(reward *coinReward) error {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		// For one good, event it's assign to multiple app goods,
 		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFee, ok := h.techniqueFees[appID]
+		techniqueFees, ok := h.techniqueFees[appID]
 		if !ok {
 			continue
 		}
-		if techniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
-			continue
-		}
-		feePercent, err := decimal.NewFromString(techniqueFee.UnitValue)
-		if err != nil {
-			return err
-		}
-
-		for _, units := range appGoodUnits {
+		for appGoodID, units := range appGoodUnits {
+			techniqueFee, ok := techniqueFees[appGoodID]
+			if !ok {
+				continue
+			}
+			if techniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+				continue
+			}
+			feePercent, err := decimal.NewFromString(techniqueFee.UnitValue)
+			if err != nil {
+				return err
+			}
 			feeAmount := reward.userRewardAmount.
 				Mul(units).
 				Div(h.totalBenefitOrderUnits).
