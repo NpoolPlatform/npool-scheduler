@@ -148,6 +148,13 @@ func (h *orderHandler) preResolveNewState() bool {
 	return false
 }
 
+func (h *orderHandler) validatePayment() error {
+	if !h.paymentNoPayment() && len(h.PaymentTransfers) == 0 && len(h.PaymentBalances) == 0 {
+		return wlog.Errorf("invalid payment")
+	}
+	return nil
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -195,6 +202,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	if h.preResolveNewState() {
 		return nil
+	}
+	if err = h.validatePayment(); err != nil {
+		return err
 	}
 	if err = h.getPaymentCoins(ctx); err != nil {
 		return err
