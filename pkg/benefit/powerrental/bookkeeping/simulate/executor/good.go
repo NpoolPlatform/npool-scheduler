@@ -205,6 +205,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: true},
 		CreatedAt:     &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
+		StartAt:       &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
 	}, 0, int32(20))
 	if err != nil {
 		return err
