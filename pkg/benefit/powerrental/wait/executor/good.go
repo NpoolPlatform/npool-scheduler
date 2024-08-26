@@ -67,6 +67,7 @@ type goodHandler struct {
 	benefitMessage         string
 	notifiable             bool
 	benefitTimestamp       uint32
+	benefitable            bool
 }
 
 const (
@@ -87,6 +88,7 @@ func (h *goodHandler) checkBenefitable() bool {
 		h.notifiable = true
 		return false
 	}
+	h.benefitable = true
 	return true
 }
 
@@ -606,6 +608,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"CoinRewards", h.coinRewards,
 			"BenefitMessage", h.benefitMessage,
 			"BenefitResult", h.benefitResult,
+			"Benefitable", h.benefitable,
 			"Error", *err,
 		)
 	}
@@ -641,7 +644,11 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+	if h.benefitable {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+	}
 }
 
 //nolint:gocritic
