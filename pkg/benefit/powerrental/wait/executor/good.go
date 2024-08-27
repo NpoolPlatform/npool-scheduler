@@ -438,6 +438,15 @@ func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 	}
 }
 
+func (h *goodHandler) getMainAppGoodID(requiredAppGoodID string) (string, error) {
+	for _, required := range h.requiredAppFees {
+		if required.RequiredAppGoodID == requiredAppGoodID {
+			return required.MainAppGoodID, nil
+		}
+	}
+	return "", wlog.Errorf("invalid required")
+}
+
 func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
@@ -469,7 +478,11 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			if _, ok := techniqueFees[good.AppGoodID]; ok {
 				return wlog.Errorf("duplicated techniquefee")
 			}
-			techniqueFees[good.AppGoodID] = good
+			mainAppGoodID, err := h.getMainAppGoodID(good.AppGoodID)
+			if err != nil {
+				return wlog.WrapError(err)
+			}
+			techniqueFees[mainAppGoodID] = good
 			h.techniqueFees[good.AppID] = techniqueFees
 		}
 		offset += limit
@@ -697,16 +710,16 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getOrderUnits(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getAppPowerRentals(ctx); err != nil {
+	if err = h.getAppPowerRentals(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.validateInServiceUnits(); err != nil {
+	if err = h.validateInServiceUnits(); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getRequiredTechniqueFees(ctx); err != nil {
+	if err = h.getRequiredTechniqueFees(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getAppTechniqueFees(ctx); err != nil {
+	if err = h.getAppTechniqueFees(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
 	if err = h.constructCoinRewards(); err != nil {
