@@ -151,11 +151,20 @@ func (h *orderHandler) constructFractionWithdrawalReqs() error {
 		balanceInfo := h.balanceInfos[coinTypeID]
 		fractioRule := h.fractionwithdrawalRules[coinTypeID]
 
-		if balanceInfo.EstimatedTodayIncome != 0 {
+		stIncome, err := decimal.NewFromString(balanceInfo.EstimatedTodayIncome)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+
+		if stIncome.IsPositive() {
 			return wlog.Errorf("still distributing income, waiting for the end of income distribution!")
 		}
 
-		balance := decimal.NewFromFloat(balanceInfo.Balance)
+		balance, err := decimal.NewFromString(balanceInfo.Balance)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+
 		payoutThreshold, err := decimal.NewFromString(fractioRule.PayoutThreshold)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -205,9 +214,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 	}
-
-	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic

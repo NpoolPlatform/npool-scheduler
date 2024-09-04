@@ -103,9 +103,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentOrder, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 	}
-
-	asyncfeed.AsyncFeed(ctx, h.PowerRentalOrder, h.done)
 }
 
 //nolint:gocritic

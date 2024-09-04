@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -21,7 +20,7 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
+func (h *handler) scanOrdersPayment(ctx context.Context, state ordertypes.OrderState, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
@@ -38,10 +37,6 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 					uint32(ordertypes.PaymentType_PayWithOffline),
 					uint32(ordertypes.PaymentType_PayWithNoPayment),
 				},
-			},
-			GoodStockMode: &basetypes.Uint32Val{
-				Op:    cruder.NEQ,
-				Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningPool),
 			},
 		}, offset, limit)
 		if err != nil {
@@ -60,7 +55,7 @@ func (h *handler) scanOrderPayment(ctx context.Context, state ordertypes.OrderSt
 }
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
-	return h.scanOrderPayment(ctx, ordertypes.OrderState_OrderStateTransferGoodStockWaitStart, exec)
+	return h.scanOrdersPayment(ctx, ordertypes.OrderState_OrderStateTransferGoodStockWaitStart, exec)
 }
 
 func (h *handler) InitScan(ctx context.Context, exec chan interface{}) error {

@@ -63,6 +63,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
+
 	timeoutSeconds := int64(10 + len(_good.GoodUserReqs)*2)
 
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{

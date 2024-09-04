@@ -189,8 +189,9 @@ func (h *powerRentalHandler) final(ctx context.Context, err *error) {
 
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentPowerRental, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(ctx, persistentPowerRental, h.done)
 	}
-	asyncfeed.AsyncFeed(ctx, persistentPowerRental, h.done)
 }
 
 func (h *powerRentalHandler) exec(ctx context.Context) error {
