@@ -9,11 +9,11 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
-	fractionmwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fraction"
-	fractionrulemwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fractionrule"
+	fractionwithdrawalmwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fractionwithdrawal"
+	fractionwithdrawalrulemwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fractionwithdrawalrule"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
-	fractionrulemwcli "github.com/NpoolPlatform/miningpool-middleware/pkg/client/fractionrule"
+	fractionwithdrawalrulemwcli "github.com/NpoolPlatform/miningpool-middleware/pkg/client/fractionwithdrawalrule"
 	orderusermwcli "github.com/NpoolPlatform/miningpool-middleware/pkg/client/orderuser"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance/types"
@@ -25,16 +25,16 @@ type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	appPowerRental *powerrentalgoodmwpb.PowerRental
 
-	coinTypeIDs   []string
-	balanceInfos  map[string]*orderusermwpb.BalanceInfo
-	fractionRules map[string]*fractionrulemwpb.FractionRule
-	orderUser     *orderusermwpb.OrderUser
+	coinTypeIDs             []string
+	balanceInfos            map[string]*orderusermwpb.BalanceInfo
+	fractionwithdrawalRules map[string]*fractionwithdrawalrulemwpb.FractionWithdrawalRule
+	orderUser               *orderusermwpb.OrderUser
 
-	fractionReqs []*fractionmwpb.FractionReq
-	nextState    *ordertypes.OrderState
-	persistent   chan interface{}
-	done         chan interface{}
-	notif        chan interface{}
+	fractionwithdrawalReqs []*fractionwithdrawalmwpb.FractionWithdrawalReq
+	nextState              *ordertypes.OrderState
+	persistent             chan interface{}
+	done                   chan interface{}
+	notif                  chan interface{}
 }
 
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
@@ -106,19 +106,19 @@ func (h *orderHandler) getOrderUserBalanceInfos(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) getFractionRules(ctx context.Context) error {
+func (h *orderHandler) getFractionWithdrawalRules(ctx context.Context) error {
 	if h.PowerRentalOrder.PoolOrderUserID == nil {
 		return wlog.Errorf("invalid poolorderuserid")
 	}
 
-	h.fractionRules = make(map[string]*fractionrulemwpb.FractionRule)
-	infos, _, err := fractionrulemwcli.GetFractionRules(ctx, &fractionrulemwpb.Conds{}, 0, 0)
+	h.fractionwithdrawalRules = make(map[string]*fractionwithdrawalrulemwpb.FractionWithdrawalRule)
+	infos, _, err := fractionwithdrawalrulemwcli.GetFractionWithdrawalRules(ctx, &fractionwithdrawalrulemwpb.Conds{}, 0, 0)
 	if err != nil {
 		return wlog.WrapError(err)
 	}
 
 	for _, info := range infos {
-		h.fractionRules[info.CoinTypeID] = info
+		h.fractionwithdrawalRules[info.CoinTypeID] = info
 	}
 
 	return nil
@@ -134,22 +134,22 @@ func (h *orderHandler) checkOrderUserBalanceInfos() error {
 	return nil
 }
 
-func (h *orderHandler) checkFractionRules() error {
+func (h *orderHandler) checkFractionWithdrawalRules() error {
 	for _, cointypeid := range h.coinTypeIDs {
-		if _, ok := h.fractionRules[cointypeid]; !ok {
-			return wlog.Errorf("cannot find fractionrule in miningpool for cointypeid %v", cointypeid)
+		if _, ok := h.fractionwithdrawalRules[cointypeid]; !ok {
+			return wlog.Errorf("cannot find fractionwithdrawalrule in miningpool for cointypeid %v", cointypeid)
 		}
 	}
 
 	return nil
 }
 
-func (h *orderHandler) constructFractionReqs() error {
+func (h *orderHandler) constructFractionWithdrawalReqs() error {
 	h.nextState = ordertypes.OrderState_OrderStateExpired.Enum()
 
 	for _, coinTypeID := range h.coinTypeIDs {
 		balanceInfo := h.balanceInfos[coinTypeID]
-		fractioRule := h.fractionRules[coinTypeID]
+		fractioRule := h.fractionwithdrawalRules[coinTypeID]
 
 		if balanceInfo.EstimatedTodayIncome != 0 {
 			return wlog.Errorf("still distributing income, waiting for the end of income distribution!")
@@ -161,7 +161,7 @@ func (h *orderHandler) constructFractionReqs() error {
 			return wlog.WrapError(err)
 		}
 
-		minAmount, err := decimal.NewFromString(fractioRule.MinAmount)
+		minAmount, err := decimal.NewFromString(fractioRule.LeastWithdrawalAmount)
 		if err != nil {
 			return wlog.WrapError(err)
 		}
@@ -174,7 +174,7 @@ func (h *orderHandler) constructFractionReqs() error {
 			h.nextState = ordertypes.OrderState_OrderStateCheckPoolBalance.Enum()
 		}
 
-		h.fractionReqs = append(h.fractionReqs, &fractionmwpb.FractionReq{
+		h.fractionwithdrawalReqs = append(h.fractionwithdrawalReqs, &fractionwithdrawalmwpb.FractionWithdrawalReq{
 			EntID:       func() *string { id := uuid.NewString(); return &id }(),
 			AppID:       &h.orderUser.AppID,
 			UserID:      &h.orderUser.UserID,
@@ -198,9 +198,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		FractionReqs:     h.fractionReqs,
-		NextState:        h.nextState,
+		PowerRentalOrder:       h.PowerRentalOrder,
+		FractionWithdrawalReqs: h.fractionwithdrawalReqs,
+		NextState:              h.nextState,
 	}
 
 	if *err == nil {
@@ -231,7 +231,7 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return wlog.WrapError(err)
 	}
 
-	if err = h.getFractionRules(ctx); err != nil {
+	if err = h.getFractionWithdrawalRules(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
 
@@ -243,11 +243,11 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return wlog.WrapError(err)
 	}
 
-	if err = h.checkFractionRules(); err != nil {
+	if err = h.checkFractionWithdrawalRules(); err != nil {
 		return wlog.WrapError(err)
 	}
 
-	if err = h.constructFractionReqs(); err != nil {
+	if err = h.constructFractionWithdrawalReqs(); err != nil {
 		return wlog.WrapError(err)
 	}
 	return nil

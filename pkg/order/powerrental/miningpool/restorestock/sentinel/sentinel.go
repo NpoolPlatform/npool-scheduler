@@ -42,7 +42,7 @@ func (h *handler) scanOrders(ctx context.Context, state ordertypes.OrderState, e
 			},
 			GoodStockMode: &basetypes.Uint32Val{
 				Op:    cruder.EQ,
-				Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningpool),
+				Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningPool),
 			},
 		}, offset, limit)
 		if err != nil {

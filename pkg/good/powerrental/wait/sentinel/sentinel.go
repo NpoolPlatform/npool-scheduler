@@ -56,7 +56,7 @@ func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 	return h.scanPowerRentals(ctx,
 		goodbasepb.GoodState_GoodStateWait,
 		goodbasepb.GoodType_PowerRental,
-		goodbasepb.GoodStockMode_GoodStockByMiningpool,
+		goodbasepb.GoodStockMode_GoodStockByMiningPool,
 		exec)
 }
 

@@ -5,7 +5,7 @@ import (
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
-	fractionmwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fraction"
+	fractionwithdrawalmwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/fractionwithdrawal"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	orderusersvcname "github.com/NpoolPlatform/miningpool-middleware/pkg/servicename"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -21,13 +21,13 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withCreateFraction(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	for _, req := range order.FractionReqs {
+func (p *handler) withCreateFractionWithdrawal(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+	for _, req := range order.FractionWithdrawalReqs {
 		dispose.Add(
 			orderusersvcname.ServiceDomain,
-			"miningpool.middleware.fraction.v1.Middleware/CreateFraction",
+			"miningpool.middleware.fractionwithdrawal.v1.Middleware/CreateFractionWithdrawal",
 			"",
-			&fractionmwpb.CreateFractionRequest{
+			&fractionwithdrawalmwpb.CreateFractionWithdrawalRequest{
 				Info: req,
 			},
 		)
@@ -65,7 +65,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 
-	p.withCreateFraction(sagaDispose, _order)
+	p.withCreateFractionWithdrawal(sagaDispose, _order)
 	p.withUpdateOrderState(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return wlog.WrapError(err)
