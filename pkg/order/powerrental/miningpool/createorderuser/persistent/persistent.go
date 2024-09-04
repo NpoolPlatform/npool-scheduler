@@ -5,7 +5,6 @@ import (
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	orderusersvcname "github.com/NpoolPlatform/miningpool-middleware/pkg/servicename"
@@ -34,20 +33,14 @@ func (p *handler) withCreateOrderUser(dispose *dtmcli.SagaDispose, req *orderuse
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *powerrentalordermwpb.PowerRentalOrderReq) {
-	state := ordertypes.OrderState_OrderStateSetProportion
 	rollback := true
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:              order.ID,
-		OrderState:      &state,
-		PoolOrderUserID: order.PoolOrderUserID,
-		Rollback:        &rollback,
-	}
+	order.Rollback = &rollback
 	dispose.Add(
 		ordersvcname.ServiceDomain,
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
 		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
-			Info: req,
+			Info: order,
 		},
 	)
 }
@@ -66,8 +59,13 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 
-	p.withCreateOrderUser(sagaDispose, _order.OrderUserReq)
-	p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrderReq)
+	if _order.OrderUserReq != nil {
+		p.withCreateOrderUser(sagaDispose, _order.OrderUserReq)
+	}
+	if _order.PowerRentalOrderReq != nil {
+		p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrderReq)
+	}
+
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return wlog.WrapError(err)
 	}

@@ -5,7 +5,6 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
-	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -39,10 +38,6 @@ func (h *handler) scanOrdersPayment(ctx context.Context, state ordertypes.OrderS
 					uint32(ordertypes.PaymentType_PayWithOffline),
 					uint32(ordertypes.PaymentType_PayWithNoPayment),
 				},
-			},
-			GoodStockMode: &basetypes.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningPool),
 			},
 		}, offset, limit)
 		if err != nil {

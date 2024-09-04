@@ -7,6 +7,7 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -22,6 +23,7 @@ type orderHandler struct {
 
 	powerRentalOrderReq *powerrentalordermwpb.PowerRentalOrderReq
 	orderUserReq        *orderusermwpb.OrderUserReq
+	nextState           *ordertypes.OrderState
 	poolGoodUserID      *string
 	persistent          chan interface{}
 	done                chan interface{}
@@ -114,6 +116,14 @@ func (h *orderHandler) constructUpdatePowerrentalOrderReq() {
 	}
 }
 
+func (h *orderHandler) constructUpdatePowerrentalOrderReqForSkip() {
+	h.powerRentalOrderReq = &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &h.PowerRentalOrder.ID,
+		EntID:      &h.PowerRentalOrder.EntID,
+		OrderState: h.nextState,
+	}
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -140,8 +150,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
+	h.nextState = ordertypes.OrderState_OrderStateSetProportion.Enum()
+
 	var err error
 	defer h.final(ctx, &err)
+
+	if h.PowerRentalOrder.GoodStockMode != goodtypes.GoodStockMode_GoodStockByMiningPool {
+		h.constructUpdatePowerrentalOrderReqForSkip()
+		return nil
+	}
 
 	if err = h.getAppPowerRental(ctx); err != nil {
 		return wlog.WrapError(err)
