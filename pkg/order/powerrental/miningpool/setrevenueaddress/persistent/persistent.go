@@ -6,7 +6,6 @@ import (
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
@@ -38,25 +37,21 @@ func (p *handler) withSetRevenueAddress(dispose *dtmcli.SagaDispose, reqs []*ord
 	}
 }
 
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, appGoodStockLockID string) {
 	dispose.Add(
 		goodsvcname.ServiceDomain,
 		"good.middleware.app.good1.stock.v1.Middleware/InService",
 		"",
 		&appstockmwpb.InServiceRequest{
-			LockID: order.AppGoodStockLockID,
+			LockID: appGoodStockLockID,
 		},
 	)
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *powerrentalordermwpb.PowerRentalOrder) {
-	state := ordertypes.OrderState_OrderStateInService
+func (p *handler) withUpdateOrder(dispose *dtmcli.SagaDispose, req *powerrentalordermwpb.PowerRentalOrderReq) {
 	rollback := true
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &order.ID,
-		OrderState: &state,
-		Rollback:   &rollback,
-	}
+	req.Rollback = &rollback
+
 	dispose.Add(
 		ordersvcname.ServiceDomain,
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
@@ -81,9 +76,16 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 
-	p.withSetRevenueAddress(sagaDispose, _order.OrderUserReqs)
-	p.withUpdateStock(sagaDispose, _order)
-	p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrder)
+	if len(_order.OrderUserReqs) > 0 {
+		p.withSetRevenueAddress(sagaDispose, _order.OrderUserReqs)
+	}
+	if _order.AppGoodStockLockID != nil {
+		p.withUpdateStock(sagaDispose, *_order.AppGoodStockLockID)
+	}
+	if _order.PowerRentalOrderReq != nil {
+		p.withUpdateOrder(sagaDispose, _order.PowerRentalOrderReq)
+	}
+
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return wlog.WrapError(err)
 	}

@@ -5,7 +5,6 @@ import (
 
 	dtmcli "github.com/NpoolPlatform/dtm-cluster/pkg/dtm"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
-	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	orderusersvcname "github.com/NpoolPlatform/miningpool-middleware/pkg/servicename"
@@ -22,31 +21,22 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withSetProportion(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	for _, coinTypeID := range order.CoinTypeIDs {
+func (p *handler) withSetProportion(dispose *dtmcli.SagaDispose, reqs []*orderusermwpb.OrderUserReq) {
+	for _, req := range reqs {
 		dispose.Add(
 			orderusersvcname.ServiceDomain,
 			"miningpool.middleware.orderuser.v1.Middleware/UpdateOrderUser",
 			"",
 			&orderusermwpb.UpdateOrderUserRequest{
-				Info: &orderusermwpb.OrderUserReq{
-					EntID:      order.PowerRentalOrder.PoolOrderUserID,
-					CoinTypeID: &coinTypeID,
-					Proportion: &order.Proportion,
-				},
+				Info: req,
 			},
 		)
 	}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *powerrentalordermwpb.PowerRentalOrder) {
-	state := ordertypes.OrderState_OrderStateSetRevenueAddress
+func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, req *powerrentalordermwpb.PowerRentalOrderReq) {
 	rollback := true
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &order.ID,
-		OrderState: &state,
-		Rollback:   &rollback,
-	}
+	req.Rollback = &rollback
 	dispose.Add(
 		ordersvcname.ServiceDomain,
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
@@ -71,8 +61,13 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 
-	p.withSetProportion(sagaDispose, _order)
-	p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrder)
+	if len(_order.OrderUserReqs) > 0 {
+		p.withSetProportion(sagaDispose, _order.OrderUserReqs)
+	}
+	if _order.PowerRentalOrderReq != nil {
+		p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrderReq)
+	}
+
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return wlog.WrapError(err)
 	}

@@ -7,6 +7,7 @@ import (
 
 type PersistentOrder struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	OrderUserReqs      []*orderusermwpb.OrderUserReq
-	AppGoodStockLockID string
+	OrderUserReqs       []*orderusermwpb.OrderUserReq
+	PowerRentalOrderReq *powerrentalordermwpb.PowerRentalOrderReq
+	AppGoodStockLockID  *string
 }

@@ -7,7 +7,9 @@ import (
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
+	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	orderusermwcli "github.com/NpoolPlatform/miningpool-middleware/pkg/client/orderuser"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -18,6 +20,10 @@ import (
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	appPowerRental *powerrentalgoodmwpb.PowerRental
+
+	powerRentalOrderReq *powerrentalordermwpb.PowerRentalOrderReq
+	orderUserReqs       []*orderusermwpb.OrderUserReq
+	nextState           ordertypes.OrderState
 
 	coinTypeIDs []string
 	proportion  string
@@ -123,6 +129,23 @@ func (h *orderHandler) getProportion() error {
 	return nil
 }
 
+func (h *orderHandler) constructOrderUserReq() {
+	for _, coinTypeID := range h.coinTypeIDs {
+		h.orderUserReqs = append(h.orderUserReqs, &orderusermwpb.OrderUserReq{
+			EntID:      h.PowerRentalOrder.PoolOrderUserID,
+			CoinTypeID: &coinTypeID,
+			Proportion: &h.proportion,
+		})
+	}
+}
+
+func (h *orderHandler) constructPowerRentalOrderReq() {
+	h.powerRentalOrderReq = &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &h.PowerRentalOrder.ID,
+		OrderState: &h.nextState,
+	}
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -135,9 +158,9 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder: h.PowerRentalOrder,
-		CoinTypeIDs:      h.coinTypeIDs,
-		Proportion:       h.proportion,
+		PowerRentalOrder:    h.PowerRentalOrder,
+		PowerRentalOrderReq: h.powerRentalOrderReq,
+		OrderUserReqs:       h.orderUserReqs,
 	}
 
 	if *err == nil {
@@ -149,8 +172,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
+	h.nextState = ordertypes.OrderState_OrderStateSetRevenueAddress
+
 	var err error
 	defer h.final(ctx, &err)
+
+	if h.PowerRentalOrder.GoodStockMode != goodtypes.GoodStockMode_GoodStockByMiningPool {
+		h.constructPowerRentalOrderReq()
+		return nil
+	}
 
 	if err = h.getAppPowerRental(ctx); err != nil {
 		return wlog.WrapError(err)
@@ -170,6 +200,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.validatePoolOrderUserID(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
+
+	h.constructOrderUserReq()
+	h.constructPowerRentalOrderReq()
 
 	return nil
 }

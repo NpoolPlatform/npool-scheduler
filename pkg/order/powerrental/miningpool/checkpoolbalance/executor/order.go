@@ -23,18 +23,20 @@ import (
 
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	appPowerRental *powerrentalgoodmwpb.PowerRental
 
+	fractionwithdrawalReqs []*fractionwithdrawalmwpb.FractionWithdrawalReq
+	powerRentalOrderReq    *powerrentalordermwpb.PowerRentalOrderReq
+
+	appPowerRental          *powerrentalgoodmwpb.PowerRental
 	coinTypeIDs             []string
 	balanceInfos            map[string]*orderusermwpb.BalanceInfo
 	fractionwithdrawalRules map[string]*fractionwithdrawalrulemwpb.FractionWithdrawalRule
 	orderUser               *orderusermwpb.OrderUser
+	nextState               ordertypes.OrderState
 
-	fractionwithdrawalReqs []*fractionwithdrawalmwpb.FractionWithdrawalReq
-	nextState              *ordertypes.OrderState
-	persistent             chan interface{}
-	done                   chan interface{}
-	notif                  chan interface{}
+	persistent chan interface{}
+	done       chan interface{}
+	notif      chan interface{}
 }
 
 func (h *orderHandler) getAppPowerRental(ctx context.Context) error {
@@ -145,7 +147,7 @@ func (h *orderHandler) checkFractionWithdrawalRules() error {
 }
 
 func (h *orderHandler) constructFractionWithdrawalReqs() error {
-	h.nextState = ordertypes.OrderState_OrderStateExpired.Enum()
+	h.nextState = ordertypes.OrderState_OrderStateExpired
 
 	for _, coinTypeID := range h.coinTypeIDs {
 		balanceInfo := h.balanceInfos[coinTypeID]
@@ -180,7 +182,7 @@ func (h *orderHandler) constructFractionWithdrawalReqs() error {
 		}
 
 		if balance.Cmp(minAmount) >= 0 && h.nextState.String() == ordertypes.OrderState_OrderStateExpired.String() {
-			h.nextState = ordertypes.OrderState_OrderStateCheckPoolBalance.Enum()
+			h.nextState = ordertypes.OrderState_OrderStateCheckPoolBalance
 		}
 
 		h.fractionwithdrawalReqs = append(h.fractionwithdrawalReqs, &fractionwithdrawalmwpb.FractionWithdrawalReq{
@@ -193,6 +195,14 @@ func (h *orderHandler) constructFractionWithdrawalReqs() error {
 	}
 
 	return nil
+}
+
+func (h *orderHandler) constructUpdatePowerrentalOrder() {
+	h.powerRentalOrderReq = &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &h.PowerRentalOrder.ID,
+		EntID:      &h.PowerRentalOrder.EntID,
+		OrderState: &h.nextState,
+	}
 }
 
 //nolint:gocritic
@@ -209,7 +219,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	persistentOrder := &types.PersistentOrder{
 		PowerRentalOrder:       h.PowerRentalOrder,
 		FractionWithdrawalReqs: h.fractionwithdrawalReqs,
-		NextState:              h.nextState,
+		PowerRentalOrderReq:    h.powerRentalOrderReq,
 	}
 
 	if *err == nil {
@@ -221,8 +231,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
+	h.nextState = ordertypes.OrderState_OrderStateRestoreExpiredStock
+
 	var err error
 	defer h.final(ctx, &err)
+
+	if h.PowerRentalOrder.GoodStockMode != goodtypes.GoodStockMode_GoodStockByMiningPool {
+		h.constructUpdatePowerrentalOrder()
+		return nil
+	}
 
 	if err = h.getAppPowerRental(ctx); err != nil {
 		return wlog.WrapError(err)
@@ -259,5 +276,6 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.constructFractionWithdrawalReqs(); err != nil {
 		return wlog.WrapError(err)
 	}
+	h.constructUpdatePowerrentalOrder()
 	return nil
 }

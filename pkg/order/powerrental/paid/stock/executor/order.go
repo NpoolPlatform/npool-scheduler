@@ -42,8 +42,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder:   h.PowerRentalOrder,
-		AppGoodStockLockID: h.AppGoodStockLockID,
+		PowerRentalOrder: h.PowerRentalOrder,
 	}
 	if h.appPowerRental != nil {
 		persistentOrder.AppGoodStockID = h.appPowerRental.AppGoodStockID

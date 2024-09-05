@@ -32,7 +32,7 @@ func (p *handler) withCreateOrderUser(dispose *dtmcli.SagaDispose, req *orderuse
 	)
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *powerrentalordermwpb.PowerRentalOrderReq) {
+func (p *handler) withUpdateOrder(dispose *dtmcli.SagaDispose, order *powerrentalordermwpb.PowerRentalOrderReq) {
 	rollback := true
 	order.Rollback = &rollback
 	dispose.Add(
@@ -63,7 +63,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		p.withCreateOrderUser(sagaDispose, _order.OrderUserReq)
 	}
 	if _order.PowerRentalOrderReq != nil {
-		p.withUpdateOrderState(sagaDispose, _order.PowerRentalOrderReq)
+		p.withUpdateOrder(sagaDispose, _order.PowerRentalOrderReq)
 	}
 
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {

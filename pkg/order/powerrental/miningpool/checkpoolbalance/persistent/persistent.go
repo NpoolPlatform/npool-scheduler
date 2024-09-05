@@ -21,8 +21,8 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) withCreateFractionWithdrawal(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	for _, req := range order.FractionWithdrawalReqs {
+func (p *handler) withCreateFractionWithdrawal(dispose *dtmcli.SagaDispose, reqs []*fractionwithdrawalmwpb.FractionWithdrawalReq) {
+	for _, req := range reqs {
 		dispose.Add(
 			orderusersvcname.ServiceDomain,
 			"miningpool.middleware.fractionwithdrawal.v1.Middleware/CreateFractionWithdrawal",
@@ -34,13 +34,9 @@ func (p *handler) withCreateFractionWithdrawal(dispose *dtmcli.SagaDispose, orde
 	}
 }
 
-func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
+func (p *handler) withUpdateOrder(dispose *dtmcli.SagaDispose, req *powerrentalordermwpb.PowerRentalOrderReq) {
 	rollback := true
-	req := &powerrentalordermwpb.PowerRentalOrderReq{
-		ID:         &order.ID,
-		OrderState: order.NextState,
-		Rollback:   &rollback,
-	}
+	req.Rollback = &rollback
 	dispose.Add(
 		ordersvcname.ServiceDomain,
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
@@ -65,8 +61,13 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 		RequestTimeout: timeoutSeconds,
 	})
 
-	p.withCreateFractionWithdrawal(sagaDispose, _order)
-	p.withUpdateOrderState(sagaDispose, _order)
+	if len(_order.FractionWithdrawalReqs) > 0 {
+		p.withCreateFractionWithdrawal(sagaDispose, _order.FractionWithdrawalReqs)
+	}
+	if _order.PowerRentalOrderReq != nil {
+		p.withUpdateOrder(sagaDispose, _order.PowerRentalOrderReq)
+	}
+
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return wlog.WrapError(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	"github.com/NpoolPlatform/message/npool/account/mw/v1/orderbenefit"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	v1 "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
@@ -24,8 +25,10 @@ type orderHandler struct {
 
 	appPowerRental       *powerrentalgoodmwpb.PowerRental
 	orderbenefitAccounts map[string]*orderbenefit.Account
-	coinTypeIDs          []string
+	powerRentalOrderReq  *powerrentalordermwpb.PowerRentalOrderReq
+	nextState            ordertypes.OrderState
 
+	coinTypeIDs   []string
 	orderUserReqs []*orderusermwpb.OrderUserReq
 	persistent    chan interface{}
 	done          chan interface{}
@@ -116,6 +119,13 @@ func (h *orderHandler) constructOrderUserReqs() error {
 	return nil
 }
 
+func (h *orderHandler) constructPowerRentalOrderReq() {
+	h.powerRentalOrderReq = &powerrentalordermwpb.PowerRentalOrderReq{
+		ID:         &h.PowerRentalOrder.ID,
+		OrderState: &h.nextState,
+	}
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -128,9 +138,10 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 		)
 	}
 	persistentOrder := &types.PersistentOrder{
-		PowerRentalOrder:   h.PowerRentalOrder,
-		OrderUserReqs:      h.orderUserReqs,
-		AppGoodStockLockID: h.PowerRentalOrder.AppGoodStockLockID,
+		PowerRentalOrder:    h.PowerRentalOrder,
+		OrderUserReqs:       h.orderUserReqs,
+		PowerRentalOrderReq: h.powerRentalOrderReq,
+		AppGoodStockLockID:  &h.PowerRentalOrder.AppGoodStockLockID,
 	}
 
 	if *err == nil {
@@ -142,8 +153,15 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
+	h.nextState = ordertypes.OrderState_OrderStateInService
+
 	var err error
 	defer h.final(ctx, &err)
+
+	if h.PowerRentalOrder.GoodStockMode != goodtypes.GoodStockMode_GoodStockByMiningPool {
+		h.constructPowerRentalOrderReq()
+		return nil
+	}
 
 	if err = h.getAppPowerRental(ctx); err != nil {
 		return wlog.WrapError(err)
@@ -168,6 +186,8 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.constructOrderUserReqs(); err != nil {
 		return wlog.WrapError(err)
 	}
+
+	h.constructPowerRentalOrderReq()
 
 	return nil
 }
