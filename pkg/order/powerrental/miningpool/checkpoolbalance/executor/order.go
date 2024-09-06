@@ -147,8 +147,6 @@ func (h *orderHandler) checkFractionWithdrawalRules() error {
 }
 
 func (h *orderHandler) constructFractionWithdrawalReqs() error {
-	h.nextState = ordertypes.OrderState_OrderStateExpired
-
 	for _, coinTypeID := range h.coinTypeIDs {
 		balanceInfo := h.balanceInfos[coinTypeID]
 		fractioRule := h.fractionwithdrawalRules[coinTypeID]
@@ -231,7 +229,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
-	h.nextState = ordertypes.OrderState_OrderStateRestoreExpiredStock
+	h.nextState = ordertypes.OrderState_OrderStateExpired
 
 	var err error
 	defer h.final(ctx, &err)

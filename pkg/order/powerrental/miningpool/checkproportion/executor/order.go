@@ -9,22 +9,19 @@ import (
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	powerrentalgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
-	orderusermwpb "github.com/NpoolPlatform/message/npool/miningpool/mw/v1/orderuser"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	orderusermwcli "github.com/NpoolPlatform/miningpool-middleware/pkg/client/orderuser"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/deleteproportion/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkproportion/types"
 	"github.com/shopspring/decimal"
 )
 
 type orderHandler struct {
 	*powerrentalordermwpb.PowerRentalOrder
 	appPowerRental      *powerrentalgoodmwpb.PowerRental
-	orderUserReqs       []*orderusermwpb.OrderUserReq
 	powerRentalOrderReq *powerrentalordermwpb.PowerRentalOrderReq
 
 	coinTypeIDs []string
-	proportion  string
 	nextState   ordertypes.OrderState
 	persistent  chan interface{}
 	done        chan interface{}
@@ -79,24 +76,26 @@ func (h *orderHandler) validatePoolOrderUserID(ctx context.Context) error {
 	return nil
 }
 
-func (h *orderHandler) getProportion() error {
-	zeroDec, err := decimal.NewFromString("0")
-	if err != nil {
-		return wlog.WrapError(err)
-	}
-
-	h.proportion = zeroDec.String()
-	return nil
-}
-
-func (h *orderHandler) constructOrderUserReqs() {
+func (h *orderHandler) checkProportion(ctx context.Context) error {
 	for _, coinTypeID := range h.coinTypeIDs {
-		h.orderUserReqs = append(h.orderUserReqs, &orderusermwpb.OrderUserReq{
-			EntID:      h.PoolOrderUserID,
-			CoinTypeID: &coinTypeID,
-			Proportion: &h.proportion,
-		})
+		proportion, err := orderusermwcli.GetOrderUserProportion(ctx, *h.PoolOrderUserID, coinTypeID)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		proportionDec, err := decimal.NewFromString(proportion)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		if !proportionDec.IsZero() {
+			return wlog.Errorf("invalid proportion: %v, orderid: %v poolorderuserid: %v, cointypeid: %v",
+				proportionDec.String(),
+				h.OrderID,
+				h.PoolOrderUserID,
+				coinTypeID,
+			)
+		}
 	}
+	return nil
 }
 
 func (h *orderHandler) constructPowerRentalOrderReq() {
@@ -119,7 +118,6 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 	}
 	persistentOrder := &types.PersistentOrder{
 		PowerRentalOrder:    h.PowerRentalOrder,
-		OrderUserReqs:       h.orderUserReqs,
 		PowerRentalOrderReq: h.powerRentalOrderReq,
 	}
 
@@ -132,7 +130,7 @@ func (h *orderHandler) final(ctx context.Context, err *error) {
 
 //nolint:gocritic
 func (h *orderHandler) exec(ctx context.Context) error {
-	h.nextState = ordertypes.OrderState_OrderStateCheckProportion
+	h.nextState = ordertypes.OrderState_OrderStateRestoreExpiredStock
 
 	var err error
 	defer h.final(ctx, &err)
@@ -153,15 +151,15 @@ func (h *orderHandler) exec(ctx context.Context) error {
 	if err = h.getCoinTypeIDs(); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err = h.getProportion(); err != nil {
-		return wlog.WrapError(err)
-	}
 
 	if err = h.validatePoolOrderUserID(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
 
-	h.constructOrderUserReqs()
+	if err = h.checkProportion(ctx); err != nil {
+		return wlog.WrapError(err)
+	}
+
 	h.constructPowerRentalOrderReq()
 
 	return nil
