@@ -620,13 +620,13 @@ func (h *goodHandler) checkGoodStatement(ctx context.Context) (bool, error) {
 
 //nolint:gocritic
 func (h *goodHandler) final(ctx context.Context, err *error) {
-	if *err != nil || true {
+	if *err != nil {
 		logger.Sugar().Errorw(
 			"final",
 			"PowerRental", h.PowerRental,
 			"Notifiable", h.notifiable,
 			"BenefitTimestamp", h.benefitTimestamp,
-			"BenefitOrderIDs", h.benefitOrderIDs,
+			"BenefitOrderIDs", len(h.benefitOrderIDs),
 			"CoinRewards", h.coinRewards,
 			"BenefitMessage", h.benefitMessage,
 			"BenefitResult", h.benefitResult,
