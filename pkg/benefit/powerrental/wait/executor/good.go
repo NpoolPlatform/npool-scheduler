@@ -197,14 +197,15 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
+	now := uint32(time.Now().Unix())
 
 	for {
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
-			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
-			StartAt:      &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(time.Now().Unix() - timedef.SecondsPerDay)},
+			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(now - timedef.SecondsPerDay)},
+			StartAt:      &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(now - timedef.SecondsPerDay)},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
