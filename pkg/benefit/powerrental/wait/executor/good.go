@@ -204,8 +204,8 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
-			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(now - timedef.SecondsPerDay)},
-			StartAt:      &basetypes.Uint32Val{Op: cruder.LT, Value: uint32(now - timedef.SecondsPerDay)},
+			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: now - timedef.SecondsPerDay},
+			StartAt:      &basetypes.Uint32Val{Op: cruder.LT, Value: now - timedef.SecondsPerDay},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
