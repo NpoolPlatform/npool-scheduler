@@ -60,7 +60,7 @@ func (h *calculateHandler) withCreateLedgerStatements(dispose *dtmcli.SagaDispos
 	}
 	rollback := true
 	ioType := ledgertypes.IOType_Incoming
-	ioSubType := ledgertypes.IOSubType_SimulateMiningBenefit
+	ioSubType := ledgertypes.IOSubType_EventReward
 	reqs := []*statementmwpb.StatementReq{}
 	for _, coin := range h.req.CoinRewards {
 		id := uuid.NewString()
