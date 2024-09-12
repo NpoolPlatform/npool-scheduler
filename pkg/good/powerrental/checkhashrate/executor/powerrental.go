@@ -87,8 +87,14 @@ func (h *powerRentalHandler) checkHashRate(ctx context.Context) error {
 			return wlog.WrapError(err)
 		}
 
-		total := _total.InexactFloat64()
+		unit, err := decimal.NewFromString(h.PowerRental.QuantityUnit)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
 
+		_total.Mul(unit)
+
+		total := _total.InexactFloat64()
 		if math.Abs(hashRate-total)-total*MaxToleranceScope > 0 {
 			return wlog.Errorf("hash rate not up to total of mininggoodstock")
 		}
