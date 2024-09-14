@@ -6,6 +6,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/pubsub"
+	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
@@ -77,8 +78,10 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	p.rewardFirstOrderCompleted(_order)
-	p.rewardOrderCompleted(_order)
+	if _order.OrderType == ordertypes.OrderType_Normal {
+		p.rewardFirstOrderCompleted(_order)
+		p.rewardOrderCompleted(_order)
+	}
 
 	return nil
 }
