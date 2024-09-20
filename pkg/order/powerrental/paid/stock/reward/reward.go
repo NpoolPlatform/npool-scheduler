@@ -46,6 +46,9 @@ func (p *handler) rewardOrderCompleted(order *types.PersistentOrder) {
 }
 
 func (p *handler) rewardFirstOrderCompleted(order *types.PersistentOrder) {
+	if order.ExistOrderCompletedHistory {
+		return
+	}
 	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		req := &eventmwpb.CalcluateEventRewardsRequest{
 			AppID:       order.AppID,
