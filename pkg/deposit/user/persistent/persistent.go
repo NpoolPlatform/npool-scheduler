@@ -75,7 +75,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, reward, notif
 		return fmt.Errorf("invalid account")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _account, done)
+	defer asyncfeed.AsyncFeed(ctx, _account, reward)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
