@@ -10,7 +10,7 @@ import (
 	eventmwpb "github.com/NpoolPlatform/message/npool/inspire/mw/v1/event"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basereward "github.com/NpoolPlatform/npool-scheduler/pkg/base/reward"
-	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/finish/types"
+	types "github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/types"
 )
 
 type handler struct{}
