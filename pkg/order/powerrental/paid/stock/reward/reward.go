@@ -21,6 +21,12 @@ func NewReward() basereward.Rewarder {
 }
 
 func (p *handler) rewardOrderCompleted(order *types.PersistentOrder) {
+	logger.Sugar().Infow(
+		"rewardOrderCompleted",
+		"AppID", order.AppID,
+		"UserID", order.UserID,
+		"Start rewardOrderCompleted",
+	)
 	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		req := &eventmwpb.CalcluateEventRewardsRequest{
 			AppID:       order.AppID,
@@ -47,8 +53,20 @@ func (p *handler) rewardOrderCompleted(order *types.PersistentOrder) {
 
 func (p *handler) rewardFirstOrderCompleted(order *types.PersistentOrder) {
 	if order.ExistOrderCompletedHistory {
+		logger.Sugar().Infow(
+			"rewardFirstOrderCompleted",
+			"AppID", order.AppID,
+			"UserID", order.UserID,
+			"order.ExistOrderCompletedHistory", order.ExistOrderCompletedHistory,
+		)
 		return
 	}
+	logger.Sugar().Infow(
+		"rewardFirstOrderCompleted",
+		"AppID", order.AppID,
+		"UserID", order.UserID,
+		"Start rewardFirstOrderCompleted",
+	)
 	if err := pubsub.WithPublisher(func(publisher *pubsub.Publisher) error {
 		req := &eventmwpb.CalcluateEventRewardsRequest{
 			AppID:       order.AppID,
@@ -81,7 +99,19 @@ func (p *handler) Update(ctx context.Context, order interface{}, notif, done cha
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
+	logger.Sugar().Infow(
+		"rewardFirstOrderCompleted",
+		"AppID", _order.AppID,
+		"UserID", _order.UserID,
+		"Start",
+	)
 	if _order.OrderType == ordertypes.OrderType_Normal {
+		logger.Sugar().Infow(
+			"rewardFirstOrderCompleted",
+			"AppID", _order.AppID,
+			"UserID", _order.UserID,
+			"OrderType", ordertypes.OrderType_Normal,
+		)
 		p.rewardFirstOrderCompleted(_order)
 		p.rewardOrderCompleted(_order)
 	}
