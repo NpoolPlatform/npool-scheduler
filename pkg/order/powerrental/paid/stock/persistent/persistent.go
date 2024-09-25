@@ -58,7 +58,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 		return fmt.Errorf("invalid order")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _order, reward)
+	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
 	const timeoutSeconds = 10
 	sagaDispose := dtmcli.NewSagaDispose(dtmimp.TransOptions{
