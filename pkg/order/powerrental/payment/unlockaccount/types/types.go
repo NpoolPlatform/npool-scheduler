@@ -6,5 +6,6 @@ import (
 
 type PersistentOrder struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	PaymentAccountIDs []uint32
+	PaymentAccountIDs          []uint32
+	ExistOrderCompletedHistory bool
 }
