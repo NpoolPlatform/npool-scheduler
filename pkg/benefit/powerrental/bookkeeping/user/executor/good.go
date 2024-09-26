@@ -9,14 +9,17 @@ import (
 	appfeemwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/fee"
 	requiredappgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good/required"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
+	statementmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appfeemwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/fee"
 	requiredappgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/required"
 	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
+	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/user/types"
@@ -331,7 +334,24 @@ func (h *goodHandler) calculateUnitRewards() error {
 	return h._calculateUnitRewards()
 }
 
-func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRentalOrder) error {
+func (h *goodHandler) checkBenefitStatement(ctx context.Context, reward *types.OrderReward) (bool, error) {
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_MiningBenefit
+	exist, err := statementmwcli.ExistStatementConds(
+		ctx,
+		&statementmwpb.Conds{
+			AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: reward.AppID},
+			UserID:    &basetypes.StringVal{Op: cruder.EQ, Value: reward.UserID},
+			IOType:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
+			IOSubType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
+		})
+	if err != nil {
+		return false, wlog.WrapError(err)
+	}
+	return exist, nil
+}
+
+func (h *goodHandler) calculateOrderReward(ctx context.Context, order *powerrentalordermwpb.PowerRentalOrder) error {
 	appUnitRewards, ok := h.appGoodUnitRewards[order.AppID]
 	if !ok {
 		return nil
@@ -372,6 +392,11 @@ func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRent
 			Amount:     amount.String(),
 		})
 	}
+	exist, err := h.checkBenefitStatement(ctx, orderReward)
+	if err != nil {
+		return err
+	}
+	orderReward.FirstBenefit = !exist
 	h.orderRewards = append(h.orderRewards, orderReward)
 	return nil
 }
@@ -392,7 +417,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	}
 
 	for _, order := range orders {
-		if err := h.calculateOrderReward(order); err != nil {
+		if err := h.calculateOrderReward(ctx, order); err != nil {
 			return err
 		}
 	}

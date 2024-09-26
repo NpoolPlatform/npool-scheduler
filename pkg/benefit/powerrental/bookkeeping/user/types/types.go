@@ -11,11 +11,12 @@ type CoinReward struct {
 }
 
 type OrderReward struct {
-	AppID       string
-	UserID      string
-	OrderID     string
-	Extra       string
-	CoinRewards []*CoinReward
+	AppID        string
+	UserID       string
+	OrderID      string
+	Extra        string
+	FirstBenefit bool
+	CoinRewards  []*CoinReward
 }
 
 type PersistentGood struct {

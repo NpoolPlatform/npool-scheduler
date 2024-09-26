@@ -10,6 +10,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/reward"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/simulate/sentinel"
 )
 
@@ -29,6 +30,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithRunningConcurrent(20),
 		base.WithNotify(notif.NewNotif()),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRewarder(reward.NewReward()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {

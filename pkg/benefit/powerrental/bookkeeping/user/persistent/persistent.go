@@ -96,13 +96,13 @@ func (p *handler) updateGood(ctx context.Context, good *types.PersistentGood) er
 	})
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, reward, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGood)
 	if !ok {
 		return fmt.Errorf("invalid good")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _good, done)
+	defer asyncfeed.AsyncFeed(ctx, _good, reward)
 
 	if len(_good.OrderRewards) == 0 {
 		if err := p.updateGood(ctx, _good); err != nil {
