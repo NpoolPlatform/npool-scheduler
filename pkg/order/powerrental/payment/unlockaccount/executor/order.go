@@ -56,6 +56,7 @@ func (h *orderHandler) getPaymentAccounts(ctx context.Context) (err error) {
 	return nil
 }
 
+//nolint:dupl
 func (h *orderHandler) checkFirstOrderComplatedHistory(ctx context.Context) error {
 	eventType := basetypes.UsedFor_FirstOrderCompleted
 	ev, err := eventmwcli.GetEventOnly(ctx, &eventmwpb.Conds{
@@ -94,6 +95,7 @@ func (h *orderHandler) checkFirstOrderComplatedHistory(ctx context.Context) erro
 	return nil
 }
 
+//nolint:dupl
 func (h *orderHandler) checkOrderComplatedHistory(ctx context.Context) error {
 	eventType := basetypes.UsedFor_OrderCompleted
 	ev, err := eventmwcli.GetEventOnly(ctx, &eventmwpb.Conds{
