@@ -34,7 +34,8 @@ func (p *handler) Update(ctx context.Context, payment interface{}, reward, notif
 	}
 
 	return paymentmwcli.UpdatePayment(ctx, &paymentmwpb.PaymentReq{
-		ID:            &_payment.ID,
-		ObseleteState: ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount.Enum(),
+		ID:               &_payment.ID,
+		ObseleteState:    ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount.Enum(),
+		PaymentTransfers: _payment.PaymentTransfers,
 	})
 }

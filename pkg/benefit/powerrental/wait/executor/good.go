@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	timedef "github.com/NpoolPlatform/go-service-framework/pkg/const/time"
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 	appfeemwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/fee"
@@ -58,7 +59,7 @@ type goodHandler struct {
 	coinRewards            []*coinReward
 	appPowerRentals        map[string]map[string]*apppowerrentalmwpb.PowerRental
 	requiredAppFees        []*requiredappgoodmwpb.Required
-	techniqueFees          map[string]*appfeemwpb.Fee
+	techniqueFees          map[string]map[string]*appfeemwpb.Fee
 	userBenefitHotAccounts map[string]*platformaccountmwpb.Account
 	goodBenefitAccounts    map[string]*goodbenefitmwpb.Account
 	benefitOrderIDs        []uint32
@@ -67,6 +68,7 @@ type goodHandler struct {
 	benefitMessage         string
 	notifiable             bool
 	benefitTimestamp       uint32
+	benefitable            bool
 }
 
 const (
@@ -87,6 +89,7 @@ func (h *goodHandler) checkBenefitable() bool {
 		h.notifiable = true
 		return false
 	}
+	h.benefitable = true
 	return true
 }
 
@@ -194,12 +197,15 @@ func (h *goodHandler) getOrderUnits(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 	h.appOrderUnits = map[string]map[string]decimal.Decimal{}
+	now := uint32(time.Now().Unix())
 
 	for {
 		orders, _, err := powerrentalordermwcli.GetPowerRentalOrders(ctx, &powerrentalordermwpb.Conds{
 			GoodID:       &basetypes.StringVal{Op: cruder.EQ, Value: h.GoodID},
 			OrderState:   &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.OrderState_OrderStateInService)},
 			BenefitState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitWait)},
+			CreatedAt:    &basetypes.Uint32Val{Op: cruder.LT, Value: now - timedef.SecondsPerDay},
+			StartAt:      &basetypes.Uint32Val{Op: cruder.LT, Value: now - timedef.SecondsPerDay},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -376,19 +382,22 @@ func (h *goodHandler) _calculateTechniqueFee(reward *coinReward) error {
 	for appID, appGoodUnits := range h.appOrderUnits {
 		// For one good, event it's assign to multiple app goods,
 		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFee, ok := h.techniqueFees[appID]
-		if !ok {
-			continue
-		}
-		if techniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
-			continue
-		}
-		feePercent, err := decimal.NewFromString(techniqueFee.UnitValue)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-
-		for _, units := range appGoodUnits {
+		for appGoodID, units := range appGoodUnits {
+			techniqueFees, ok := h.techniqueFees[appID]
+			if !ok {
+				continue
+			}
+			techniqueFee, ok := techniqueFees[appGoodID]
+			if !ok {
+				continue
+			}
+			if techniqueFee.SettlementType != goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+				continue
+			}
+			feePercent, err := decimal.NewFromString(techniqueFee.UnitValue)
+			if err != nil {
+				return wlog.WrapError(err)
+			}
 			feeAmount := reward.userRewardAmount.
 				Mul(units).
 				Div(h.totalBenefitOrderUnits).
@@ -430,10 +439,19 @@ func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 	}
 }
 
+func (h *goodHandler) getMainAppGoodID(requiredAppGoodID string) (string, error) {
+	for _, required := range h.requiredAppFees {
+		if required.RequiredAppGoodID == requiredAppGoodID {
+			return required.MainAppGoodID, nil
+		}
+	}
+	return "", wlog.Errorf("invalid required")
+}
+
 func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	h.techniqueFees = map[string]*appfeemwpb.Fee{}
+	h.techniqueFees = map[string]map[string]*appfeemwpb.Fee{}
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
@@ -445,6 +463,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 					return
 				}(),
 			},
+			GoodType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_TechniqueServiceFee)},
 		}, offset, limit)
 		if err != nil {
 			return wlog.WrapError(err)
@@ -453,14 +472,19 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			if good.GoodType != goodtypes.GoodType_TechniqueServiceFee {
-				continue
+			techniqueFees, ok := h.techniqueFees[good.AppID]
+			if !ok {
+				techniqueFees = map[string]*appfeemwpb.Fee{}
 			}
-			_, ok := h.techniqueFees[good.AppID]
-			if ok {
-				return wlog.Errorf("too many techniquefeegood")
+			if _, ok := techniqueFees[good.AppGoodID]; ok {
+				return wlog.Errorf("duplicated techniquefee")
 			}
-			h.techniqueFees[good.AppID] = good
+			mainAppGoodID, err := h.getMainAppGoodID(good.AppGoodID)
+			if err != nil {
+				return wlog.WrapError(err)
+			}
+			techniqueFees[mainAppGoodID] = good
+			h.techniqueFees[good.AppID] = techniqueFees
 		}
 		offset += limit
 	}
@@ -606,6 +630,7 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 			"CoinRewards", h.coinRewards,
 			"BenefitMessage", h.benefitMessage,
 			"BenefitResult", h.benefitResult,
+			"Benefitable", h.benefitable,
 			"Error", *err,
 		)
 	}
@@ -641,7 +666,11 @@ func (h *goodHandler) final(ctx context.Context, err *error) {
 		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
 		return
 	}
-	asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+	if h.benefitable {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.persistent)
+	} else {
+		asyncfeed.AsyncFeed(ctx, persistentGood, h.done)
+	}
 }
 
 //nolint:gocritic
@@ -682,16 +711,16 @@ func (h *goodHandler) exec(ctx context.Context) error {
 	if err = h.getOrderUnits(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getAppPowerRentals(ctx); err != nil {
+	if err = h.getAppPowerRentals(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.validateInServiceUnits(); err != nil {
+	if err = h.validateInServiceUnits(); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getRequiredTechniqueFees(ctx); err != nil {
+	if err = h.getRequiredTechniqueFees(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
-	if err := h.getAppTechniqueFees(ctx); err != nil {
+	if err = h.getAppTechniqueFees(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
 	if err = h.constructCoinRewards(); err != nil {

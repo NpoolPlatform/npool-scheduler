@@ -44,7 +44,7 @@ type goodHandler struct {
 	appOrderUnits      map[string]map[string]decimal.Decimal
 	appPowerRentals    map[string]map[string]*apppowerrentalmwpb.PowerRental
 	requiredAppFees    []*requiredappgoodmwpb.Required
-	techniqueFees      map[string]*appfeemwpb.Fee
+	techniqueFees      map[string]map[string]*appfeemwpb.Fee
 	appGoodUnitRewards map[string]map[string]map[string]decimal.Decimal
 	orderRewards       []*types.OrderReward
 	coinRewards        map[string]*coinReward
@@ -163,24 +163,27 @@ func (h *goodHandler) calculateUnitRewardsLegacy() error { //nolint:gocognit
 //nolint:gocognit
 func (h *goodHandler) _calculateUnitRewards() error {
 	for appID, appGoodUnits := range h.appOrderUnits {
-		// For one good, event it's assign to multiple app goods,
-		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFee, ok := h.techniqueFees[appID]
-		feePercent := decimal.NewFromInt(0)
-		var err error
-
-		if ok && techniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
-			feePercent, err = decimal.NewFromString(techniqueFee.UnitValue)
-			if err != nil {
-				return err
-			}
-		}
-
 		appUnitRewards, ok := h.appGoodUnitRewards[appID]
 		if !ok {
 			appUnitRewards = map[string]map[string]decimal.Decimal{}
 		}
 		for appGoodID, units := range appGoodUnits {
+			var techniqueFee *appfeemwpb.Fee
+			techniqueFees, ok := h.techniqueFees[appID]
+			if ok {
+				techniqueFee, ok = techniqueFees[appGoodID]
+			}
+
+			feePercent := decimal.NewFromInt(0)
+			var err error
+
+			if ok && techniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+				feePercent, err = decimal.NewFromString(techniqueFee.UnitValue)
+				if err != nil {
+					return err
+				}
+			}
+
 			appGoodUnitRewards, ok := appUnitRewards[appGoodID]
 			if !ok {
 				appGoodUnitRewards = map[string]decimal.Decimal{}
@@ -238,10 +241,19 @@ func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 	}
 }
 
+func (h *goodHandler) getMainAppGoodID(requiredAppGoodID string) (string, error) {
+	for _, required := range h.requiredAppFees {
+		if required.RequiredAppGoodID == requiredAppGoodID {
+			return required.MainAppGoodID, nil
+		}
+	}
+	return "", wlog.Errorf("invalid required")
+}
+
 func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	h.techniqueFees = map[string]*appfeemwpb.Fee{}
+	h.techniqueFees = map[string]map[string]*appfeemwpb.Fee{}
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
@@ -253,6 +265,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 					return
 				}(),
 			},
+			GoodType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_TechniqueServiceFee)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -261,11 +274,19 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			_, ok := h.techniqueFees[good.AppID]
-			if ok {
-				return fmt.Errorf("too many techniquefeegood")
+			techniqueFees, ok := h.techniqueFees[good.AppID]
+			if !ok {
+				techniqueFees = map[string]*appfeemwpb.Fee{}
 			}
-			h.techniqueFees[good.AppID] = good
+			if _, ok := techniqueFees[good.AppGoodID]; ok {
+				return wlog.Errorf("duplicated techniquefee")
+			}
+			mainAppGoodID, err := h.getMainAppGoodID(good.AppGoodID)
+			if err != nil {
+				return wlog.WrapError(err)
+			}
+			techniqueFees[mainAppGoodID] = good
+			h.techniqueFees[good.AppID] = techniqueFees
 		}
 		offset += limit
 	}

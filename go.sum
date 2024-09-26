@@ -76,8 +76,8 @@ github.com/NpoolPlatform/message v0.0.0-20240925081700-885e32f4940e h1:hvTI/0V/C
 github.com/NpoolPlatform/message v0.0.0-20240925081700-885e32f4940e/go.mod h1:PxJpF0vSSOke+NJskbRBRQ2fK2K3SRe8zaEja+GxSHk=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240711094100-57fe099fcd64 h1:iVNzJiOGLCfY95OleN+47/LKUnOoh3o9FcFX7oEyB+I=
 github.com/NpoolPlatform/notif-middleware v0.0.0-20240711094100-57fe099fcd64/go.mod h1:cTdoDJN6vSfeWgOfT+sxthXH+LN6hlngeFkdLBuN/7w=
-github.com/NpoolPlatform/order-middleware v0.0.0-20240711091705-d8489ca569a2 h1:6YNCHBLkfOI6K0qI8tOb9jeGPhRP5xN1vW9+s2iExsQ=
-github.com/NpoolPlatform/order-middleware v0.0.0-20240711091705-d8489ca569a2/go.mod h1:hber67rFuZZjT1Ohy+s7R/YW81SHDXp+SuiM6sB9cIQ=
+github.com/NpoolPlatform/order-middleware v0.0.0-20240826103142-2bd456d5e176 h1:+x0+MoDJXsH8Z7rD3rhTKGKu/tYnGpNG2M+rSGgRgRg=
+github.com/NpoolPlatform/order-middleware v0.0.0-20240826103142-2bd456d5e176/go.mod h1:FxhZRNbTZNi31+zJIk6CQ+LC8Rjk9+2xZRlPezx9yHg=
 github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2 h1:qXBRJjUzscoz2Sn2ceEmjweHVXZIqGBw2SgJDu/Tk2k=
 github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2/go.mod h1:31T/JYYgE/9w5uHYXqbrd9/a5DU0NEaV5CxBeBOBAHQ=
 github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9 h1:TljSgLyyHCAi/8cCOCf8WyOenmnbDJvqku627x4udyo=

@@ -33,7 +33,10 @@ type orderHandler struct {
 }
 
 func (h *orderHandler) paymentNoPayment() bool {
-	return len(h.PaymentTransfers) == 0 && len(h.PaymentBalances) == 0
+	return len(h.PaymentTransfers) == 0 &&
+		len(h.PaymentBalances) == 0 &&
+		(h.PaymentType == ordertypes.PaymentType_PayWithOffline ||
+			h.PaymentType == ordertypes.PaymentType_PayWithNoPayment)
 }
 
 func (h *orderHandler) timeout() bool {
@@ -145,6 +148,43 @@ func (h *orderHandler) preResolveNewState() bool {
 	return false
 }
 
+func (h *orderHandler) validatePayment() error {
+	if !h.paymentNoPayment() && len(h.PaymentTransfers) == 0 && len(h.PaymentBalances) == 0 {
+		return wlog.Errorf("invalid payment")
+	}
+	paymentAmountUSD := decimal.NewFromInt(0)
+	for _, balance := range h.PaymentBalances {
+		amount, err := decimal.NewFromString(balance.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		currency, err := decimal.NewFromString(balance.CoinUSDCurrency)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		paymentAmountUSD = paymentAmountUSD.Add(amount.Mul(currency))
+	}
+	for _, transfer := range h.PaymentTransfers {
+		amount, err := decimal.NewFromString(transfer.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		currency, err := decimal.NewFromString(transfer.CoinUSDCurrency)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		paymentAmountUSD = paymentAmountUSD.Add(amount.Mul(currency))
+	}
+	shouldPaymentAmountUSD, err := decimal.NewFromString(h.PaymentAmountUSD)
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	if paymentAmountUSD.LessThan(shouldPaymentAmountUSD) {
+		return wlog.Errorf("invalid payment")
+	}
+	return nil
+}
+
 //nolint:gocritic
 func (h *orderHandler) final(ctx context.Context, err *error) {
 	if *err != nil {
@@ -192,6 +232,9 @@ func (h *orderHandler) exec(ctx context.Context) error {
 
 	if h.preResolveNewState() {
 		return nil
+	}
+	if err = h.validatePayment(); err != nil {
+		return err
 	}
 	if err = h.getPaymentCoins(ctx); err != nil {
 		return err
