@@ -147,14 +147,7 @@ func Apply(ctx context.Context, req interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("---rewards: ", rewards)
-	logger.Sugar().Infow(
-		"calculateRewards",
-		"AppID", in.AppID,
-		"UserID", in.UserID,
-		"event", ev,
-		"rewards", rewards,
-	)
+
 	if len(rewards) == 0 {
 		return fmt.Errorf("miss reward")
 	}
@@ -176,15 +169,6 @@ func Apply(ctx context.Context, req interface{}) error {
 			RequestTimeout: timeoutSeconds,
 			TimeoutToFail:  timeoutSeconds,
 		})
-		fmt.Println("withCreateTaskUser-- taskUserID: ", taskUserID, " ;ev:  ", ev, " ;reward: ", reward)
-		logger.Sugar().Infow(
-			"withCreateTaskUser",
-			"AppID", in.AppID,
-			"UserID", in.UserID,
-			"event", ev.EventType,
-			"reward", reward,
-			"taskUserID", taskUserID,
-		)
 		handler.withCreateTaskUser(sagaDispose, &taskUserID, &ev.EntID, reward)
 		if err := dtm1.Do(ctx, sagaDispose); err != nil {
 			return err
@@ -196,7 +180,6 @@ func Apply(ctx context.Context, req interface{}) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("--- credits: ", credits)
 		if credits.Cmp(decimal.NewFromInt(0)) > 0 {
 			req := &eventmwpb.CreditRewardRequest{
 				AppID:      in.AppID,
@@ -207,12 +190,10 @@ func Apply(ctx context.Context, req interface{}) error {
 				Credits:    reward.Credits,
 				RetryCount: 1,
 			}
-			fmt.Println("====== rewardCredit")
 			handler.rewardCredit(req)
 		}
 
 		// reward coin
-		fmt.Println("--- reward.CoinRewards: ", reward.CoinRewards)
 		if len(reward.CoinRewards) > 0 {
 			req := &eventmwpb.CoinRewardRequest{
 				AppID:       in.AppID,
@@ -222,12 +203,10 @@ func Apply(ctx context.Context, req interface{}) error {
 				EventID:     ev.EntID,
 				CoinRewards: reward.CoinRewards,
 			}
-			fmt.Println("====== rewardCoin")
 			handler.rewardCoin(req)
 		}
 
 		// reward coupon
-		fmt.Println("--- reward.CouponRewards: ", reward.CouponRewards)
 		if len(reward.CouponRewards) > 0 {
 			req := &eventmwpb.CouponRewardRequest{
 				AppID:      in.AppID,
@@ -237,7 +216,6 @@ func Apply(ctx context.Context, req interface{}) error {
 				EventID:    ev.EntID,
 				Coupons:    reward.CouponRewards,
 			}
-			fmt.Println("====== rewardCoupon")
 			handler.rewardCoupon(req)
 		}
 	}
