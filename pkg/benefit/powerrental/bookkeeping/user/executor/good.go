@@ -408,7 +408,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	}, 0, int32(20))
+	}, 0, int32(8))
 	if err != nil {
 		return err
 	}
