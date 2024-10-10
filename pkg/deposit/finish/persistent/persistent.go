@@ -28,7 +28,7 @@ func (p *handler) Update(ctx context.Context, account interface{}, reward, notif
 		return fmt.Errorf("invalid account")
 	}
 
-	defer asyncfeed.AsyncFeed(ctx, _account, reward)
+	defer asyncfeed.AsyncFeed(ctx, _account, done)
 
 	if err := accountlock.Lock(_account.AccountID); err != nil {
 		return err
