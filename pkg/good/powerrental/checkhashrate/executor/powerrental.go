@@ -53,7 +53,9 @@ func (h *powerRentalHandler) checkMiningGoodStockState() error {
 func (h *powerRentalHandler) getCoinTypeIDs() {
 	h.goodCoinTypeIDs = []string{}
 	for _, goodCoin := range h.PowerRental.GoodCoins {
-		h.goodCoinTypeIDs = append(h.goodCoinTypeIDs, goodCoin.CoinTypeID)
+		if goodCoin.Main {
+			h.goodCoinTypeIDs = append(h.goodCoinTypeIDs, goodCoin.CoinTypeID)
+		}
 	}
 	h.goodCoinTypeIDs = _removeRepeatedElement(h.goodCoinTypeIDs)
 }
