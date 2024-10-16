@@ -77,7 +77,12 @@ func _removeRepeatedElement(arr []string) []string {
 
 func (h *powerRentalHandler) checkHashRate(ctx context.Context) error {
 	for _, miningGoodStock := range h.PowerRental.MiningGoodStocks {
-		hashRate, err := goodusermwcli.GetGoodUserHashRate(ctx, miningGoodStock.PoolGoodUserID, h.goodCoinTypeIDs)
+		hRate, err := goodusermwcli.GetGoodUserHashRate(ctx, miningGoodStock.PoolGoodUserID, h.goodCoinTypeIDs)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+
+		_hashRate, err := decimal.NewFromString(hRate)
 		if err != nil {
 			return wlog.WrapError(err)
 		}
@@ -91,11 +96,11 @@ func (h *powerRentalHandler) checkHashRate(ctx context.Context) error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
+		_total = _total.Mul(unit)
 
-		_total.Mul(unit)
-
+		hashRate := _hashRate.InexactFloat64()
 		total := _total.InexactFloat64()
-		if math.Abs(hashRate-total)-total*MaxToleranceScope > 0 {
+		if math.Abs(hashRate-total) > total*MaxToleranceScope {
 			return wlog.Errorf("hash rate not up to total of mininggoodstock")
 		}
 	}

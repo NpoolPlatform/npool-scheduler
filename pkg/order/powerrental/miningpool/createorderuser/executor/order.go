@@ -168,11 +168,11 @@ func (h *orderHandler) exec(ctx context.Context) error {
 		return wlog.WrapError(err)
 	}
 
-	if err = h.validatePoolGoodUserID(ctx); err != nil {
+	if err = h.getPoolGoodUserID(); err != nil {
 		return wlog.WrapError(err)
 	}
 
-	if err = h.getPoolGoodUserID(); err != nil {
+	if err = h.validatePoolGoodUserID(ctx); err != nil {
 		return wlog.WrapError(err)
 	}
 
