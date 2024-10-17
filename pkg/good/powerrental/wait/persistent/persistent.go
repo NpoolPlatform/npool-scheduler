@@ -27,7 +27,7 @@ func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan
 
 	defer asyncfeed.AsyncFeed(ctx, _good, done)
 
-	return powerrentalmwcli.CreatePowerRental(ctx, &goodpowerrentalmwpb.PowerRentalReq{
+	return powerrentalmwcli.UpdatePowerRental(ctx, &goodpowerrentalmwpb.PowerRentalReq{
 		ID:               &_good.ID,
 		EntID:            &_good.EntID,
 		GoodID:           &_good.GoodID,
