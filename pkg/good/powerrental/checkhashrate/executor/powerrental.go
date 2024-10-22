@@ -94,7 +94,7 @@ func (h *powerRentalHandler) checkHashRate(ctx context.Context) error {
 			return wlog.WrapError(err)
 		}
 
-		unit, err := decimal.NewFromString(h.PowerRental.QuantityUnit)
+		unit, err := decimal.NewFromString(h.PowerRental.QuantityUnitAmount)
 		if err != nil {
 			return wlog.WrapError(err)
 		}

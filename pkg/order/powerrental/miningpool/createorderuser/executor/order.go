@@ -113,6 +113,7 @@ func (h *orderHandler) constructUpdatePowerrentalOrderReq() {
 		ID:              &h.PowerRentalOrder.ID,
 		EntID:           &h.PowerRentalOrder.EntID,
 		PoolOrderUserID: h.orderUserReq.EntID,
+		OrderState:      h.nextState,
 	}
 }
 

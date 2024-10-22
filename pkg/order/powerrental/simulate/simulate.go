@@ -18,6 +18,12 @@ import (
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/expiry/restorestock"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/checkpoolbalance"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/checkproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/createorderuser"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/deleteproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/setproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/miningpool/setrevenueaddress"
 	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/paid/check"
 	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/paid/stock"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/simulate/payment/achievement"
@@ -65,6 +71,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	expiryrestorestock.Initialize(ctx, cancel, &running)
 	expirycheck.Initialize(ctx, cancel, &running)
 	created.Initialize(ctx, cancel, &running)
+
+	// for miningpool
+	createorderuser.Initialize(ctx, cancel, &running)
+	checkproportion.Initialize(ctx, cancel, &running)
+	setproportion.Initialize(ctx, cancel, &running)
+	setrevenueaddress.Initialize(ctx, cancel, &running)
+	deleteproportion.Initialize(ctx, cancel, &running)
+	checkpoolbalance.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
@@ -93,4 +107,12 @@ func Finalize(ctx context.Context) {
 	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
 	paymentunlockaccount.Finalize(ctx)
+
+	// for miningpool
+	createorderuser.Finalize(ctx)
+	checkproportion.Finalize(ctx)
+	setproportion.Finalize(ctx)
+	setrevenueaddress.Finalize(ctx)
+	deleteproportion.Finalize(ctx)
+	checkpoolbalance.Finalize(ctx)
 }

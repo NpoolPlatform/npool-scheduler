@@ -90,6 +90,12 @@ config:
     - orderpowerrentalsimulateexpirycheck
     - orderpowerrentalsimulateexpirypreexpired
     - orderpowerrentalsimulateexpiryrestorestock
+    - orderpowerrentalsimulateminingpoolcreateorderuser
+    - orderpowerrentalsimulateminingpoolsetproportion
+    - orderpowerrentalsimulateminingpoolsetrevenueaddress
+    - orderpowerrentalsimulateminingpooldeleteproportion
+    - orderpowerrentalsimulateminingpoolcheckpoolbalance
+    - orderpowerrentalsimulateminingpoolcheckproportion
     - orderpowerrentalminingpoolcreateorderuser
     - orderpowerrentalminingpoolsetproportion
     - orderpowerrentalminingpoolsetrevenueaddress
