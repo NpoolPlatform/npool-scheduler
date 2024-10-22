@@ -212,7 +212,9 @@ func (h *powerRentalHandler) exec(ctx context.Context) error {
 
 	defer h.final(ctx, &err)
 
-	h.getCoinTypeIDs()
+	if err = h.getCoinTypeIDs(); err != nil {
+		return wlog.WrapError(err)
+	}
 
 	if err = h.getPoolInfos(ctx); err != nil {
 		return wlog.WrapError(err)
