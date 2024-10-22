@@ -95,6 +95,7 @@ config:
     - orderpowerrentalminingpoolsetrevenueaddress
     - orderpowerrentalminingpooldeleteproportion
     - orderpowerrentalminingpoolcheckpoolbalance
+    - orderpowerrentalminingpoolcheckproportion
     - orderfee
     - orderfeecreated
     - orderfeepaymentwait
