@@ -63,7 +63,7 @@ func (h *powerRentalHandler) final(ctx context.Context, err *error) {
 		MiningGoodStockReqs: h.miningGoodStockReqs,
 	}
 
-	if err == nil {
+	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentPowerRental, h.persistent)
 	} else {
 		asyncfeed.AsyncFeed(ctx, persistentPowerRental, h.done)
