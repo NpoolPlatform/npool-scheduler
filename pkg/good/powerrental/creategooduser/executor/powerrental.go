@@ -52,12 +52,25 @@ func (h *powerRentalHandler) checkMiningGoodStockState() error {
 	return nil
 }
 
-func (h *powerRentalHandler) getCoinTypeIDs() {
+func (h *powerRentalHandler) getCoinTypeIDs() error {
+	if len(h.PowerRental.GoodCoins) == 0 {
+		return wlog.Errorf("powerrental good have no coins")
+	}
+
 	h.goodCoinTypeIDs = []string{}
+	haveMainCoin := false
 	for _, goodCoin := range h.PowerRental.GoodCoins {
 		h.goodCoinTypeIDs = append(h.goodCoinTypeIDs, goodCoin.CoinTypeID)
+		if goodCoin.Main {
+			haveMainCoin = true
+		}
 	}
+	if !haveMainCoin {
+		return wlog.Errorf("powerrental good have no main coin")
+	}
+
 	h.goodCoinTypeIDs = _removeRepeatedElement(h.goodCoinTypeIDs)
+	return nil
 }
 
 func _removeRepeatedElement(arr []string) []string {
