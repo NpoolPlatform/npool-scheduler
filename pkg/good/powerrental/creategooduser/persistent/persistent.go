@@ -56,7 +56,7 @@ func (p *handler) withCreatePoolGoodUser(dispose *dtmcli.SagaDispose, good *type
 	}
 }
 
-func (p *handler) Update(ctx context.Context, good interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, good interface{}, reward, notif, done chan interface{}) error {
 	_good, ok := good.(*types.PersistentGoodPowerRental)
 	if !ok {
 		return fmt.Errorf("invalid feeorder")

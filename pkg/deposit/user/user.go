@@ -10,6 +10,7 @@ import (
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/executor"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/notif"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/persistent"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/reward"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/deposit/user/sentinel"
 )
 
@@ -29,6 +30,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc, running *sync.Ma
 		base.WithExecutorNumber(20),
 		base.WithRunningConcurrent(20),
 		base.WithPersistenter(persistent.NewPersistent()),
+		base.WithRewarder(reward.NewReward()),
 		base.WithRunningMap(running),
 	)
 	if err != nil || _h == nil {

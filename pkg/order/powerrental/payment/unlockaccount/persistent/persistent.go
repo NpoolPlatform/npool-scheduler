@@ -77,14 +77,14 @@ func (p *handler) unlockPaymentTransferAccounts(order *types.PersistentOrder) {
 	}
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentOrder)
 	if !ok {
 		return fmt.Errorf("invalid order")
 	}
 
 	defer asyncfeed.AsyncFeed(ctx, _order, notif)
-	defer asyncfeed.AsyncFeed(ctx, _order, done)
+	defer asyncfeed.AsyncFeed(ctx, _order, reward)
 
 	if err := p.lockPaymentTransferAccounts(_order); err != nil {
 		return err

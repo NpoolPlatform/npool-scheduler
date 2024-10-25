@@ -61,9 +61,6 @@ func (h *goodHandler) calculateCoinNextRewardStartAmounts() error {
 			},
 			lastRewardAmount: lastRewardAmount,
 		}
-		if _, ok := h.rewardTxs[reward.RewardTID]; !ok {
-			coinNextReward.NextRewardStartAmount = nextRewardStartAmount.String()
-		}
 		h.coinNextRewards = append(h.coinNextRewards, coinNextReward)
 	}
 	return nil

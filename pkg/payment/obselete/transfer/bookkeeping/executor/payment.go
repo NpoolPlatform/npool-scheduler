@@ -31,6 +31,7 @@ type paymentHandler struct {
 	paymentTransferCoins map[string]*coinmwpb.Coin
 	paymentAccounts      map[string]*paymentaccountmwpb.Account
 	statements           []*ledgerstatementmwpb.StatementReq
+	paymentTransfers     []*paymentmwpb.PaymentTransferReq
 }
 
 func (h *paymentHandler) checkPaymentStatement(ctx context.Context) (bool, error) {
@@ -105,6 +106,10 @@ func (h *paymentHandler) constructStatement(ctx context.Context, transfer *payme
 	if err != nil {
 		return err
 	}
+	h.paymentTransfers = append(h.paymentTransfers, &paymentmwpb.PaymentTransferReq{
+		EntID:        &transfer.EntID,
+		FinishAmount: &balance.BalanceStr,
+	})
 	if bal.Cmp(startAmount) <= 0 {
 		return nil
 	}
@@ -143,11 +148,14 @@ func (h *paymentHandler) final(ctx context.Context, err *error) {
 		logger.Sugar().Errorw(
 			"final",
 			"Payment", h,
+			"PaymentTransfer", h.paymentTransfers,
+			"Error", *err,
 		)
 	}
 	persistentPayment := &types.PersistentPayment{
-		Payment:    h.Payment,
-		Statements: h.statements,
+		Payment:          h.Payment,
+		Statements:       h.statements,
+		PaymentTransfers: h.paymentTransfers,
 	}
 	if *err == nil {
 		asyncfeed.AsyncFeed(ctx, persistentPayment, h.persistent)

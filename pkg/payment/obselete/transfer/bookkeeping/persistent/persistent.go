@@ -19,7 +19,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, payment interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, payment interface{}, reward, notif, done chan interface{}) error {
 	_payment, ok := payment.(*types.PersistentPayment)
 	if !ok {
 		return fmt.Errorf("invalid payment")
@@ -34,7 +34,8 @@ func (p *handler) Update(ctx context.Context, payment interface{}, notif, done c
 	}
 
 	return paymentmwcli.UpdatePayment(ctx, &paymentmwpb.PaymentReq{
-		ID:            &_payment.ID,
-		ObseleteState: ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount.Enum(),
+		ID:               &_payment.ID,
+		ObseleteState:    ordertypes.PaymentObseleteState_PaymentObseleteTransferUnlockAccount.Enum(),
+		PaymentTransfers: _payment.PaymentTransfers,
 	})
 }

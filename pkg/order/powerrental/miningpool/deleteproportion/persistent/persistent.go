@@ -47,7 +47,7 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, req *powerre
 	)
 }
 
-func (p *handler) Update(ctx context.Context, order interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, done chan interface{}) error {
 	_order, ok := order.(*types.PersistentOrder)
 	if !ok {
 		return wlog.Errorf("invalid order")

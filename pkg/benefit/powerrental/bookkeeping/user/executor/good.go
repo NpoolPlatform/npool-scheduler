@@ -9,14 +9,17 @@ import (
 	appfeemwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/fee"
 	requiredappgoodmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/good/required"
 	apppowerrentalmwcli "github.com/NpoolPlatform/good-middleware/pkg/client/app/powerrental"
+	statementmwcli "github.com/NpoolPlatform/ledger-middleware/pkg/client/ledger/statement"
 	cruder "github.com/NpoolPlatform/libent-cruder/pkg/cruder"
 	goodtypes "github.com/NpoolPlatform/message/npool/basetypes/good/v1"
+	ledgertypes "github.com/NpoolPlatform/message/npool/basetypes/ledger/v1"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
 	basetypes "github.com/NpoolPlatform/message/npool/basetypes/v1"
 	appfeemwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/fee"
 	requiredappgoodmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/required"
 	apppowerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/powerrental"
 	powerrentalmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/powerrental"
+	statementmwpb "github.com/NpoolPlatform/message/npool/ledger/mw/v2/ledger/statement"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	types "github.com/NpoolPlatform/npool-scheduler/pkg/benefit/powerrental/bookkeeping/user/types"
@@ -41,7 +44,7 @@ type goodHandler struct {
 	appOrderUnits      map[string]map[string]decimal.Decimal
 	appPowerRentals    map[string]map[string]*apppowerrentalmwpb.PowerRental
 	requiredAppFees    []*requiredappgoodmwpb.Required
-	techniqueFees      map[string]*appfeemwpb.Fee
+	techniqueFees      map[string]map[string]*appfeemwpb.Fee
 	appGoodUnitRewards map[string]map[string]map[string]decimal.Decimal
 	orderRewards       []*types.OrderReward
 	coinRewards        map[string]*coinReward
@@ -160,24 +163,27 @@ func (h *goodHandler) calculateUnitRewardsLegacy() error { //nolint:gocognit
 //nolint:gocognit
 func (h *goodHandler) _calculateUnitRewards() error {
 	for appID, appGoodUnits := range h.appOrderUnits {
-		// For one good, event it's assign to multiple app goods,
-		// we'll use the same technique fee app good due to good only can bind to one technique fee good
-		techniqueFee, ok := h.techniqueFees[appID]
-		feePercent := decimal.NewFromInt(0)
-		var err error
-
-		if ok && techniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
-			feePercent, err = decimal.NewFromString(techniqueFee.UnitValue)
-			if err != nil {
-				return err
-			}
-		}
-
 		appUnitRewards, ok := h.appGoodUnitRewards[appID]
 		if !ok {
 			appUnitRewards = map[string]map[string]decimal.Decimal{}
 		}
 		for appGoodID, units := range appGoodUnits {
+			var techniqueFee *appfeemwpb.Fee
+			techniqueFees, ok := h.techniqueFees[appID]
+			if ok {
+				techniqueFee, ok = techniqueFees[appGoodID]
+			}
+
+			feePercent := decimal.NewFromInt(0)
+			var err error
+
+			if ok && techniqueFee.SettlementType == goodtypes.GoodSettlementType_GoodSettledByProfitPercent {
+				feePercent, err = decimal.NewFromString(techniqueFee.UnitValue)
+				if err != nil {
+					return err
+				}
+			}
+
 			appGoodUnitRewards, ok := appUnitRewards[appGoodID]
 			if !ok {
 				appGoodUnitRewards = map[string]decimal.Decimal{}
@@ -235,10 +241,19 @@ func (h *goodHandler) getRequiredTechniqueFees(ctx context.Context) error {
 	}
 }
 
+func (h *goodHandler) getMainAppGoodID(requiredAppGoodID string) (string, error) {
+	for _, required := range h.requiredAppFees {
+		if required.RequiredAppGoodID == requiredAppGoodID {
+			return required.MainAppGoodID, nil
+		}
+	}
+	return "", wlog.Errorf("invalid required")
+}
+
 func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
-	h.techniqueFees = map[string]*appfeemwpb.Fee{}
+	h.techniqueFees = map[string]map[string]*appfeemwpb.Fee{}
 
 	for {
 		goods, _, err := appfeemwcli.GetFees(ctx, &appfeemwpb.Conds{
@@ -250,6 +265,7 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 					return
 				}(),
 			},
+			GoodType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(goodtypes.GoodType_TechniqueServiceFee)},
 		}, offset, limit)
 		if err != nil {
 			return err
@@ -258,11 +274,19 @@ func (h *goodHandler) getAppTechniqueFees(ctx context.Context) error {
 			break
 		}
 		for _, good := range goods {
-			_, ok := h.techniqueFees[good.AppID]
-			if ok {
-				return fmt.Errorf("too many techniquefeegood")
+			techniqueFees, ok := h.techniqueFees[good.AppID]
+			if !ok {
+				techniqueFees = map[string]*appfeemwpb.Fee{}
 			}
-			h.techniqueFees[good.AppID] = good
+			if _, ok := techniqueFees[good.AppGoodID]; ok {
+				return wlog.Errorf("duplicated techniquefee")
+			}
+			mainAppGoodID, err := h.getMainAppGoodID(good.AppGoodID)
+			if err != nil {
+				return wlog.WrapError(err)
+			}
+			techniqueFees[mainAppGoodID] = good
+			h.techniqueFees[good.AppID] = techniqueFees
 		}
 		offset += limit
 	}
@@ -310,7 +334,24 @@ func (h *goodHandler) calculateUnitRewards() error {
 	return h._calculateUnitRewards()
 }
 
-func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRentalOrder) error {
+func (h *goodHandler) checkBenefitStatement(ctx context.Context, reward *types.OrderReward) (bool, error) {
+	ioType := ledgertypes.IOType_Incoming
+	ioSubType := ledgertypes.IOSubType_MiningBenefit
+	exist, err := statementmwcli.ExistStatementConds(
+		ctx,
+		&statementmwpb.Conds{
+			AppID:     &basetypes.StringVal{Op: cruder.EQ, Value: reward.AppID},
+			UserID:    &basetypes.StringVal{Op: cruder.EQ, Value: reward.UserID},
+			IOType:    &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioType)},
+			IOSubType: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ioSubType)},
+		})
+	if err != nil {
+		return false, wlog.WrapError(err)
+	}
+	return exist, nil
+}
+
+func (h *goodHandler) calculateOrderReward(ctx context.Context, order *powerrentalordermwpb.PowerRentalOrder) error {
 	appUnitRewards, ok := h.appGoodUnitRewards[order.AppID]
 	if !ok {
 		return nil
@@ -351,6 +392,11 @@ func (h *goodHandler) calculateOrderReward(order *powerrentalordermwpb.PowerRent
 			Amount:     amount.String(),
 		})
 	}
+	exist, err := h.checkBenefitStatement(ctx, orderReward)
+	if err != nil {
+		return err
+	}
+	orderReward.FirstBenefit = !exist
 	h.orderRewards = append(h.orderRewards, orderReward)
 	return nil
 }
@@ -362,7 +408,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 		LastBenefitAt: &basetypes.Uint32Val{Op: cruder.EQ, Value: h.LastRewardAt},
 		BenefitState:  &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(ordertypes.BenefitState_BenefitCalculated)},
 		Simulate:      &basetypes.BoolVal{Op: cruder.EQ, Value: false},
-	}, 0, int32(20))
+	}, 0, int32(8))
 	if err != nil {
 		return err
 	}
@@ -371,7 +417,7 @@ func (h *goodHandler) calculateOrderRewards(ctx context.Context) error {
 	}
 
 	for _, order := range orders {
-		if err := h.calculateOrderReward(order); err != nil {
+		if err := h.calculateOrderReward(ctx, order); err != nil {
 			return err
 		}
 	}

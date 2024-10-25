@@ -21,7 +21,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, benefit interface{}, notif, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, benefit interface{}, reward, notif, done chan interface{}) error {
 	_benefit, ok := benefit.(*types.PersistentGoodBenefit)
 	if !ok {
 		return fmt.Errorf("invalid benefit")

@@ -20,7 +20,7 @@ func NewPersistent() basepersistent.Persistenter {
 	return &handler{}
 }
 
-func (p *handler) Update(ctx context.Context, notif interface{}, notif1, done chan interface{}) error {
+func (p *handler) Update(ctx context.Context, notif interface{}, reward, notif1, done chan interface{}) error {
 	_notif, ok := notif.(*types.PersistentNotif)
 	if !ok {
 		return fmt.Errorf("invalid notif")

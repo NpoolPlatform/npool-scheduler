@@ -7,5 +7,6 @@ import (
 
 type PersistentPayment struct {
 	*paymentmwpb.Payment
-	Statements []*ledgerstatementmwpb.StatementReq
+	Statements       []*ledgerstatementmwpb.StatementReq
+	PaymentTransfers []*paymentmwpb.PaymentTransferReq
 }

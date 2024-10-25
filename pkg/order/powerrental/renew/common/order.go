@@ -283,10 +283,6 @@ func goodDurationDisplay2Duration(_type goodtypes.GoodDurationType, seconds uint
 		units = dSeconds.Div(decimal.NewFromInt(int64(timedef.SecondsPerYear)))
 	}
 
-	if units.GreaterThan(decimal.NewFromInt(1)) {
-		return units.Floor()
-	}
-
 	return units
 }
 
@@ -314,7 +310,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		h.ElectricityFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
-				GoodName:       h.ElectricityFee.Name,
+				GoodName:       h.ElectricityFee.AppGoodName,
 				UnitValue:      h.ElectricityFee.UnitValue,
 				SettlementType: h.ElectricityFee.SettlementType,
 				AppGoodID:      h.ElectricityFee.AppGoodID,
@@ -340,7 +336,7 @@ func (h *OrderHandler) CalculateUSDAmount() error {
 		h.TechniqueFeeUSDAmount = unitPrice.Mul(durations).Mul(orderUnits)
 		h.RenewInfos = append(h.RenewInfos, &orderrenewpb.RenewInfo{
 			AppGoodInfo: &orderrenewpb.AppGoodInfo{
-				GoodName:       h.TechniqueFee.Name,
+				GoodName:       h.TechniqueFee.AppGoodName,
 				UnitValue:      h.TechniqueFee.UnitValue,
 				SettlementType: h.TechniqueFee.SettlementType,
 				AppGoodID:      h.TechniqueFee.AppGoodID,
