@@ -6,6 +6,5 @@ import (
 
 type PersistentOrder struct {
 	*powerrentalordermwpb.PowerRentalOrder
-	AppGoodStockID     string
-	AppGoodStockLockID string
+	AppGoodStockID string
 }

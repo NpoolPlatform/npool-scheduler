@@ -36,6 +36,7 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, c
 	for {
 		conds := &powerrentalmwpb.Conds{
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			StockMode:   &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningPool)},
 		}
 		if cond != nil {
 			conds.GoodIDs = &basetypes.StringSliceVal{Op: cruder.IN, Value: cond.GoodIDs}

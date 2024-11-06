@@ -18,6 +18,12 @@ import (
 	expirycheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/check"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/preexpired"
 	expiryrestorestock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/expiry/restorestock"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkpoolbalance"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/checkproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/createorderuser"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/deleteproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/setproportion"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/miningpool/setrevenueaddress"
 	paidcheck "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/paid/check"
 	paidstock "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/paid/stock"
 	paymentachievement "github.com/NpoolPlatform/npool-scheduler/pkg/order/powerrental/payment/achievement"
@@ -75,6 +81,14 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	renewcheck.Initialize(ctx, cancel, &running)
 	renewnotify.Initialize(ctx, cancel, &running)
 	renewexecute.Initialize(ctx, cancel, &running)
+
+	// for miningpool
+	createorderuser.Initialize(ctx, cancel, &running)
+	checkproportion.Initialize(ctx, cancel, &running)
+	setproportion.Initialize(ctx, cancel, &running)
+	setrevenueaddress.Initialize(ctx, cancel, &running)
+	deleteproportion.Initialize(ctx, cancel, &running)
+	checkpoolbalance.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
@@ -108,4 +122,12 @@ func Finalize(ctx context.Context) {
 	bookkeeping.Finalize(ctx)
 	paymentachievement.Finalize(ctx)
 	paymentunlockaccount.Finalize(ctx)
+
+	// for miningpool
+	createorderuser.Finalize(ctx)
+	checkproportion.Finalize(ctx)
+	setproportion.Finalize(ctx)
+	setrevenueaddress.Finalize(ctx)
+	deleteproportion.Finalize(ctx)
+	checkpoolbalance.Finalize(ctx)
 }

@@ -26,7 +26,7 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 
 	defer asyncfeed.AsyncFeed(ctx, _order, done)
 
-	state := ordertypes.OrderState_OrderStateRestoreExpiredStock
+	state := ordertypes.OrderState_OrderStateDeleteProportion
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
 		OrderState: &state,

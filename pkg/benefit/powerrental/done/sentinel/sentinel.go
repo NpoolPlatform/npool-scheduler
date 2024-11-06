@@ -28,6 +28,7 @@ func (h *handler) scanGoods(ctx context.Context, state goodtypes.BenefitState, e
 	for {
 		goods, _, err := powerrentalmwcli.GetPowerRentals(ctx, &powerrentalmwpb.Conds{
 			RewardState: &basetypes.Uint32Val{Op: cruder.EQ, Value: uint32(state)},
+			StockMode:   &basetypes.Uint32Val{Op: cruder.NEQ, Value: uint32(goodtypes.GoodStockMode_GoodStockByMiningPool)},
 		}, offset, limit)
 		if err != nil {
 			return err

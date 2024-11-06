@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	goodsvcname "github.com/NpoolPlatform/good-middleware/pkg/servicename"
 	ordertypes "github.com/NpoolPlatform/message/npool/basetypes/order/v1"
-	appstockmwpb "github.com/NpoolPlatform/message/npool/good/mw/v1/app/good/stock"
 	powerrentalordermwpb "github.com/NpoolPlatform/message/npool/order/mw/v1/powerrental"
 	asyncfeed "github.com/NpoolPlatform/npool-scheduler/pkg/base/asyncfeed"
 	basepersistent "github.com/NpoolPlatform/npool-scheduler/pkg/base/persistent"
@@ -24,7 +22,7 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateInService
+	state := ordertypes.OrderState_OrderStateCreateOrderUser
 	rollback := true
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,
@@ -37,17 +35,6 @@ func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types
 		"order.middleware.powerrental.v1.Middleware/UpdatePowerRentalOrder",
 		&powerrentalordermwpb.UpdatePowerRentalOrderRequest{
 			Info: req,
-		},
-	)
-}
-
-func (p *handler) withUpdateStock(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	dispose.Add(
-		goodsvcname.ServiceDomain,
-		"good.middleware.app.good1.stock.v1.Middleware/InService",
-		"",
-		&appstockmwpb.InServiceRequest{
-			LockID: order.AppGoodStockLockID,
 		},
 	)
 }
@@ -66,7 +53,6 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 		RequestTimeout: timeoutSeconds,
 	})
 	p.withUpdateOrderState(sagaDispose, _order)
-	p.withUpdateStock(sagaDispose, _order)
 	if err := dtmcli.WithSaga(ctx, sagaDispose); err != nil {
 		return err
 	}

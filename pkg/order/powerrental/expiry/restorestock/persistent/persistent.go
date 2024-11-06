@@ -24,7 +24,7 @@ func NewPersistent() basepersistent.Persistenter {
 }
 
 func (p *handler) withUpdateOrderState(dispose *dtmcli.SagaDispose, order *types.PersistentOrder) {
-	state := ordertypes.OrderState_OrderStateExpired
+	state := ordertypes.OrderState_OrderStateCheckPoolBalance
 	rollback := true
 	req := &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &order.ID,

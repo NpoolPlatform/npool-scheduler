@@ -28,6 +28,6 @@ func (p *handler) Update(ctx context.Context, order interface{}, reward, notif, 
 
 	return powerrentalordermwcli.UpdatePowerRentalOrder(ctx, &powerrentalordermwpb.PowerRentalOrderReq{
 		ID:         &_order.ID,
-		OrderState: ordertypes.OrderState_OrderStateInService.Enum(),
+		OrderState: ordertypes.OrderState_OrderStateCreateOrderUser.Enum(),
 	})
 }
