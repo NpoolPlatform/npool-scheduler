@@ -142,8 +142,6 @@ func Apply(ctx context.Context, req interface{}) error {
 		Consecutive: in.Consecutive,
 		Amount:      in.Amount,
 	})
-	fmt.Printf("AppID: %v, UserID: %v, EventType: %v, GoodID: %v, AppGoodID: %v, Consecutive: %v, Amount: %v;\n",
-		in.AppID, in.UserID, in.EventType, in.GoodID, in.AppGoodID, in.Consecutive, in.Amount)
 	if err != nil {
 		return err
 	}
