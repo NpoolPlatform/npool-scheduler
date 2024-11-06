@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.12.0
-	github.com/NpoolPlatform/account-middleware v0.0.0-20241025071655-b524d76f70f3
+	github.com/NpoolPlatform/account-middleware v0.0.0-20241106020243-b37649c21ac8
 	github.com/NpoolPlatform/appuser-middleware v0.0.0-20240119021359-948c8504d662
 	github.com/NpoolPlatform/basal-middleware v0.0.0-20240228105108-f00107969a4f
 	github.com/NpoolPlatform/build-chain v0.0.0-20231211023318-0c7698792ed7
@@ -12,15 +12,15 @@ require (
 	github.com/NpoolPlatform/dtm-cluster v0.0.0-20231011071916-859e5dcbf626
 	github.com/NpoolPlatform/g11n-middleware v0.0.0-20231026021135-ec3cd368fc24
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20240710095805-e6137d987fcc
-	github.com/NpoolPlatform/good-middleware v0.0.0-20241025072200-f1ad98cdd06a
+	github.com/NpoolPlatform/good-middleware v0.0.0-20241106020322-e0263589a08c
 	github.com/NpoolPlatform/inspire-middleware v0.0.0-20241025015438-fda55c21696d
 	github.com/NpoolPlatform/ledger-gateway v0.0.0-20240711092837-6d60d37a3064
 	github.com/NpoolPlatform/ledger-middleware v0.0.0-20240926060549-586842176038
 	github.com/NpoolPlatform/libent-cruder v0.0.0-20240514082633-598d5fc7b1e3
-	github.com/NpoolPlatform/message v0.0.0-20241025065540-29a6e394c9aa
-	github.com/NpoolPlatform/miningpool-middleware v0.0.0-20241025070432-43b1070ae5cb
+	github.com/NpoolPlatform/message v0.0.0-20241104010148-4dc1b1efd9d1
+	github.com/NpoolPlatform/miningpool-middleware v0.0.0-20241106020300-03d147aeb913
 	github.com/NpoolPlatform/notif-middleware v0.0.0-20240711094100-57fe099fcd64
-	github.com/NpoolPlatform/order-middleware v0.0.0-20241025073132-80eb88ffdfd1
+	github.com/NpoolPlatform/order-middleware v0.0.0-20241106020324-b91339b3d20e
 	github.com/NpoolPlatform/review-middleware v0.0.0-20240108100223-106962e5a9c2
 	github.com/NpoolPlatform/sphinx-proxy v0.0.0-20231201062049-852b1487d4a9
 	github.com/NpoolPlatform/third-middleware v0.0.0-20231011073243-59e4e2a0a8ac
