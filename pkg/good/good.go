@@ -6,6 +6,7 @@ import (
 
 	"github.com/NpoolPlatform/go-service-framework/pkg/logger"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/config"
+	"github.com/NpoolPlatform/npool-scheduler/pkg/good/pledge"
 	"github.com/NpoolPlatform/npool-scheduler/pkg/good/powerrental"
 )
 
@@ -23,6 +24,7 @@ func Initialize(ctx context.Context, cancel context.CancelFunc) {
 	)
 
 	powerrental.Initialize(ctx, cancel, &running)
+	pledge.Initialize(ctx, cancel, &running)
 }
 
 func Finalize(ctx context.Context) {
@@ -30,4 +32,5 @@ func Finalize(ctx context.Context) {
 		return
 	}
 	powerrental.Finalize(ctx)
+	pledge.Finalize(ctx)
 }

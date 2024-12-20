@@ -150,3 +150,7 @@ config:
     - goodpowerrentalwait
     - goodpowerrentalcreategooduser
     - goodpowerrentalcheckhashrate
+    - goodpledge
+    - goodpledgewait
+    - goodpledgedeployment
+    - goodpledgecheckdeployment
