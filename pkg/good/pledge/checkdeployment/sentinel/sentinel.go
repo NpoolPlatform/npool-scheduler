@@ -20,16 +20,12 @@ func NewSentinel() basesentinel.Scanner {
 	return &handler{}
 }
 
-func (h *handler) scanPledges(ctx context.Context, state goodbasepb.GoodState, goodType goodbasepb.GoodType, exec chan interface{}) error {
+func (h *handler) scanPledges(ctx context.Context, goodType goodbasepb.GoodType, exec chan interface{}) error {
 	offset := int32(0)
 	limit := constant.DefaultRowLimit
 
 	for {
 		goods, _, err := goodpledgemwcli.GetPledges(ctx, &goodpledgemwpb.Conds{
-			State: &v1.Uint32Val{
-				Op:    cruder.EQ,
-				Value: uint32(state),
-			},
 			GoodType: &v1.Uint32Val{
 				Op:    cruder.EQ,
 				Value: uint32(goodType),
@@ -57,7 +53,6 @@ func (h *handler) scanPledges(ctx context.Context, state goodbasepb.GoodState, g
 
 func (h *handler) Scan(ctx context.Context, exec chan interface{}) error {
 	return h.scanPledges(ctx,
-		goodbasepb.GoodState_GoodStateWait,
 		goodbasepb.GoodType_Pledge,
 		exec)
 }
